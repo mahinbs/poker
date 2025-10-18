@@ -1,0 +1,615 @@
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+export default function FnbDashboard() {
+  const [activeItem, setActiveItem] = useState("Menu & Inventory");
+  const navigate = useNavigate();
+
+  const menuItems = [
+    "Menu & Inventory",
+    "Order Management", 
+    "Reports & Analytics",
+    "Supplier Management",
+    "Kitchen Operations",
+  ];
+
+  const handleSignOut = () => {
+    navigate("/fnb/signin");
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
+      <div className="mx-auto max-w-[1400px] px-6 py-10 grid grid-cols-12 gap-8">
+        {/* Sidebar */}
+        <aside className="col-span-12 lg:col-span-3 xl:col-span-2 rounded-2xl bg-gradient-to-b from-orange-500/20 via-red-600/30 to-pink-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
+          <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-300 to-pink-400 drop-shadow-lg mb-6">
+            FNB Portal
+          </div>
+          <div className="flex items-center mb-6 text-white min-w-0">
+            <div className="w-10 h-10 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+              <span className="text-gray-900 font-bold text-sm">F</span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-lg font-semibold truncate">FNB Manager</div>
+              <div className="text-sm opacity-80 truncate">fnb@pokerroom.com</div>
+            </div>
+          </div>
+
+          {/* Sidebar Menu */}
+          <nav className="space-y-3">
+            {menuItems.map((item, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveItem(item)}
+                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${
+                  activeItem === item
+                    ? "bg-gradient-to-r from-orange-400 to-red-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
+                    : "bg-white/5 hover:bg-gradient-to-r hover:from-orange-400/20 hover:to-red-500/20 text-white"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Main Section */}
+        <main className="col-span-12 lg:col-span-9 xl:col-span-10 space-y-8">
+          {/* Header */}
+          <header className="bg-gradient-to-r from-orange-600 via-red-500 to-pink-400 p-6 rounded-xl shadow-md flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-white">FNB Portal - {activeItem}</h1>
+              <p className="text-gray-200 mt-1">Manage poker club F&B service, menu, and player orders</p>
+            </div>
+            <button 
+              onClick={handleSignOut}
+              className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
+            >
+              Sign Out
+            </button>
+          </header>
+
+          {/* Dynamic Content Based on Active Item */}
+          {activeItem === "Menu & Inventory" && (
+            <>
+              {/* Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                {[
+                  { title: "Total Menu Items", value: "45", color: "from-orange-400 via-red-500 to-pink-500" },
+                  { title: "Low Stock Items", value: "8", color: "from-red-400 via-pink-500 to-rose-500" },
+                  { title: "Active Orders", value: "12", color: "from-yellow-400 via-orange-500 to-red-500" },
+                  { title: "Today's Revenue", value: "₹15,250", color: "from-green-400 via-emerald-500 to-teal-500" },
+                ].map((card, i) => (
+                  <div
+                    key={i}
+                    className={`p-6 rounded-xl bg-gradient-to-br ${card.color} text-gray-900 shadow-lg transition-transform transform hover:scale-105`}
+                  >
+                    <div className="text-sm opacity-90 text-white/90">{card.title}</div>
+                    <div className="text-3xl font-bold mt-2 text-white">{card.value}</div>
+                    <div className="text-xs mt-1 text-white/70">Real-time data</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Menu Management */}
+              <section className="p-6 bg-gradient-to-r from-orange-600/30 via-red-500/20 to-pink-700/30 rounded-xl shadow-md border border-orange-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Menu Management</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Add Menu Item</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white text-sm">Item Name</label>
+                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter item name" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Category</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option>Appetizers</option>
+                          <option>Main Course</option>
+                          <option>Beverages</option>
+                          <option>Desserts</option>
+                          <option>Snacks</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Price</label>
+                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Description</label>
+                        <textarea className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" rows="3" placeholder="Item description..."></textarea>
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Availability</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option>Available</option>
+                          <option>Out of Stock</option>
+                          <option>Limited</option>
+                        </select>
+                      </div>
+                      <button className="w-full bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Add Menu Item
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Menu Categories</h3>
+                    <div className="space-y-2">
+                      <div className="bg-orange-500/20 p-3 rounded-lg border border-orange-400/30">
+                        <div className="font-semibold text-white">Appetizers</div>
+                        <div className="text-sm text-gray-300">12 items | Avg. Price: ₹150</div>
+                      </div>
+                      <div className="bg-orange-500/20 p-3 rounded-lg border border-orange-400/30">
+                        <div className="font-semibold text-white">Main Course</div>
+                        <div className="text-sm text-gray-300">18 items | Avg. Price: ₹350</div>
+                      </div>
+                      <div className="bg-orange-500/20 p-3 rounded-lg border border-orange-400/30">
+                        <div className="font-semibold text-white">Beverages</div>
+                        <div className="text-sm text-gray-300">8 items | Avg. Price: ₹80</div>
+                      </div>
+                      <div className="bg-orange-500/20 p-3 rounded-lg border border-orange-400/30">
+                        <div className="font-semibold text-white">Desserts</div>
+                        <div className="text-sm text-gray-300">7 items | Avg. Price: ₹120</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Inventory Management */}
+              <section className="p-6 bg-gradient-to-r from-red-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-red-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Inventory Management</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Stock Management</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white text-sm">Item Name</label>
+                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter item name" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Current Stock</label>
+                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Minimum Stock Level</label>
+                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Unit</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option>Pieces</option>
+                          <option>Kg</option>
+                          <option>Liters</option>
+                          <option>Boxes</option>
+                          <option>Packets</option>
+                        </select>
+                      </div>
+                      <button className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Update Stock
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Low Stock Alerts</h3>
+                    <div className="space-y-2">
+                      <div className="bg-red-500/20 p-3 rounded-lg border border-red-400/30">
+                        <div className="font-semibold text-white">Chicken Breast</div>
+                        <div className="text-sm text-gray-300">Stock: 5 kg | Min: 10 kg</div>
+                        <div className="text-xs text-red-300">Critical</div>
+                      </div>
+                      <div className="bg-yellow-500/20 p-3 rounded-lg border border-yellow-400/30">
+                        <div className="font-semibold text-white">Rice</div>
+                        <div className="text-sm text-gray-300">Stock: 15 kg | Min: 20 kg</div>
+                        <div className="text-xs text-yellow-300">Low</div>
+                      </div>
+                      <div className="bg-yellow-500/20 p-3 rounded-lg border border-yellow-400/30">
+                        <div className="font-semibold text-white">Cooking Oil</div>
+                        <div className="text-sm text-gray-300">Stock: 8 liters | Min: 10 liters</div>
+                        <div className="text-xs text-yellow-300">Low</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
+
+          {/* Order Management */}
+          {activeItem === "Order Management" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Order Processing</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">New Order</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white text-sm">Poker Table Number</label>
+                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Table 1" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Player Name</label>
+                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Player name" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Select Items</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option>Chicken Biryani - ₹250</option>
+                          <option>Mutton Curry - ₹300</option>
+                          <option>Fish Fry - ₹200</option>
+                          <option>Vegetable Pulao - ₹180</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Quantity</label>
+                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="1" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Special Instructions</label>
+                        <textarea className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" rows="2" placeholder="Any special requests..."></textarea>
+                      </div>
+                      <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Add to Order
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Active Orders</h3>
+                    <div className="space-y-2">
+                      <div className="bg-green-500/20 p-3 rounded-lg border border-green-400/30">
+                        <div className="font-semibold text-white">Order #001 - Poker Table 1</div>
+                        <div className="text-sm text-gray-300">2x Chicken Biryani, 1x Mutton Curry</div>
+                        <div className="text-xs text-green-300">Status: Preparing</div>
+                        <div className="mt-2 flex gap-2">
+                          <button className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-sm">
+                            Ready
+                          </button>
+                          <button className="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-sm">
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                      <div className="bg-yellow-500/20 p-3 rounded-lg border border-yellow-400/30">
+                        <div className="font-semibold text-white">Order #002 - Poker Table 3</div>
+                        <div className="text-sm text-gray-300">1x Fish Fry, 2x Vegetable Pulao</div>
+                        <div className="text-xs text-yellow-300">Status: Pending</div>
+                        <div className="mt-2 flex gap-2">
+                          <button className="bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded text-sm">
+                            Start
+                          </button>
+                          <button className="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-sm">
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Bill Generation</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Generate Bill</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white text-sm">Order Number</label>
+                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Order #001" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Poker Table Number</label>
+                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Table 1" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Player Name</label>
+                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Player name" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Discount (%)</label>
+                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Tax (%)</label>
+                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="18" />
+                      </div>
+                      <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Generate Bill
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Bill Summary</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Subtotal:</span>
+                        <span className="text-white">₹750.00</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Discount (10%):</span>
+                        <span className="text-green-300">-₹75.00</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Tax (18%):</span>
+                        <span className="text-white">₹121.50</span>
+                      </div>
+                      <div className="flex justify-between border-t border-white/20 pt-2">
+                        <span className="text-white font-bold">Total:</span>
+                        <span className="text-white font-bold">₹796.50</span>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Print Bill
+                      </button>
+                      <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Email Bill
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* Reports & Analytics */}
+          {activeItem === "Reports & Analytics" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-indigo-500/20 to-blue-700/30 rounded-xl shadow-md border border-purple-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Analytics Dashboard</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Daily Report</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Total Orders:</span>
+                        <span className="text-white font-bold">45</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Revenue:</span>
+                        <span className="text-green-300 font-bold">₹15,250</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Avg. Order Value:</span>
+                        <span className="text-white font-bold">₹339</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Top Item:</span>
+                        <span className="text-yellow-300 font-bold">Chicken Biryani</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Weekly Report</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Total Orders:</span>
+                        <span className="text-white font-bold">312</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Revenue:</span>
+                        <span className="text-green-300 font-bold">₹98,500</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Growth:</span>
+                        <span className="text-green-300 font-bold">+12%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Peak Day:</span>
+                        <span className="text-yellow-300 font-bold">Saturday</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Monthly Report</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Total Orders:</span>
+                        <span className="text-white font-bold">1,245</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Revenue:</span>
+                        <span className="text-green-300 font-bold">₹425,000</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Growth:</span>
+                        <span className="text-green-300 font-bold">+18%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">Best Category:</span>
+                        <span className="text-yellow-300 font-bold">Main Course</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Expense Logging</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Add Expense</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white text-sm">Expense Type</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option>Ingredients</option>
+                          <option>Equipment</option>
+                          <option>Utilities</option>
+                          <option>Maintenance</option>
+                          <option>Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Amount</label>
+                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Description</label>
+                        <textarea className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" rows="3" placeholder="Expense description..."></textarea>
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Date</label>
+                        <input type="date" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" />
+                      </div>
+                      <button className="w-full bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Log Expense
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Recent Expenses</h3>
+                    <div className="space-y-2">
+                      <div className="bg-cyan-500/20 p-3 rounded-lg border border-cyan-400/30">
+                        <div className="font-semibold text-white">Chicken Purchase</div>
+                        <div className="text-sm text-gray-300">Amount: ₹2,500 | Type: Ingredients</div>
+                        <div className="text-xs text-cyan-300">Today</div>
+                      </div>
+                      <div className="bg-cyan-500/20 p-3 rounded-lg border border-cyan-400/30">
+                        <div className="font-semibold text-white">Gas Bill</div>
+                        <div className="text-sm text-gray-300">Amount: ₹1,200 | Type: Utilities</div>
+                        <div className="text-xs text-cyan-300">Yesterday</div>
+                      </div>
+                      <div className="bg-cyan-500/20 p-3 rounded-lg border border-cyan-400/30">
+                        <div className="font-semibold text-white">Equipment Repair</div>
+                        <div className="text-sm text-gray-300">Amount: ₹800 | Type: Maintenance</div>
+                        <div className="text-xs text-cyan-300">2 days ago</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* Supplier Management */}
+          {activeItem === "Supplier Management" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-teal-600/30 via-cyan-500/20 to-blue-700/30 rounded-xl shadow-md border border-teal-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Supplier Management</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Add Supplier</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white text-sm">Supplier Name</label>
+                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter supplier name" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Contact Person</label>
+                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Contact person name" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Phone Number</label>
+                        <input type="tel" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Phone number" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Email</label>
+                        <input type="email" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Email address" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Specialization</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option>Meat & Poultry</option>
+                          <option>Vegetables</option>
+                          <option>Spices</option>
+                          <option>Dairy</option>
+                          <option>Beverages</option>
+                        </select>
+                      </div>
+                      <button className="w-full bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Add Supplier
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Active Suppliers</h3>
+                    <div className="space-y-2">
+                      <div className="bg-teal-500/20 p-3 rounded-lg border border-teal-400/30">
+                        <div className="font-semibold text-white">Fresh Foods Ltd.</div>
+                        <div className="text-sm text-gray-300">Contact: John Smith | Meat & Poultry</div>
+                        <div className="text-xs text-teal-300">Phone: +91 98765 43210</div>
+                      </div>
+                      <div className="bg-teal-500/20 p-3 rounded-lg border border-teal-400/30">
+                        <div className="font-semibold text-white">Green Vegetables Co.</div>
+                        <div className="text-sm text-gray-300">Contact: Maria Garcia | Vegetables</div>
+                        <div className="text-xs text-teal-300">Phone: +91 98765 43211</div>
+                      </div>
+                      <div className="bg-teal-500/20 p-3 rounded-lg border border-teal-400/30">
+                        <div className="font-semibold text-white">Spice World</div>
+                        <div className="text-sm text-gray-300">Contact: David Wilson | Spices</div>
+                        <div className="text-xs text-teal-300">Phone: +91 98765 43212</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* Kitchen Operations */}
+          {activeItem === "Kitchen Operations" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-pink-600/30 via-rose-500/20 to-red-700/30 rounded-xl shadow-md border border-pink-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Kitchen Operations</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Station 1 - Quick Snacks</h3>
+                    <div className="space-y-2">
+                      <div className="bg-pink-500/20 p-2 rounded border border-pink-400/30">
+                        <div className="font-semibold text-white text-sm">Samosa (5 orders)</div>
+                        <div className="text-xs text-pink-300">Status: In Progress</div>
+                      </div>
+                      <div className="bg-pink-500/20 p-2 rounded border border-pink-400/30">
+                        <div className="font-semibold text-white text-sm">Pakora (3 orders)</div>
+                        <div className="text-xs text-pink-300">Status: Ready</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Station 2 - Main Meals</h3>
+                    <div className="space-y-2">
+                      <div className="bg-pink-500/20 p-2 rounded border border-pink-400/30">
+                        <div className="font-semibold text-white text-sm">Chicken Biryani (8 orders)</div>
+                        <div className="text-xs text-pink-300">Status: In Progress</div>
+                      </div>
+                      <div className="bg-pink-500/20 p-2 rounded border border-pink-400/30">
+                        <div className="font-semibold text-white text-sm">Mutton Curry (4 orders)</div>
+                        <div className="text-xs text-pink-300">Status: Ready</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Station 3 - Drinks & Beverages</h3>
+                    <div className="space-y-2">
+                      <div className="bg-pink-500/20 p-2 rounded border border-pink-400/30">
+                        <div className="font-semibold text-white text-sm">Fresh Juice (6 orders)</div>
+                        <div className="text-xs text-pink-300">Status: Ready</div>
+                      </div>
+                      <div className="bg-pink-500/20 p-2 rounded border border-pink-400/30">
+                        <div className="font-semibold text-white text-sm">Tea/Coffee (12 orders)</div>
+                        <div className="text-xs text-pink-300">Status: In Progress</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
