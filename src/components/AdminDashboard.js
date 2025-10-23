@@ -7,12 +7,14 @@ export default function AdminDashboard() {
 
   const menuItems = [
     "Dashboard",
+    "Credit Management",
     "Core Management", 
     "Player Acquisition",
     "Session Control",
     "Seating Management",
     "Reports & Analytics",
-    "System Settings"
+    "System Settings",
+    "FNB Portal"
   ];
 
   const handleSignOut = () => {
@@ -25,7 +27,7 @@ export default function AdminDashboard() {
         {/* Sidebar */}
         <aside className="col-span-12 lg:col-span-3 xl:col-span-2 rounded-2xl bg-gradient-to-b from-red-500/20 via-purple-600/30 to-blue-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
           <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-blue-400 drop-shadow-lg mb-6">
-            Admin Portal
+            Super Admin
           </div>
           <div className="flex items-center mb-6 text-white min-w-0">
             <div className="w-10 h-10 bg-gradient-to-r from-red-400 to-purple-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
@@ -60,7 +62,7 @@ export default function AdminDashboard() {
           {/* Header */}
           <header className="bg-gradient-to-r from-red-600 via-purple-500 to-blue-400 p-6 rounded-xl shadow-md flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-white">Admin Portal - {activeItem}</h1>
+              <h1 className="text-2xl font-bold text-white">Super Admin - {activeItem}</h1>
               <p className="text-gray-200 mt-1">Complete system administration and management</p>
             </div>
             <div className="flex gap-3">
@@ -93,6 +95,12 @@ export default function AdminDashboard() {
                 className="bg-orange-600 hover:bg-orange-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
               >
                 FNB Portal
+              </button>
+              <button 
+                onClick={() => navigate("/master-admin")}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
+              >
+                Master Admin
               </button>
               <button 
                 onClick={handleSignOut}
@@ -340,6 +348,119 @@ export default function AdminDashboard() {
                 </div>
               </section>
             </>
+          )}
+
+          {activeItem === "Credit Management" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-amber-600/30 via-yellow-500/20 to-orange-700/30 rounded-xl shadow-md border border-amber-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Credit & Limits</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Set Player Credit Limit</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white text-sm">Player ID</label>
+                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter Player ID" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">New Credit Limit (₹)</label>
+                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Effective From</label>
+                        <input type="date" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" />
+                      </div>
+                      <button className="w-full bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg font-semibold">Update Limit</button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Credit Adjustments</h3>
+                    <div className="space-y-4">
+                      <div className="flex gap-2">
+                        <input type="text" className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Player ID" />
+                        <input type="number" className="w-40 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Amount" />
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">Credit</button>
+                        <button className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">Debit</button>
+                      </div>
+                      <textarea className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" rows="3" placeholder="Reason/Notes"></textarea>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Credit Ledger</h2>
+                <div className="bg-white/10 p-4 rounded-lg overflow-x-auto">
+                  <table className="min-w-full text-left text-white/90">
+                    <thead className="text-white/70 text-sm">
+                      <tr>
+                        <th className="py-2 pr-4">Date</th>
+                        <th className="py-2 pr-4">Player</th>
+                        <th className="py-2 pr-4">Type</th>
+                        <th className="py-2 pr-4">Amount (₹)</th>
+                        <th className="py-2 pr-4">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm">
+                      {[
+                        { date: '2025-10-23', player: 'P001', type: 'Credit', amount: 5000, notes: 'Initial limit' },
+                        { date: '2025-10-23', player: 'P002', type: 'Debit', amount: 1200, notes: 'Settlement' },
+                        { date: '2025-10-22', player: 'P003', type: 'Credit', amount: 3000, notes: 'Increase limit' },
+                      ].map((row) => (
+                        <tr key={`${row.date}-${row.player}`} className="border-t border-white/10">
+                          <td className="py-2 pr-4">{row.date}</td>
+                          <td className="py-2 pr-4">{row.player}</td>
+                          <td className="py-2 pr-4">{row.type}</td>
+                          <td className="py-2 pr-4">{row.amount.toLocaleString('en-IN')}</td>
+                          <td className="py-2 pr-4">{row.notes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeItem === "Credit Management" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Credit Management</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Adjust Player Credit</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-white text-sm">Player ID</label>
+                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter Player ID" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Amount (₹)</label>
+                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" />
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">Add Credit</button>
+                        <button className="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">Deduct Credit</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Credit History</h3>
+                    <div className="space-y-2">
+                      {[{id:'P001',action:'Add',amt:'₹5,000'},{id:'P002',action:'Deduct',amt:'₹1,000'}].map((t,i)=>(
+                        <div key={i} className="flex justify-between items-center bg-white/5 p-3 rounded">
+                          <span className="text-white">{t.id} - {t.action}</span>
+                          <span className="text-green-300 text-sm">{t.amt}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
           )}
 
           {activeItem === "Core Management" && (
@@ -659,6 +780,75 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   </div>
+                </div>
+                <div className="mt-4 flex gap-3">
+                  <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold" onClick={() => {
+                    const rows = [
+                      ['Date','Revenue','Players','Tables'],
+                      ['2025-10-23','12450','23','8'],
+                      ['2025-10-22','11890','21','8']
+                    ];
+                    const csv = rows.map(r => r.join(',')).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'report.csv';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}>Export CSV</button>
+                  <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">Export PDF</button>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeItem === "FNB Portal" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-orange-600/30 via-red-500/20 to-pink-700/30 rounded-xl shadow-md border border-orange-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">FNB Overview</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                  {[
+                    { title: "Total Menu Items", value: "45", color: "from-orange-400 via-red-500 to-pink-500" },
+                    { title: "Active Orders", value: "12", color: "from-yellow-400 via-orange-500 to-red-500" },
+                    { title: "Low Stock Items", value: "8", color: "from-red-400 via-pink-500 to-rose-500" },
+                    { title: "Today's Revenue", value: "₹15,250", color: "from-green-400 via-emerald-500 to-teal-500" },
+                  ].map((card, i) => (
+                    <div key={i} className={`p-6 rounded-xl bg-gradient-to-br ${card.color} text-gray-900 shadow-lg transition-transform transform hover:scale-105`}>
+                      <div className="text-sm opacity-90 text-white/90">{card.title}</div>
+                      <div className="text-3xl font-bold mt-2 text-white">{card.value}</div>
+                      <div className="text-xs mt-1 text-white/70">Updated just now</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="p-6 bg-white/5 rounded-xl border border-white/10">
+                <h3 className="text-lg font-semibold text-white mb-4">Quick FNB Actions</h3>
+                <div className="flex flex-wrap gap-3">
+                  <button className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold">Add Menu Item</button>
+                  <button className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">Update Inventory</button>
+                  <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">Create Order</button>
+                  <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">Generate Bill</button>
+                </div>
+              </section>
+
+              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
+                <h3 className="text-lg font-semibold text-white mb-4">Active Orders</h3>
+                <div className="space-y-2">
+                  {[{id:'#001', table:'Table 1', items:'2x Biryani, 1x Curry', status:'Preparing'}, {id:'#002', table:'Table 3', items:'1x Fish Fry, 2x Pulao', status:'Pending'}].map(o => (
+                    <div key={o.id} className="bg-white/10 p-3 rounded border border-white/20 flex items-center justify-between">
+                      <div className="text-white">
+                        <div className="font-semibold">Order {o.id} • {o.table}</div>
+                        <div className="text-sm text-white/80">{o.items}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-xs bg-blue-500/30 text-blue-200 px-2 py-1 rounded">{o.status}</span>
+                        <button className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm">Advance</button>
+                        <button className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm">Cancel</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </section>
             </div>

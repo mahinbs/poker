@@ -70,6 +70,12 @@ export default function DashboardPage() {
                 Admin Portal
               </button>
               <button 
+                onClick={() => navigate("/master-admin/signin")}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
+              >
+                Master Admin
+              </button>
+              <button 
                 onClick={() => navigate("/gre/signin")}
                 className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
               >
@@ -457,6 +463,155 @@ export default function DashboardPage() {
                     <button className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-semibold">
                       Print Receipt
                     </button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* Real-Time Chat */}
+          {activeItem === "Real-Time Chat" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Real-Time Chat</h2>
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <div className="h-64 overflow-y-auto space-y-2 mb-4">
+                    {["Welcome to support chat.", "Player #P001: Need assistance at Table 2.", "Cashier: On the way!"]
+                      .map((m, i) => (
+                        <div key={i} className="bg-white/5 p-2 rounded text-white/90 text-sm">{m}</div>
+                      ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input type="text" className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Type a message..." />
+                    <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">Send</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* Players */}
+          {activeItem === "Players" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Players</h2>
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <div className="flex gap-2 mb-4">
+                    <input type="text" className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Search players by name or ID" />
+                    <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">Search</button>
+                    <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">Add Player</button>
+                  </div>
+                  <div className="space-y-2">
+                    {[{name:'John Doe', id:'P001'}, {name:'Jane Smith', id:'P002'}].map(p => (
+                      <div key={p.id} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
+                        <div className="text-white">{p.name} <span className="text-white/60 text-sm">({p.id})</span></div>
+                        <div className="flex gap-2">
+                          <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">Details</button>
+                          <button className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm">Block</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* Registered Players */}
+          {activeItem === "Registered Players" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Registered Players</h2>
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <div className="flex gap-2 mb-4">
+                    <input type="text" className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Filter by email or status" />
+                    <button className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold">Filter</button>
+                    <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">Export CSV</button>
+                  </div>
+                  <div className="space-y-2">
+                    {[{name:'Alex Johnson', email:'alex@example.com', status:'Active'}, {name:'Maria Garcia', email:'maria@example.com', status:'Pending'}].map(u => (
+                      <div key={u.email} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
+                        <div className="text-white">
+                          <div className="font-semibold">{u.name}</div>
+                          <div className="text-sm text-white/70">{u.email} • {u.status}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">View</button>
+                          <button className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm">Suspend</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* KYC Review */}
+          {activeItem === "KYC Review" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-amber-600/30 via-yellow-500/20 to-orange-700/30 rounded-xl shadow-md border border-amber-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">KYC Review</h2>
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <div className="space-y-2">
+                    {[{name:'Test Player', id:'P010', status:'Pending'}, {name:'Anil Kumar', id:'P011', status:'Pending'}].map(k => (
+                      <div key={k.id} className="bg-white/5 p-3 rounded border border-white/10">
+                        <div className="flex items-center justify-between">
+                          <div className="text-white font-semibold">{k.name} <span className="text-white/60 text-sm">({k.id})</span></div>
+                          <span className="bg-yellow-500/30 text-yellow-300 font-medium px-3 py-1 rounded-full text-sm border border-yellow-400/50">{k.status}</span>
+                        </div>
+                        <div className="mt-2 flex gap-2">
+                          <button className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm">Approve</button>
+                          <button className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm">Reject</button>
+                          <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">View Docs</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* Push Notifications */}
+          {activeItem === "Push Notifications" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-teal-600/30 via-cyan-500/20 to-blue-700/30 rounded-xl shadow-md border border-teal-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Push Notifications</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Compose Notification</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white text-sm">Title</label>
+                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter title" />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Message</label>
+                        <textarea className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" rows="3" placeholder="Enter message..."></textarea>
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">Audience</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option>All Players</option>
+                          <option>Tables in Play</option>
+                          <option>Waitlist</option>
+                          <option>VIP</option>
+                        </select>
+                      </div>
+                      <button className="w-full bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg font-semibold">Send Notification</button>
+                    </div>
+                  </div>
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Recent Notifications</h3>
+                    <div className="space-y-2">
+                      {[{title:'Welcome Offer', time:'2h ago'}, {title:'Table 2 starting soon', time:'10m ago'}].map(n => (
+                        <div key={n.title} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
+                          <div className="text-white">{n.title}</div>
+                          <div className="text-white/60 text-sm">{n.time}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </section>

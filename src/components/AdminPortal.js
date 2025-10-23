@@ -12,6 +12,7 @@ export default function AdminPortal() {
     "Tournament Management",
     "Dealer Management",
     "Player Acquisition",
+    "Credit Management",
     "Reports & Analytics",
     "Session Control",
     "Seating Management",
@@ -24,7 +25,7 @@ export default function AdminPortal() {
         {/* Sidebar */}
         <aside className="col-span-12 lg:col-span-3 xl:col-span-2 rounded-2xl bg-gradient-to-b from-red-500/20 via-purple-600/30 to-indigo-700/30 p-5 shadow-lg border border-gray-800">
           <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-indigo-400 drop-shadow-lg mb-6">
-            Admin Portal
+            Super Admin Portal
           </div>
           <div className="bg-white/10 rounded-xl p-4 mb-6 text-white shadow-inner">
             <div className="text-lg font-semibold">System Administrator</div>
@@ -54,7 +55,7 @@ export default function AdminPortal() {
           {/* Header */}
           <header className="bg-gradient-to-r from-red-600 via-purple-500 to-indigo-400 p-6 rounded-xl shadow-md flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-white">Admin Portal - {activeItem}</h1>
+              <h1 className="text-2xl font-bold text-white">Super Admin Portal - {activeItem}</h1>
               <p className="text-gray-200 mt-1">Complete system management and control</p>
             </div>
             <div className="flex gap-3">
@@ -63,6 +64,12 @@ export default function AdminPortal() {
                 className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
               >
                 Manager Portal
+              </button>
+              <button 
+                onClick={() => navigate("/fnb/signin")}
+                className="bg-orange-600 hover:bg-orange-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
+              >
+                FNB Portal
               </button>
               <button className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow">
                 Sign Out
@@ -145,6 +152,45 @@ export default function AdminPortal() {
               </div>
             </>
           )}
+
+        {/* Credit Management */}
+        {activeItem === "Credit Management" && (
+          <div className="space-y-6">
+            <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
+              <h2 className="text-xl font-bold text-white mb-6">Credit Management</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">Adjust Player Credit</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-white text-sm">Player ID</label>
+                      <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter Player ID" />
+                    </div>
+                    <div>
+                      <label className="text-white text-sm">Amount (₹)</label>
+                      <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" />
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">Add Credit</button>
+                      <button className="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">Deduct Credit</button>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">Credit History</h3>
+                  <div className="space-y-2">
+                    {[{id:'P001',action:'Add',amt:'₹5,000'},{id:'P002',action:'Deduct',amt:'₹1,000'}].map((t,i)=>(
+                      <div key={i} className="flex justify-between items-center bg-white/5 p-3 rounded">
+                        <span className="text-white">{t.id} - {t.action}</span>
+                        <span className="text-green-300 text-sm">{t.amt}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
 
           {/* Player Management */}
           {activeItem === "Player Management" && (
