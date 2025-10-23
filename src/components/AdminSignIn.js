@@ -21,9 +21,9 @@ export default function AdminSignIn() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-blue-400 drop-shadow-lg mb-4">
-            Admin Portal
+            Super Admin Portal
           </div>
-          <p className="text-gray-300">Poker Club Administration & Management</p>
+          <p className="text-gray-300">System-wide administration & configuration</p>
         </div>
 
         {/* Sign In Form */}

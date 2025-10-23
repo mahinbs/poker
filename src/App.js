@@ -11,6 +11,8 @@ import FnbSignIn from './components/FnbSignIn';
 import FnbDashboard from './components/FnbDashboard';
 import AdminSignIn from './components/AdminSignIn';
 import AdminDashboard from './components/AdminDashboard';
+import MasterAdminSignIn from './components/MasterAdminSignIn';
+import MasterAdminDashboard from './components/MasterAdminDashboard';
 
 function App() {
   return (
@@ -29,6 +31,8 @@ function App() {
           <Route path="/fnb" element={<FnbDashboard />} />
           <Route path="/admin/signin" element={<AdminSignIn />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/master-admin/signin" element={<MasterAdminSignIn />} />
+          <Route path="/master-admin" element={<MasterAdminDashboard />} />
           <Route path="*" element={<Navigate to="/manager" replace />} />
         </Routes>
       </div>

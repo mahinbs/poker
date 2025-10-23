@@ -250,9 +250,31 @@ const ReportsAnalytics = () => {
           <p className="text-gray-600">Comprehensive reporting and analytics dashboard</p>
         </div>
         <div className="flex space-x-2">
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+          <button
+            onClick={() => {
+              const rows = [
+                ["Metric","Revenue","Orders","AvgOrder","Profit"],
+                [
+                  selectedPeriod,
+                  getCurrentData().revenue,
+                  getCurrentData().orders,
+                  getCurrentData().averageOrderValue,
+                  getCurrentData().profit
+                ]
+              ];
+              const csv = rows.map(r => r.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `reports-${activeReport}.csv`;
+              link.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+          >
             <DocumentTextIcon className="h-5 w-5" />
-            <span>Export Report</span>
+            <span>Export CSV</span>
           </button>
           <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2">
             <CalendarIcon className="h-5 w-5" />
