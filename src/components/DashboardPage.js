@@ -22,7 +22,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
       <div className="mx-auto max-w-[1400px] px-6 py-10 grid grid-cols-12 gap-8">
         {/* Sidebar */}
-        <aside className="col-span-12 lg:col-span-3 xl:col-span-2 rounded-2xl bg-gradient-to-b from-yellow-500/20 via-green-600/30 to-emerald-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
+        <aside className="col-span-12 lg:col-span-3 xl:col-span-3 rounded-2xl bg-gradient-to-b from-yellow-500/20 via-green-600/30 to-emerald-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
           <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-green-300 to-teal-400 drop-shadow-lg mb-6">
             Manager Portal
           </div>
@@ -55,7 +55,7 @@ export default function DashboardPage() {
         </aside>
 
         {/* Main Section */}
-        <main className="col-span-12 lg:col-span-9 xl:col-span-10 space-y-8">
+        <main className="col-span-12 lg:col-span-9 xl:col-span-9 space-y-8">
           {/* Header */}
           <header className="bg-gradient-to-r from-emerald-600 via-green-500 to-yellow-400 p-6 rounded-xl shadow-md flex justify-between items-center">
             <div>

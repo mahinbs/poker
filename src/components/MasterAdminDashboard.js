@@ -18,7 +18,7 @@ export default function MasterAdminDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
       <div className="mx-auto max-w-[1400px] px-6 py-10 grid grid-cols-12 gap-8">
-        <aside className="col-span-12 lg:col-span-3 xl:col-span-2 rounded-2xl bg-gradient-to-b from-emerald-500/20 via-teal-600/30 to-cyan-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
+        <aside className="col-span-12 lg:col-span-3 xl:col-span-3 rounded-2xl bg-gradient-to-b from-emerald-500/20 via-teal-600/30 to-cyan-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
           <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 drop-shadow-lg mb-6">
             Master Admin
           </div>
@@ -51,7 +51,7 @@ export default function MasterAdminDashboard() {
           </nav>
         </aside>
 
-        <main className="col-span-12 lg:col-span-9 xl:col-span-10 space-y-8">
+        <main className="col-span-12 lg:col-span-9 xl:col-span-9 space-y-8">
           <BrandingHeader title={`Master Admin - ${activeItem}`} subtitle="White-label control center" />
 
           {activeItem === 'Dashboard' && (
