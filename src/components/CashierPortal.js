@@ -34,7 +34,7 @@ export default function CashierPortal() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
       <div className="mx-auto max-w-[1400px] px-6 py-10 grid grid-cols-12 gap-8">
         {/* Sidebar */}
-        <aside className="col-span-12 lg:col-span-3 xl:col-span-2 rounded-2xl bg-gradient-to-b from-blue-500/20 via-purple-600/30 to-indigo-700/30 p-5 shadow-lg border border-gray-800">
+        <aside className="col-span-12 lg:col-span-3 xl:col-span-3 rounded-2xl bg-gradient-to-b from-blue-500/20 via-purple-600/30 to-indigo-700/30 p-5 shadow-lg border border-gray-800">
           <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-300 to-indigo-400 drop-shadow-lg mb-6">
             Cashier Portal
           </div>
@@ -62,7 +62,7 @@ export default function CashierPortal() {
         </aside>
 
         {/* Main Section */}
-        <main className="col-span-12 lg:col-span-9 xl:col-span-10 space-y-8">
+        <main className="col-span-12 lg:col-span-9 xl:col-span-9 space-y-8">
           {/* Header */}
           <header className="bg-gradient-to-r from-blue-600 via-purple-500 to-indigo-600 p-6 rounded-xl shadow-md flex justify-between items-center">
             <div>
