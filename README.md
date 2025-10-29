@@ -11,9 +11,15 @@ A modern React dashboard for poker operations with role-based portals (Super Adm
 - **Quick Actions**: Fast access to common tasks
 - **KYC Management**: Review pending KYC requests
 - **System Status**: Monitor system health
-- **Super Admin (formerly Admin)**: Credit Management, Reports with CSV export, embedded FNB overview
+- **Super Admin Portal**: Full player & staff management, exclusive credit approvals with dynamic visibility/limits, financial overrides, waitlist & seating overrides, global settings, logs, factory reset
 - **Master Admin**: Cross-club control, clients, white-label settings, branding header
 - **FNB Portal**: Menu & Inventory, Order Management, Reports, Supplier & Kitchen Ops
+
+## Super Admin Portal
+
+- Sign-in: `/super-admin/signin`
+- Demo credentials: Email `super@admin.com`, Password `super123`
+- After sign-in, you’ll be redirected to `/super-admin` with access to player/staff management, credit approvals, overrides, analytics, settings, logs, and system control.
 
 ## Getting Started
 
@@ -53,6 +59,8 @@ PORT=3001 npm start
 ```
 src/
 ├── components/
+│   ├── SuperAdminPortal.js        # Super Admin main portal (players/staff/credit/overrides/logs)
+│   ├── SuperAdminSignIn.js        # Super Admin sign-in page
 │   ├── AdminDashboard.js          # Super Admin dashboard (Credit Mgmt, Reports CSV, FNB embed)
 │   ├── AdminSignIn.js             # Super Admin sign-in
 │   ├── MasterAdminDashboard.js    # Client master admin (clubs/clients/branding)
