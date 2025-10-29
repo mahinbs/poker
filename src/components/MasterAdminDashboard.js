@@ -4,14 +4,37 @@ import BrandingHeader from './BrandingHeader';
 
 export default function MasterAdminDashboard() {
   const [activeItem, setActiveItem] = useState('Dashboard');
+  const [clubs, setClubs] = useState([
+    { id: 'club-01', name: 'Emerald Poker Mumbai', location: 'Mumbai, IN', rummyEnabled: false, subscription: 'active', terms: '', logoUrl: '', videoUrl: '' },
+    { id: 'club-02', name: 'Teal Poker Bangalore', location: 'Bengaluru, IN', rummyEnabled: true, subscription: 'active', terms: '', logoUrl: '', videoUrl: '' },
+    { id: 'club-03', name: 'Cyan Poker Delhi', location: 'Delhi, IN', rummyEnabled: false, subscription: 'paused', terms: '', logoUrl: '', videoUrl: '' },
+  ]);
+  const [selectedClubId, setSelectedClubId] = useState('club-01');
+  const selectedClub = clubs.find(c => c.id === selectedClubId) || clubs[0];
+
+  const [rummyTables, setRummyTables] = useState([
+    { id: 'rt-1', clubId: 'club-02', name: 'Table A', variant: 'Points Rummy', maxPlayers: 6, running: true, rakeEntries: [200, 150], players: [
+      { id: 'P001', name: 'John', balance: 2500, inSeat: true },
+      { id: 'P002', name: 'Jane', balance: 1800, inSeat: true },
+    ]},
+  ]);
+  const [vipProducts, setVipProducts] = useState([
+    { id: 'vip-1', clubId: 'club-01', title: 'VIP Hoodie', points: 1500 },
+    { id: 'vip-2', clubId: 'club-01', title: 'Free Dinner', points: 800 },
+  ]);
   const navigate = useNavigate();
 
   const menuItems = [
     'Dashboard',
     'Clubs Management',
+    'Rummy Settings',
+    'VIP Store',
+    'Terms & Conditions',
+    'Subscriptions',
+    'Branding & Media',
     'Clients Management',
     'White-label Settings',
-    'Reports',
+    'Analytics',
     'FNB Portal',
   ];
 
@@ -104,16 +127,252 @@ export default function MasterAdminDashboard() {
                 <div className="bg-white/10 p-4 rounded-lg">
                   <h3 className="text-lg font-semibold text-white mb-4">Existing Clubs</h3>
                   <div className="space-y-2">
-                    {['Emerald Poker Mumbai', 'Teal Poker Bangalore', 'Cyan Poker Delhi'].map((club) => (
-                      <div key={club} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
-                        <div className="text-white">{club}</div>
+                    {clubs.map((club) => (
+                      <div key={club.id} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
+                        <div className="text-white">{club.name} <span className="text-xs text-white/60">• {club.subscription}</span></div>
                         <div className="flex gap-2">
-                          <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">Edit</button>
+                          <button onClick={() => setSelectedClubId(club.id)} className={`px-3 py-1 rounded text-sm ${selectedClubId===club.id?'bg-emerald-600':'bg-blue-600 hover:bg-blue-500'} text-white`}>{selectedClubId===club.id?'Selected':'Select'}</button>
                           <button className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm">Manage</button>
                           <button className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm">Delete</button>
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeItem === 'Rummy Settings' && (
+            <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-teal-500/20 to-cyan-700/30 rounded-xl shadow-md border border-emerald-800/40">
+              <h2 className="text-xl font-bold text-white mb-6">Rummy Mode & Tables</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">Club Selection</h3>
+                  <select value={selectedClubId} onChange={(e)=>setSelectedClubId(e.target.value)} className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                    {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <div className="mt-4 flex items-center justify-between bg-white/5 p-3 rounded">
+                    <span className="text-white">Enable Rummy for this club</span>
+                    <button onClick={()=>setClubs(prev=>prev.map(c=>c.id===selectedClubId?{...c,rummyEnabled:!c.rummyEnabled}:c))} className={`${selectedClub?.rummyEnabled?'bg-emerald-600':'bg-gray-600'} hover:opacity-90 text-white px-3 py-1 rounded text-sm`}>
+                      {selectedClub?.rummyEnabled?'Enabled':'Disabled'}
+                    </button>
+                  </div>
+                  <div className="mt-3 text-xs text-white/80">
+                    When enabled, UI labels like “Poker Table” become “Rummy Table”, table shape switches to round, and variants are available.
+                  </div>
+                </div>
+
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">Create Rummy Table</h3>
+                  <div className="space-y-3">
+                    <input id="rt-name" type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Custom Table Name (optional)" />
+                    <select id="rt-variant" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                      {['Points Rummy','Pool Rummy','Deals Rummy','Gin Rummy','Indian Rummy - Jackpot','Indian Rummy - Stake','21-Card Rummy - Jackpot','21-Card Rummy - Stake','500 Rummy','Kalooki Rummy','Custom'].map(v => <option key={v}>{v}</option>)}
+                    </select>
+                    <input id="rt-max" type="number" min="2" max="8" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Players (2-8)" />
+                    <button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold" onClick={()=>{
+                      const nameInput = document.getElementById('rt-name');
+                      const variantSelect = document.getElementById('rt-variant');
+                      const maxInput = document.getElementById('rt-max');
+                      const name = nameInput && 'value' in nameInput ? nameInput.value : '';
+                      const variant = variantSelect && 'value' in variantSelect ? variantSelect.value : 'Points Rummy';
+                      const max = maxInput && 'value' in maxInput ? Math.max(2, Math.min(8, parseInt(maxInput.value || '6', 10))) : 6;
+                      const id = `rt-${Date.now()}`;
+                      setRummyTables(prev => [...prev, { id, clubId: selectedClubId, name: name || 'Rummy Table', variant, maxPlayers: max, running: true, rakeEntries: [], players: [] }]);
+                    }}>Create Table</button>
+                    <div className="text-xs text-white/70">
+                      Standard group sizes: Gin Rummy 2 players; Indian/Pool/Deals typically 2–6; 500 Rummy 2–8 (3–5 common).
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">Round Table Preview</h3>
+                  <div className="relative w-full aspect-square bg-white/5 rounded-full border border-white/20 flex items-center justify-center">
+                    <div className="text-white/80 text-sm">Rummy Table (Round)</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 bg-white/10 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">Running Tables (Rake & Balances)</h3>
+                <div className="space-y-3">
+                  {rummyTables.filter(t=>t.clubId===selectedClubId).map(t => {
+                    const totalRake = t.rakeEntries.reduce((a,b)=>a+b,0);
+                    return (
+                      <div key={t.id} className="bg-white/5 p-3 rounded border border-white/10">
+                        <div className="flex items-center justify-between">
+                          <div className="text-white font-semibold">{t.name} • {t.variant} • {t.maxPlayers}P</div>
+                          <div className="text-white/80 text-sm">Rake Total: ₹{totalRake.toLocaleString('en-IN')}</div>
+                        </div>
+                        <div className="mt-2 grid grid-cols-1 lg:grid-cols-3 gap-3">
+                          <div className="bg-white/5 p-3 rounded">
+                            <div className="text-white text-sm font-semibold mb-2">Add Rake Entry</div>
+                            <div className="flex gap-2">
+                              <input id={`rake-${t.id}`} type="number" className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Amount" />
+                              <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded" onClick={()=>{
+                                const el = document.getElementById(`rake-${t.id}`);
+                                const amt = el && 'value' in el ? parseInt(el.value || '0', 10) : 0;
+                                if (!isNaN(amt) && amt>0) setRummyTables(prev=>prev.map(x=>x.id===t.id?{...x, rakeEntries:[...x.rakeEntries, amt]}:x));
+                              }}>Add</button>
+                            </div>
+                          </div>
+                          <div className="bg-white/5 p-3 rounded">
+                            <div className="text-white text-sm font-semibold mb-2">Players & Balances</div>
+                            <div className="space-y-2 max-h-40 overflow-y-auto">
+                              {t.players.map(p => (
+                                <div key={p.id} className="flex items-center justify-between">
+                                  <div className="text-white text-sm">{p.name} • ₹{p.balance.toLocaleString('en-IN')} {p.inSeat? '' : '(Left)'}</div>
+                                  <div className="flex gap-1">
+                                    <button className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-xs" onClick={()=>setRummyTables(prev=>prev.map(x=>x.id===t.id?{...x, players:x.players.map(pp=>pp.id===p.id?{...pp, balance: pp.balance+100}:pp)}:x))}>+100</button>
+                                    <button className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-xs" onClick={()=>setRummyTables(prev=>prev.map(x=>x.id===t.id?{...x, players:x.players.map(pp=>pp.id===p.id?{...pp, balance: pp.balance-100}:pp)}:x))}>-100</button>
+                                    {p.inSeat && (
+                                      <button className="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-xs" onClick={()=>setRummyTables(prev=>prev.map(x=>x.id===t.id?{...x, players:x.players.map(pp=>pp.id===p.id?{...pp, inSeat:false}:pp)}:x))}>Leave</button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="bg-white/5 p-3 rounded">
+                            <div className="text-white text-sm font-semibold mb-2">Close & Send Rake</div>
+                            <div className="text-white/80 text-xs mb-2">On table end, verify total against entries and send to cashier.</div>
+                            <button className="w-full bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-2 rounded text-sm">Send Final Rake</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeItem === 'VIP Store' && (
+            <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
+              <h2 className="text-xl font-bold text-white mb-6">VIP Store</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">Products (Club)</h3>
+                  <div className="flex gap-2 mb-3">
+                    <input id="vip-title" className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Product name" />
+                    <input id="vip-points" type="number" className="w-32 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Points" />
+                    <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded" onClick={()=>{
+                      const t = document.getElementById('vip-title');
+                      const p = document.getElementById('vip-points');
+                      const title = t && 'value' in t ? t.value : '';
+                      const pts = p && 'value' in p ? parseInt(p.value||'0',10) : 0;
+                      if (title.trim() && pts>0) setVipProducts(prev=>[...prev,{ id:`vip-${Date.now()}`, clubId:selectedClubId, title, points: pts }]);
+                    }}>Add</button>
+                  </div>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {vipProducts.filter(v=>v.clubId===selectedClubId).map(v => (
+                      <div key={v.id} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
+                        <div className="text-white text-sm">{v.title}</div>
+                        <div className="text-white/80 text-xs">{v.points} pts</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">Points Calculator</h3>
+                  <div className="space-y-3">
+                    <input id="calc-buyin" type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Buy-in total" />
+                    <input id="calc-hours" type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Hours played" />
+                    <input id="calc-visits" type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Visit frequency" />
+                    <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold" onClick={()=>{
+                      const b=document.getElementById('calc-buyin');
+                      const h=document.getElementById('calc-hours');
+                      const v=document.getElementById('calc-visits');
+                      const buyin = b && 'value' in b ? parseFloat(b.value||'0') : 0;
+                      const hours = h && 'value' in h ? parseFloat(h.value||'0') : 0;
+                      const visits = v && 'value' in v ? parseFloat(v.value||'0') : 0;
+                      const points = (buyin*0.5)+(hours*0.3)+(visits*0.2);
+                      alert(`Estimated Points: ${Math.round(points)}`);
+                    }}>Calculate (Default)</button>
+                    <div className="text-xs text-white/70">Default formula: (Buy-in x 0.5) + (Hours x 0.3) + (Visits x 0.2)</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeItem === 'Terms & Conditions' && (
+            <section className="p-6 bg-gradient-to-r from-gray-600/30 via-slate-500/20 to-gray-700/30 rounded-xl shadow-md border border-gray-800/40">
+              <h2 className="text-xl font-bold text-white mb-6">Terms & Conditions (Per Club)</h2>
+              <div className="bg-white/10 p-4 rounded-lg">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <select value={selectedClubId} onChange={(e)=>setSelectedClubId(e.target.value)} className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                    {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <input id="tnc-link" type="url" className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Optional public URL" />
+                  <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded">Upload / Save</button>
+                </div>
+                <textarea id="tnc-text" className="w-full mt-3 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" rows="6" placeholder="Paste Terms & Conditions here..." onBlur={()=>{
+                  const area=document.getElementById('tnc-text');
+                  const value = area && 'value' in area ? area.value : '';
+                  setClubs(prev=>prev.map(c=>c.id===selectedClubId?{...c, terms:value}:c));
+                }}></textarea>
+                <div className="text-xs text-white/60 mt-2">Only Master Admin can manage club T&C.</div>
+              </div>
+            </section>
+          )}
+
+          {activeItem === 'Subscriptions' && (
+            <section className="p-6 bg-gradient-to-r from-amber-600/30 via-yellow-500/20 to-orange-700/30 rounded-xl shadow-md border border-amber-800/40">
+              <h2 className="text-xl font-bold text-white mb-6">Subscriptions</h2>
+              <div className="space-y-2">
+                {clubs.map(c => (
+                  <div key={c.id} className="bg-white/10 p-3 rounded flex items-center justify-between">
+                    <div className="text-white text-sm">{c.name} • <span className="text-white/70">{c.subscription}</span></div>
+                    <div className="flex gap-2">
+                      <button className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm" onClick={()=>setClubs(prev=>prev.map(x=>x.id===c.id?{...x, subscription:'killed'}:x))}>Kill</button>
+                      <button className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm" onClick={()=>setClubs(prev=>prev.map(x=>x.id===c.id?{...x, subscription:'active'}:x))}>Activate</button>
+                      <button className="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-sm" onClick={()=>setClubs(prev=>prev.map(x=>x.id===c.id?{...x, subscription:'paused'}:x))}>Pause</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {activeItem === 'Branding & Media' && (
+            <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-purple-500/20 to-pink-700/30 rounded-xl shadow-md border border-indigo-800/40">
+              <h2 className="text-xl font-bold text-white mb-6">Branding & Media (Per Club)</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">Media Settings</h3>
+                  <div className="space-y-3">
+                    <select value={selectedClubId} onChange={(e)=>setSelectedClubId(e.target.value)} className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                      {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <input id="club-logo" type="url" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Logo URL (png)" />
+                    <input id="club-video" type="url" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Promo Video URL (mp4)" />
+                    <div className="flex gap-2">
+                      <button className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold" onClick={()=>{
+                        const logo=document.getElementById('club-logo');
+                        const video=document.getElementById('club-video');
+                        const logoUrl = logo && 'value' in logo ? logo.value : '';
+                        const videoUrl = video && 'value' in video ? video.value : '';
+                        setClubs(prev=>prev.map(c=>c.id===selectedClubId?{...c, logoUrl, videoUrl}:c));
+                      }}>Save</button>
+                      <button className="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold" onClick={()=>{
+                        if (!window.confirm('Reset all player-facing data for this club?')) return;
+                        setClubs(prev=>prev.map(c=>c.id===selectedClubId?{...c, terms:'', logoUrl:'', videoUrl:''}:c));
+                      }}>Data Reset</button>
+                    </div>
+                    <div className="text-xs text-white/70">Only Master Admin can change logo/video/skin.</div>
+                  </div>
+                </div>
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">Preview</h3>
+                  <div className="p-6 rounded-xl bg-gradient-to-r from-emerald-600 via-green-500 to-yellow-400 border border-white/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded bg-white/20 border border-white/30 flex items-center justify-center">{selectedClub?.logoUrl? 'IMG' : 'LOGO'}</div>
+                      <div className="text-white font-bold text-xl">{selectedClub?.name}</div>
+                    </div>
+                    <p className="text-white/80 text-sm mt-3">{selectedClub?.videoUrl? 'Video attached' : 'No video set'}</p>
                   </div>
                 </div>
               </div>
