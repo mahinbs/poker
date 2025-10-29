@@ -13,6 +13,8 @@ import AdminSignIn from './components/AdminSignIn';
 import AdminDashboard from './components/AdminDashboard';
 import MasterAdminSignIn from './components/MasterAdminSignIn';
 import MasterAdminDashboard from './components/MasterAdminDashboard';
+import SuperAdminSignIn from './components/SuperAdminSignIn';
+import SuperAdminPortal from './components/SuperAdminPortal';
 
 function App() {
   return (
@@ -33,6 +35,8 @@ function App() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/master-admin/signin" element={<MasterAdminSignIn />} />
           <Route path="/master-admin" element={<MasterAdminDashboard />} />
+          <Route path="/super-admin/signin" element={<SuperAdminSignIn />} />
+          <Route path="/super-admin" element={<SuperAdminPortal />} />
           <Route path="*" element={<Navigate to="/manager" replace />} />
         </Routes>
       </div>

@@ -64,6 +64,12 @@ export default function DashboardPage() {
             </div>
             <div className="flex gap-3">
               <button 
+                onClick={() => navigate("/super-admin/signin")}
+                className="bg-rose-600 hover:bg-rose-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
+              >
+                Super Admin
+              </button>
+              <button 
                 onClick={() => navigate("/admin/signin")}
                 className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
               >
