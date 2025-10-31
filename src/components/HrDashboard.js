@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function HrDashboard() {
-  const [activeItem, setActiveItem] = useState("Staff Lifecycle");
+  const [activeItem, setActiveItem] = useState("Staff Management");
   const navigate = useNavigate();
 
   const menuItems = [
-    "Staff Lifecycle",
+    "Staff Management",
     "Attendance Management", 
     "Staff Directory",
     "Document Management",
@@ -59,7 +59,7 @@ export default function HrDashboard() {
           <header className="bg-gradient-to-r from-purple-600 via-pink-500 to-rose-400 p-6 rounded-xl shadow-md flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-white">HR Portal - {activeItem}</h1>
-              <p className="text-gray-200 mt-1">Manage staff lifecycle, attendance, and performance</p>
+              <p className="text-gray-200 mt-1">Staff management, attendance, and performance</p>
             </div>
             <button 
               onClick={handleSignOut}
@@ -70,7 +70,7 @@ export default function HrDashboard() {
           </header>
 
           {/* Dynamic Content Based on Active Item */}
-          {activeItem === "Staff Lifecycle" && (
+          {activeItem === "Staff Management" && (
             <>
               {/* Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">

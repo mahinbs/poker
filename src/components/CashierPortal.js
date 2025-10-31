@@ -17,6 +17,31 @@ export default function CashierPortal() {
     "Settings"
   ];
 
+  // Mock players data for search
+  const mockPlayers = [
+    { id: "P101", name: "Alex Johnson", email: "alex.johnson@example.com" },
+    { id: "P102", name: "Maria Garcia", email: "maria.garcia@example.com" },
+    { id: "P103", name: "Rajesh Kumar", email: "rajesh.kumar@example.com" },
+    { id: "P104", name: "Priya Sharma", email: "priya.sharma@example.com" },
+    { id: "P105", name: "Amit Patel", email: "amit.patel@example.com" },
+    { id: "P106", name: "John Doe", email: "john.doe@example.com" },
+    { id: "P107", name: "Jane Smith", email: "jane.smith@example.com" }
+  ];
+
+  // Player search for Transaction Management
+  const [transactionPlayerSearch, setTransactionPlayerSearch] = useState("");
+  const [selectedTransactionPlayer, setSelectedTransactionPlayer] = useState(null);
+  const filteredTransactionPlayers = transactionPlayerSearch.length >= 3
+    ? mockPlayers.filter(player => {
+        const searchLower = transactionPlayerSearch.toLowerCase();
+        return (
+          player.name.toLowerCase().includes(searchLower) ||
+          player.id.toLowerCase().includes(searchLower) ||
+          player.email.toLowerCase().includes(searchLower)
+        );
+      })
+    : [];
+
   const [transactions, setTransactions] = useState([
     { id: 1, type: "Deposit", player: "John Doe", amount: 5000, status: "Completed", time: "10:30 AM" },
     { id: 2, type: "Withdrawal", player: "Jane Smith", amount: 2500, status: "Pending", time: "11:15 AM" },
@@ -29,6 +54,47 @@ export default function CashierPortal() {
     { id: 2, name: "Bob Green", role: "Floor Manager", salary: 35000, tips: 2000, total: 37000, status: "Pending" },
     { id: 3, name: "Carol White", role: "Dealer", salary: 25000, tips: 4500, total: 29500, status: "Pending" }
   ]);
+
+  // Helper function to get date/time strings
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    return {
+      date: now.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }),
+      time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      full: now.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    };
+  };
+
+  const getPreviousDayDateTime = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return {
+      date: yesterday.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }),
+      time: yesterday.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      full: yesterday.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    };
+  };
+
+  // Revenue and Rake data with date/time
+  const currentDateTime = getCurrentDateTime();
+  const previousDateTime = getPreviousDayDateTime();
+  
+  const revenueData = {
+    previousDay: {
+      revenue: "₹1,25,000",
+      rake: "₹12,500",
+      date: previousDateTime.date,
+      time: previousDateTime.time,
+      lastUpdated: previousDateTime.full
+    },
+    currentDay: {
+      revenue: "₹1,25,000",
+      rake: "₹12,500",
+      date: currentDateTime.date,
+      time: currentDateTime.time,
+      lastUpdated: currentDateTime.full
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
@@ -88,10 +154,10 @@ export default function CashierPortal() {
               {/* Financial Overview Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                 {[
-                  { title: "Today's Revenue", value: "₹1,25,000", color: "from-green-400 via-emerald-500 to-teal-500" },
                   { title: "Pending Transactions", value: "3", color: "from-yellow-400 via-orange-500 to-red-500" },
                   { title: "Active Shifts", value: "2", color: "from-blue-400 via-indigo-500 to-violet-500" },
                   { title: "Payroll Due", value: "₹1,50,000", color: "from-purple-400 via-pink-500 to-rose-600" },
+                  { title: "System Status", value: "Online", color: "from-emerald-400 via-green-500 to-teal-500" },
                 ].map((card, i) => (
                   <div
                     key={i}
@@ -103,6 +169,56 @@ export default function CashierPortal() {
                   </div>
                 ))}
               </div>
+
+              {/* Revenue & Rake Section */}
+              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Revenue & Rake Overview</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {/* Previous Day Revenue */}
+                  <div className="bg-white/10 p-4 rounded-lg border border-purple-400/30">
+                    <div className="text-sm text-gray-300 mb-1">Previous Day Revenue</div>
+                    <div className="text-2xl font-bold text-white mb-2">{revenueData.previousDay.revenue}</div>
+                    <div className="text-xs text-gray-400 mb-1">
+                      <div>Date: {revenueData.previousDay.date}</div>
+                      <div>Last Updated: {revenueData.previousDay.lastUpdated}</div>
+                    </div>
+                    <div className="text-xs text-purple-300 font-semibold mt-2">Yesterday's Sessions</div>
+                  </div>
+
+                  {/* Current Day Revenue */}
+                  <div className="bg-white/10 p-4 rounded-lg border border-green-400/30">
+                    <div className="text-sm text-gray-300 mb-1">Current Day Revenue</div>
+                    <div className="text-2xl font-bold text-white mb-2">{revenueData.currentDay.revenue}</div>
+                    <div className="text-xs text-gray-400 mb-1">
+                      <div>Date: {revenueData.currentDay.date}</div>
+                      <div>Last Updated: {revenueData.currentDay.lastUpdated}</div>
+                    </div>
+                    <div className="text-xs text-green-300 font-semibold mt-2">Today's Sessions</div>
+                  </div>
+
+                  {/* Previous Day Rake */}
+                  <div className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
+                    <div className="text-sm text-gray-300 mb-1">Previous Day Rake</div>
+                    <div className="text-2xl font-bold text-white mb-2">{revenueData.previousDay.rake}</div>
+                    <div className="text-xs text-gray-400 mb-1">
+                      <div>Date: {revenueData.previousDay.date}</div>
+                      <div>Last Updated: {revenueData.previousDay.lastUpdated}</div>
+                    </div>
+                    <div className="text-xs text-blue-300 font-semibold mt-2">Yesterday's Sessions</div>
+                  </div>
+
+                  {/* Current Day Rake */}
+                  <div className="bg-white/10 p-4 rounded-lg border border-yellow-400/30">
+                    <div className="text-sm text-gray-300 mb-1">Current Day Rake</div>
+                    <div className="text-2xl font-bold text-white mb-2">{revenueData.currentDay.rake}</div>
+                    <div className="text-xs text-gray-400 mb-1">
+                      <div>Date: {revenueData.currentDay.date}</div>
+                      <div>Last Updated: {revenueData.currentDay.lastUpdated}</div>
+                    </div>
+                    <div className="text-xs text-yellow-300 font-semibold mt-2">Today's Sessions</div>
+                  </div>
+                </div>
+              </section>
 
               {/* Quick Actions */}
               <section className="p-6 bg-gradient-to-r from-blue-400/30 via-purple-500/20 to-indigo-700/30 rounded-xl shadow-md border border-blue-800/40">
@@ -169,9 +285,49 @@ export default function CashierPortal() {
                           <option>Fund Move</option>
                         </select>
                       </div>
-                      <div>
-                        <label className="text-white text-sm">Player ID/Name</label>
-                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter player ID or name" />
+                      <div className="relative">
+                        <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
+                        <input 
+                          type="text" 
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder="Search by name, ID, or email..." 
+                          value={transactionPlayerSearch}
+                          onChange={(e) => {
+                            setTransactionPlayerSearch(e.target.value);
+                            setSelectedTransactionPlayer(null);
+                          }}
+                        />
+                        {transactionPlayerSearch.length >= 3 && filteredTransactionPlayers.length > 0 && !selectedTransactionPlayer && (
+                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {filteredTransactionPlayers.map(player => (
+                              <div
+                                key={player.id}
+                                onClick={() => {
+                                  setSelectedTransactionPlayer(player);
+                                  setTransactionPlayerSearch(`${player.name} (${player.id})`);
+                                }}
+                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                              >
+                                <div className="text-white font-medium">{player.name}</div>
+                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {selectedTransactionPlayer && (
+                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
+                            <span className="text-green-300">Selected: {selectedTransactionPlayer.name} ({selectedTransactionPlayer.id})</span>
+                            <button 
+                              onClick={() => {
+                                setSelectedTransactionPlayer(null);
+                                setTransactionPlayerSearch("");
+                              }}
+                              className="ml-2 text-red-400 hover:text-red-300"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <label className="text-white text-sm">Amount (₹)</label>

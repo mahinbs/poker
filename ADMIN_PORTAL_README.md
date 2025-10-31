@@ -47,7 +47,7 @@ The Admin Portal is a comprehensive dashboard designed for system administrators
 - **Dealer Assignment**: Assign dealers to tables
 - **Dealer Status**: Active, On Break, Available status tracking
 
-### 📈 Player Acquisition
+### 📈 Player Registration
 - **Offers & Promotions**:
   - Create targeted promotions
   - Bulk send to player segments
@@ -105,7 +105,7 @@ The Admin Portal is a comprehensive dashboard designed for system administrators
 3. **Table Management** - Table CRUD and session control
 4. **Tournament Management** - Tournament creation and management
 5. **Dealer Management** - Dealer administration and assignment
-6. **Player Acquisition** - Marketing and promotions
+6. **Player Registration** - Marketing and promotions
 7. **Reports & Analytics** - Data analysis and reporting
 8. **Session Control** - Session management and timing
 9. **Seating Management** - Waitlist and seating administration
