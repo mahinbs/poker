@@ -15,6 +15,8 @@ export default function AdminDashboard() {
     "Player Registration",
     "Session Control",
     "Seating Management",
+    "Waitlist & Seating Overrides",
+    "VIP Store",
     "Reports & Analytics",
     "Push Notifications",
     "System Settings",
@@ -666,6 +668,14 @@ export default function AdminDashboard() {
     requireSuperAdminForAmountOver: 50000
   });
 
+  // VIP Store state
+  const [vipProducts, setVipProducts] = useState([
+    { id: 'vip-1', title: 'VIP Hoodie', points: 1500 },
+    { id: 'vip-2', title: 'Free Dinner', points: 800 },
+    { id: 'vip-3', title: 'VIP Poker Set', points: 2500 },
+    { id: 'vip-4', title: 'Premium Tournament Entry', points: 3000 }
+  ]);
+
   // Handle staff bonus approval/rejection
   const handleStaffBonusAction = (requestId, action, notes = "") => {
     setStaffBonusRequests(prev => prev.map(req => {
@@ -692,7 +702,7 @@ export default function AdminDashboard() {
         {/* Sidebar */}
         <aside className="col-span-12 lg:col-span-3 xl:col-span-3 rounded-2xl bg-gradient-to-b from-red-500/20 via-purple-600/30 to-blue-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
           <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-blue-400 drop-shadow-lg mb-6">
-            Super Admin
+            Admin
           </div>
           <div className="flex items-center mb-6 text-white min-w-0">
             <div className="w-10 h-10 bg-gradient-to-r from-red-400 to-purple-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
@@ -727,7 +737,7 @@ export default function AdminDashboard() {
           {/* Header */}
           <header className="bg-gradient-to-r from-red-600 via-purple-500 to-blue-400 p-6 rounded-xl shadow-md flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-white">Super Admin - {activeItem}</h1>
+              <h1 className="text-2xl font-bold text-white">Admin - {activeItem}</h1>
               <p className="text-gray-200 mt-1">Complete system administration and management</p>
             </div>
             <div className="flex gap-3">
@@ -2097,6 +2107,291 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* Waitlist & Seating Overrides */}
+          {activeItem === "Waitlist & Seating Overrides" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Waitlist & Seating Overrides</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Move Between Tables/Sessions</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-white text-sm">Select Player</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option value="">-- Select Player --</option>
+                          <option value="waitlist-1">Alex Johnson - Waitlist Position 1</option>
+                          <option value="waitlist-2">Maria Garcia - Waitlist Position 2</option>
+                          <option value="seated-1">John Doe - Table 1, Seat 3</option>
+                          <option value="seated-2">Jane Smith - Table 2, Seat 5</option>
+                          <option value="seated-3">Mike Johnson - Table 1, Seat 7</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-white text-sm">From Table</label>
+                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                            <option value="">-- Select Table --</option>
+                            <option value="1">Table 1 - Texas Hold'em</option>
+                            <option value="2">Table 2 - Omaha</option>
+                            <option value="3">Table 3 - Seven Card Stud</option>
+                            <option value="waitlist">Waitlist</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-white text-sm">From Seat (Optional)</label>
+                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                            <option value="">Any Seat</option>
+                            {[1,2,3,4,5,6,7,8].map(seat => (
+                              <option key={seat} value={seat}>Seat {seat}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-white text-sm">To Table</label>
+                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                            <option value="">-- Select Table --</option>
+                            <option value="1">Table 1 - Texas Hold'em</option>
+                            <option value="2">Table 2 - Omaha</option>
+                            <option value="3">Table 3 - Seven Card Stud</option>
+                            <option value="waitlist">Waitlist</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-white text-sm">To Seat (Optional)</label>
+                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                            <option value="">Any Available Seat</option>
+                            {[1,2,3,4,5,6,7,8].map(seat => (
+                              <option key={seat} value={seat}>Seat {seat}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Move Player
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Force Seat Assignment (Override)</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-white text-sm">Select Player</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option value="">-- Select Player --</option>
+                          <option value="waitlist-1">Alex Johnson - Waitlist Position 1</option>
+                          <option value="waitlist-2">Maria Garcia - Waitlist Position 2</option>
+                          <option value="waitlist-3">David Wilson - Waitlist Position 3</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-white text-sm">Table</label>
+                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                            <option value="">-- Select Table --</option>
+                            <option value="1">Table 1 - Texas Hold'em</option>
+                            <option value="2">Table 2 - Omaha</option>
+                            <option value="3">Table 3 - Seven Card Stud</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-white text-sm">Seat Number</label>
+                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                            <option value="">-- Select Seat --</option>
+                            {[1,2,3,4,5,6,7,8].map(seat => (
+                              <option key={seat} value={seat}>Seat {seat}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="bg-yellow-500/20 border border-yellow-400/30 p-2 rounded text-xs text-yellow-300">
+                        ⚠️ Force assignment will override seat availability and move existing player if needed
+                      </div>
+                      <button className="w-full bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Force Assign Seat (Override)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Override Waitlist Priority</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-white text-sm">Select Player from Waitlist</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option value="">-- Select Player --</option>
+                          <option value="1">Position 1: Alex Johnson</option>
+                          <option value="2">Position 2: Maria Garcia</option>
+                          <option value="3">Position 3: David Wilson</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">New Priority Position</label>
+                        <input 
+                          type="number" 
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder="Enter position (1-10)"
+                          min="1"
+                          max="10"
+                        />
+                      </div>
+                      <button className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Update Priority
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Waitlist Actions</h3>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <label className="text-white text-sm">Select Player to Remove</label>
+                        <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option value="">-- Select Player --</option>
+                          <option value="1">Alex Johnson - Position 1</option>
+                          <option value="2">Maria Garcia - Position 2</option>
+                          <option value="3">David Wilson - Position 3</option>
+                        </select>
+                      </div>
+                      <button className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Remove from Waitlist
+                      </button>
+                      <div className="border-t border-white/20 pt-3 mt-3">
+                        <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold mb-2">
+                          Call Next Player
+                        </button>
+                        <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
+                          Call All Waitlisted Players
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* VIP Store */}
+          {activeItem === "VIP Store" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">VIP Store Management</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">VIP Products</h3>
+                    <div className="flex gap-2 mb-3">
+                      <input 
+                        id="vip-title" 
+                        className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                        placeholder="Product name" 
+                      />
+                      <input 
+                        id="vip-points" 
+                        type="number" 
+                        className="w-32 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                        placeholder="Points" 
+                      />
+                      <button 
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded" 
+                        onClick={() => {
+                          const t = document.getElementById('vip-title');
+                          const p = document.getElementById('vip-points');
+                          const title = t && 'value' in t ? t.value : '';
+                          const pts = p && 'value' in p ? parseInt(p.value || '0', 10) : 0;
+                          if (title.trim() && pts > 0) {
+                            setVipProducts(prev => [...prev, { id: `vip-${Date.now()}`, title, points: pts }]);
+                            if (t) t.value = '';
+                            if (p) p.value = '';
+                          }
+                        }}
+                      >
+                        Add
+                      </button>
+                    </div>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {vipProducts.map(v => (
+                        <div key={v.id} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
+                          <div className="text-white text-sm">{v.title}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-white/80 text-xs">{v.points} pts</div>
+                            <button 
+                              onClick={() => {
+                                if (window.confirm(`Delete "${v.title}"?`)) {
+                                  setVipProducts(prev => prev.filter(p => p.id !== v.id));
+                                }
+                              }}
+                              className="text-red-400 hover:text-red-300 text-xs"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {vipProducts.length === 0 && (
+                        <div className="text-center py-4 text-gray-400 text-sm">
+                          No products. Add products above.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Points Calculator</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-white text-sm mb-1 block">Buy-in Total</label>
+                        <input 
+                          id="calc-buyin" 
+                          type="number" 
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder="Enter buy-in amount" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm mb-1 block">Hours Played</label>
+                        <input 
+                          id="calc-hours" 
+                          type="number" 
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder="Enter hours played" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm mb-1 block">Visit Frequency</label>
+                        <input 
+                          id="calc-visits" 
+                          type="number" 
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder="Enter visit frequency" 
+                        />
+                      </div>
+                      <button 
+                        className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold" 
+                        onClick={() => {
+                          const b = document.getElementById('calc-buyin');
+                          const h = document.getElementById('calc-hours');
+                          const v = document.getElementById('calc-visits');
+                          const buyin = b && 'value' in b ? parseFloat(b.value || '0') : 0;
+                          const hours = h && 'value' in h ? parseFloat(h.value || '0') : 0;
+                          const visits = v && 'value' in v ? parseFloat(v.value || '0') : 0;
+                          const points = (buyin * 0.5) + (hours * 0.3) + (visits * 0.2);
+                          alert(`Estimated Points: ${Math.round(points)}`);
+                        }}
+                      >
+                        Calculate Points
+                      </button>
+                      <div className="text-xs text-white/70 bg-white/5 p-2 rounded">
+                        <strong>Formula:</strong> (Buy-in × 0.5) + (Hours × 0.3) + (Visits × 0.2)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
           {activeItem === "Reports & Analytics" && (
             <div className="space-y-6">
               {/* Report Type Selection */}
@@ -2744,7 +3039,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
                       <div>
                         <div className="text-white font-semibold">Require Approval for Staff Bonuses</div>
-                        <div className="text-gray-400 text-sm">All staff bonuses must be approved by Super Admin/Admin</div>
+                        <div className="text-gray-400 text-sm">All staff bonuses must be approved by Admin/Admin</div>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
@@ -2780,7 +3075,7 @@ export default function AdminDashboard() {
                         <p className="text-xs text-gray-400 mt-1">Bonuses under this amount auto-approve</p>
                       </div>
                       <div>
-                        <label className="text-white text-sm">Require Super Admin for Amount Over (₹)</label>
+                        <label className="text-white text-sm">Require Admin for Amount Over (₹)</label>
                         <input 
                           type="number" 
                           className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
@@ -2788,7 +3083,7 @@ export default function AdminDashboard() {
                           onChange={(e) => setBonusApprovalConfig({...bonusApprovalConfig, requireSuperAdminForAmountOver: parseFloat(e.target.value) || 0})}
                           placeholder="50000"
                         />
-                        <p className="text-xs text-gray-400 mt-1">Bonuses above this require Super Admin approval</p>
+                        <p className="text-xs text-gray-400 mt-1">Bonuses above this require Admin approval</p>
                       </div>
                     </div>
                     <button 
