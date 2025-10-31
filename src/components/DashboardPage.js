@@ -546,6 +546,7 @@ export default function DashboardPage() {
     "Table Operations", 
     "Player Flow",
     "Seating Management",
+    "Waitlist & Seating Overrides",
     "Real-Time Chat",
     "Players",
     "Registered Players",
@@ -2129,6 +2130,180 @@ export default function DashboardPage() {
                           No players to reorder
                         </div>
                       )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* Waitlist & Seating Overrides */}
+          {activeItem === "Waitlist & Seating Overrides" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Waitlist & Seating Overrides</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Move Between Tables/Sessions</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-white text-sm">Select Player</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option value="">-- Select Player --</option>
+                          {waitlist.map((entry) => (
+                            <option key={entry.id} value={entry.id}>
+                              {entry.playerName} - Position {entry.position} ({entry.gameType})
+                            </option>
+                          ))}
+                          {/* Also show players currently seated */}
+                          <option value="seated-1">John Doe - Table 1, Seat 3</option>
+                          <option value="seated-2">Jane Smith - Table 2, Seat 5</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-white text-sm">From Table</label>
+                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                            <option value="">-- Select Table --</option>
+                            {tables.map((table) => (
+                              <option key={table.id} value={table.id}>{table.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-white text-sm">From Seat (Optional)</label>
+                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                            <option value="">Any Seat</option>
+                            {[1,2,3,4,5,6,7,8].map(seat => (
+                              <option key={seat} value={seat}>Seat {seat}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-white text-sm">To Table</label>
+                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                            <option value="">-- Select Table --</option>
+                            {tables.map((table) => (
+                              <option key={table.id} value={table.id}>{table.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-white text-sm">To Seat (Optional)</label>
+                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                            <option value="">Any Available Seat</option>
+                            {[1,2,3,4,5,6,7,8].map(seat => (
+                              <option key={seat} value={seat}>Seat {seat}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Move Player
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Force Seat Assignment (Override)</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-white text-sm">Select Player</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option value="">-- Select Player --</option>
+                          {waitlist.map((entry) => (
+                            <option key={entry.id} value={entry.id}>
+                              {entry.playerName} - Position {entry.position}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-white text-sm">Table</label>
+                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                            <option value="">-- Select Table --</option>
+                            {tables.map((table) => (
+                              <option key={table.id} value={table.id}>{table.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-white text-sm">Seat Number</label>
+                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                            <option value="">-- Select Seat --</option>
+                            {[1,2,3,4,5,6,7,8].map(seat => (
+                              <option key={seat} value={seat}>Seat {seat}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="bg-yellow-500/20 border border-yellow-400/30 p-2 rounded text-xs text-yellow-300">
+                        ⚠️ Force assignment will override seat availability and move existing player if needed
+                      </div>
+                      <button className="w-full bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Force Assign Seat (Override)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Override Waitlist Priority</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-white text-sm">Select Player from Waitlist</label>
+                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option value="">-- Select Player --</option>
+                          {waitlist.map((entry) => (
+                            <option key={entry.id} value={entry.id}>
+                              Position {entry.position}: {entry.playerName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-white text-sm">New Priority Position</label>
+                        <input 
+                          type="number" 
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder={`Enter position (1-${waitlist.length || 1})`}
+                          min="1"
+                          max={waitlist.length || 1}
+                        />
+                      </div>
+                      <button className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Update Priority
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Waitlist Actions</h3>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <label className="text-white text-sm">Select Player to Remove</label>
+                        <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <option value="">-- Select Player --</option>
+                          {waitlist.map((entry) => (
+                            <option key={entry.id} value={entry.id}>
+                              {entry.playerName} - Position {entry.position}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <button className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">
+                        Remove from Waitlist
+                      </button>
+                      <div className="border-t border-white/20 pt-3 mt-3">
+                        <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold mb-2">
+                          Call Next Player
+                        </button>
+                        <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
+                          Call All Waitlisted Players
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
