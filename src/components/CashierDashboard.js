@@ -52,6 +52,7 @@ export default function CashierDashboard() {
   // Player search states - multiple instances for different sections
   const [depositPlayerSearch, setDepositPlayerSearch] = useState("");
   const [selectedDepositPlayer, setSelectedDepositPlayer] = useState(null);
+  const [depositChipCount, setDepositChipCount] = useState("");
   const filteredDepositPlayers = depositPlayerSearch.length >= 3
     ? mockPlayers.filter(player => {
         const searchLower = depositPlayerSearch.toLowerCase();
@@ -65,6 +66,7 @@ export default function CashierDashboard() {
 
   const [withdrawalPlayerSearch, setWithdrawalPlayerSearch] = useState("");
   const [selectedWithdrawalPlayer, setSelectedWithdrawalPlayer] = useState(null);
+  const [withdrawalChipCount, setWithdrawalChipCount] = useState("");
   const filteredWithdrawalPlayers = withdrawalPlayerSearch.length >= 3
     ? mockPlayers.filter(player => {
         const searchLower = withdrawalPlayerSearch.toLowerCase();
@@ -529,6 +531,7 @@ export default function CashierDashboard() {
                           onChange={(e) => {
                             setDepositPlayerSearch(e.target.value);
                             setSelectedDepositPlayer(null);
+                            setDepositChipCount("");
                           }}
                         />
                         {depositPlayerSearch.length >= 3 && filteredDepositPlayers.length > 0 && !selectedDepositPlayer && (
@@ -555,6 +558,7 @@ export default function CashierDashboard() {
                               onClick={() => {
                                 setSelectedDepositPlayer(null);
                                 setDepositPlayerSearch("");
+                                setDepositChipCount("");
                               }}
                               className="ml-2 text-red-400 hover:text-red-300"
                             >
@@ -577,14 +581,14 @@ export default function CashierDashboard() {
                         <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
                       </div>
                       <div>
-                        <label className="text-white text-sm">Payment Method</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Cash</option>
-                          <option>Bank Transfer</option>
-                          <option>UPI</option>
-                          <option>Credit Card</option>
-                          <option>Debit Card</option>
-                        </select>
+                        <label className="text-white text-sm">Chip Count</label>
+                        <input 
+                          type="number" 
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder="Enter chip count" 
+                          value={depositChipCount}
+                          onChange={(e) => setDepositChipCount(e.target.value)}
+                        />
                       </div>
                       <div>
                         <label className="text-white text-sm">Reference Number</label>
@@ -597,6 +601,7 @@ export default function CashierDashboard() {
                             return;
                           }
                           alert(`Processing deposit for ${selectedDepositPlayer.name} (${selectedDepositPlayer.id})`);
+                          setDepositChipCount("");
                         }}
                         className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold"
                       >
@@ -618,6 +623,7 @@ export default function CashierDashboard() {
                           onChange={(e) => {
                             setWithdrawalPlayerSearch(e.target.value);
                             setSelectedWithdrawalPlayer(null);
+                            setWithdrawalChipCount("");
                           }}
                         />
                         {withdrawalPlayerSearch.length >= 3 && filteredWithdrawalPlayers.length > 0 && !selectedWithdrawalPlayer && (
@@ -644,6 +650,7 @@ export default function CashierDashboard() {
                               onClick={() => {
                                 setSelectedWithdrawalPlayer(null);
                                 setWithdrawalPlayerSearch("");
+                                setWithdrawalChipCount("");
                               }}
                               className="ml-2 text-red-400 hover:text-red-300"
                             >
@@ -666,13 +673,14 @@ export default function CashierDashboard() {
                         <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
                       </div>
                       <div>
-                        <label className="text-white text-sm">Payment Method</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Cash</option>
-                          <option>Bank Transfer</option>
-                          <option>UPI</option>
-                          <option>Cheque</option>
-                        </select>
+                        <label className="text-white text-sm">Chip Count</label>
+                        <input 
+                          type="number" 
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder="Enter chip count" 
+                          value={withdrawalChipCount}
+                          onChange={(e) => setWithdrawalChipCount(e.target.value)}
+                        />
                       </div>
                       <button 
                         onClick={() => {
@@ -681,6 +689,7 @@ export default function CashierDashboard() {
                             return;
                           }
                           alert(`Processing withdrawal for ${selectedWithdrawalPlayer.name} (${selectedWithdrawalPlayer.id})`);
+                          setWithdrawalChipCount("");
                         }}
                         className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold"
                       >

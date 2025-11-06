@@ -334,16 +334,6 @@ export default function CashierPortal() {
                         <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0.00" />
                       </div>
                       <div>
-                        <label className="text-white text-sm">Payment Method</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Cash</option>
-                          <option>Bank Transfer</option>
-                          <option>UPI</option>
-                          <option>Cheque</option>
-                          <option>Card</option>
-                        </select>
-                      </div>
-                      <div>
                         <label className="text-white text-sm">Notes</label>
                         <textarea className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" rows="2" placeholder="Transaction notes..."></textarea>
                       </div>

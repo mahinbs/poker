@@ -9,12 +9,199 @@ export default function HrDashboard() {
     "Staff Management",
     "Attendance Management", 
     "Staff Directory",
-    "Document Management",
     "Performance Reviews",
   ];
 
+  // Staff members data with documents
+  const staffMembers = [
+    { 
+      id: "S001", 
+      name: "Sarah Johnson", 
+      position: "Dealer", 
+      department: "Operations",
+      email: "sarah.j@email.com",
+      phone: "+91 98765 43210",
+      startDate: "2024-01-15",
+      status: "Active",
+      documents: [
+        { type: "PAN Card", status: "Verified", uploadedDate: "2024-01-10" },
+        { type: "Aadhaar Card", status: "Verified", uploadedDate: "2024-01-10" },
+        { type: "ID Card", status: "Verified", uploadedDate: "2024-01-15" },
+        { type: "Medical Certificate", status: "Verified", uploadedDate: "2024-01-12" }
+      ]
+    },
+    { 
+      id: "S002", 
+      name: "Mike Chen", 
+      position: "Floor Manager", 
+      department: "Operations",
+      email: "mike.c@email.com",
+      phone: "+91 98765 43211",
+      startDate: "2023-11-20",
+      status: "Active",
+      documents: [
+        { type: "PAN Card", status: "Verified", uploadedDate: "2023-11-15" },
+        { type: "Passport", status: "Verified", uploadedDate: "2023-11-15" },
+        { type: "Experience Certificate", status: "Pending Review", uploadedDate: "2024-01-20" },
+        { type: "ID Card", status: "Verified", uploadedDate: "2023-11-20" }
+      ]
+    },
+    { 
+      id: "S003", 
+      name: "Emma Davis", 
+      position: "Cashier", 
+      department: "Operations",
+      email: "emma.d@email.com",
+      phone: "+91 98765 43212",
+      startDate: "2024-02-01",
+      status: "On Leave",
+      documents: [
+        { type: "PAN Card", status: "Verified", uploadedDate: "2024-01-28" },
+        { type: "Aadhaar Card", status: "Verified", uploadedDate: "2024-01-28" },
+        { type: "Medical Certificate", status: "Verified", uploadedDate: "2024-02-01" },
+        { type: "ID Card", status: "Verified", uploadedDate: "2024-02-01" }
+      ]
+    },
+    { 
+      id: "S004", 
+      name: "John Smith", 
+      position: "Security", 
+      department: "Security",
+      email: "john.s@email.com",
+      phone: "+91 98765 43213",
+      startDate: "2023-12-10",
+      status: "Active",
+      documents: [
+        { type: "PAN Card", status: "Verified", uploadedDate: "2023-12-05" },
+        { type: "Driving License", status: "Verified", uploadedDate: "2023-12-05" },
+        { type: "ID Card", status: "Verified", uploadedDate: "2023-12-10" }
+      ]
+    },
+    { 
+      id: "S005", 
+      name: "David Wilson", 
+      position: "Dealer", 
+      department: "Operations",
+      email: "david.w@email.com",
+      phone: "+91 98765 43214",
+      startDate: "2024-01-20",
+      status: "Active",
+      documents: [
+        { type: "PAN Card", status: "Verified", uploadedDate: "2024-01-18" },
+        { type: "ID Card", status: "Verified", uploadedDate: "2024-01-20" }
+      ]
+    },
+    { 
+      id: "S006", 
+      name: "Lisa Brown", 
+      position: "Kitchen Staff", 
+      department: "Kitchen",
+      email: "lisa.b@email.com",
+      phone: "+91 98765 43215",
+      startDate: "2024-02-05",
+      status: "Active",
+      documents: [
+        { type: "PAN Card", status: "Verified", uploadedDate: "2024-02-03" },
+        { type: "Aadhaar Card", status: "Verified", uploadedDate: "2024-02-03" },
+        { type: "ID Card", status: "Verified", uploadedDate: "2024-02-05" }
+      ]
+    },
+  ];
+
+  // State for Attendance Management
+  const [staffSearch, setStaffSearch] = useState("");
+  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [breakDuration, setBreakDuration] = useState("");
+  const [notes, setNotes] = useState("");
+  const [shiftLogs, setShiftLogs] = useState([]);
+
+  // State for Staff Directory
+  const [selectedStaffDetails, setSelectedStaffDetails] = useState(null);
+
+  // Filter staff for dropdown search
+  const filteredStaffForSearch = staffSearch.length >= 2
+    ? staffMembers.filter(staff => {
+        const searchLower = staffSearch.toLowerCase();
+        return (
+          staff.name.toLowerCase().includes(searchLower) ||
+          staff.position.toLowerCase().includes(searchLower) ||
+          staff.id.toLowerCase().includes(searchLower) ||
+          staff.department.toLowerCase().includes(searchLower)
+        );
+      })
+    : [];
+
   const handleSignOut = () => {
     navigate("/hr/signin");
+  };
+
+  // Handle Log In
+  const handleLogIn = () => {
+    if (!selectedStaff) {
+      alert("Please select a staff member first");
+      return;
+    }
+    const now = new Date();
+    const date = now.toISOString().split('T')[0];
+    const time = now.toTimeString().split(' ')[0].substring(0, 5);
+    
+    const newLog = {
+      id: Date.now(),
+      staffId: selectedStaff.id,
+      staffName: selectedStaff.name,
+      position: selectedStaff.position,
+      date: date,
+      loginTime: time,
+      logoutTime: null,
+      breakDuration: breakDuration || "0",
+      notes: notes,
+      status: "Active"
+    };
+    
+    setShiftLogs(prev => [newLog, ...prev]);
+    alert(`Logged in: ${selectedStaff.name}\nDate: ${date}\nTime: ${time}`);
+    
+    // Reset form
+    setSelectedStaff(null);
+    setStaffSearch("");
+    setBreakDuration("");
+    setNotes("");
+  };
+
+  // Handle Log Out
+  const handleLogOut = () => {
+    if (!selectedStaff) {
+      alert("Please select a staff member first");
+      return;
+    }
+    
+    // Find the most recent active log for this staff member
+    const activeLog = shiftLogs.find(log => 
+      log.staffId === selectedStaff.id && log.status === "Active" && !log.logoutTime
+    );
+    
+    if (!activeLog) {
+      alert(`No active shift found for ${selectedStaff.name}. Please log in first.`);
+      return;
+    }
+    
+    const now = new Date();
+    const time = now.toTimeString().split(' ')[0].substring(0, 5);
+    
+    // Update the log with logout time
+    setShiftLogs(prev => prev.map(log => 
+      log.id === activeLog.id 
+        ? { ...log, logoutTime: time, status: "Completed" }
+        : log
+    ));
+    
+    alert(`Logged out: ${selectedStaff.name}\nDate: ${activeLog.date}\nLogout Time: ${time}`);
+    
+    // Reset form
+    setSelectedStaff(null);
+    setStaffSearch("");
+    setBreakDuration("");
+    setNotes("");
   };
 
   return (
@@ -272,59 +459,120 @@ export default function HrDashboard() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-white text-sm">Staff Member</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Sarah Johnson - Dealer</option>
-                          <option>Mike Chen - Floor Manager</option>
-                          <option>Emma Davis - Cashier</option>
-                          <option>John Smith - Security</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Shift Date</label>
-                        <input type="date" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-white text-sm">Start Time</label>
-                          <input type="time" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" />
-                        </div>
-                        <div>
-                          <label className="text-white text-sm">End Time</label>
-                          <input type="time" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" />
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                            placeholder="Type at least 2 characters to search..." 
+                            value={staffSearch}
+                            onChange={(e) => {
+                              setStaffSearch(e.target.value);
+                              setSelectedStaff(null);
+                            }}
+                          />
+                          {staffSearch.length >= 2 && filteredStaffForSearch.length > 0 && !selectedStaff && (
+                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {filteredStaffForSearch.map(staff => (
+                                <div
+                                  key={staff.id}
+                                  onClick={() => {
+                                    setSelectedStaff(staff);
+                                    setStaffSearch(`${staff.name} - ${staff.position}`);
+                                  }}
+                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                                >
+                                  <div className="text-white font-medium">{staff.name}</div>
+                                  <div className="text-gray-400 text-xs">ID: {staff.id} | {staff.position} | {staff.department}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {selectedStaff && (
+                            <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
+                              <span className="text-green-300">Selected: {selectedStaff.name} ({selectedStaff.position})</span>
+                              <button 
+                                onClick={() => {
+                                  setSelectedStaff(null);
+                                  setStaffSearch("");
+                                }}
+                                className="ml-2 text-red-400 hover:text-red-300 font-bold"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div>
                         <label className="text-white text-sm">Break Duration (minutes)</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="30" />
+                        <input 
+                          type="number" 
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder="30" 
+                          value={breakDuration}
+                          onChange={(e) => setBreakDuration(e.target.value)}
+                        />
                       </div>
                       <div>
                         <label className="text-white text-sm">Notes</label>
-                        <textarea className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" rows="3" placeholder="Any additional notes..."></textarea>
+                        <textarea 
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          rows="3" 
+                          placeholder="Any additional notes..."
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                        ></textarea>
                       </div>
-                      <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Log Shift
-                      </button>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button 
+                          onClick={handleLogIn}
+                          className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold"
+                        >
+                          Log In
+                        </button>
+                        <button 
+                          onClick={handleLogOut}
+                          className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold"
+                        >
+                          Log Out
+                        </button>
+                      </div>
                     </div>
                   </div>
 
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Today's Shifts</h3>
-                    <div className="space-y-2">
-                      <div className="bg-green-500/20 p-3 rounded-lg border border-green-400/30">
-                        <div className="font-semibold text-white">Sarah Johnson</div>
-                        <div className="text-sm text-gray-300">Dealer | 9:00 AM - 5:00 PM</div>
-                        <div className="text-xs text-green-300">Status: Active</div>
-                      </div>
-                      <div className="bg-blue-500/20 p-3 rounded-lg border border-blue-400/30">
-                        <div className="font-semibold text-white">Mike Chen</div>
-                        <div className="text-sm text-gray-300">Floor Manager | 2:00 PM - 10:00 PM</div>
-                        <div className="text-xs text-blue-300">Status: Scheduled</div>
-                      </div>
-                      <div className="bg-yellow-500/20 p-3 rounded-lg border border-yellow-400/30">
-                        <div className="font-semibold text-white">Emma Davis</div>
-                        <div className="text-sm text-gray-300">Cashier | 6:00 PM - 2:00 AM</div>
-                        <div className="text-xs text-yellow-300">Status: Break</div>
-                      </div>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {shiftLogs.length > 0 ? (
+                        shiftLogs.map(log => (
+                          <div 
+                            key={log.id} 
+                            className={`p-3 rounded-lg border ${
+                              log.status === "Active" 
+                                ? "bg-green-500/20 border-green-400/30" 
+                                : "bg-blue-500/20 border-blue-400/30"
+                            }`}
+                          >
+                            <div className="font-semibold text-white">{log.staffName}</div>
+                            <div className="text-sm text-gray-300">{log.position} | {log.date}</div>
+                            <div className="text-sm text-gray-300">
+                              {log.loginTime} {log.logoutTime ? `- ${log.logoutTime}` : ""}
+                            </div>
+                            {log.breakDuration && log.breakDuration !== "0" && (
+                              <div className="text-xs text-gray-400">Break: {log.breakDuration} min</div>
+                            )}
+                            <div className={`text-xs ${
+                              log.status === "Active" ? "text-green-300" : "text-blue-300"
+                            }`}>
+                              Status: {log.status}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-gray-400">
+                          No shifts logged today
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -409,73 +657,166 @@ export default function HrDashboard() {
               <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Staff Directory</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold text-white">Sarah Johnson</h3>
-                      <span className="bg-green-500/30 text-green-300 px-2 py-1 rounded text-sm">Active</span>
+                  {staffMembers.map(staff => (
+                    <div key={staff.id} className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
+                      <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-lg font-semibold text-white">{staff.name}</h3>
+                        <span className={`px-2 py-1 rounded text-sm ${
+                          staff.status === "Active" 
+                            ? "bg-green-500/30 text-green-300" 
+                            : "bg-yellow-500/30 text-yellow-300"
+                        }`}>
+                          {staff.status}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-sm text-gray-300">Position: {staff.position}</div>
+                        <div className="text-sm text-gray-300">Department: {staff.department}</div>
+                        <div className="text-sm text-gray-300">Email: {staff.email}</div>
+                        <div className="text-sm text-gray-300">Phone: {staff.phone}</div>
+                        <div className="text-sm text-gray-300">Start Date: {staff.startDate}</div>
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => setSelectedStaffDetails(staff)}
+                          className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-sm"
+                        >
+                          View Details
+                        </button>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <div className="text-sm text-gray-300">Position: Dealer</div>
-                      <div className="text-sm text-gray-300">Department: Operations</div>
-                      <div className="text-sm text-gray-300">Email: sarah.j@email.com</div>
-                      <div className="text-sm text-gray-300">Phone: +91 98765 43210</div>
-                      <div className="text-sm text-gray-300">Start Date: 2024-01-15</div>
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
-                        Edit
-                      </button>
-                      <button className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-sm">
-                        View Details
-                      </button>
-                    </div>
-                  </div>
+                  ))}
+                </div>
+              </section>
 
-                  <div className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold text-white">Mike Chen</h3>
-                      <span className="bg-green-500/30 text-green-300 px-2 py-1 rounded text-sm">Active</span>
+              {/* Staff Details Modal */}
+              {selectedStaffDetails && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                  <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl border border-purple-500/30 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                    <div className="p-6 border-b border-white/10">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h2 className="text-2xl font-bold text-white mb-2">Staff Details</h2>
+                          <p className="text-gray-400 text-sm">Complete information for {selectedStaffDetails.name}</p>
+                        </div>
+                        <button 
+                          onClick={() => setSelectedStaffDetails(null)} 
+                          className="text-white/70 hover:text-white text-2xl font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <div className="text-sm text-gray-300">Position: Floor Manager</div>
-                      <div className="text-sm text-gray-300">Department: Operations</div>
-                      <div className="text-sm text-gray-300">Email: mike.c@email.com</div>
-                      <div className="text-sm text-gray-300">Phone: +91 98765 43211</div>
-                      <div className="text-sm text-gray-300">Start Date: 2023-11-20</div>
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
-                        Edit
-                      </button>
-                      <button className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-sm">
-                        View Details
-                      </button>
-                    </div>
-                  </div>
+                    <div className="p-6 space-y-6">
+                      {/* Basic Information */}
+                      <div>
+                        <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">Basic Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-gray-400 text-sm">Staff ID</label>
+                            <div className="text-white font-medium">{selectedStaffDetails.id}</div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">Full Name</label>
+                            <div className="text-white font-medium">{selectedStaffDetails.name}</div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">Position</label>
+                            <div className="text-white font-medium">{selectedStaffDetails.position}</div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">Department</label>
+                            <div className="text-white font-medium">{selectedStaffDetails.department}</div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">Email</label>
+                            <div className="text-white font-medium">{selectedStaffDetails.email}</div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">Phone</label>
+                            <div className="text-white font-medium">{selectedStaffDetails.phone}</div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">Start Date</label>
+                            <div className="text-white font-medium">{selectedStaffDetails.startDate}</div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">Status</label>
+                            <div>
+                              <span className={`px-3 py-1 rounded-full text-xs border font-medium ${
+                                selectedStaffDetails.status === "Active" 
+                                  ? "bg-green-500/30 text-green-300 border-green-400/50" 
+                                  : "bg-yellow-500/30 text-yellow-300 border-yellow-400/50"
+                              }`}>
+                                {selectedStaffDetails.status}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
-                  <div className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold text-white">Emma Davis</h3>
-                      <span className="bg-yellow-500/30 text-yellow-300 px-2 py-1 rounded text-sm">On Leave</span>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm text-gray-300">Position: Cashier</div>
-                      <div className="text-sm text-gray-300">Department: Operations</div>
-                      <div className="text-sm text-gray-300">Email: emma.d@email.com</div>
-                      <div className="text-sm text-gray-300">Phone: +91 98765 43212</div>
-                      <div className="text-sm text-gray-300">Start Date: 2024-02-01</div>
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
-                        Edit
-                      </button>
-                      <button className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-sm">
-                        View Details
-                      </button>
+                      {/* Documents Section */}
+                      <div>
+                        <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">Documents</h3>
+                        {selectedStaffDetails.documents && selectedStaffDetails.documents.length > 0 ? (
+                          <div className="space-y-3">
+                            {selectedStaffDetails.documents.map((doc, index) => (
+                              <div 
+                                key={index}
+                                className="bg-white/5 p-4 rounded-lg border border-white/10 flex items-center justify-between"
+                              >
+                                <div className="flex-1">
+                                  <div className="text-white font-medium">{doc.type}</div>
+                                  <div className="text-sm text-gray-400 mt-1">
+                                    Uploaded: {doc.uploadedDate}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className={`px-3 py-1 rounded-full text-xs border font-medium ${
+                                    doc.status === "Verified" 
+                                      ? "bg-green-500/30 text-green-300 border-green-400/50" 
+                                      : "bg-yellow-500/30 text-yellow-300 border-yellow-400/50"
+                                  }`}>
+                                    {doc.status}
+                                  </span>
+                                  <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
+                                    View
+                                  </button>
+                                  <button className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-sm">
+                                    Download
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-gray-400">
+                            No documents uploaded
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-3 pt-4 border-t border-white/10">
+                        <button 
+                          onClick={() => alert(`Upload document for ${selectedStaffDetails.name}`)}
+                          className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-3 rounded-lg font-semibold"
+                        >
+                          Upload Document
+                        </button>
+                        <button 
+                          onClick={() => setSelectedStaffDetails(null)}
+                          className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 rounded-lg font-semibold"
+                        >
+                          Close
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </section>
+              )}
             </div>
           )}
 
@@ -548,58 +889,6 @@ export default function HrDashboard() {
             </div>
           )}
 
-          {/* Document Management */}
-          {activeItem === "Document Management" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-teal-600/30 via-cyan-500/20 to-blue-700/30 rounded-xl shadow-md border border-teal-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Document Management</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Document Categories</h3>
-                    <div className="space-y-2">
-                      <div className="bg-teal-500/20 p-3 rounded-lg border border-teal-400/30">
-                        <div className="font-semibold text-white">ID Documents</div>
-                        <div className="text-sm text-gray-300">45 files uploaded</div>
-                      </div>
-                      <div className="bg-teal-500/20 p-3 rounded-lg border border-teal-400/30">
-                        <div className="font-semibold text-white">Educational Certificates</div>
-                        <div className="text-sm text-gray-300">32 files uploaded</div>
-                      </div>
-                      <div className="bg-teal-500/20 p-3 rounded-lg border border-teal-400/30">
-                        <div className="font-semibold text-white">Experience Certificates</div>
-                        <div className="text-sm text-gray-300">28 files uploaded</div>
-                      </div>
-                      <div className="bg-teal-500/20 p-3 rounded-lg border border-teal-400/30">
-                        <div className="font-semibold text-white">Medical Certificates</div>
-                        <div className="text-sm text-gray-300">42 files uploaded</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Uploads</h3>
-                    <div className="space-y-2">
-                      <div className="bg-blue-500/20 p-3 rounded-lg border border-blue-400/30">
-                        <div className="font-semibold text-white">Sarah Johnson</div>
-                        <div className="text-sm text-gray-300">PAN Card - Uploaded 2 hours ago</div>
-                        <div className="text-xs text-blue-300">Status: Verified</div>
-                      </div>
-                      <div className="bg-blue-500/20 p-3 rounded-lg border border-blue-400/30">
-                        <div className="font-semibold text-white">Mike Chen</div>
-                        <div className="text-sm text-gray-300">Experience Certificate - Uploaded 1 day ago</div>
-                        <div className="text-xs text-blue-300">Status: Pending Review</div>
-                      </div>
-                      <div className="bg-blue-500/20 p-3 rounded-lg border border-blue-400/30">
-                        <div className="font-semibold text-white">Emma Davis</div>
-                        <div className="text-sm text-gray-300">Medical Certificate - Uploaded 2 days ago</div>
-                        <div className="text-xs text-blue-300">Status: Verified</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
-          )}
         </main>
       </div>
     </div>

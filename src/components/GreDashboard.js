@@ -18,6 +18,7 @@ export default function GreDashboard() {
 
   // State for Players (KYC Pending) management
   const [playersSearch, setPlayersSearch] = useState("");
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [playersFilter, setPlayersFilter] = useState({
     kycStatus: "pending",
     registrationDate: "all",
@@ -83,10 +84,27 @@ export default function GreDashboard() {
     }
   ]);
 
-  // Filter players based on search and filters
+  // Filter players for dropdown search
+  const filteredPlayersForSearch = playersSearch.length >= 2
+    ? allPlayers.filter(player => {
+        if (player.kycStatus !== "pending") return false;
+        const searchLower = playersSearch.toLowerCase();
+        return (
+          player.name.toLowerCase().includes(searchLower) ||
+          player.email.toLowerCase().includes(searchLower) ||
+          player.id.toLowerCase().includes(searchLower) ||
+          player.phone.includes(playersSearch)
+        );
+      })
+    : [];
+
+  // Filter players based on search and filters (for display list)
   const filteredPlayers = allPlayers.filter(player => {
     if (player.kycStatus !== "pending") return false;
-    if (playersSearch) {
+    // If a player is selected, show only that player
+    if (selectedPlayer && player.id !== selectedPlayer.id) return false;
+    // Otherwise, filter by search text
+    if (!selectedPlayer && playersSearch) {
       const searchLower = playersSearch.toLowerCase();
       const matchesSearch = 
         player.name.toLowerCase().includes(searchLower) ||
@@ -127,6 +145,7 @@ export default function GreDashboard() {
 
   // State for Registered Players (Verified/Approved users)
   const [registeredPlayersSearch, setRegisteredPlayersSearch] = useState("");
+  const [selectedRegisteredPlayer, setSelectedRegisteredPlayer] = useState(null);
   const [registeredPlayersFilter, setRegisteredPlayersFilter] = useState({
     status: "all",
     registrationDate: "all",
@@ -160,9 +179,26 @@ export default function GreDashboard() {
     }
   ]);
 
+  // Filter registered players for dropdown search
+  const filteredRegisteredPlayersForSearch = registeredPlayersSearch.length >= 2
+    ? registeredPlayers.filter(player => {
+        if (player.kycStatus !== "approved") return false;
+        const searchLower = registeredPlayersSearch.toLowerCase();
+        return (
+          player.name.toLowerCase().includes(searchLower) ||
+          player.email.toLowerCase().includes(searchLower) ||
+          player.id.toLowerCase().includes(searchLower) ||
+          player.phone.includes(registeredPlayersSearch)
+        );
+      })
+    : [];
+
   const filteredRegisteredPlayers = registeredPlayers.filter(player => {
     if (player.kycStatus !== "approved") return false;
-    if (registeredPlayersSearch) {
+    // If a player is selected, show only that player
+    if (selectedRegisteredPlayer && player.id !== selectedRegisteredPlayer.id) return false;
+    // Otherwise, filter by search text
+    if (!selectedRegisteredPlayer && registeredPlayersSearch) {
       const searchLower = registeredPlayersSearch.toLowerCase();
       const matchesSearch = 
         player.name.toLowerCase().includes(searchLower) ||
@@ -516,14 +552,50 @@ export default function GreDashboard() {
                 <div className="bg-white/10 p-4 rounded-lg mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     <div className="md:col-span-2">
-                      <label className="text-white text-sm mb-1 block">Search</label>
-                      <input 
-                        type="text" 
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                        placeholder="Search by name, email, ID, or phone" 
-                        value={playersSearch}
-                        onChange={(e) => setPlayersSearch(e.target.value)}
-                      />
+                      <label className="text-white text-sm mb-1 block">Search Player</label>
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder="Type at least 2 characters to search..." 
+                          value={playersSearch}
+                          onChange={(e) => {
+                            setPlayersSearch(e.target.value);
+                            setSelectedPlayer(null);
+                          }}
+                        />
+                        {playersSearch.length >= 2 && filteredPlayersForSearch.length > 0 && !selectedPlayer && (
+                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {filteredPlayersForSearch.map(player => (
+                              <div
+                                key={player.id}
+                                onClick={() => {
+                                  setSelectedPlayer(player);
+                                  setPlayersSearch(`${player.name} (${player.id})`);
+                                }}
+                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                              >
+                                <div className="text-white font-medium">{player.name}</div>
+                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email} | Phone: {player.phone}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {selectedPlayer && (
+                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
+                            <span className="text-green-300">Selected: {selectedPlayer.name} ({selectedPlayer.id})</span>
+                            <button 
+                              onClick={() => {
+                                setSelectedPlayer(null);
+                                setPlayersSearch("");
+                              }}
+                              className="ml-2 text-red-400 hover:text-red-300 font-bold"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Registration Date</label>
@@ -560,6 +632,7 @@ export default function GreDashboard() {
                     <button 
                       onClick={() => {
                         setPlayersSearch("");
+                        setSelectedPlayer(null);
                         setPlayersFilter({kycStatus: "pending", registrationDate: "all", documentType: "all"});
                       }}
                       className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
@@ -668,8 +741,50 @@ export default function GreDashboard() {
                 <div className="bg-white/10 p-4 rounded-lg mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                     <div className="md:col-span-2">
-                      <label className="text-white text-sm mb-1 block">Search</label>
-                      <input type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Search by name, email, ID, or phone" value={registeredPlayersSearch} onChange={(e) => setRegisteredPlayersSearch(e.target.value)} />
+                      <label className="text-white text-sm mb-1 block">Search Player</label>
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder="Type at least 2 characters to search..." 
+                          value={registeredPlayersSearch} 
+                          onChange={(e) => {
+                            setRegisteredPlayersSearch(e.target.value);
+                            setSelectedRegisteredPlayer(null);
+                          }} 
+                        />
+                        {registeredPlayersSearch.length >= 2 && filteredRegisteredPlayersForSearch.length > 0 && !selectedRegisteredPlayer && (
+                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {filteredRegisteredPlayersForSearch.map(player => (
+                              <div
+                                key={player.id}
+                                onClick={() => {
+                                  setSelectedRegisteredPlayer(player);
+                                  setRegisteredPlayersSearch(`${player.name} (${player.id})`);
+                                }}
+                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                              >
+                                <div className="text-white font-medium">{player.name}</div>
+                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email} | Phone: {player.phone}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {selectedRegisteredPlayer && (
+                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
+                            <span className="text-green-300">Selected: {selectedRegisteredPlayer.name} ({selectedRegisteredPlayer.id})</span>
+                            <button 
+                              onClick={() => {
+                                setSelectedRegisteredPlayer(null);
+                                setRegisteredPlayersSearch("");
+                              }}
+                              className="ml-2 text-red-400 hover:text-red-300 font-bold"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Account Status</label>
@@ -703,7 +818,7 @@ export default function GreDashboard() {
                   <div className="flex items-center justify-between">
                     <div className="text-white text-sm">Showing <span className="font-semibold">{filteredRegisteredPlayers.length}</span> of <span className="font-semibold">{registeredPlayers.length}</span> verified players</div>
                     <div className="flex gap-2">
-                      <button onClick={() => { setRegisteredPlayersSearch(""); setRegisteredPlayersFilter({status: "all", registrationDate: "all", documentType: "all", verifiedDate: "all"}); }} className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">Clear Filters</button>
+                      <button onClick={() => { setRegisteredPlayersSearch(""); setSelectedRegisteredPlayer(null); setRegisteredPlayersFilter({status: "all", registrationDate: "all", documentType: "all", verifiedDate: "all"}); }} className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">Clear Filters</button>
                       <button onClick={handleExportCSV} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">Export CSV</button>
                     </div>
                   </div>
