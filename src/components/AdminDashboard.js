@@ -43,7 +43,9 @@ export default function AdminDashboard() {
       registrationDate: "2024-01-15",
       documentType: "PAN Card",
       submittedDate: "2024-01-16",
-      verificationNotes: ""
+      verificationNotes: "",
+      referredBy: "Agent X",
+      referralCode: "AGTX-ALPHA"
     },
     {
       id: "P002",
@@ -54,7 +56,9 @@ export default function AdminDashboard() {
       registrationDate: "2024-01-10",
       documentType: "Aadhaar Card",
       submittedDate: "2024-01-12",
-      verificationNotes: ""
+      verificationNotes: "",
+      referredBy: "Agent X",
+      referralCode: "AGTX-BETA"
     },
     {
       id: "P003",
@@ -65,7 +69,9 @@ export default function AdminDashboard() {
       registrationDate: "2024-01-08",
       documentType: "Passport",
       submittedDate: "2024-01-09",
-      verificationNotes: ""
+      verificationNotes: "",
+      referredBy: "Agent Y",
+      referralCode: "AGTY-GAMMA"
     },
     {
       id: "P004",
@@ -76,7 +82,9 @@ export default function AdminDashboard() {
       registrationDate: "2024-01-20",
       documentType: "Driving License",
       submittedDate: "2024-01-21",
-      verificationNotes: ""
+      verificationNotes: "",
+      referredBy: "Agent A",
+      referralCode: "AGTA-DELTA"
     },
     {
       id: "P005",
@@ -87,7 +95,9 @@ export default function AdminDashboard() {
       registrationDate: "2024-01-18",
       documentType: "PAN Card",
       submittedDate: "2024-01-19",
-      verificationNotes: ""
+      verificationNotes: "",
+      referredBy: "Agent B",
+      referralCode: "AGTB-EPSILON"
     }
   ]);
 
@@ -320,23 +330,34 @@ export default function AdminDashboard() {
       kycStatus: "approved", registrationDate: "2024-01-05", documentType: "PAN Card",
       verifiedDate: "2024-01-06", verificationNotes: "All documents verified",
       accountStatus: "Active", totalGames: 45, lastActive: "2 hours ago",
-      kycDocUrl: "/documents/pan_alex_johnson.pdf"
+      kycDocUrl: "/documents/pan_alex_johnson.pdf",
+      referredBy: "Agent X",
+      referralCode: "AGTX-ALPHA"
     },
     {
       id: "P102", name: "Maria Garcia", email: "maria.garcia@example.com", phone: "+91 9876543216",
       kycStatus: "approved", registrationDate: "2024-01-08", documentType: "Aadhaar Card",
       verifiedDate: "2024-01-09", verificationNotes: "Documents verified successfully",
       accountStatus: "Active", totalGames: 123, lastActive: "5 minutes ago",
-      kycDocUrl: "/documents/aadhaar_maria_garcia.pdf"
+      kycDocUrl: "/documents/aadhaar_maria_garcia.pdf",
+      referredBy: "Agent X",
+      referralCode: "AGTX-BETA"
     },
     {
       id: "P103", name: "Rajesh Kumar", email: "rajesh.kumar@example.com", phone: "+91 9876543217",
       kycStatus: "approved", registrationDate: "2024-01-10", documentType: "Passport",
       verifiedDate: "2024-01-11", verificationNotes: "Passport verified",
       accountStatus: "Suspended", totalGames: 67, lastActive: "3 days ago",
-      kycDocUrl: "/documents/passport_rajesh_kumar.pdf"
+      kycDocUrl: "/documents/passport_rajesh_kumar.pdf",
+      referredBy: "Agent Y",
+      referralCode: "AGTY-GAMMA"
     }
   ]);
+
+  const [referralAgentSearch, setReferralAgentSearch] = useState("");
+  const [referralCodeSearch, setReferralCodeSearch] = useState("");
+  const [selectedReferralAgent, setSelectedReferralAgent] = useState(null);
+  const [selectedReferralCode, setSelectedReferralCode] = useState(null);
 
   // Filter registered players for dropdown search
   const filteredRegisteredPlayersForSearch = registeredPlayersSearch.length >= 2
@@ -377,6 +398,37 @@ export default function AdminDashboard() {
       if (registeredPlayersFilter.registrationDate === "month" && daysDiff > 30) return false;
     }
     return true;
+  });
+
+  const allReferredPlayers = registeredPlayers.filter(player => player.referredBy || player.referralCode);
+  const uniqueReferrers = Array.from(new Set(allReferredPlayers.map(player => player.referredBy).filter(Boolean)));
+  const uniqueReferralCodes = Array.from(new Set(allReferredPlayers.map(player => player.referralCode).filter(Boolean)));
+
+  const filteredReferrersForSearch = referralAgentSearch.length >= 2 && !selectedReferralAgent
+    ? uniqueReferrers.filter(agent => (agent || "").toLowerCase().includes(referralAgentSearch.toLowerCase()))
+    : [];
+
+  const filteredReferralCodesForSearch = referralCodeSearch.length >= 2 && !selectedReferralCode
+    ? uniqueReferralCodes.filter(code => (code || "").toLowerCase().includes(referralCodeSearch.toLowerCase()))
+    : [];
+
+  const filteredReferralPlayers = allReferredPlayers.filter(player => {
+    const playerAgent = (player.referredBy || "").toLowerCase();
+    const playerCode = (player.referralCode || "").toLowerCase();
+
+    const agentMatch = selectedReferralAgent
+      ? playerAgent === selectedReferralAgent.toLowerCase()
+      : referralAgentSearch
+        ? playerAgent.includes(referralAgentSearch.toLowerCase())
+        : true;
+
+    const codeMatch = selectedReferralCode
+      ? playerCode === selectedReferralCode.toLowerCase()
+      : referralCodeSearch
+        ? playerCode.includes(referralCodeSearch.toLowerCase())
+        : true;
+
+    return agentMatch && codeMatch;
   });
 
   const handleDownloadKYCDoc = (player) => {
@@ -2933,6 +2985,208 @@ export default function AdminDashboard() {
                   >
                     📉 Today's Expenses
                   </button>
+                </div>
+              </section>
+
+              {/* Referral Analytics */}
+              <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Referral Analytics & Tracking</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Filter Referred Players</h3>
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <label className="text-white text-sm">Search by Agent / Referrer</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter agent or partner name"
+                          value={selectedReferralAgent ?? referralAgentSearch}
+                          onChange={(e) => {
+                            setReferralAgentSearch(e.target.value);
+                            setSelectedReferralAgent(null);
+                          }}
+                        />
+                        {referralAgentSearch.length >= 2 && filteredReferrersForSearch.length > 0 && !selectedReferralAgent && (
+                          <div className="absolute z-20 w-full mt-1 bg-gray-900 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {filteredReferrersForSearch.map(agent => (
+                              <div
+                                key={agent}
+                                onClick={() => {
+                                  setSelectedReferralAgent(agent);
+                                  setReferralAgentSearch("");
+                                }}
+                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0 text-sm text-white"
+                              >
+                                {agent}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {selectedReferralAgent && (
+                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-xs text-green-200 flex items-center justify-between">
+                            <span>Selected Referrer: {selectedReferralAgent}</span>
+                            <button
+                              onClick={() => {
+                                setSelectedReferralAgent(null);
+                                setReferralAgentSearch("");
+                              }}
+                              className="ml-2 text-red-300 hover:text-red-200 font-semibold"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <label className="text-white text-sm">Search by Referral Code</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter full or partial referral code"
+                          value={selectedReferralCode ?? referralCodeSearch}
+                          onChange={(e) => {
+                            setReferralCodeSearch(e.target.value);
+                            setSelectedReferralCode(null);
+                          }}
+                        />
+                        {referralCodeSearch.length >= 2 && filteredReferralCodesForSearch.length > 0 && !selectedReferralCode && (
+                          <div className="absolute z-20 w-full mt-1 bg-gray-900 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {filteredReferralCodesForSearch.map(code => (
+                              <div
+                                key={code}
+                                onClick={() => {
+                                  setSelectedReferralCode(code);
+                                  setReferralCodeSearch("");
+                                }}
+                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0 text-sm text-white"
+                              >
+                                {code}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {selectedReferralCode && (
+                          <div className="mt-2 p-2 bg-cyan-500/20 border border-cyan-400/30 rounded text-xs text-cyan-200 flex items-center justify-between">
+                            <span>Selected Code: {selectedReferralCode}</span>
+                            <button
+                              onClick={() => {
+                                setSelectedReferralCode(null);
+                                setReferralCodeSearch("");
+                              }}
+                              className="ml-2 text-red-300 hover:text-red-200 font-semibold"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {uniqueReferrers.length > 0 && (
+                        <div>
+                          <div className="text-white text-sm mb-2">Top Referrers</div>
+                          <div className="flex flex-wrap gap-2">
+                            {uniqueReferrers.map(agent => (
+                              <button
+                                key={agent}
+                                onClick={() => {
+                                  setSelectedReferralAgent(agent || "");
+                                  setReferralAgentSearch("");
+                                }}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold transition border ${
+                                  (selectedReferralAgent || "").toLowerCase() === (agent || "").toLowerCase()
+                                    ? "bg-green-500/40 border-green-400/50 text-green-100"
+                                    : "bg-white/10 border-white/20 text-white/80 hover:bg-white/15"
+                                }`}
+                              >
+                                {agent || "Unknown"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => {
+                            const snapshot = filteredReferralPlayers.length;
+                            alert(`Referral report ready for export. ${snapshot} player(s) match the current filter.`);
+                          }}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold"
+                        >
+                          Prepare Referral Report
+                        </button>
+                        <button
+                          onClick={() => {
+                            setReferralAgentSearch("");
+                            setReferralCodeSearch("");
+                            setSelectedReferralAgent(null);
+                            setSelectedReferralCode(null);
+                          }}
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-semibold"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded border border-white/10 text-sm text-gray-200">
+                        <div>Total referred players: <span className="font-semibold text-white">{allReferredPlayers.length}</span></div>
+                        <div>Unique referrers: <span className="font-semibold text-white">{uniqueReferrers.length}</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Referred Players ({filteredReferralPlayers.length}/{allReferredPlayers.length})
+                    </h3>
+                    {filteredReferralPlayers.length > 0 ? (
+                      <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                        {filteredReferralPlayers.map(player => (
+                          <div key={player.id} className="bg-white/5 p-3 rounded-lg border border-green-400/30">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="text-white font-semibold text-base">{player.name}</div>
+                                <div className="text-xs text-gray-300">ID: {player.id} • Email: {player.email}</div>
+                                <div className="text-xs text-gray-300">Phone: {player.phone}</div>
+                                <div className="text-xs text-gray-400 mt-1">
+                                  Referred By: <span className="text-green-200 font-medium">{player.referredBy || "Unknown"}</span>
+                                  {player.referralCode && (
+                                    <>
+                                      <span className="text-gray-500 mx-1">•</span>
+                                      Referral Code: <span className="text-cyan-200 font-medium">{player.referralCode}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-400 mt-1">
+                                  Registered: {new Date(player.registrationDate).toLocaleDateString()} • Last Active: {player.lastActive}
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <span className={`px-2 py-1 rounded text-xs text-center font-semibold ${
+                                  player.accountStatus === "Active"
+                                    ? "bg-green-500/30 text-green-200"
+                                    : player.accountStatus === "Suspended"
+                                    ? "bg-red-500/30 text-red-200"
+                                    : "bg-gray-500/30 text-gray-200"
+                                }`}>
+                                  {player.accountStatus}
+                                </span>
+                                <button
+                                  onClick={() => setSelectedPlayerDetails(player)}
+                                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-semibold"
+                                >
+                                  View Details
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-gray-300 border border-dashed border-white/20 rounded-lg">
+                        <div className="text-lg font-semibold mb-2">No referred players found</div>
+                        <div className="text-sm">Adjust the referral filters to see matching players</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </section>
             </div>
