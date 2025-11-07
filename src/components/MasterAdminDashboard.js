@@ -397,7 +397,7 @@ export default function MasterAdminDashboard() {
               {/* Revenue, Rake & Tips Overview */}
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Revenue, Rake & Tips Overview - {selectedClub?.name}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* Previous Day Revenue */}
                   <div className="bg-white/10 p-4 rounded-lg border border-purple-400/30">
                     <div className="text-sm text-gray-300 mb-1">Prev Day Revenue</div>
