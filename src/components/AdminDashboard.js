@@ -168,22 +168,36 @@ export default function AdminDashboard() {
   const currentDateTime = getCurrentDateTime();
   const previousDateTime = getPreviousDayDateTime();
   
+  const TIP_HOLD_PERCENT = 0.15;
+
+  const formatCurrency = (value) => `₹${value.toLocaleString('en-IN')}`;
+
+  const calculateTipShares = (amount) => ({
+    club: Math.round(amount * TIP_HOLD_PERCENT),
+    staff: Math.round(amount * (1 - TIP_HOLD_PERCENT))
+  });
+
   const revenueData = {
     previousDay: {
-      revenue: "₹1,25,000",
-      rake: "₹12,500",
+      revenue: 125000,
+      rake: 12500,
+      tips: 3750,
       date: previousDateTime.date,
       time: previousDateTime.time,
       lastUpdated: previousDateTime.full
     },
     currentDay: {
-      revenue: "₹45,230",
-      rake: "₹4,523",
+      revenue: 45230,
+      rake: 4523,
+      tips: 1357,
       date: currentDateTime.date,
       time: currentDateTime.time,
       lastUpdated: currentDateTime.full
     }
   };
+
+  const previousDayTipShares = calculateTipShares(revenueData.previousDay.tips);
+  const currentDayTipShares = calculateTipShares(revenueData.currentDay.tips);
 
   // Handle KYC verification actions
   const handleKYCVerification = (playerId, action, notes = "") => {
@@ -895,12 +909,12 @@ export default function AdminDashboard() {
 
               {/* Revenue & Rake Section */}
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Revenue & Rake Overview</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <h2 className="text-xl font-bold text-white mb-6">Revenue, Rake & Tips Overview</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Previous Day Revenue */}
                   <div className="bg-white/10 p-4 rounded-lg border border-purple-400/30">
                     <div className="text-sm text-gray-300 mb-1">Previous Day Revenue</div>
-                    <div className="text-2xl font-bold text-white mb-2">{revenueData.previousDay.revenue}</div>
+                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.previousDay.revenue)}</div>
                     <div className="text-xs text-gray-400 mb-1">
                       <div>Date: {revenueData.previousDay.date}</div>
                       <div>Last Updated: {revenueData.previousDay.lastUpdated}</div>
@@ -911,7 +925,7 @@ export default function AdminDashboard() {
                   {/* Current Day Revenue */}
                   <div className="bg-white/10 p-4 rounded-lg border border-green-400/30">
                     <div className="text-sm text-gray-300 mb-1">Current Day Revenue</div>
-                    <div className="text-2xl font-bold text-white mb-2">{revenueData.currentDay.revenue}</div>
+                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.currentDay.revenue)}</div>
                     <div className="text-xs text-gray-400 mb-1">
                       <div>Date: {revenueData.currentDay.date}</div>
                       <div>Last Updated: {revenueData.currentDay.lastUpdated}</div>
@@ -922,7 +936,7 @@ export default function AdminDashboard() {
                   {/* Previous Day Rake */}
                   <div className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
                     <div className="text-sm text-gray-300 mb-1">Previous Day Rake</div>
-                    <div className="text-2xl font-bold text-white mb-2">{revenueData.previousDay.rake}</div>
+                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.previousDay.rake)}</div>
                     <div className="text-xs text-gray-400 mb-1">
                       <div>Date: {revenueData.previousDay.date}</div>
                       <div>Last Updated: {revenueData.previousDay.lastUpdated}</div>
@@ -933,12 +947,34 @@ export default function AdminDashboard() {
                   {/* Current Day Rake */}
                   <div className="bg-white/10 p-4 rounded-lg border border-yellow-400/30">
                     <div className="text-sm text-gray-300 mb-1">Current Day Rake</div>
-                    <div className="text-2xl font-bold text-white mb-2">{revenueData.currentDay.rake}</div>
+                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.currentDay.rake)}</div>
                     <div className="text-xs text-gray-400 mb-1">
                       <div>Date: {revenueData.currentDay.date}</div>
                       <div>Last Updated: {revenueData.currentDay.lastUpdated}</div>
                     </div>
                     <div className="text-xs text-yellow-300 font-semibold mt-2">Today's Sessions</div>
+                  </div>
+
+                  {/* Previous Day Tips */}
+                  <div className="bg-white/10 p-4 rounded-lg border border-cyan-400/30">
+                    <div className="text-sm text-gray-300 mb-1">Previous Day Tips</div>
+                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.previousDay.tips)}</div>
+                    <div className="text-xs text-gray-400 mb-1">
+                      <div>Club Share: {formatCurrency(previousDayTipShares.club)}</div>
+                      <div>Staff Share: {formatCurrency(previousDayTipShares.staff)}</div>
+                    </div>
+                    <div className="text-xs text-cyan-300 font-semibold mt-2">Hold {Math.round(TIP_HOLD_PERCENT * 100)}% • Staff {Math.round((1 - TIP_HOLD_PERCENT) * 100)}%</div>
+                  </div>
+
+                  {/* Current Day Tips */}
+                  <div className="bg-white/10 p-4 rounded-lg border border-orange-400/30">
+                    <div className="text-sm text-gray-300 mb-1">Current Day Tips</div>
+                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.currentDay.tips)}</div>
+                    <div className="text-xs text-gray-400 mb-1">
+                      <div>Club Share: {formatCurrency(currentDayTipShares.club)}</div>
+                      <div>Staff Share: {formatCurrency(currentDayTipShares.staff)}</div>
+                    </div>
+                    <div className="text-xs text-orange-300 font-semibold mt-2">Hold {Math.round(TIP_HOLD_PERCENT * 100)}% • Staff {Math.round((1 - TIP_HOLD_PERCENT) * 100)}%</div>
                   </div>
                 </div>
               </section>
