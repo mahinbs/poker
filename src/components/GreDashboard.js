@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import CustomSelect from "./common/CustomSelect";
 import { useNavigate } from "react-router-dom";
 
 export default function GreDashboard() {
@@ -13,7 +14,7 @@ export default function GreDashboard() {
     "Player Registration", 
     "Table View",
     "Player Support",
-    "KYC Upload",
+    "Offers",
   ];
 
   // State for Players (KYC Pending) management
@@ -272,6 +273,94 @@ export default function GreDashboard() {
         );
       })
     : [];
+
+  // Offers state & helpers
+  const [offerForm, setOfferForm] = useState({
+    title: "",
+    description: "",
+    audience: "All Players",
+    rewardType: "Bonus Chips",
+    rewardValue: "",
+    startDate: "",
+    endDate: "",
+    notification: true,
+  });
+
+  const [offers, setOffers] = useState([
+    {
+      id: "OF101",
+      title: "Welcome Bonus",
+      description: "New players receive ₹1,000 bonus chips on first deposit.",
+      audience: "New Players",
+      reward: "Bonus Chips · ₹1,000",
+      status: "Active",
+      startDate: "2024-02-01",
+      endDate: "2024-02-29",
+      sentNotifications: 128,
+    },
+    {
+      id: "OF102",
+      title: "Weekend High Roller",
+      description: "Play ₹50,000+ over the weekend and earn ₹5,000 bonus chips.",
+      audience: "High Rollers",
+      reward: "Bonus Chips · ₹5,000",
+      status: "Upcoming",
+      startDate: "2024-03-02",
+      endDate: "2024-03-03",
+      sentNotifications: 42,
+    },
+    {
+      id: "OF099",
+      title: "Festive Spin",
+      description: "All players get double loyalty points on festive week.",
+      audience: "All Players",
+      reward: "Loyalty Points · 2x",
+      status: "Expired",
+      startDate: "2023-12-20",
+      endDate: "2023-12-27",
+      sentNotifications: 310,
+    },
+  ]);
+
+  const resetOfferForm = () => {
+    setOfferForm({
+      title: "",
+      description: "",
+      audience: "All Players",
+      rewardType: "Bonus Chips",
+      rewardValue: "",
+      startDate: "",
+      endDate: "",
+      notification: true,
+    });
+  };
+
+  const handleCreateOffer = () => {
+    if (!offerForm.title.trim() || !offerForm.description.trim() || !offerForm.rewardValue) {
+      alert("Please fill in the offer title, description, and reward value.");
+      return;
+    }
+
+    const newOffer = {
+      id: `OF${Date.now().toString().slice(-4)}`,
+      title: offerForm.title.trim(),
+      description: offerForm.description.trim(),
+      audience: offerForm.audience,
+      reward: `${offerForm.rewardType} · ${offerForm.rewardType.includes("Points") ? offerForm.rewardValue : `₹${Number(offerForm.rewardValue).toLocaleString('en-IN')}`}`,
+      status: offerForm.startDate
+        ? new Date(offerForm.startDate) > new Date()
+          ? "Upcoming"
+          : "Active"
+        : "Active",
+      startDate: offerForm.startDate || new Date().toISOString().split("T")[0],
+      endDate: offerForm.endDate || "-",
+      sentNotifications: offerForm.notification ? Math.floor(Math.random() * 50) + 25 : 0,
+    };
+
+    setOffers(prev => [newOffer, ...prev]);
+    alert(`Offer "${newOffer.title}" created${offerForm.notification ? " and notifications queued." : "."}`);
+    resetOfferForm();
+  };
 
   // Push Notifications state and helpers
   const [notificationForm, setNotificationForm] = useState({
@@ -599,8 +688,8 @@ export default function GreDashboard() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Registration Date</label>
-                      <select 
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                      <CustomSelect
+                        className="w-full"
                         value={playersFilter.registrationDate}
                         onChange={(e) => setPlayersFilter({...playersFilter, registrationDate: e.target.value})}
                       >
@@ -608,12 +697,12 @@ export default function GreDashboard() {
                         <option value="today">Today</option>
                         <option value="week">Last 7 Days</option>
                         <option value="month">Last 30 Days</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Document Type</label>
-                      <select 
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                      <CustomSelect
+                        className="w-full"
                         value={playersFilter.documentType}
                         onChange={(e) => setPlayersFilter({...playersFilter, documentType: e.target.value})}
                       >
@@ -622,7 +711,7 @@ export default function GreDashboard() {
                         <option value="Aadhaar Card">Aadhaar Card</option>
                         <option value="Passport">Passport</option>
                         <option value="Driving License">Driving License</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -788,31 +877,43 @@ export default function GreDashboard() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Account Status</label>
-                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={registeredPlayersFilter.status} onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, status: e.target.value})}>
+                      <CustomSelect
+                        className="w-full"
+                        value={registeredPlayersFilter.status}
+                        onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, status: e.target.value})}
+                      >
                         <option value="all">All Status</option>
                         <option value="Active">Active</option>
                         <option value="Suspended">Suspended</option>
                         <option value="Inactive">Inactive</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Registration Date</label>
-                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={registeredPlayersFilter.registrationDate} onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, registrationDate: e.target.value})}>
+                      <CustomSelect
+                        className="w-full"
+                        value={registeredPlayersFilter.registrationDate}
+                        onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, registrationDate: e.target.value})}
+                      >
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
                         <option value="week">Last 7 Days</option>
                         <option value="month">Last 30 Days</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Document Type</label>
-                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={registeredPlayersFilter.documentType} onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, documentType: e.target.value})}>
+                      <CustomSelect
+                        className="w-full"
+                        value={registeredPlayersFilter.documentType}
+                        onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, documentType: e.target.value})}
+                      >
                         <option value="all">All Documents</option>
                         <option value="PAN Card">PAN Card</option>
                         <option value="Aadhaar Card">Aadhaar Card</option>
                         <option value="Passport">Passport</option>
                         <option value="Driving License">Driving License</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -1002,8 +1103,8 @@ export default function GreDashboard() {
                       </div>
                       <div>
                         <label className="text-white text-sm">Audience</label>
-                        <select 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        <CustomSelect
+                          className="w-full"
                           value={notificationForm.audience}
                           onChange={(e) => setNotificationForm({...notificationForm, audience: e.target.value})}
                         >
@@ -1011,7 +1112,7 @@ export default function GreDashboard() {
                           <option>Tables in Play</option>
                           <option>Waitlist</option>
                           <option>VIP</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                       
                       {/* Image Section */}
@@ -1132,12 +1233,12 @@ export default function GreDashboard() {
                       </div>
                       <div>
                         <label className="text-white text-sm">Preferred Game</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Texas Hold'em</option>
-                          <option>Omaha</option>
-                          <option>Stud</option>
-                          <option>Mixed Games</option>
-                        </select>
+                      <CustomSelect className="w-full">
+                        <option>Texas Hold'em</option>
+                        <option>Omaha</option>
+                        <option>Stud</option>
+                        <option>Mixed Games</option>
+                      </CustomSelect>
                       </div>
                       <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
                         Create Player Account
@@ -1218,12 +1319,12 @@ export default function GreDashboard() {
                     </div>
                     <div>
                       <label className="text-white text-sm">Document Type</label>
-                      <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                      <CustomSelect className="w-full">
                         <option>PAN Card</option>
                         <option>Aadhaar Card</option>
                         <option>Passport</option>
                         <option>Driving License</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                     <div className="md:col-span-2">
                       <label className="text-white text-sm">Upload Document</label>
@@ -1390,94 +1491,214 @@ export default function GreDashboard() {
             </div>
           )}
 
-          {/* KYC Upload */}
-          {activeItem === "KYC Upload" && (
+          {/* Offers */}
+          {activeItem === "Offers" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-orange-600/30 via-red-500/20 to-pink-700/30 rounded-xl shadow-md border border-orange-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">KYC Document Management</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Upload New KYC</h3>
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Offers & Promotions</h2>
+                    <p className="text-gray-300 text-sm mt-1">
+                      Create player-facing offers and coordinate instant notifications from the GRE desk.
+                    </p>
+                  </div>
+                  <div className="bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-xs text-gray-300 space-y-1">
+                    <div>Active Offers: {offers.filter(o => o.status === "Active").length}</div>
+                    <div>Upcoming Offers: {offers.filter(o => o.status === "Upcoming").length}</div>
+                    <div>Notifications ready: {offers.reduce((sum, o) => sum + (o.sentNotifications || 0), 0)}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-[37%,1fr] gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg border border-white/20">
+                    <h3 className="text-lg font-semibold text-white mb-4">Create New Offer</h3>
                     <div className="space-y-4">
-                      <div className="relative">
-                        <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Search by name, ID, or email..." 
-                          value={playerSupportSearch}
-                          onChange={(e) => {
-                            setPlayerSupportSearch(e.target.value);
-                            setSelectedPlayerSupport(null);
-                          }}
+                      <div>
+                        <label className="text-white text-sm">Offer Title</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Eg. Weekend Bonus Blast"
+                          value={offerForm.title}
+                          onChange={(e) => setOfferForm({...offerForm, title: e.target.value})}
                         />
-                        {playerSupportSearch.length >= 3 && filteredPlayerSupportPlayers.length > 0 && !selectedPlayerSupport && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredPlayerSupportPlayers.map(player => (
-                              <div
-                                key={player.id}
-                                onClick={() => {
-                                  setSelectedPlayerSupport(player);
-                                  setPlayerSupportSearch(`${player.name} (${player.id})`);
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                              >
-                                <div className="text-white font-medium">{player.name}</div>
-                                <div className="text-gray-400 text-xs">ID: {player.id} {player.email ? `| Email: ${player.email}` : ''}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {selectedPlayerSupport && (
-                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                            <span className="text-green-300">Selected: {selectedPlayerSupport.name} ({selectedPlayerSupport.id})</span>
-                            <button 
-                              onClick={() => {
-                                setSelectedPlayerSupport(null);
-                                setPlayerSupportSearch("");
-                              }}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        )}
                       </div>
                       <div>
-                        <label className="text-white text-sm">Document Type</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>PAN Card</option>
-                          <option>Aadhaar Card</option>
-                          <option>Passport</option>
-                          <option>Driving License</option>
-                        </select>
+                        <label className="text-white text-sm">Description</label>
+                        <textarea
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          rows="3"
+                          placeholder="Highlight reward, eligibility, and redemption steps..."
+                          value={offerForm.description}
+                          onChange={(e) => setOfferForm({...offerForm, description: e.target.value})}
+                        ></textarea>
                       </div>
-                      <div>
-                        <label className="text-white text-sm">Upload Document</label>
-                        <div className="mt-1 border-2 border-dashed border-white/30 rounded-lg p-6 text-center">
-                          <div className="text-white mb-2">Click to upload or drag and drop</div>
-                          <div className="text-gray-400 text-sm">PNG, JPG, PDF up to 10MB</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-white text-sm">Audience</label>
+                          <CustomSelect
+                            className="w-full"
+                            value={offerForm.audience}
+                            onChange={(e) => setOfferForm({...offerForm, audience: e.target.value})}
+                          >
+                            <option>All Players</option>
+                            <option>New Players</option>
+                            <option>High Rollers</option>
+                            <option>VIP Players</option>
+                            <option>Waitlist</option>
+                          </CustomSelect>
+                        </div>
+                        <div>
+                          <label className="text-white text-sm">Reward Type</label>
+                          <CustomSelect
+                            className="w-full"
+                            value={offerForm.rewardType}
+                            onChange={(e) => setOfferForm({...offerForm, rewardType: e.target.value})}
+                          >
+                            <option>Bonus Chips</option>
+                            <option>Loyalty Points</option>
+                            <option>Free Entry</option>
+                            <option>Food & Beverage Voucher</option>
+                          </CustomSelect>
+                        </div>
+                        <div>
+                          <label className="text-white text-sm">
+                            {offerForm.rewardType.includes("Points") ? "Point Multiplier / Value" : "Reward Value (₹)"}
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            placeholder={offerForm.rewardType.includes("Points") ? "Eg. 2x" : "Eg. 2500"}
+                            value={offerForm.rewardValue}
+                            onChange={(e) => setOfferForm({...offerForm, rewardValue: e.target.value})}
+                          />
                         </div>
                       </div>
-                      <button className="w-full bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Upload Document
-                      </button>
+                        <div>
+                          <label className="text-white text-sm">Notification</label>
+                          <div className="mt-2 flex items-center gap-2">
+                            <input
+                              id="offer-notification"
+                              type="checkbox"
+                              checked={offerForm.notification}
+                              onChange={(e) => setOfferForm({...offerForm, notification: e.target.checked})}
+                              className="w-4 h-4 text-orange-500 bg-white/10 border border-white/20 rounded"
+                            />
+                            <label htmlFor="offer-notification" className="text-sm text-gray-300">
+                              Queue push notification for this offer
+                            </label>
+                          </div>
+                        </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-white text-sm">Start Date</label>
+                          <input
+                            type="date"
+                            className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            value={offerForm.startDate}
+                            onChange={(e) => setOfferForm({...offerForm, startDate: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-white text-sm">End Date</label>
+                          <input
+                            type="date"
+                            className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            value={offerForm.endDate}
+                            onChange={(e) => setOfferForm({...offerForm, endDate: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleCreateOffer}
+                          className="flex-1 bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold"
+                        >
+                          Create Offer
+                        </button>
+                        <button
+                          onClick={resetOfferForm}
+                          className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold"
+                        >
+                          Reset
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Uploads</h3>
-                    <div className="space-y-2">
-                      <div className="bg-blue-500/20 p-3 rounded-lg border border-blue-400/30">
-                        <div className="font-semibold text-white">Player: John Smith</div>
-                        <div className="text-sm text-gray-300">Document: PAN Card</div>
-                        <div className="text-xs text-blue-300">Uploaded 2 hours ago</div>
+                  <div className="bg-white/10 p-4 rounded-lg border border-white/20">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                      <h3 className="text-lg font-semibold text-white">Offer Pipeline</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => alert("Offer notification blast sent to the selected audience.")}
+                          className="bg-orange-500 hover:bg-orange-400 text-white px-3 py-2 rounded-lg text-sm font-semibold"
+                        >
+                          Send Offer Notification
+                        </button>
+                        <button
+                          onClick={() => alert("Offer performance report exported (mock).")}
+                          className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-semibold"
+                        >
+                          Export Offer Report
+                        </button>
                       </div>
-                      <div className="bg-blue-500/20 p-3 rounded-lg border border-blue-400/30">
-                        <div className="font-semibold text-white">Player: Maria Garcia</div>
-                        <div className="text-sm text-gray-300">Document: Aadhaar Card</div>
-                        <div className="text-xs text-blue-300">Uploaded 1 hour ago</div>
-                      </div>
+                    </div>
+                    <div className="space-y-3 max-h-[520px] overflow-y-auto pr-2">
+                      {offers.map((offer) => (
+                        <div
+                          key={offer.id}
+                          className="bg-white/5 border border-white/10 rounded-lg p-4 shadow-inner"
+                        >
+                          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h4 className="text-white text-lg font-semibold">{offer.title}</h4>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                    offer.status === "Active"
+                                      ? "bg-green-500/30 text-green-200 border border-green-400/40"
+                                      : offer.status === "Upcoming"
+                                      ? "bg-yellow-500/30 text-yellow-200 border border-yellow-400/40"
+                                      : "bg-gray-500/30 text-gray-300 border border-gray-400/40"
+                                  }`}
+                                >
+                                  {offer.status}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-300 leading-relaxed">{offer.description}</p>
+                              <div className="flex flex-wrap gap-3 text-xs text-gray-400">
+                                <div className="bg-white/5 px-2 py-1 rounded border border-white/10">
+                                  Audience: <span className="text-gray-200 font-medium">{offer.audience}</span>
+                                </div>
+                                <div className="bg-white/5 px-2 py-1 rounded border border-white/10">
+                                  Reward: <span className="text-gray-200 font-medium">{offer.reward}</span>
+                                </div>
+                                <div className="bg-white/5 px-2 py-1 rounded border border-white/10">
+                                  Duration: <span className="text-gray-200 font-medium">{offer.startDate} - {offer.endDate}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-xs text-gray-400 space-y-1 min-w-[140px]">
+                              <div className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-center">
+                                <div className="uppercase tracking-wide text-[10px]">Notifications</div>
+                                <div className="text-white font-semibold text-sm">{offer.sentNotifications}</div>
+                              </div>
+                              <button
+                                onClick={() => alert(`Offer "${offer.title}" marked for follow-up (mock).`)}
+                                className="w-full bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg font-semibold"
+                              >
+                                Follow Up
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {offers.length === 0 && (
+                        <div className="text-center py-12 text-gray-400">
+                          No offers configured yet. Create your first offer using the form on the left.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BrandingHeader from './BrandingHeader';
+import CustomSelect from './common/CustomSelect';
 
 export default function MasterAdminDashboard() {
   const [activeItem, setActiveItem] = useState('Dashboard');
@@ -511,9 +512,13 @@ export default function MasterAdminDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white/10 p-4 rounded-lg">
                   <h3 className="text-lg font-semibold text-white mb-4">Club Selection</h3>
-                  <select value={selectedClubId} onChange={(e)=>setSelectedClubId(e.target.value)} className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white mb-4">
+                  <CustomSelect
+                    className="w-full mb-4"
+                    value={selectedClubId}
+                    onChange={(e)=>setSelectedClubId(e.target.value)}
+                  >
                     {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  </CustomSelect>
                   <div className="flex items-center justify-between bg-white/5 p-4 rounded-lg border border-white/10">
                     <div className="flex-1">
                       <div className="text-white font-semibold mb-2">Enable Rummy Mode for {selectedClub?.name}</div>
@@ -580,9 +585,13 @@ export default function MasterAdminDashboard() {
               <h2 className="text-xl font-bold text-white mb-6">Terms & Conditions (Per Club)</h2>
               <div className="bg-white/10 p-4 rounded-lg">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <select value={selectedClubId} onChange={(e)=>setSelectedClubId(e.target.value)} className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                  <CustomSelect
+                    className="w-full"
+                    value={selectedClubId}
+                    onChange={(e)=>setSelectedClubId(e.target.value)}
+                  >
                     {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  </CustomSelect>
                   <input id="tnc-link" type="url" className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Optional public URL" />
                   <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded">Upload / Save</button>
                 </div>
