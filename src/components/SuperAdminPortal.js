@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import CustomSelect from "./common/CustomSelect";
 
 export default function SuperAdminPortal() {
   const navigate = useNavigate();
@@ -908,8 +909,8 @@ export default function SuperAdminPortal() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Registration Date</label>
-                      <select 
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                      <CustomSelect
+                        className="w-full"
                         value={playersFilter.registrationDate}
                         onChange={(e) => setPlayersFilter({...playersFilter, registrationDate: e.target.value})}
                       >
@@ -917,12 +918,12 @@ export default function SuperAdminPortal() {
                         <option value="today">Today</option>
                         <option value="week">Last 7 Days</option>
                         <option value="month">Last 30 Days</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Document Type</label>
-                      <select 
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                      <CustomSelect
+                        className="w-full"
                         value={playersFilter.documentType}
                         onChange={(e) => setPlayersFilter({...playersFilter, documentType: e.target.value})}
                       >
@@ -931,7 +932,7 @@ export default function SuperAdminPortal() {
                         <option value="Aadhaar Card">Aadhaar Card</option>
                         <option value="Passport">Passport</option>
                         <option value="Driving License">Driving License</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -1099,8 +1100,8 @@ export default function SuperAdminPortal() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Account Status</label>
-                      <select 
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                      <CustomSelect
+                        className="w-full"
                         value={registeredPlayersFilter.status}
                         onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, status: e.target.value})}
                       >
@@ -1108,12 +1109,12 @@ export default function SuperAdminPortal() {
                         <option value="Active">Active</option>
                         <option value="Suspended">Suspended</option>
                         <option value="Inactive">Inactive</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Registration Date</label>
-                      <select 
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                      <CustomSelect
+                        className="w-full"
                         value={registeredPlayersFilter.registrationDate}
                         onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, registrationDate: e.target.value})}
                       >
@@ -1121,12 +1122,12 @@ export default function SuperAdminPortal() {
                         <option value="today">Today</option>
                         <option value="week">Last 7 Days</option>
                         <option value="month">Last 30 Days</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Document Type</label>
-                      <select 
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                      <CustomSelect
+                        className="w-full"
                         value={registeredPlayersFilter.documentType}
                         onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, documentType: e.target.value})}
                       >
@@ -1135,7 +1136,7 @@ export default function SuperAdminPortal() {
                         <option value="Aadhaar Card">Aadhaar Card</option>
                         <option value="Passport">Passport</option>
                         <option value="Driving License">Driving License</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -1339,13 +1340,13 @@ export default function SuperAdminPortal() {
                     <h3 className="text-lg font-semibold text-white mb-4">Add / Edit Staff</h3>
                     <div className="space-y-3">
                       <input type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Full Name" id="new-staff-name" />
-                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" id="new-staff-role">
+                      <CustomSelect className="w-full" id="new-staff-role">
                         <option>GRE</option>
                         <option>Dealer</option>
                         <option>Cashier</option>
                         <option>HR</option>
                         <option>Manager</option>
-                      </select>
+                      </CustomSelect>
                       <div className="flex gap-2">
                         <button className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold" onClick={() => {
                           const nameInput = document.getElementById('new-staff-name');
@@ -1478,59 +1479,58 @@ export default function SuperAdminPortal() {
                     <div className="space-y-3">
                       <div>
                         <label className="text-white text-sm">Select Player</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full mt-1">
                           <option value="">-- Select Player --</option>
                           {waitlist.map((w) => (
                             <option key={w.pos} value={w.pos}>
                               {w.player} - Position {w.pos} ({w.game})
                             </option>
                           ))}
-                          {/* Also show players currently seated */}
                           <option value="seated-1">John Doe - Table 1, Seat 3</option>
                           <option value="seated-2">Jane Smith - Table 2, Seat 5</option>
                           <option value="seated-3">Mike Johnson - Table 1, Seat 7</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="text-white text-sm">From Table</label>
-                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <CustomSelect className="w-full mt-1">
                             <option value="">-- Select Table --</option>
                             <option value="1">Table 1 - Texas Hold'em</option>
                             <option value="2">Table 2 - Omaha</option>
                             <option value="3">Table 3 - Seven Card Stud</option>
                             <option value="waitlist">Waitlist</option>
-                          </select>
+                          </CustomSelect>
                         </div>
                         <div>
                           <label className="text-white text-sm">From Seat (Optional)</label>
-                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <CustomSelect className="w-full mt-1">
                             <option value="">Any Seat</option>
                             {[1,2,3,4,5,6,7,8].map(seat => (
                               <option key={seat} value={seat}>Seat {seat}</option>
                             ))}
-                          </select>
+                          </CustomSelect>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="text-white text-sm">To Table</label>
-                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <CustomSelect className="w-full mt-1">
                             <option value="">-- Select Table --</option>
                             <option value="1">Table 1 - Texas Hold'em</option>
                             <option value="2">Table 2 - Omaha</option>
                             <option value="3">Table 3 - Seven Card Stud</option>
                             <option value="waitlist">Waitlist</option>
-                          </select>
+                          </CustomSelect>
                         </div>
                         <div>
                           <label className="text-white text-sm">To Seat (Optional)</label>
-                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <CustomSelect className="w-full mt-1">
                             <option value="">Any Available Seat</option>
                             {[1,2,3,4,5,6,7,8].map(seat => (
                               <option key={seat} value={seat}>Seat {seat}</option>
                             ))}
-                          </select>
+                          </CustomSelect>
                         </div>
                       </div>
                       <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
@@ -1544,33 +1544,33 @@ export default function SuperAdminPortal() {
                     <div className="space-y-3">
                       <div>
                         <label className="text-white text-sm">Select Player</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full mt-1">
                           <option value="">-- Select Player --</option>
                           {waitlist.map((w) => (
                             <option key={w.pos} value={w.pos}>
                               {w.player} - Position {w.pos}
                             </option>
                           ))}
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="text-white text-sm">Table</label>
-                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <CustomSelect className="w-full mt-1">
                             <option value="">-- Select Table --</option>
                             <option value="1">Table 1 - Texas Hold'em</option>
                             <option value="2">Table 2 - Omaha</option>
                             <option value="3">Table 3 - Seven Card Stud</option>
-                          </select>
+                          </CustomSelect>
                         </div>
                         <div>
                           <label className="text-white text-sm">Seat Number</label>
-                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                          <CustomSelect className="w-full mt-1">
                             <option value="">-- Select Seat --</option>
                             {[1,2,3,4,5,6,7,8].map(seat => (
                               <option key={seat} value={seat}>Seat {seat}</option>
                             ))}
-                          </select>
+                          </CustomSelect>
                         </div>
                       </div>
                       <div className="bg-yellow-500/20 border border-yellow-400/30 p-2 rounded text-xs text-yellow-300">
@@ -1587,14 +1587,14 @@ export default function SuperAdminPortal() {
                     <div className="space-y-3">
                       <div>
                         <label className="text-white text-sm">Select Player from Waitlist</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full mt-1">
                           <option value="">-- Select Player --</option>
                           {waitlist.map((w) => (
                             <option key={w.pos} value={w.pos}>
                               Position {w.pos}: {w.player}
                             </option>
                           ))}
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div>
                         <label className="text-white text-sm">New Priority Position</label>
@@ -1617,14 +1617,14 @@ export default function SuperAdminPortal() {
                     <div className="space-y-3">
                       <div className="space-y-2">
                         <label className="text-white text-sm">Select Player to Remove</label>
-                        <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full">
                           <option value="">-- Select Player --</option>
                           {waitlist.map((w) => (
                             <option key={w.pos} value={w.pos}>
                               {w.player} - Position {w.pos}
                             </option>
                           ))}
-                        </select>
+                        </CustomSelect>
                       </div>
                       <button className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">
                         Remove from Waitlist
@@ -1654,13 +1654,15 @@ export default function SuperAdminPortal() {
                     <h3 className="text-lg font-semibold text-white mb-4">Products (Club)</h3>
                     <div className="mb-4">
                       <label className="text-white text-sm mb-2 block">Select Club</label>
-                      <select 
-                        value={selectedClubId} 
-                        onChange={(e) => setSelectedClubId(e.target.value)} 
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white mb-4"
+                      <CustomSelect
+                        className="w-full mb-4"
+                        value={selectedClubId}
+                        onChange={(e) => setSelectedClubId(e.target.value)}
                       >
-                        {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
+                        {clubs.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </CustomSelect>
                     </div>
                     <div className="flex gap-2 mb-3">
                       <input 
@@ -1811,23 +1813,25 @@ export default function SuperAdminPortal() {
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Report Configuration</h3>
                     <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm mb-2 block">Select Report Type</label>
-                        <select 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          value={selectedReportType}
-                          onChange={(e) => {
-                            setSelectedReportType(e.target.value);
-                            setReportData(null);
-                            if (e.target.value !== "individual_player") setSelectedPlayerForReport(null);
-                            if (e.target.value !== "custom") setCustomReportSelection([]);
-                          }}
-                        >
-                          <option value="">-- Select Report Type --</option>
-                          {reportTypes.map(type => (
-                            <option key={type.id} value={type.id}>{type.icon} {type.name}</option>
-                          ))}
-                        </select>
+                      <div className="w-full">
+                      <label className="text-white text-sm mb-2 block">Select Report Type</label>
+                      <CustomSelect
+                        className="w-full"
+                        value={selectedReportType}
+                        onChange={(e) => {
+                          setSelectedReportType(e.target.value);
+                          setReportData(null);
+                          if (e.target.value !== "individual_player") setSelectedPlayerForReport(null);
+                          if (e.target.value !== "custom") setCustomReportSelection([]);
+                        }}
+                        placeholder="-- Select Report Type --"
+                        allowSearch
+                      >
+                        <option value="w-full">-- Select Report Type --</option>
+                        {reportTypes.map(type => (
+                          <option key={type.id} value={type.id}>{type.icon} {type.name}</option>
+                        ))}
+                      </CustomSelect>
                       </div>
 
                       {/* Player Selection for Individual Player Report */}
@@ -1882,8 +1886,8 @@ export default function SuperAdminPortal() {
                       {selectedReportType === "per_table_transactions" && (
                         <div>
                           <label className="text-white text-sm mb-2 block">Select Table (Optional - leave blank for all tables)</label>
-                          <select 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          <CustomSelect
+                            className="w-full"
                             value={selectedTableForReport}
                             onChange={(e) => setSelectedTableForReport(e.target.value)}
                           >
@@ -1892,7 +1896,7 @@ export default function SuperAdminPortal() {
                             <option value="Table 2">Table 2</option>
                             <option value="Table 3">Table 3</option>
                             <option value="Table 4">Table 4</option>
-                          </select>
+                          </CustomSelect>
                         </div>
                       )}
 
@@ -2443,16 +2447,16 @@ export default function SuperAdminPortal() {
                     <h3 className="text-lg font-semibold text-white mb-4">General</h3>
                     <div className="space-y-3">
                       <input type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Club Name" />
-                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                      <CustomSelect className="w-full">
                         <option>INR (₹)</option>
                         <option>USD ($)</option>
                         <option>EUR (€)</option>
-                      </select>
-                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                      </CustomSelect>
+                      <CustomSelect className="w-full">
                         <option>Asia/Kolkata</option>
                         <option>America/New_York</option>
                         <option>Europe/London</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                   </div>
                   <div className="bg-white/10 p-4 rounded-lg">
@@ -2462,13 +2466,13 @@ export default function SuperAdminPortal() {
                         <span className="text-white">Two-Factor Authentication</span>
                         <button className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm">Enable</button>
                       </div>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-3">
                         <span className="text-white">Session Timeout</span>
-                        <select className="bg-white/10 border border-white/20 rounded text-white px-2 py-1">
+                        <CustomSelect className="min-w-[160px]">
                           <option>30 minutes</option>
                           <option>1 hour</option>
                           <option>2 hours</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-white">Password Rotation (days)</span>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import CustomSelect from "./common/CustomSelect";
 
 export default function CashierDashboard() {
   const [activeItem, setActiveItem] = useState("Transactions Dashboard");
@@ -9,6 +10,7 @@ export default function CashierDashboard() {
   const menuItems = [
     "Transactions Dashboard",
     "Balance Management",
+    "Table View",
     "Payroll Management", 
     "Transaction History & Reports",
     "Shift Reconciliation",
@@ -745,11 +747,11 @@ export default function CashierDashboard() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-white text-sm">Table ID</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full mt-1">
                           <option>Table 1 - Texas Hold'em</option>
                           <option>Table 2 - Omaha</option>
                           <option>Table 3 - Stud</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div className="relative">
                         <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
@@ -842,11 +844,11 @@ export default function CashierDashboard() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-white text-sm">Table ID</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full mt-1">
                           <option>Table 1 - Texas Hold'em</option>
                           <option>Table 2 - Omaha</option>
                           <option>Table 3 - Stud</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div className="relative">
                         <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
@@ -1207,6 +1209,117 @@ export default function CashierDashboard() {
             </div>
           )}
 
+          {/* Table View */}
+          {activeItem === "Table View" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Table View</h2>
+                    <p className="text-gray-300 text-sm mt-1">Snapshot of active tables, seated players, and chip counts.</p>
+                  </div>
+                  <div className="text-xs text-gray-400 bg-white/10 px-3 py-2 rounded-lg border border-white/10">
+                    <div>Refreshed: {currentDateTime.full}</div>
+                    <div>Total Tables: {Object.keys(tableBalances).length}</div>
+                  </div>
+                </div>
+
+                {Object.values(tableBalances).length > 0 ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {Object.values(tableBalances).map((table) => {
+                      const hasPlayers = (table.players || []).length > 0;
+                      return (
+                        <div
+                          key={table.id}
+                          className="bg-white/10 p-5 rounded-xl border border-cyan-400/30 shadow-lg space-y-4"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <h3 className="text-lg font-semibold text-white leading-tight">{table.name}</h3>
+                              <div className="text-xs text-gray-400 mt-1">
+                                Table ID: {table.id}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs text-gray-400 uppercase tracking-wide">Table Balance</div>
+                              <div className="text-2xl font-bold text-cyan-300">
+                                ₹{(table.totalBalance || 0).toLocaleString('en-IN')}
+                              </div>
+                              <div
+                                className={`mt-2 inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                                  hasPlayers
+                                    ? "bg-green-500/20 text-green-300 border border-green-400/30"
+                                    : "bg-gray-500/20 text-gray-300 border border-gray-400/30"
+                                }`}
+                              >
+                                {hasPlayers ? (
+                                  <>
+                                    <span className="text-lg leading-none">●</span>
+                                    <span>{table.players.length} {table.players.length === 1 ? "Player" : "Players"}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="text-lg leading-none">○</span>
+                                    <span>No Players</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg bg-white/5 border border-white/10 p-4 space-y-3">
+                            <div className="text-xs font-semibold text-gray-300 uppercase tracking-wide">
+                              Players at Table
+                            </div>
+                            {hasPlayers ? (
+                              table.players.map((playerId) => {
+                                const player = playerBalances[playerId];
+                                if (!player) return null;
+                                return (
+                                  <div
+                                    key={playerId}
+                                    className="flex items-center justify-between gap-3 border-b border-white/10 pb-3 last:pb-0 last:border-0"
+                                  >
+                                    <div className="flex-1">
+                                      <div className="text-white text-sm font-medium">{player.name}</div>
+                                      <div className="text-xs text-gray-400">
+                                        ID: {player.id}
+                                        {player.seatNumber ? ` · Seat ${player.seatNumber}` : ""}
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-xs text-gray-400 uppercase tracking-wide">Chip Count</div>
+                                      <div className="text-lg font-semibold text-yellow-300">
+                                        ₹{(player.tableBalance || 0).toLocaleString('en-IN')}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <div className="text-sm text-gray-400 italic">
+                                No active players seated at this table.
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="text-xs text-gray-400">
+                            <div>Snapshot generated from live chip tracking.</div>
+                            <div>Updates occur automatically when manager verifies chip counts.</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-10 text-center text-gray-400">
+                    No table data available. Tables will appear here as soon as they are configured.
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+
           {/* Payroll Management */}
           {activeItem === "Payroll Management" && (
             <div className="space-y-6">
@@ -1218,20 +1331,20 @@ export default function CashierDashboard() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-white text-sm">Select Staff Member</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full mt-1">
                           <option>Sarah Johnson - Dealer</option>
                           <option>Mike Chen - Floor Manager</option>
                           <option>Emma Davis - Cashier</option>
                           <option>John Smith - Security</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div>
                         <label className="text-white text-sm">Pay Period</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full mt-1">
                           <option>Weekly</option>
                           <option>Bi-weekly</option>
                           <option>Monthly</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div>
                         <label className="text-white text-sm">Base Salary</label>
@@ -1256,11 +1369,11 @@ export default function CashierDashboard() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-white text-sm">Staff Member</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full mt-1">
                           <option>Sarah Johnson - Dealer</option>
                           <option>Mike Chen - Floor Manager</option>
                           <option>Emma Davis - Cashier</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div>
                         <label className="text-white text-sm">Total Tips Earned</label>
@@ -1383,13 +1496,13 @@ export default function CashierDashboard() {
                       </div>
                       <div>
                         <label className="text-white text-sm">Bonus Type</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full mt-1">
                           <option>Welcome Bonus</option>
                           <option>Loyalty Bonus</option>
                           <option>Referral Bonus</option>
                           <option>Tournament Bonus</option>
                           <option>Special Event Bonus</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div>
                         <label className="text-white text-sm">Bonus Amount</label>
@@ -1431,22 +1544,22 @@ export default function CashierDashboard() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-white text-sm">Staff Member</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full mt-1">
                           <option>Sarah Johnson - Dealer</option>
                           <option>Mike Chen - Floor Manager</option>
                           <option>Emma Davis - Cashier</option>
                           <option>John Smith - Security</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div>
                         <label className="text-white text-sm">Bonus Type</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full mt-1">
                           <option>Performance Bonus</option>
                           <option>Attendance Bonus</option>
                           <option>Special Achievement</option>
                           <option>Holiday Bonus</option>
                           <option>Year-end Bonus</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div>
                         <label className="text-white text-sm">Bonus Amount</label>
@@ -1454,11 +1567,11 @@ export default function CashierDashboard() {
                       </div>
                       <div>
                         <label className="text-white text-sm">Approval Required</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        <CustomSelect className="w-full mt-1">
                           <option>Manager Approved</option>
                           <option>HR Approved</option>
                           <option>Pending Approval</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                       <div>
                         <label className="text-white text-sm">Reason</label>
@@ -1568,8 +1681,8 @@ export default function CashierDashboard() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-white text-sm mb-2 block">Report Type</label>
-                        <select 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        <CustomSelect
+                          className="w-full"
                           value={selectedReportType}
                           onChange={(e) => {
                             setSelectedReportType(e.target.value);
@@ -1577,12 +1690,14 @@ export default function CashierDashboard() {
                             if (e.target.value !== "individual_player") setSelectedPlayerForReport(null);
                             if (e.target.value !== "custom") setCustomReportSelection([]);
                           }}
+                          placeholder="Select Report Type"
+                          allowSearch
                         >
                           <option value="">Select Report Type</option>
                           {reportTypes.map(type => (
                             <option key={type.id} value={type.id}>{type.icon} {type.name}</option>
                           ))}
-                        </select>
+                        </CustomSelect>
                       </div>
 
                       {/* Player Selection for Individual Player Report */}
@@ -1637,8 +1752,8 @@ export default function CashierDashboard() {
                       {selectedReportType === "per_table_transactions" && (
                         <div>
                           <label className="text-white text-sm mb-2 block">Select Table (Optional - leave blank for all tables)</label>
-                          <select 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          <CustomSelect
+                            className="w-full"
                             value={selectedTableForReport}
                             onChange={(e) => setSelectedTableForReport(e.target.value)}
                           >
@@ -1646,7 +1761,7 @@ export default function CashierDashboard() {
                             <option value="Table 1">Table 1</option>
                             <option value="Table 2">Table 2</option>
                             <option value="Table 3">Table 3</option>
-                          </select>
+                          </CustomSelect>
                         </div>
                       )}
 
