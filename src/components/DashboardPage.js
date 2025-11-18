@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "./common/CustomSelect";
+import TableView from "./hologram/TableView";
 
 export default function DashboardPage() {
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -23,6 +24,20 @@ export default function DashboardPage() {
   ];
 
   const activeTables = tables.filter(table => table.status === "Active");
+
+  // Mock players data with balances (connected across all portals)
+  const [playerBalances, setPlayerBalances] = useState({
+    "P101": { id: "P101", name: "Alex Johnson", email: "alex.johnson@example.com", availableBalance: 25000, tableBalance: 5000, tableId: 1, seatNumber: 3 },
+    "P102": { id: "P102", name: "Maria Garcia", email: "maria.garcia@example.com", availableBalance: 15000, tableBalance: 0, tableId: null, seatNumber: null },
+    "P103": { id: "P103", name: "Rajesh Kumar", email: "rajesh.kumar@example.com", availableBalance: 45000, tableBalance: 10000, tableId: 1, seatNumber: 5 },
+    "P104": { id: "P104", name: "Priya Sharma", email: "priya.sharma@example.com", availableBalance: 32000, tableBalance: 0, tableId: null, seatNumber: null },
+    "P105": { id: "P105", name: "Amit Patel", email: "amit.patel@example.com", availableBalance: 18000, tableBalance: 7500, tableId: 2, seatNumber: 2 },
+    "P106": { id: "P106", name: "John Doe", email: "john.doe@example.com", availableBalance: 28000, tableBalance: 0, tableId: null, seatNumber: null },
+    "P107": { id: "P107", name: "Jane Smith", email: "jane.smith@example.com", availableBalance: 35000, tableBalance: 0, tableId: null, seatNumber: null }
+  });
+
+  // Mock players data for search (for backward compatibility)
+  const mockPlayers = Object.values(playerBalances).map(({ availableBalance, tableBalance, tableId, seatNumber, ...player }) => player);
 
   // State for waitlist and seating management
   const [waitlist, setWaitlist] = useState([
@@ -62,6 +77,11 @@ export default function DashboardPage() {
     3: [] // Table 3 is empty
   });
 
+  // State for table view modal (manager mode)
+  const [showTableView, setShowTableView] = useState(false);
+  const [selectedPlayerForSeating, setSelectedPlayerForSeating] = useState(null);
+  const [selectedTableForSeating, setSelectedTableForSeating] = useState(null);
+
   // State for seat assignment form
   const [seatAssignment, setSeatAssignment] = useState({
     playerId: "",
@@ -69,6 +89,52 @@ export default function DashboardPage() {
     tableId: "",
     seatNumber: ""
   });
+
+  // Player search states for Cash-in/Cash-out operations
+  const [adjustmentPlayerSearch, setAdjustmentPlayerSearch] = useState("");
+  const [selectedAdjustmentPlayer, setSelectedAdjustmentPlayer] = useState(null);
+  const filteredAdjustmentPlayers = adjustmentPlayerSearch.length >= 3
+    ? mockPlayers.filter(player => {
+        const searchLower = adjustmentPlayerSearch.toLowerCase();
+        return (
+          player.name.toLowerCase().includes(searchLower) ||
+          player.id.toLowerCase().includes(searchLower) ||
+          player.email.toLowerCase().includes(searchLower)
+        );
+      })
+    : [];
+
+  // Load custom groups from localStorage (read-only access)
+  const loadCustomGroups = () => {
+    try {
+      const stored = localStorage.getItem('notification_custom_groups');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const [customGroups, setCustomGroups] = useState(loadCustomGroups);
+
+  // Reload custom groups when Push Notifications tab is active
+  useEffect(() => {
+    if (activeItem === "Push Notifications") {
+      setCustomGroups(loadCustomGroups());
+    }
+  }, [activeItem]);
+
+  // Get available audience options (including custom groups - read-only)
+  const getAudienceOptions = () => {
+    const standardOptions = [
+      "All Players",
+      "Tables in Play",
+      "Waitlist",
+      "VIP"
+    ];
+    const playerGroups = customGroups.filter(g => g.type === "player").map(g => `[Player Group] ${g.name}`);
+    const staffGroups = customGroups.filter(g => g.type === "staff").map(g => `[Staff Group] ${g.name}`);
+    return [...standardOptions, ...playerGroups, ...staffGroups];
+  };
 
   // State for push notifications
   const [notificationForm, setNotificationForm] = useState({
@@ -577,6 +643,42 @@ export default function DashboardPage() {
     } else {
       alert(`Preferred seat ${waitlistEntry.preferredSeat} at Table ${waitlistEntry.preferredTable} is not available`);
     }
+  };
+
+  // Handle opening table view for seat assignment
+  const handleOpenTableView = (waitlistEntry, tableId = null) => {
+    setSelectedPlayerForSeating(waitlistEntry);
+    setSelectedTableForSeating(tableId || waitlistEntry.preferredTable || tables[0]?.id || 1);
+    setShowTableView(true);
+  };
+
+  // Handle seat assignment from table view
+  const handleSeatAssign = ({ playerId, playerName, tableId, seatNumber }) => {
+    const tableIdNum = parseInt(tableId);
+    const seatNum = parseInt(seatNumber);
+    
+    if (!isSeatAvailable(tableIdNum, seatNum)) {
+      alert(`Seat ${seatNum} at Table ${tableIdNum} is not available`);
+      return;
+    }
+    
+    // Assign seat
+    setOccupiedSeats(prev => ({
+      ...prev,
+      [tableIdNum]: [...(prev[tableIdNum] || []), seatNum]
+    }));
+    
+    // Remove from waitlist
+    setWaitlist(prev => prev.filter(item => 
+      (item.id !== parseInt(playerId)) && (item.playerId !== playerId)
+    ));
+    
+    alert(`Assigned ${playerName} to Table ${tableIdNum}, Seat ${seatNum}`);
+    
+    // Close table view
+    setShowTableView(false);
+    setSelectedPlayerForSeating(null);
+    setSelectedTableForSeating(null);
   };
 
   // Tournament Management State
@@ -1367,6 +1469,206 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </section>
+
+              {/* Cash-in/Cash-out Operations */}
+              <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Cash-in/Cash-out Operations</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Cash-in to Table</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white text-sm">Table ID</label>
+                        <CustomSelect className="w-full mt-1">
+                          <option>Table 1 - Texas Hold'em</option>
+                          <option>Table 2 - Omaha</option>
+                          <option>Table 3 - Stud</option>
+                        </CustomSelect>
+                      </div>
+                      <div className="relative">
+                        <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
+                        <input 
+                          type="text" 
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder="Search by name, ID, or email..." 
+                          value={adjustmentPlayerSearch}
+                          onChange={(e) => {
+                            setAdjustmentPlayerSearch(e.target.value);
+                            setSelectedAdjustmentPlayer(null);
+                          }}
+                        />
+                        {adjustmentPlayerSearch.length >= 3 && filteredAdjustmentPlayers.length > 0 && !selectedAdjustmentPlayer && (
+                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {filteredAdjustmentPlayers.map(player => (
+                              <div
+                                key={player.id}
+                                onClick={() => {
+                                  setSelectedAdjustmentPlayer(player);
+                                  setAdjustmentPlayerSearch(`${player.name} (${player.id})`);
+                                }}
+                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                              >
+                                <div className="text-white font-medium">{player.name}</div>
+                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {selectedAdjustmentPlayer && (
+                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
+                            <span className="text-green-300">Selected: {selectedAdjustmentPlayer.name} ({selectedAdjustmentPlayer.id})</span>
+                            <button 
+                              onClick={() => {
+                                setSelectedAdjustmentPlayer(null);
+                                setAdjustmentPlayerSearch("");
+                              }}
+                              className="ml-2 text-red-400 hover:text-red-300"
+                            >
+                              X
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {selectedAdjustmentPlayer && playerBalances[selectedAdjustmentPlayer.id] && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-white text-sm">Available Balance</label>
+                            <input 
+                              type="text" 
+                              className="w-full mt-1 px-3 py-2 bg-green-500/20 border border-green-400/30 rounded text-white font-semibold" 
+                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].availableBalance.toLocaleString('en-IN')}`} 
+                              readOnly 
+                            />
+                          </div>
+                          <div>
+                            <label className="text-white text-sm">Current Table Balance</label>
+                            <input 
+                              type="text" 
+                              className="w-full mt-1 px-3 py-2 bg-yellow-500/20 border border-yellow-400/30 rounded text-white font-semibold" 
+                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].tableBalance.toLocaleString('en-IN')}`} 
+                              readOnly 
+                            />
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <label className="text-white text-sm">Buy-in Amount</label>
+                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
+                        <p className="text-xs text-gray-400 mt-1">This will deduct from available balance and add to table balance</p>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (!selectedAdjustmentPlayer) {
+                            alert("Please select a player first");
+                            return;
+                          }
+                          alert(`Cash-in to table for ${selectedAdjustmentPlayer.name} (${selectedAdjustmentPlayer.id})`);
+                        }}
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold"
+                      >
+                        Cash-in to Table (Buy-in)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Cash-out from Table</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white text-sm">Table ID</label>
+                        <CustomSelect className="w-full mt-1">
+                          <option>Table 1 - Texas Hold'em</option>
+                          <option>Table 2 - Omaha</option>
+                          <option>Table 3 - Stud</option>
+                        </CustomSelect>
+                      </div>
+                      <div className="relative">
+                        <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
+                        <input 
+                          type="text" 
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                          placeholder="Search by name, ID, or email..." 
+                          value={adjustmentPlayerSearch}
+                          onChange={(e) => {
+                            setAdjustmentPlayerSearch(e.target.value);
+                            setSelectedAdjustmentPlayer(null);
+                          }}
+                        />
+                        {adjustmentPlayerSearch.length >= 3 && filteredAdjustmentPlayers.length > 0 && !selectedAdjustmentPlayer && (
+                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {filteredAdjustmentPlayers.map(player => (
+                              <div
+                                key={player.id}
+                                onClick={() => {
+                                  setSelectedAdjustmentPlayer(player);
+                                  setAdjustmentPlayerSearch(`${player.name} (${player.id})`);
+                                }}
+                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                              >
+                                <div className="text-white font-medium">{player.name}</div>
+                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {selectedAdjustmentPlayer && (
+                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
+                            <span className="text-green-300">Selected: {selectedAdjustmentPlayer.name} ({selectedAdjustmentPlayer.id})</span>
+                            <button 
+                              onClick={() => {
+                                setSelectedAdjustmentPlayer(null);
+                                setAdjustmentPlayerSearch("");
+                              }}
+                              className="ml-2 text-red-400 hover:text-red-300"
+                            >
+                              X
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {selectedAdjustmentPlayer && playerBalances[selectedAdjustmentPlayer.id] && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-white text-sm">Available Balance</label>
+                            <input 
+                              type="text" 
+                              className="w-full mt-1 px-3 py-2 bg-green-500/20 border border-green-400/30 rounded text-white font-semibold" 
+                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].availableBalance.toLocaleString('en-IN')}`} 
+                              readOnly 
+                            />
+                          </div>
+                          <div>
+                            <label className="text-white text-sm">Current Table Balance</label>
+                            <input 
+                              type="text" 
+                              className="w-full mt-1 px-3 py-2 bg-yellow-500/20 border border-yellow-400/30 rounded text-white font-semibold" 
+                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].tableBalance.toLocaleString('en-IN')}`} 
+                              readOnly 
+                            />
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <label className="text-white text-sm">Chip Count (Manager Verified)</label>
+                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter chip count from manager" />
+                        <p className="text-xs text-gray-400 mt-1">Manager counts chips → Balance updated → Added to available balance</p>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (!selectedAdjustmentPlayer) {
+                            alert("Please select a player first");
+                            return;
+                          }
+                          alert(`Cash-out from table for ${selectedAdjustmentPlayer.name} (${selectedAdjustmentPlayer.id}). This will update player balance and show as withdrawal.`);
+                        }}
+                        className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold"
+                      >
+                        Cash-out from Table (Update Balance)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
           )}
 
@@ -1804,7 +2106,7 @@ export default function DashboardPage() {
 
           {activeItem === "Real-Time Chat" && (
             <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
+              <section className="p-6 bg-gradient-to-r from-yellow-600/30 via-orange-500/20 to-red-700/30 rounded-xl shadow-md border border-yellow-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Player & Staff Support Chat</h2>
                 
                 {/* Chat Type Tabs */}
@@ -1817,7 +2119,7 @@ export default function DashboardPage() {
                     }}
                     className={`px-6 py-3 rounded-lg font-semibold transition-all ${
                       chatType === "player"
-                        ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg"
+                        ? "bg-gradient-to-r from-yellow-400 to-orange-600 text-gray-900 shadow-lg"
                         : "bg-white/10 text-white/70 hover:bg-white/15"
                     }`}
                   >
@@ -1831,7 +2133,7 @@ export default function DashboardPage() {
                     }}
                     className={`px-6 py-3 rounded-lg font-semibold transition-all ${
                       chatType === "staff"
-                        ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg"
+                        ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg"
                         : "bg-white/10 text-white/70 hover:bg-white/15"
                     }`}
                   >
@@ -1844,8 +2146,8 @@ export default function DashboardPage() {
                   <div className="lg:col-span-1 bg-white/10 p-4 rounded-lg">
                     <div className="mb-4">
                       <label className="text-white text-sm mb-2 block">Filter by Status</label>
-                      <select
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                      <CustomSelect
+                        className="w-full"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                       >
@@ -1853,7 +2155,7 @@ export default function DashboardPage() {
                         <option value="open">Open</option>
                         <option value="in_progress">In Progress</option>
                         <option value="closed">Closed</option>
-                      </select>
+                      </CustomSelect>
                     </div>
                     
                     <div className="space-y-2 max-h-[600px] overflow-y-auto">
@@ -1864,7 +2166,7 @@ export default function DashboardPage() {
                             onClick={() => setSelectedChat(chat)}
                             className={`p-3 rounded-lg border cursor-pointer transition-all ${
                               selectedChat?.id === chat.id
-                                ? "bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50"
+                                ? "bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-400/50"
                                 : "bg-white/5 border-white/10 hover:bg-white/10"
                             }`}
                           >
@@ -1917,7 +2219,7 @@ export default function DashboardPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-2">
-                            <select
+                            <CustomSelect
                               className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
                               value={selectedChat.status}
                               onChange={(e) => handleStatusChange(selectedChat.id, e.target.value)}
@@ -1925,7 +2227,7 @@ export default function DashboardPage() {
                               <option value="open">Open</option>
                               <option value="in_progress">In Progress</option>
                               <option value="closed">Closed</option>
-                            </select>
+                            </CustomSelect>
                           </div>
                         </div>
 
@@ -1938,7 +2240,7 @@ export default function DashboardPage() {
                             >
                               <div className={`max-w-[70%] rounded-lg p-3 ${
                                 message.sender === "staff" || message.sender === "manager"
-                                  ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white"
+                                  ? "bg-gradient-to-r from-yellow-500 to-orange-600 text-gray-900"
                                   : "bg-white/20 text-white"
                               }`}>
                                 <div className="text-xs font-semibold mb-1 opacity-90">{message.senderName}</div>
@@ -1965,7 +2267,7 @@ export default function DashboardPage() {
                           <button
                             onClick={handleSendMessage}
                             disabled={selectedChat.status === "closed" || !newMessage.trim()}
-                            className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-400 hover:to-cyan-500 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-gray-900 px-6 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Send
                           </button>
@@ -2605,16 +2907,15 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <label className="text-white text-sm">Audience</label>
-                        <select 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        <CustomSelect
+                          className="w-full"
                           value={notificationForm.audience}
                           onChange={(e) => setNotificationForm({...notificationForm, audience: e.target.value})}
                         >
-                          <option>All Players</option>
-                          <option>Tables in Play</option>
-                          <option>Waitlist</option>
-                          <option>VIP</option>
-                        </select>
+                          {getAudienceOptions().map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </CustomSelect>
                       </div>
                       
                       {/* Image Section */}
@@ -2733,9 +3034,9 @@ export default function DashboardPage() {
                                 <div className="font-semibold text-white">Player: {entry.playerName}</div>
                                 <div className="text-sm text-gray-300">Position: {entry.position} | Game: {entry.gameType}</div>
                                 {entry.preferredSeat ? (
-                                  <div className="mt-1 flex items-center gap-2">
-                                    <span className="text-xs text-yellow-300 font-medium">
-                                      Preferred: Table {entry.preferredTable}, Seat {entry.preferredSeat}
+                                  <div className="mt-1 flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs text-yellow-300 font-medium flex items-center gap-1">
+                                      ⭐ Preferred: Table {entry.preferredTable}, Seat {entry.preferredSeat}
                                     </span>
                                     {preferredSeatAvailable ? (
                                       <span className="text-xs bg-green-500/30 text-green-300 px-2 py-0.5 rounded-full border border-green-400/50">
@@ -2748,10 +3049,17 @@ export default function DashboardPage() {
                                     )}
                           </div>
                                 ) : (
-                                  <div className="mt-1 text-xs text-gray-400">No preferred seat</div>
+                                  <div className="mt-1 text-xs text-gray-400">No preferred seat selected</div>
                                 )}
                           </div>
                               <div className="flex flex-col gap-2 ml-3">
+                                <button 
+                                  onClick={() => handleOpenTableView(entry, entry.preferredTable)}
+                                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
+                                  title="View table hologram to assign seat"
+                                >
+                                  🎯 View Table
+                                </button>
                                 {entry.preferredSeat && preferredSeatAvailable && (
                                   <button 
                                     onClick={() => handleAssignPreferredSeat(entry)}
@@ -3158,6 +3466,25 @@ export default function DashboardPage() {
           )}
         </main>
       </div>
+
+      {/* Table View Modal for Seat Assignment (Manager Mode) */}
+      {showTableView && selectedPlayerForSeating && (
+        <div className="fixed inset-0 z-50 bg-black/90">
+          <TableView
+            tableId={selectedTableForSeating}
+            onClose={() => {
+              setShowTableView(false);
+              setSelectedPlayerForSeating(null);
+              setSelectedTableForSeating(null);
+            }}
+            isManagerMode={true}
+            selectedPlayerForSeating={selectedPlayerForSeating}
+            occupiedSeats={occupiedSeats}
+            onSeatAssign={handleSeatAssign}
+            tables={tables}
+          />
+        </div>
+      )}
     </div>
   );
 }
