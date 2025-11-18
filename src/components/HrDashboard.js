@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import CustomSelect from "./common/CustomSelect";
 
 export default function HrDashboard() {
   const [activeItem, setActiveItem] = useState("Staff Management");
@@ -9,6 +10,7 @@ export default function HrDashboard() {
     "Staff Management",
     "Attendance Management", 
     "Staff Directory",
+    "Staff Requests",
     "Performance Reviews",
   ];
 
@@ -108,100 +110,149 @@ export default function HrDashboard() {
     },
   ];
 
-  // State for Attendance Management
-  const [staffSearch, setStaffSearch] = useState("");
-  const [selectedStaff, setSelectedStaff] = useState(null);
-  const [breakDuration, setBreakDuration] = useState("");
-  const [notes, setNotes] = useState("");
-  const [shiftLogs, setShiftLogs] = useState([]);
+  // State for Attendance Management - Table format
+  const [currentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [attendanceRecords, setAttendanceRecords] = useState(() => {
+    // Initialize attendance records for all staff with empty login/logout times
+    return staffMembers.map(staff => ({
+      staffId: staff.id,
+      staffName: staff.name,
+      position: staff.position,
+      department: staff.department,
+      date: currentDate,
+      loginTime: "",
+      logoutTime: "",
+      status: "pending"
+    }));
+  });
+
+  // State for Staff Requests
+  const [staffRequests, setStaffRequests] = useState([
+    {
+      id: "SR001",
+      staffId: "S001",
+      staffName: "Sarah Johnson",
+      requestType: "leave",
+      subject: "Leave Application",
+      message: "I need to take leave on 2024-01-25 for personal reasons.",
+      leaveStartDate: "2024-01-25",
+      leaveEndDate: "2024-01-26",
+      leaveType: "Personal Leave",
+      status: "pending",
+      submittedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      hrResponse: null
+    },
+    {
+      id: "SR002",
+      staffId: "S002",
+      staffName: "Mike Chen",
+      requestType: "chat",
+      subject: "Need to discuss schedule",
+      message: "Can we discuss my upcoming schedule change?",
+      status: "in_progress",
+      submittedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      hrResponse: "Sure, let's schedule a meeting."
+    },
+    {
+      id: "SR003",
+      staffId: "S003",
+      staffName: "Emma Davis",
+      requestType: "leave",
+      subject: "Medical Leave Request",
+      message: "I need medical leave for upcoming surgery.",
+      leaveStartDate: "2024-02-05",
+      leaveEndDate: "2024-02-10",
+      leaveType: "Medical Leave",
+      status: "approved",
+      submittedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      hrResponse: "Approved. Please submit medical certificate."
+    }
+  ]);
+
+  const [requestFilter, setRequestFilter] = useState("all"); // "all", "pending", "in_progress", "approved", "rejected"
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [requestResponse, setRequestResponse] = useState("");
+  const [requestStatus, setRequestStatus] = useState("pending");
 
   // State for Staff Directory
   const [selectedStaffDetails, setSelectedStaffDetails] = useState(null);
 
-  // Filter staff for dropdown search
-  const filteredStaffForSearch = staffSearch.length >= 2
-    ? staffMembers.filter(staff => {
-        const searchLower = staffSearch.toLowerCase();
-        return (
-          staff.name.toLowerCase().includes(searchLower) ||
-          staff.position.toLowerCase().includes(searchLower) ||
-          staff.id.toLowerCase().includes(searchLower) ||
-          staff.department.toLowerCase().includes(searchLower)
-        );
-      })
-    : [];
+  // Update attendance records when date changes
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    if (currentDate !== today) {
+      // If viewing a different date, reinitialize records
+      setAttendanceRecords(staffMembers.map(staff => ({
+        staffId: staff.id,
+        staffName: staff.name,
+        position: staff.position,
+        department: staff.department,
+        date: today,
+        loginTime: "",
+        logoutTime: "",
+        status: "pending"
+      })));
+    }
+  }, [currentDate]);
+
+  // Handle attendance time update
+  const handleAttendanceUpdate = (staffId, field, value) => {
+    setAttendanceRecords(prev => prev.map(record => {
+      if (record.staffId === staffId) {
+        const updated = { ...record, [field]: value };
+        // Auto-update status based on times
+        if (updated.loginTime && updated.logoutTime) {
+          updated.status = "completed";
+        } else if (updated.loginTime) {
+          updated.status = "active";
+        } else {
+          updated.status = "pending";
+        }
+        return updated;
+      }
+      return record;
+    }));
+  };
+
+  // Handle save attendance
+  const handleSaveAttendance = () => {
+    const completedRecords = attendanceRecords.filter(r => r.loginTime && r.logoutTime);
+    if (completedRecords.length === 0) {
+      alert("Please fill in at least one staff member's login and logout times");
+      return;
+    }
+    alert(`Attendance saved for ${completedRecords.length} staff member(s)`);
+    // In real implementation, this would save to backend
+  };
+
+  // Handle request response
+  const handleRequestResponse = () => {
+    if (!selectedRequest || !requestResponse.trim()) {
+      alert("Please enter a response");
+      return;
+    }
+    setStaffRequests(prev => prev.map(req => 
+      req.id === selectedRequest.id
+        ? { 
+            ...req, 
+            hrResponse: requestResponse.trim(),
+            status: requestStatus
+          }
+        : req
+    ));
+    alert(`Request ${requestStatus === "approved" ? "approved" : requestStatus === "rejected" ? "rejected" : "updated"} successfully`);
+    setSelectedRequest(null);
+    setRequestResponse("");
+    setRequestStatus("pending");
+  };
+
+  // Filter staff requests
+  const filteredRequests = requestFilter === "all" 
+    ? staffRequests
+    : staffRequests.filter(req => req.status === requestFilter);
 
   const handleSignOut = () => {
     navigate("/hr/signin");
-  };
-
-  // Handle Log In
-  const handleLogIn = () => {
-    if (!selectedStaff) {
-      alert("Please select a staff member first");
-      return;
-    }
-    const now = new Date();
-    const date = now.toISOString().split('T')[0];
-    const time = now.toTimeString().split(' ')[0].substring(0, 5);
-    
-    const newLog = {
-      id: Date.now(),
-      staffId: selectedStaff.id,
-      staffName: selectedStaff.name,
-      position: selectedStaff.position,
-      date: date,
-      loginTime: time,
-      logoutTime: null,
-      breakDuration: breakDuration || "0",
-      notes: notes,
-      status: "Active"
-    };
-    
-    setShiftLogs(prev => [newLog, ...prev]);
-    alert(`Logged in: ${selectedStaff.name}\nDate: ${date}\nTime: ${time}`);
-    
-    // Reset form
-    setSelectedStaff(null);
-    setStaffSearch("");
-    setBreakDuration("");
-    setNotes("");
-  };
-
-  // Handle Log Out
-  const handleLogOut = () => {
-    if (!selectedStaff) {
-      alert("Please select a staff member first");
-      return;
-    }
-    
-    // Find the most recent active log for this staff member
-    const activeLog = shiftLogs.find(log => 
-      log.staffId === selectedStaff.id && log.status === "Active" && !log.logoutTime
-    );
-    
-    if (!activeLog) {
-      alert(`No active shift found for ${selectedStaff.name}. Please log in first.`);
-      return;
-    }
-    
-    const now = new Date();
-    const time = now.toTimeString().split(' ')[0].substring(0, 5);
-    
-    // Update the log with logout time
-    setShiftLogs(prev => prev.map(log => 
-      log.id === activeLog.id 
-        ? { ...log, logoutTime: time, status: "Completed" }
-        : log
-    ));
-    
-    alert(`Logged out: ${selectedStaff.name}\nDate: ${activeLog.date}\nLogout Time: ${time}`);
-    
-    // Reset form
-    setSelectedStaff(null);
-    setStaffSearch("");
-    setBreakDuration("");
-    setNotes("");
   };
 
   return (
@@ -452,129 +503,82 @@ export default function HrDashboard() {
           {activeItem === "Attendance Management" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Shift Logging & Attendance</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Log Shift</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Staff Member</label>
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="Type at least 2 characters to search..." 
-                            value={staffSearch}
-                            onChange={(e) => {
-                              setStaffSearch(e.target.value);
-                              setSelectedStaff(null);
-                            }}
-                          />
-                          {staffSearch.length >= 2 && filteredStaffForSearch.length > 0 && !selectedStaff && (
-                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                              {filteredStaffForSearch.map(staff => (
-                                <div
-                                  key={staff.id}
-                                  onClick={() => {
-                                    setSelectedStaff(staff);
-                                    setStaffSearch(`${staff.name} - ${staff.position}`);
-                                  }}
-                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                                >
-                                  <div className="text-white font-medium">{staff.name}</div>
-                                  <div className="text-gray-400 text-xs">ID: {staff.id} | {staff.position} | {staff.department}</div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {selectedStaff && (
-                            <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
-                              <span className="text-green-300">Selected: {selectedStaff.name} ({selectedStaff.position})</span>
-                              <button 
-                                onClick={() => {
-                                  setSelectedStaff(null);
-                                  setStaffSearch("");
-                                }}
-                                className="ml-2 text-red-400 hover:text-red-300 font-bold"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Break Duration (minutes)</label>
-                        <input 
-                          type="number" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="30" 
-                          value={breakDuration}
-                          onChange={(e) => setBreakDuration(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Notes</label>
-                        <textarea 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          rows="3" 
-                          placeholder="Any additional notes..."
-                          value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                        ></textarea>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button 
-                          onClick={handleLogIn}
-                          className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold"
-                        >
-                          Log In
-                        </button>
-                        <button 
-                          onClick={handleLogOut}
-                          className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold"
-                        >
-                          Log Out
-                        </button>
-                      </div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-white">Daily Attendance Logging</h2>
+                  <div className="flex items-center gap-4">
+                    <div className="text-white text-sm">
+                      <span className="text-gray-400">Date:</span> {new Date(currentDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}
                     </div>
+                    <button 
+                      onClick={handleSaveAttendance}
+                      className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-semibold"
+                    >
+                      Save All Attendance
+                    </button>
                   </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Today's Shifts</h3>
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {shiftLogs.length > 0 ? (
-                        shiftLogs.map(log => (
-                          <div 
-                            key={log.id} 
-                            className={`p-3 rounded-lg border ${
-                              log.status === "Active" 
-                                ? "bg-green-500/20 border-green-400/30" 
-                                : "bg-blue-500/20 border-blue-400/30"
-                            }`}
-                          >
-                            <div className="font-semibold text-white">{log.staffName}</div>
-                            <div className="text-sm text-gray-300">{log.position} | {log.date}</div>
-                            <div className="text-sm text-gray-300">
-                              {log.loginTime} {log.logoutTime ? `- ${log.logoutTime}` : ""}
-                            </div>
-                            {log.breakDuration && log.breakDuration !== "0" && (
-                              <div className="text-xs text-gray-400">Break: {log.breakDuration} min</div>
-                            )}
-                            <div className={`text-xs ${
-                              log.status === "Active" ? "text-green-300" : "text-blue-300"
+                </div>
+                
+                <div className="bg-white/10 p-4 rounded-lg overflow-x-auto">
+                  <table className="w-full min-w-[800px]">
+                    <thead>
+                      <tr className="border-b border-white/20">
+                        <th className="text-left py-3 px-4 text-white font-semibold">Staff ID</th>
+                        <th className="text-left py-3 px-4 text-white font-semibold">Name</th>
+                        <th className="text-left py-3 px-4 text-white font-semibold">Position</th>
+                        <th className="text-left py-3 px-4 text-white font-semibold">Department</th>
+                        <th className="text-left py-3 px-4 text-white font-semibold">Date</th>
+                        <th className="text-left py-3 px-4 text-white font-semibold">Log In Time</th>
+                        <th className="text-left py-3 px-4 text-white font-semibold">Log Out Time</th>
+                        <th className="text-left py-3 px-4 text-white font-semibold">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {attendanceRecords.map((record) => (
+                        <tr key={record.staffId} className="border-b border-white/10 hover:bg-white/5">
+                          <td className="py-3 px-4 text-white">{record.staffId}</td>
+                          <td className="py-3 px-4 text-white font-medium">{record.staffName}</td>
+                          <td className="py-3 px-4 text-gray-300">{record.position}</td>
+                          <td className="py-3 px-4 text-gray-300">{record.department}</td>
+                          <td className="py-3 px-4 text-gray-300">{record.date}</td>
+                          <td className="py-3 px-4">
+                            <input
+                              type="time"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                              value={record.loginTime}
+                              onChange={(e) => handleAttendanceUpdate(record.staffId, "loginTime", e.target.value)}
+                              placeholder="HH:MM"
+                            />
+                          </td>
+                          <td className="py-3 px-4">
+                            <input
+                              type="time"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                              value={record.logoutTime}
+                              onChange={(e) => handleAttendanceUpdate(record.staffId, "logoutTime", e.target.value)}
+                              placeholder="HH:MM"
+                              disabled={!record.loginTime}
+                            />
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                              record.status === "completed"
+                                ? "bg-green-500/30 text-green-300"
+                                : record.status === "active"
+                                ? "bg-blue-500/30 text-blue-300"
+                                : "bg-yellow-500/30 text-yellow-300"
                             }`}>
-                              Status: {log.status}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-gray-400">
-                          No shifts logged today
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                              {record.status === "completed" ? "Completed" : record.status === "active" ? "Active" : "Pending"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div className="mt-4 text-xs text-gray-400">
+                  <p>💡 Fill in the real-time log in and log out times for each staff member based on their actual attendance at the club.</p>
+                  <p>Date is automatically set to today. Log out time can only be entered after log in time is filled.</p>
                 </div>
               </section>
 
@@ -817,6 +821,217 @@ export default function HrDashboard() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Staff Requests */}
+          {activeItem === "Staff Requests" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Staff Requests & Applications</h2>
+                
+                {/* Filter */}
+                <div className="mb-4">
+                  <label className="text-white text-sm mb-2 block">Filter by Status</label>
+                  <CustomSelect
+                    className="w-full md:w-64"
+                    value={requestFilter}
+                    onChange={(e) => setRequestFilter(e.target.value)}
+                  >
+                    <option value="all">All Requests</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                  </CustomSelect>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Requests List */}
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-white mb-4">Staff Requests ({filteredRequests.length})</h3>
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                      {filteredRequests.length > 0 ? (
+                        filteredRequests.map(request => (
+                          <div
+                            key={request.id}
+                            onClick={() => {
+                              setSelectedRequest(request);
+                              setRequestResponse(request.hrResponse || "");
+                              setRequestStatus(request.status);
+                            }}
+                            className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                              selectedRequest?.id === request.id
+                                ? "bg-gradient-to-r from-blue-500/30 to-purple-500/30 border-blue-400/50"
+                                : "bg-white/5 border-white/10 hover:bg-white/10"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="font-semibold text-white">{request.staffName}</div>
+                                <div className="text-xs text-gray-400 mt-1">ID: {request.staffId}</div>
+                              </div>
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                request.status === "approved"
+                                  ? "bg-green-500/30 text-green-300"
+                                  : request.status === "rejected"
+                                  ? "bg-red-500/30 text-red-300"
+                                  : request.status === "in_progress"
+                                  ? "bg-blue-500/30 text-blue-300"
+                                  : "bg-yellow-500/30 text-yellow-300"
+                              }`}>
+                                {request.status === "approved" ? "Approved" : request.status === "rejected" ? "Rejected" : request.status === "in_progress" ? "In Progress" : "Pending"}
+                              </span>
+                            </div>
+                            <div className="text-sm text-white font-medium mb-1">
+                              {request.requestType === "leave" ? "📅 Leave Application" : "💬 Chat Request"}
+                            </div>
+                            <div className="text-xs text-gray-300 mb-1">
+                              Subject: {request.subject}
+                            </div>
+                            {request.requestType === "leave" && (
+                              <div className="text-xs text-gray-400 mt-1">
+                                Leave: {request.leaveStartDate} to {request.leaveEndDate} ({request.leaveType})
+                              </div>
+                            )}
+                            <div className="text-xs text-gray-500 mt-2">
+                              Submitted: {new Date(request.submittedDate).toLocaleDateString('en-IN')}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-12 text-gray-400">
+                          No {requestFilter !== "all" ? requestFilter : ""} requests found
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Request Details & Response */}
+                  <div className="bg-white/10 p-4 rounded-lg">
+                    {selectedRequest ? (
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white mb-4">Request Details</h3>
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-gray-400 text-xs">Staff Member</label>
+                              <div className="text-white font-medium">{selectedRequest.staffName} (ID: {selectedRequest.staffId})</div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">Request Type</label>
+                              <div className="text-white">
+                                {selectedRequest.requestType === "leave" ? "📅 Leave Application" : "💬 Chat Request"}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">Subject</label>
+                              <div className="text-white">{selectedRequest.subject}</div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">Message</label>
+                              <div className="text-white bg-white/5 p-3 rounded border border-white/10">{selectedRequest.message}</div>
+                            </div>
+                            {selectedRequest.requestType === "leave" && (
+                              <>
+                                <div>
+                                  <label className="text-gray-400 text-xs">Leave Type</label>
+                                  <div className="text-white">{selectedRequest.leaveType}</div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-gray-400 text-xs">Start Date</label>
+                                    <div className="text-white">{selectedRequest.leaveStartDate}</div>
+                                  </div>
+                                  <div>
+                                    <label className="text-gray-400 text-xs">End Date</label>
+                                    <div className="text-white">{selectedRequest.leaveEndDate}</div>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                            <div>
+                              <label className="text-gray-400 text-xs">Submitted</label>
+                              <div className="text-white">{new Date(selectedRequest.submittedDate).toLocaleString('en-IN')}</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {selectedRequest.hrResponse && (
+                          <div>
+                            <label className="text-gray-400 text-xs">Previous HR Response</label>
+                            <div className="text-white bg-blue-500/20 p-3 rounded border border-blue-400/30">
+                              {selectedRequest.hrResponse}
+                            </div>
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="text-white text-sm mb-2 block">HR Response</label>
+                          <textarea
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400"
+                            rows="4"
+                            placeholder="Enter your response..."
+                            value={requestResponse}
+                            onChange={(e) => setRequestResponse(e.target.value)}
+                          ></textarea>
+                        </div>
+
+                        <div>
+                          <label className="text-white text-sm mb-2 block">Status</label>
+                          <CustomSelect
+                            className="w-full"
+                            value={requestStatus}
+                            onChange={(e) => setRequestStatus(e.target.value)}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                          </CustomSelect>
+                        </div>
+
+                        <button
+                          onClick={handleRequestResponse}
+                          className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold"
+                        >
+                          Submit Response
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-full min-h-[400px] text-gray-400">
+                        <div className="text-center">
+                          <div className="text-4xl mb-4">📋</div>
+                          <div className="text-lg">Select a request to view details and respond</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {/* Request Summary */}
+              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Request Summary</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white/10 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-yellow-300">{staffRequests.filter(r => r.status === "pending").length}</div>
+                    <div className="text-sm text-gray-300 mt-1">Pending</div>
+                  </div>
+                  <div className="bg-white/10 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-blue-300">{staffRequests.filter(r => r.status === "in_progress").length}</div>
+                    <div className="text-sm text-gray-300 mt-1">In Progress</div>
+                  </div>
+                  <div className="bg-white/10 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-green-300">{staffRequests.filter(r => r.status === "approved").length}</div>
+                    <div className="text-sm text-gray-300 mt-1">Approved</div>
+                  </div>
+                  <div className="bg-white/10 p-4 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-red-300">{staffRequests.filter(r => r.status === "rejected").length}</div>
+                    <div className="text-sm text-gray-300 mt-1">Rejected</div>
+                  </div>
+                </div>
+              </section>
             </div>
           )}
 
