@@ -3,7 +3,7 @@
 A modern React dashboard for poker operations with role-based portals (Super Admin, Manager, GRE, HR, Cashier, FNB) and white-label branding.
 
 ## Features
-
+ 
 - **Modern UI**: Beautiful gradient design with dark theme
 - **Responsive Layout**: Works on desktop, tablet, and mobile
 - **Interactive Sidebar**: Navigation menu with active state
