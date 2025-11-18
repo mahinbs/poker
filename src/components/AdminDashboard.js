@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CustomSelect from './common/CustomSelect';
+import TableView from './hologram/TableView';
 
 export default function AdminDashboard() {
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -218,6 +219,150 @@ export default function AdminDashboard() {
     alert(`KYC ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "updated"} for ${playerId}`);
   };
 
+  // Custom Groups Management (using localStorage for persistence)
+  const loadCustomGroups = () => {
+    try {
+      const stored = localStorage.getItem('notification_custom_groups');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const saveCustomGroups = (groups) => {
+    try {
+      localStorage.setItem('notification_custom_groups', JSON.stringify(groups));
+    } catch (e) {
+      console.error('Failed to save groups:', e);
+    }
+  };
+
+  const [customGroups, setCustomGroups] = useState(loadCustomGroups);
+  
+  // Update groups in localStorage whenever they change
+  useEffect(() => {
+    saveCustomGroups(customGroups);
+  }, [customGroups]);
+
+  // Group creation state
+  const [showGroupForm, setShowGroupForm] = useState(false);
+  const [groupForm, setGroupForm] = useState({
+    name: "",
+    type: "player", // "player" or "staff"
+    memberIds: []
+  });
+  const [groupMemberSearch, setGroupMemberSearch] = useState("");
+  const [editingGroup, setEditingGroup] = useState(null);
+
+  // Mock staff data for staff groups
+  const mockStaff = [
+    { id: "ST001", name: "Sarah Johnson", role: "Dealer", email: "sarah@example.com" },
+    { id: "ST002", name: "Mike Chen", role: "Cashier", email: "mike@example.com" },
+    { id: "ST003", name: "Emma Davis", role: "Floor Manager", email: "emma@example.com" },
+    { id: "ST004", name: "John Doe", role: "Dealer", email: "john@example.com" }
+  ];
+
+  // Get available members based on group type
+  const getAvailableMembers = () => {
+    if (groupForm.type === "player") {
+      return registeredPlayers.filter(p => 
+        !groupForm.memberIds.includes(p.id) &&
+        (!groupMemberSearch || 
+         p.name.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
+         p.id.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
+         p.email.toLowerCase().includes(groupMemberSearch.toLowerCase()))
+      );
+    } else {
+      return mockStaff.filter(s =>
+        !groupForm.memberIds.includes(s.id) &&
+        (!groupMemberSearch ||
+         s.name.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
+         s.id.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
+         s.email.toLowerCase().includes(groupMemberSearch.toLowerCase()))
+      );
+    }
+  };
+
+  // Handle create/update group
+  const handleSaveGroup = () => {
+    if (!groupForm.name.trim()) {
+      alert("Please enter a group name");
+      return;
+    }
+    if (groupForm.memberIds.length === 0) {
+      alert("Please select at least one member for the group");
+      return;
+    }
+
+    if (editingGroup) {
+      // Update existing group
+      setCustomGroups(prev => prev.map(g =>
+        g.id === editingGroup.id
+          ? { ...g, name: groupForm.name, type: groupForm.type, memberIds: groupForm.memberIds }
+          : g
+      ));
+      alert(`Group "${groupForm.name}" updated successfully!`);
+    } else {
+      // Create new group
+      const newGroup = {
+        id: `group-${Date.now()}`,
+        name: groupForm.name,
+        type: groupForm.type,
+        memberIds: groupForm.memberIds,
+        createdAt: new Date().toISOString()
+      };
+      setCustomGroups(prev => [...prev, newGroup]);
+      alert(`Group "${groupForm.name}" created successfully!`);
+    }
+
+    // Reset form
+    setGroupForm({ name: "", type: "player", memberIds: [] });
+    setGroupMemberSearch("");
+    setShowGroupForm(false);
+    setEditingGroup(null);
+  };
+
+  // Handle delete group
+  const handleDeleteGroup = (groupId) => {
+    if (window.confirm("Are you sure you want to delete this group?")) {
+      setCustomGroups(prev => prev.filter(g => g.id !== groupId));
+      alert("Group deleted successfully!");
+    }
+  };
+
+  // Handle edit group
+  const handleEditGroup = (group) => {
+    setEditingGroup(group);
+    setGroupForm({
+      name: group.name,
+      type: group.type,
+      memberIds: [...group.memberIds]
+    });
+    setShowGroupForm(true);
+  };
+
+  // Get group members details
+  const getGroupMembersDetails = (group) => {
+    if (group.type === "player") {
+      return group.memberIds.map(id => registeredPlayers.find(p => p.id === id)).filter(Boolean);
+    } else {
+      return group.memberIds.map(id => mockStaff.find(s => s.id === id)).filter(Boolean);
+    }
+  };
+
+  // Get available audience options (including custom groups)
+  const getAudienceOptions = () => {
+    const standardOptions = [
+      "All Players",
+      "Tables in Play",
+      "Waitlist",
+      "VIP"
+    ];
+    const playerGroups = customGroups.filter(g => g.type === "player").map(g => `[Player Group] ${g.name}`);
+    const staffGroups = customGroups.filter(g => g.type === "staff").map(g => `[Staff Group] ${g.name}`);
+    return [...standardOptions, ...playerGroups, ...staffGroups];
+  };
+
   // State for Push Notifications
   const [notificationForm, setNotificationForm] = useState({
     title: "",
@@ -339,6 +484,119 @@ export default function AdminDashboard() {
     verifiedDate: "all"
   });
   const [selectedPlayerDetails, setSelectedPlayerDetails] = useState(null);
+
+  // Mock table data
+  const tables = [
+    { id: 1, name: "Table 1 - Texas Hold'em", status: "Active", gameType: "Texas Hold'em", stakes: "₹1000.00/10000.00", maxPlayers: 6 },
+    { id: 2, name: "Table 2 - Omaha", status: "Active", gameType: "Omaha", stakes: "₹5000.00/50000.00", maxPlayers: 9 },
+    { id: 3, name: "Table 3 - Stud", status: "Paused", gameType: "Seven Card Stud", stakes: "₹10000.00/100000.00", maxPlayers: 6 },
+  ];
+
+  // Waitlist management state
+  const [waitlist, setWaitlist] = useState([
+    { 
+      id: 1, 
+      playerName: "Alex Johnson", 
+      playerId: "P001",
+      position: 1, 
+      gameType: "Texas Hold'em",
+      preferredSeat: 3,
+      preferredTable: 1
+    },
+    { 
+      id: 2, 
+      playerName: "Maria Garcia", 
+      playerId: "P002",
+      position: 2, 
+      gameType: "Omaha",
+      preferredSeat: 5,
+      preferredTable: 2
+    },
+    { 
+      id: 3, 
+      playerName: "David Wilson", 
+      playerId: "P003",
+      position: 3, 
+      gameType: "Texas Hold'em",
+      preferredSeat: null,
+      preferredTable: 1
+    }
+  ]);
+
+  // Track occupied seats by table
+  const [occupiedSeats, setOccupiedSeats] = useState({
+    1: [1, 2, 4, 7],
+    2: [2, 3, 6],
+    3: []
+  });
+
+  // State for table view modal (manager mode)
+  const [showTableView, setShowTableView] = useState(false);
+  const [selectedPlayerForSeating, setSelectedPlayerForSeating] = useState(null);
+  const [selectedTableForSeating, setSelectedTableForSeating] = useState(null);
+
+  // Check if a seat is available
+  const isSeatAvailable = (tableId, seatNumber) => {
+    const occupied = occupiedSeats[tableId] || [];
+    return !occupied.includes(seatNumber);
+  };
+
+  // Handle opening table view for seat assignment
+  const handleOpenTableView = (waitlistEntry, tableId = null) => {
+    setSelectedPlayerForSeating(waitlistEntry);
+    setSelectedTableForSeating(tableId || waitlistEntry.preferredTable || tables[0]?.id || 1);
+    setShowTableView(true);
+  };
+
+  // Handle seat assignment from table view
+  const handleSeatAssign = ({ playerId, playerName, tableId, seatNumber }) => {
+    const tableIdNum = parseInt(tableId);
+    const seatNum = parseInt(seatNumber);
+    
+    if (!isSeatAvailable(tableIdNum, seatNum)) {
+      alert(`Seat ${seatNum} at Table ${tableIdNum} is not available`);
+      return;
+    }
+    
+    // Assign seat
+    setOccupiedSeats(prev => ({
+      ...prev,
+      [tableIdNum]: [...(prev[tableIdNum] || []), seatNum]
+    }));
+    
+    // Remove from waitlist
+    setWaitlist(prev => prev.filter(item => 
+      (item.id !== parseInt(playerId)) && (item.playerId !== playerId)
+    ));
+    
+    alert(`Assigned ${playerName} to Table ${tableIdNum}, Seat ${seatNum}`);
+    
+    // Close table view
+    setShowTableView(false);
+    setSelectedPlayerForSeating(null);
+    setSelectedTableForSeating(null);
+  };
+
+  // Handle preferred seat assignment
+  const handleAssignPreferredSeat = (waitlistEntry) => {
+    if (!waitlistEntry.preferredSeat || !waitlistEntry.preferredTable) {
+      alert("Player has no preferred seat specified");
+      return;
+    }
+
+    if (isSeatAvailable(waitlistEntry.preferredTable, waitlistEntry.preferredSeat)) {
+      // Assign to preferred seat
+      setOccupiedSeats(prev => ({
+        ...prev,
+        [waitlistEntry.preferredTable]: [...(prev[waitlistEntry.preferredTable] || []), waitlistEntry.preferredSeat]
+      }));
+      // Remove from waitlist
+      setWaitlist(prev => prev.filter(item => item.id !== waitlistEntry.id));
+      alert(`Assigned ${waitlistEntry.playerName} to Table ${waitlistEntry.preferredTable}, Seat ${waitlistEntry.preferredSeat}`);
+    } else {
+      alert(`Preferred seat ${waitlistEntry.preferredSeat} at Table ${waitlistEntry.preferredTable} is not available`);
+    }
+  };
 
   // Mock registered/verified players data
   const [registeredPlayers, setRegisteredPlayers] = useState([
@@ -2602,21 +2860,74 @@ export default function AdminDashboard() {
           {activeItem === "Seating Management" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Seating Management</h2>
+                <h2 className="text-xl font-bold text-white mb-6">Waitlist Management</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Waitlist Management</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">Current Waitlist</h3>
                     <div className="space-y-2">
-                      <div className="bg-white/5 p-3 rounded border border-white/10">
-                        <div className="font-semibold text-white">Player: Mike Johnson</div>
-                        <div className="text-sm text-gray-300">Wait Time: 15 minutes</div>
-                        <div className="text-xs text-blue-300">Priority: High</div>
-                      </div>
-                      <div className="bg-white/5 p-3 rounded border border-white/10">
-                        <div className="font-semibold text-white">Player: Sarah Wilson</div>
-                        <div className="text-sm text-gray-300">Wait Time: 8 minutes</div>
-                        <div className="text-xs text-green-300">Priority: Normal</div>
-                      </div>
+                      {waitlist.map((entry) => {
+                        const preferredSeatAvailable = entry.preferredSeat 
+                          ? isSeatAvailable(entry.preferredTable, entry.preferredSeat)
+                          : false;
+                        
+                        return (
+                          <div key={entry.id} className="bg-blue-500/20 p-3 rounded-lg border border-blue-400/30">
+                            <div className="grid gap-5 sm:grid-cols-[60%,1fr] items-start">
+                              <div className="flex-1">
+                                <div className="font-semibold text-white">Player: {entry.playerName}</div>
+                                <div className="text-sm text-gray-300">Position: {entry.position} | Game: {entry.gameType}</div>
+                                {entry.preferredSeat ? (
+                                  <div className="mt-1 flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs text-yellow-300 font-medium flex items-center gap-1">
+                                      ⭐ Preferred: Table {entry.preferredTable}, Seat {entry.preferredSeat}
+                                    </span>
+                                    {preferredSeatAvailable ? (
+                                      <span className="text-xs bg-green-500/30 text-green-300 px-2 py-0.5 rounded-full border border-green-400/50">
+                                        ✓ Available
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs bg-red-500/30 text-red-300 px-2 py-0.5 rounded-full border border-red-400/50">
+                                        ✗ Occupied
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="mt-1 text-xs text-gray-400">No preferred seat selected</div>
+                                )}
+                              </div>
+                              <div className="flex flex-col gap-2 ml-3">
+                                <button 
+                                  onClick={() => handleOpenTableView(entry, entry.preferredTable)}
+                                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
+                                  title="View table hologram to assign seat"
+                                >
+                                  🎯 View Table
+                                </button>
+                                {entry.preferredSeat && preferredSeatAvailable && (
+                                  <button 
+                                    onClick={() => handleAssignPreferredSeat(entry)}
+                                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
+                                    title={`Assign to preferred seat ${entry.preferredSeat} at Table ${entry.preferredTable}`}
+                                  >
+                                    Assign Preferred
+                                  </button>
+                                )}
+                                <button 
+                                  onClick={() => setWaitlist(prev => prev.filter(item => item.id !== entry.id))}
+                                  className="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-sm"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {waitlist.length === 0 && (
+                        <div className="text-center py-8 text-gray-400 text-sm">
+                          No players in waitlist
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="bg-white/10 p-4 rounded-lg">
@@ -2625,17 +2936,23 @@ export default function AdminDashboard() {
                       <div>
                         <label className="text-white text-sm">Select Player</label>
                         <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Mike Johnson</option>
-                          <option>Sarah Wilson</option>
-                          <option>Tom Brown</option>
+                          <option>-- Select Player --</option>
+                          {waitlist.map(entry => (
+                            <option key={entry.id} value={entry.id}>
+                              {entry.playerName} (Position {entry.position})
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div>
                         <label className="text-white text-sm">Assign Table</label>
                         <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Table 1 - Seat 3</option>
-                          <option>Table 2 - Seat 7</option>
-                          <option>Table 3 - Seat 1</option>
+                          <option>-- Select Table --</option>
+                          {tables.map(table => (
+                            <option key={table.id} value={table.id}>
+                              {table.name}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold shadow">
@@ -3965,16 +4282,15 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <label className="text-white text-sm">Audience</label>
-                        <select 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        <CustomSelect
+                          className="w-full"
                           value={notificationForm.audience}
                           onChange={(e) => setNotificationForm({...notificationForm, audience: e.target.value})}
                         >
-                          <option>All Players</option>
-                          <option>Tables in Play</option>
-                          <option>Waitlist</option>
-                          <option>VIP</option>
-                        </select>
+                          {getAudienceOptions().map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </CustomSelect>
                       </div>
                       
                       {/* Image Section */}
@@ -4067,6 +4383,212 @@ export default function AdminDashboard() {
                       ))}
                     </div>
                   </div>
+                </div>
+              </section>
+
+              {/* Custom Groups Management */}
+              <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-white">Custom Notification Groups</h2>
+                  <button
+                    onClick={() => {
+                      setShowGroupForm(true);
+                      setEditingGroup(null);
+                      setGroupForm({ name: "", type: "player", memberIds: [] });
+                      setGroupMemberSearch("");
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold"
+                  >
+                    ➕ Create Group
+                  </button>
+                </div>
+
+                {/* Group Form */}
+                {showGroupForm && (
+                  <div className="bg-white/10 p-6 rounded-lg border border-emerald-400/30 mb-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      {editingGroup ? "Edit Group" : "Create New Group"}
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-white text-sm mb-1 block">Group Name *</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter group name"
+                          value={groupForm.name}
+                          onChange={(e) => setGroupForm({...groupForm, name: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm mb-1 block">Group Type *</label>
+                        <CustomSelect
+                          className="w-full"
+                          value={groupForm.type}
+                          onChange={(e) => {
+                            setGroupForm({...groupForm, type: e.target.value, memberIds: []});
+                            setGroupMemberSearch("");
+                          }}
+                        >
+                          <option value="player">Player Group</option>
+                          <option value="staff">Staff Group</option>
+                        </CustomSelect>
+                      </div>
+                      <div>
+                        <label className="text-white text-sm mb-1 block">
+                          Add Members ({groupForm.memberIds.length} selected)
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white mb-2"
+                          placeholder="Search by name, ID, or email..."
+                          value={groupMemberSearch}
+                          onChange={(e) => setGroupMemberSearch(e.target.value)}
+                        />
+                        <div className="max-h-48 overflow-y-auto border border-white/20 rounded bg-white/5 p-2 space-y-1">
+                          {getAvailableMembers().length > 0 ? (
+                            getAvailableMembers().map(member => (
+                              <div
+                                key={member.id}
+                                onClick={() => {
+                                  if (!groupForm.memberIds.includes(member.id)) {
+                                    setGroupForm({
+                                      ...groupForm,
+                                      memberIds: [...groupForm.memberIds, member.id]
+                                    });
+                                  }
+                                }}
+                                className="p-2 hover:bg-white/10 cursor-pointer rounded text-white text-sm"
+                              >
+                                {member.name} ({member.id}) - {member.email}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-gray-400 text-sm p-2">No members found</div>
+                          )}
+                        </div>
+                      </div>
+                      {groupForm.memberIds.length > 0 && (
+                        <div>
+                          <label className="text-white text-sm mb-1 block">Selected Members</label>
+                          <div className="flex flex-wrap gap-2 p-3 bg-white/5 rounded border border-white/20">
+                            {groupForm.memberIds.map(memberId => {
+                              const member = groupForm.type === "player"
+                                ? registeredPlayers.find(p => p.id === memberId)
+                                : mockStaff.find(s => s.id === memberId);
+                              if (!member) return null;
+                              return (
+                                <div
+                                  key={memberId}
+                                  className="bg-emerald-500/30 text-emerald-200 px-3 py-1 rounded-full text-xs flex items-center gap-2"
+                                >
+                                  {member.name}
+                                  <button
+                                    onClick={() => {
+                                      setGroupForm({
+                                        ...groupForm,
+                                        memberIds: groupForm.memberIds.filter(id => id !== memberId)
+                                      });
+                                    }}
+                                    className="hover:text-red-300"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleSaveGroup}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold"
+                        >
+                          {editingGroup ? "Update Group" : "Create Group"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowGroupForm(false);
+                            setEditingGroup(null);
+                            setGroupForm({ name: "", type: "player", memberIds: [] });
+                            setGroupMemberSearch("");
+                          }}
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-semibold"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Groups List */}
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">Groups ({customGroups.length})</h3>
+                  {customGroups.length > 0 ? (
+                    <div className="space-y-3">
+                      {customGroups.map(group => {
+                        const members = getGroupMembersDetails(group);
+                        return (
+                          <div key={group.id} className="bg-white/5 p-4 rounded-lg border border-white/10">
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="text-white font-semibold text-lg">{group.name}</h4>
+                                  <span className={`px-2 py-1 rounded text-xs ${
+                                    group.type === "player"
+                                      ? "bg-blue-500/30 text-blue-300 border border-blue-400/50"
+                                      : "bg-purple-500/30 text-purple-300 border border-purple-400/50"
+                                  }`}>
+                                    {group.type === "player" ? "Player Group" : "Staff Group"}
+                                  </span>
+                                </div>
+                                <div className="text-gray-400 text-sm">
+                                  {members.length} member(s)
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleEditGroup(group)}
+                                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteGroup(group.id)}
+                                  className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                            {members.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {members.slice(0, 5).map(member => (
+                                  <div
+                                    key={member.id}
+                                    className="bg-white/5 text-gray-300 px-2 py-1 rounded text-xs"
+                                  >
+                                    {member.name}
+                                  </div>
+                                ))}
+                                {members.length > 5 && (
+                                  <div className="bg-white/5 text-gray-400 px-2 py-1 rounded text-xs">
+                                    +{members.length - 5} more
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      No custom groups created yet. Click "Create Group" to get started.
+                    </div>
+                  )}
                 </div>
               </section>
             </div>
@@ -4476,6 +4998,25 @@ export default function AdminDashboard() {
           )}
         </main>
       </div>
+
+      {/* Table View Modal for Seat Assignment (Manager Mode) */}
+      {showTableView && selectedPlayerForSeating && (
+        <div className="fixed inset-0 z-50 bg-black/90">
+          <TableView
+            tableId={selectedTableForSeating}
+            onClose={() => {
+              setShowTableView(false);
+              setSelectedPlayerForSeating(null);
+              setSelectedTableForSeating(null);
+            }}
+            isManagerMode={true}
+            selectedPlayerForSeating={selectedPlayerForSeating}
+            occupiedSeats={occupiedSeats}
+            onSeatAssign={handleSeatAssign}
+            tables={tables}
+          />
+        </div>
+      )}
     </div>
   );
 }

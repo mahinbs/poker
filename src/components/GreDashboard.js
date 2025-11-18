@@ -478,6 +478,38 @@ export default function GreDashboard() {
     resetOfferForm();
   };
 
+  // Load custom groups from localStorage (read-only access)
+  const loadCustomGroups = () => {
+    try {
+      const stored = localStorage.getItem('notification_custom_groups');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const [customGroups, setCustomGroups] = useState(loadCustomGroups);
+
+  // Reload custom groups when Push Notifications tab is active
+  useEffect(() => {
+    if (activeItem === "Push Notifications") {
+      setCustomGroups(loadCustomGroups());
+    }
+  }, [activeItem]);
+
+  // Get available audience options (including custom groups - read-only)
+  const getAudienceOptions = () => {
+    const standardOptions = [
+      "All Players",
+      "Tables in Play",
+      "Waitlist",
+      "VIP"
+    ];
+    const playerGroups = customGroups.filter(g => g.type === "player").map(g => `[Player Group] ${g.name}`);
+    const staffGroups = customGroups.filter(g => g.type === "staff").map(g => `[Staff Group] ${g.name}`);
+    return [...standardOptions, ...playerGroups, ...staffGroups];
+  };
+
   // Push Notifications state and helpers
   const [notificationForm, setNotificationForm] = useState({
     title: "",
@@ -1224,10 +1256,9 @@ export default function GreDashboard() {
                           value={notificationForm.audience}
                           onChange={(e) => setNotificationForm({...notificationForm, audience: e.target.value})}
                         >
-                          <option>All Players</option>
-                          <option>Tables in Play</option>
-                          <option>Waitlist</option>
-                          <option>VIP</option>
+                          {getAudienceOptions().map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
                         </CustomSelect>
                       </div>
                       
