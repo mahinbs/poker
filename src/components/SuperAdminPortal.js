@@ -617,6 +617,10 @@ export default function SuperAdminPortal() {
     { id: "S003", name: "Sara White", role: "Cashier", status: "Deactivated", email: "sara@example.com" }
   ]);
 
+  // State for custom staff role
+  const [selectedStaffRole, setSelectedStaffRole] = useState("GRE");
+  const [customStaffRole, setCustomStaffRole] = useState("");
+
   // Custom Groups Management (using localStorage for persistence)
   const loadCustomGroups = () => {
     try {
@@ -2064,22 +2068,75 @@ export default function SuperAdminPortal() {
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Add / Edit Staff</h3>
                     <div className="space-y-3">
-                      <input type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Full Name" id="new-staff-name" />
-                      <CustomSelect className="w-full" id="new-staff-role">
-                        <option>GRE</option>
-                        <option>Dealer</option>
-                        <option>Cashier</option>
-                        <option>HR</option>
-                        <option>Manager</option>
+                      <input 
+                        type="text" 
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                        placeholder="Full Name" 
+                        id="new-staff-name" 
+                      />
+                      <CustomSelect 
+                        className="w-full" 
+                        id="new-staff-role"
+                        value={selectedStaffRole}
+                        onChange={(e) => {
+                          setSelectedStaffRole(e.target.value);
+                          if (e.target.value !== "Custom") {
+                            setCustomStaffRole("");
+                          }
+                        }}
+                      >
+                        <option value="GRE">GRE</option>
+                        <option value="Dealer">Dealer</option>
+                        <option value="Cashier">Cashier</option>
+                        <option value="HR">HR</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Custom">Custom Role</option>
                       </CustomSelect>
+                      {selectedStaffRole === "Custom" && (
+                        <div>
+                          <label className="text-white text-sm mb-1 block">Enter Custom Role Name</label>
+                          <input 
+                            type="text" 
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                            placeholder="e.g., Security, Helper, Bouncer, etc." 
+                            value={customStaffRole}
+                            onChange={(e) => setCustomStaffRole(e.target.value)}
+                          />
+                          <p className="text-xs text-gray-400 mt-1">
+                            Enter custom staff role like Security, Helper, Bouncer, Waiter, etc.
+                          </p>
+                        </div>
+                      )}
                       <div className="flex gap-2">
-                        <button className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold" onClick={() => {
-                          const nameInput = document.getElementById('new-staff-name');
-                          const roleSelect = document.getElementById('new-staff-role');
-                          const name = nameInput && 'value' in nameInput ? nameInput.value : '';
-                          const role = roleSelect && 'value' in roleSelect ? roleSelect.value : 'GRE';
-                          if (typeof name === 'string' && name.trim()) addStaff(name, String(role));
-                        }}>Add Staff</button>
+                        <button 
+                          className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold" 
+                          onClick={() => {
+                            const nameInput = document.getElementById('new-staff-name');
+                            const name = nameInput && 'value' in nameInput ? nameInput.value : '';
+                            
+                            if (!name || typeof name !== 'string' || !name.trim()) {
+                              alert("Please enter a staff name");
+                              return;
+                            }
+                            
+                            let role = selectedStaffRole;
+                            if (selectedStaffRole === "Custom") {
+                              if (!customStaffRole || !customStaffRole.trim()) {
+                                alert("Please enter a custom role name");
+                                return;
+                              }
+                              role = customStaffRole.trim();
+                            }
+                            
+                            addStaff(name.trim(), role);
+                            // Reset form
+                            if (nameInput) nameInput.value = '';
+                            setSelectedStaffRole("GRE");
+                            setCustomStaffRole("");
+                          }}
+                        >
+                          Add Staff
+                        </button>
                         <button className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">Edit Selected</button>
                       </div>
                     </div>

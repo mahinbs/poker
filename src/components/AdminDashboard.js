@@ -914,6 +914,65 @@ export default function AdminDashboard() {
   // Get all players for search (combine registered and pending)
   const allPlayersForCredit = [...registeredPlayers, ...allPlayers.filter(p => !registeredPlayers.find(rp => rp.id === p.id))];
 
+  // Bonus creation state
+  const [bonusPlayerSearch, setBonusPlayerSearch] = useState("");
+  const [selectedBonusPlayer, setSelectedBonusPlayer] = useState(null);
+  const [bonusForm, setBonusForm] = useState({
+    type: "Welcome Bonus",
+    amount: "",
+    reason: "",
+    expiryDays: 30
+  });
+
+  // Filter players for bonus creation
+  const filteredPlayersForBonus = bonusPlayerSearch.length >= 2
+    ? allPlayersForCredit.filter(player => {
+        const searchLower = bonusPlayerSearch.toLowerCase();
+        return (
+          player.name.toLowerCase().includes(searchLower) ||
+          player.id.toLowerCase().includes(searchLower) ||
+          (player.email && player.email.toLowerCase().includes(searchLower))
+        );
+      })
+    : [];
+
+  // Handle bonus creation
+  const handleCreateBonus = () => {
+    if (!selectedBonusPlayer) {
+      alert("Please select a player");
+      return;
+    }
+    if (!bonusForm.amount || parseFloat(bonusForm.amount) <= 0) {
+      alert("Please enter a valid bonus amount");
+      return;
+    }
+    const bonusId = `BONUS-${Date.now()}`;
+    const newBonus = {
+      id: bonusId,
+      playerId: selectedBonusPlayer.id,
+      player: selectedBonusPlayer.name,
+      type: bonusForm.type,
+      amount: parseFloat(bonusForm.amount),
+      reason: bonusForm.reason,
+      expiryDays: bonusForm.expiryDays,
+      status: "Active",
+      createdAt: new Date().toISOString(),
+      expiryDate: new Date(Date.now() + bonusForm.expiryDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    };
+    // In a real app, this would be sent to the backend
+    console.log("Bonus created:", newBonus);
+    alert(`Bonus created successfully!\n\nPlayer: ${selectedBonusPlayer.name}\nType: ${bonusForm.type}\nAmount: ₹${parseFloat(bonusForm.amount).toLocaleString('en-IN')}\nReason: ${bonusForm.reason || 'N/A'}`);
+    // Reset form
+    setSelectedBonusPlayer(null);
+    setBonusPlayerSearch("");
+    setBonusForm({
+      type: "Welcome Bonus",
+      amount: "",
+      reason: "",
+      expiryDays: 30
+    });
+  };
+
   // Filter all players for credit limit setting (searches all players, not just eligible)
   const filteredPlayersForLimit = creditPlayerSearchLimit.length >= 3
     ? allPlayersForCredit.filter(player => {
@@ -2711,6 +2770,122 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </div>
+              </section>
+
+              {/* Custom Bonus Creation */}
+              <section className="p-6 bg-gradient-to-r from-yellow-600/30 via-amber-500/20 to-orange-700/30 rounded-xl shadow-md border border-yellow-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Create Custom Bonus</h2>
+                <div className="bg-white/10 p-4 rounded-lg">
+                      <div className="space-y-4">
+                        {/* Player Search */}
+                        <div className="relative">
+                          <label className="text-white text-sm mb-1 block">Select Player</label>
+                          <input 
+                            type="text" 
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                            placeholder="Type at least 2 characters to search..." 
+                            value={bonusPlayerSearch}
+                            onChange={(e) => {
+                              setBonusPlayerSearch(e.target.value);
+                              setSelectedBonusPlayer(null);
+                            }}
+                          />
+                          {bonusPlayerSearch.length >= 2 && filteredPlayersForBonus.length > 0 && !selectedBonusPlayer && (
+                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {filteredPlayersForBonus.map(player => (
+                                <div
+                                  key={player.id}
+                                  onClick={() => {
+                                    setSelectedBonusPlayer(player);
+                                    setBonusPlayerSearch(`${player.name} (${player.id})`);
+                                  }}
+                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                                >
+                                  <div className="text-white font-medium">{player.name}</div>
+                                  <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email || 'N/A'}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {selectedBonusPlayer && (
+                            <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
+                              <span className="text-green-300">Selected: {selectedBonusPlayer.name} ({selectedBonusPlayer.id})</span>
+                              <button 
+                                onClick={() => {
+                                  setSelectedBonusPlayer(null);
+                                  setBonusPlayerSearch("");
+                                }}
+                                className="ml-2 text-red-400 hover:text-red-300 font-bold"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Bonus Type */}
+                        <div>
+                          <label className="text-white text-sm mb-1 block">Bonus Type</label>
+                          <CustomSelect
+                            className="w-full"
+                            value={bonusForm.type}
+                            onChange={(e) => setBonusForm({...bonusForm, type: e.target.value})}
+                          >
+                            <option value="Welcome Bonus">Welcome Bonus</option>
+                            <option value="Loyalty Bonus">Loyalty Bonus</option>
+                            <option value="Referral Bonus">Referral Bonus</option>
+                            <option value="Tournament Bonus">Tournament Bonus</option>
+                            <option value="Special Event Bonus">Special Event Bonus</option>
+                            <option value="Custom Bonus">Custom Bonus</option>
+                          </CustomSelect>
+                        </div>
+
+                        {/* Bonus Amount */}
+                        <div>
+                          <label className="text-white text-sm mb-1 block">Bonus Amount (₹)</label>
+                          <input 
+                            type="number" 
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                            placeholder="₹0.00" 
+                            value={bonusForm.amount}
+                            onChange={(e) => setBonusForm({...bonusForm, amount: e.target.value})}
+                          />
+                        </div>
+
+                        {/* Expiry Days */}
+                        <div>
+                          <label className="text-white text-sm mb-1 block">Expiry (Days)</label>
+                          <input 
+                            type="number" 
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                            placeholder="30" 
+                            value={bonusForm.expiryDays}
+                            onChange={(e) => setBonusForm({...bonusForm, expiryDays: parseInt(e.target.value) || 30})}
+                            min="1"
+                          />
+                        </div>
+
+                        {/* Reason */}
+                        <div>
+                          <label className="text-white text-sm mb-1 block">Reason / Notes</label>
+                          <textarea 
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                            rows="3" 
+                            placeholder="Enter reason for this bonus..." 
+                            value={bonusForm.reason}
+                            onChange={(e) => setBonusForm({...bonusForm, reason: e.target.value})}
+                          ></textarea>
+                        </div>
+
+                        {/* Create Bonus Button */}
+                        <button 
+                          onClick={handleCreateBonus}
+                          className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-4 py-3 rounded-lg font-semibold shadow-lg transition-all"
+                        >
+                          ✨ Create Bonus
+                        </button>
+                      </div>
+                    </div>
               </section>
             </div>
           )}
