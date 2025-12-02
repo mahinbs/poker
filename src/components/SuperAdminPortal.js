@@ -1,21 +1,495 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "./common/CustomSelect";
+import { 
+  getSuperAdminClubs, getClubRevenue, getClub, createClubUser, listClubUsers, removeClubUserRole,
+  createSuperAdminForTenant, getClubStats, getClubStaff, createStaff, updateStaff, deleteStaff,
+  getCreditRequests, approveCreditRequest, denyCreditRequest, updateCreditVisibility, updateCreditLimit,
+  getTransactions, createTransaction, updateTransaction, cancelTransaction,
+  getVipProducts, createVipProduct, updateVipProduct, deleteVipProduct,
+  getClubSettings, setClubSetting, getClubSetting, deleteClubSetting,
+  getAuditLogs, exportAuditLogs,
+  createWaitlistEntry, getWaitlist, getWaitlistEntry, updateWaitlistEntry, cancelWaitlistEntry, deleteWaitlistEntry, assignSeat, unseatPlayer,
+  createTable, getTables, getTable, updateTable, deleteTable,
+  getRevenueAnalytics, getPlayerAnalytics, getStaffAnalytics, getTableAnalytics, getWaitlistAnalytics, getDashboardStats,
+  createAffiliate, getAffiliates, getAffiliateStats, getAffiliatePlayers
+} from "../utils/api";
 
 export default function SuperAdminPortal() {
   const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState("Dashboard");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Club selection state
-  const [selectedClubId, setSelectedClubId] = useState('club-01');
+  const [clubs, setClubs] = useState([]);
+  const [selectedClubId, setSelectedClubId] = useState('');
+  const [selectedClub, setSelectedClub] = useState(null);
   const [isClubDropdownOpen, setIsClubDropdownOpen] = useState(false);
-  const clubs = [
-    { id: 'club-01', name: 'Emerald Poker Mumbai' },
-    { id: 'club-02', name: 'Teal Poker Bangalore' },
-    { id: 'club-03', name: 'Cyan Poker Delhi' },
-    { id: 'club-04', name: 'Royal Poker Chennai' }
-  ];
-  const selectedClub = clubs.find(c => c.id === selectedClubId) || clubs[0];
+  
+  // Check if user is logged in and load clubs
+  useEffect(() => {
+    const loadClubs = async () => {
+      const superAdminStr = localStorage.getItem('superAdmin');
+      if (!superAdminStr) {
+        navigate('/super-admin/signin');
+        return;
+      }
+
+      try {
+        const superAdmin = JSON.parse(superAdminStr);
+        setLoading(true);
+        setError(null);
+        
+        // Load clubs from API
+        const clubsData = await getSuperAdminClubs(superAdmin.id);
+        
+        // Transform API response to match our format
+        const formattedClubs = clubsData.map(club => ({
+          clubId: club.clubId,
+          id: club.clubId, // For compatibility
+          name: club.clubName,
+          tenantId: club.tenantId,
+          tenantName: club.tenantName,
+          description: club.description,
+          logoUrl: club.logoUrl
+        }));
+        
+        setClubs(formattedClubs);
+        
+        // Auto-select first club if available
+        if (formattedClubs.length > 0) {
+          const firstClub = formattedClubs[0];
+          setSelectedClubId(firstClub.clubId);
+          
+          // Update localStorage with tenantId
+          const updatedSuperAdmin = {
+            ...superAdmin,
+            tenantId: firstClub.tenantId,
+            selectedClubId: firstClub.clubId
+          };
+          localStorage.setItem('superAdmin', JSON.stringify(updatedSuperAdmin));
+          
+          // Load club details
+          await loadClubDetails(firstClub.clubId, firstClub.tenantId);
+        } else {
+          setError('No clubs assigned. Please contact Master Admin.');
+        }
+      } catch (err) {
+        console.error('Failed to load clubs:', err);
+        setError(err.message || 'Failed to load clubs');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadClubs();
+  }, [navigate]);
+
+  // Load club details when selected club changes
+  useEffect(() => {
+    if (selectedClubId && clubs.length > 0) {
+      const club = clubs.find(c => c.clubId === selectedClubId || c.id === selectedClubId);
+      if (club) {
+        loadClubDetails(club.clubId || club.id, club.tenantId);
+      }
+    }
+  }, [selectedClubId, clubs]);
+
+  const loadClubDetails = async (clubId, tenantId) => {
+    try {
+      // Load club info
+      const clubInfo = await getClub(clubId, tenantId);
+      setSelectedClub({
+        ...clubInfo,
+        tenantId,
+        clubId: clubInfo.id,
+        id: clubInfo.id
+      });
+
+      // Update localStorage
+      const superAdmin = JSON.parse(localStorage.getItem('superAdmin') || '{}');
+      const updatedSuperAdmin = {
+        ...superAdmin,
+        tenantId,
+        selectedClubId: clubId
+      };
+      localStorage.setItem('superAdmin', JSON.stringify(updatedSuperAdmin));
+
+      // Load revenue data
+      await loadRevenueData(clubId, tenantId);
+    } catch (err) {
+      console.error('Failed to load club details:', err);
+      setError(err.message || 'Failed to load club details');
+    }
+  };
+
+  const loadRevenueData = async (clubId, tenantId) => {
+    try {
+      const revenueData = await getClubRevenue(clubId, tenantId);
+      setRevenueData({
+        previousDay: {
+          revenue: revenueData.previousDay.revenue,
+          rake: revenueData.previousDay.rake,
+          tips: revenueData.previousDay.tips,
+          date: revenueData.previousDay.date,
+          time: revenueData.previousDay.time,
+          lastUpdated: revenueData.previousDay.lastUpdated
+        },
+        currentDay: {
+          revenue: revenueData.currentDay.revenue,
+          rake: revenueData.currentDay.rake,
+          tips: revenueData.currentDay.tips,
+          date: revenueData.currentDay.date,
+          time: revenueData.currentDay.time,
+          lastUpdated: revenueData.currentDay.lastUpdated
+        }
+      });
+    } catch (err) {
+      console.error('Failed to load revenue data:', err);
+      // Don't set error, just log it - revenue data is not critical
+    }
+  };
+
+  const handleClubChange = (clubId) => {
+    const club = clubs.find(c => (c.clubId === clubId) || (c.id === clubId));
+    if (club) {
+      setSelectedClubId(club.clubId || club.id);
+      // Load users for the new club if User Management is active
+      if (activeItem === 'User Management') {
+        loadClubUsers(club.clubId || club.id, club.tenantId);
+      }
+    }
+  };
+
+  // Load club users
+  const loadClubUsers = async (clubId, tenantId) => {
+    if (!clubId || !tenantId) return;
+    try {
+      setLoadingUsers(true);
+      const users = await listClubUsers(clubId, tenantId);
+      setClubUsers(users);
+    } catch (err) {
+      console.error('Failed to load club users:', err);
+      alert(`Failed to load users: ${err.message}`);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Create club user
+  const handleCreateClubUser = async (e) => {
+    e.preventDefault();
+    if (!selectedClub || !newUserForm.email || !newUserForm.role) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setCreatingUser(true);
+      const result = await createClubUser(
+        selectedClub.id,
+        selectedClub.tenantId,
+        {
+          email: newUserForm.email,
+          displayName: newUserForm.displayName || undefined,
+          role: newUserForm.role
+        }
+      );
+
+      if (result.roleAlreadyAssigned) {
+        alert(`User "${result.user.email}" already has the role "${result.role}" for this club.`);
+      } else if (result.isExistingUser) {
+        alert(
+          `User "${result.user.email}" has been assigned the role "${result.role}" for this club.\n\n` +
+          `Note: This user already exists and can now access this club using their existing credentials.`
+        );
+      } else {
+        alert(
+          `User "${result.user.email}" created successfully!\n\n` +
+          `Role: ${result.role}\n` +
+          `Auto-Generated Password: ${result.tempPassword}\n\n` +
+          `⚠️ IMPORTANT: Save this password! It cannot be retrieved later.\n` +
+          `Please share these credentials with the user.\n\n` +
+          `Note: User must reset password on first login.`
+        );
+      }
+
+      // Reload users
+      await loadClubUsers(selectedClub.id, selectedClub.tenantId);
+
+      // Reset form
+      setNewUserForm({
+        email: '',
+        displayName: '',
+        role: 'ADMIN'
+      });
+    } catch (err) {
+      alert(`Failed to create user: ${err.message}`);
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
+  // Remove user role
+  const handleRemoveUserRole = async (userId, role) => {
+    if (!window.confirm(`Remove role "${role}" from this user?`)) return;
+    if (!selectedClub) return;
+
+    try {
+      await removeClubUserRole(selectedClub.id, selectedClub.tenantId, userId, role);
+      alert('Role removed successfully');
+      await loadClubUsers(selectedClub.id, selectedClub.tenantId);
+    } catch (err) {
+      alert(`Failed to remove role: ${err.message}`);
+    }
+  };
+
+  // Create Super Admin for tenant
+  const handleCreateSuperAdmin = async (e) => {
+    e.preventDefault();
+    if (!selectedClub || !newSuperAdminForm.email) {
+      alert('Please fill in email');
+      return;
+    }
+
+    try {
+      setCreatingSuperAdmin(true);
+      const result = await createSuperAdminForTenant(selectedClub.tenantId, {
+        email: newSuperAdminForm.email,
+        displayName: newSuperAdminForm.displayName || undefined
+      });
+
+      if (result.isExistingUser) {
+        alert(
+          `Super Admin "${result.user.email}" already exists and has been assigned to this tenant.\n\n` +
+          `Note: This Super Admin can now access all clubs in this tenant using their existing credentials.`
+        );
+      } else {
+        alert(
+          `Super Admin "${result.user.email}" created successfully!\n\n` +
+          `Auto-Generated Password: ${result.tempPassword}\n\n` +
+          `⚠️ IMPORTANT: Save this password! It cannot be retrieved later.\n` +
+          `Please share these credentials with the Super Admin.\n\n` +
+          `Note: Super Admin can access all clubs in this tenant.`
+        );
+      }
+
+      setNewSuperAdminForm({ email: '', displayName: '' });
+      setShowSuperAdminForm(false);
+    } catch (err) {
+      alert(`Failed to create Super Admin: ${err.message}`);
+    } finally {
+      setCreatingSuperAdmin(false);
+    }
+  };
+
+  // Load users when User Management is selected
+  useEffect(() => {
+    if (activeItem === 'User Management' && selectedClub) {
+      loadClubUsers(selectedClub.id, selectedClub.tenantId);
+    }
+  }, [activeItem, selectedClub?.id]);
+
+  // Load dashboard stats
+  const loadDashboardStats = async () => {
+    if (!selectedClub) return;
+    try {
+      const stats = await getClubStats(selectedClub.id, selectedClub.tenantId);
+      setDashboardStats({
+        totalPlayers: stats.totalPlayers || 0,
+        activeStaff: stats.activeStaff || 0,
+        pendingCredit: stats.pendingCredit || 0,
+        openOverrides: stats.openOverrides || 0
+      });
+    } catch (err) {
+      console.error('Failed to load dashboard stats:', err);
+    }
+  };
+
+  // Load staff
+  const loadStaff = async () => {
+    if (!selectedClub) return;
+    try {
+      setLoadingStaff(true);
+      const staffData = await getClubStaff(selectedClub.id, selectedClub.tenantId);
+      setStaff(staffData);
+    } catch (err) {
+      console.error('Failed to load staff:', err);
+      alert(`Failed to load staff: ${err.message}`);
+    } finally {
+      setLoadingStaff(false);
+    }
+  };
+
+  // Load credit requests
+  const loadCreditRequests = async () => {
+    if (!selectedClub) return;
+    try {
+      setLoadingCreditRequests(true);
+      const requests = await getCreditRequests(selectedClub.id, selectedClub.tenantId);
+      setCreditRequests(requests.map(r => ({
+        id: r.id,
+        playerId: r.playerId,
+        player: r.playerName,
+        amount: parseFloat(r.amount),
+        status: r.status,
+        visibleToPlayer: r.visibleToPlayer,
+        limit: parseFloat(r.limit)
+      })));
+    } catch (err) {
+      console.error('Failed to load credit requests:', err);
+      alert(`Failed to load credit requests: ${err.message}`);
+    } finally {
+      setLoadingCreditRequests(false);
+    }
+  };
+
+  // Load transactions
+  const loadTransactions = async () => {
+    if (!selectedClub) return;
+    try {
+      setLoadingTransactions(true);
+      const txns = await getTransactions(selectedClub.id, selectedClub.tenantId);
+      setTransactions(txns.map(t => ({
+        id: t.id,
+        type: t.type,
+        player: t.playerName,
+        playerId: t.playerId,
+        amount: parseFloat(t.amount),
+        status: t.status
+      })));
+    } catch (err) {
+      console.error('Failed to load transactions:', err);
+      alert(`Failed to load transactions: ${err.message}`);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
+
+  // Load VIP products
+  const loadVipProducts = async () => {
+    if (!selectedClub) return;
+    try {
+      setLoadingVipProducts(true);
+      const products = await getVipProducts(selectedClub.id, selectedClub.tenantId);
+      setVipProducts(products.map(p => ({
+        id: p.id,
+        clubId: selectedClub.id,
+        title: p.title,
+        points: p.points
+      })));
+    } catch (err) {
+      console.error('Failed to load VIP products:', err);
+      alert(`Failed to load VIP products: ${err.message}`);
+    } finally {
+      setLoadingVipProducts(false);
+    }
+  };
+
+  // Load audit logs
+  const loadAuditLogs = async () => {
+    if (!selectedClub) return;
+    try {
+      setLoadingAuditLogs(true);
+      const logs = await getAuditLogs(selectedClub.id, selectedClub.tenantId, { limit: 100 });
+      setAuditLogs(logs);
+    } catch (err) {
+      console.error('Failed to load audit logs:', err);
+      alert(`Failed to load audit logs: ${err.message}`);
+    } finally {
+      setLoadingAuditLogs(false);
+    }
+  };
+
+  // Load waitlist
+  const loadWaitlist = async () => {
+    if (!selectedClub) return;
+    try {
+      const waitlistData = await getWaitlist(selectedClub.id, selectedClub.tenantId);
+      setWaitlist(waitlistData.map((w, idx) => ({
+        pos: idx + 1,
+        player: w.playerName,
+        game: w.tableType || 'Hold\'em',
+        id: w.id,
+        status: w.status,
+        tableNumber: w.tableNumber
+      })));
+    } catch (err) {
+      console.error('Failed to load waitlist:', err);
+      alert(`Failed to load waitlist: ${err.message}`);
+    }
+  };
+
+  // Load tables
+  const loadTables = async () => {
+    if (!selectedClub) return;
+    try {
+      const tablesData = await getTables(selectedClub.id, selectedClub.tenantId);
+      setTables(tablesData);
+    } catch (err) {
+      console.error('Failed to load tables:', err);
+      alert(`Failed to load tables: ${err.message}`);
+    }
+  };
+
+  // Load analytics
+  const loadAnalytics = async () => {
+    if (!selectedClub) return;
+    try {
+      const [revenue, players, staff, tables, waitlist, dashboard] = await Promise.all([
+        getRevenueAnalytics(selectedClub.id, selectedClub.tenantId),
+        getPlayerAnalytics(selectedClub.id, selectedClub.tenantId),
+        getStaffAnalytics(selectedClub.id, selectedClub.tenantId),
+        getTableAnalytics(selectedClub.id, selectedClub.tenantId),
+        getWaitlistAnalytics(selectedClub.id, selectedClub.tenantId),
+        getDashboardStats(selectedClub.id, selectedClub.tenantId)
+      ]);
+      setAnalyticsData({ revenue, players, staff, tables, waitlist, dashboard });
+    } catch (err) {
+      console.error('Failed to load analytics:', err);
+      alert(`Failed to load analytics: ${err.message}`);
+    }
+  };
+
+  // Load club settings
+  const loadClubSettings = async () => {
+    if (!selectedClub) return;
+    try {
+      const settings = await getClubSettings(selectedClub.id, selectedClub.tenantId);
+      setClubSettings(settings);
+    } catch (err) {
+      console.error('Failed to load club settings:', err);
+      alert(`Failed to load club settings: ${err.message}`);
+    }
+  };
+
+  // Load data when club changes or section is selected
+  useEffect(() => {
+    if (!selectedClub) return;
+
+    if (activeItem === 'Dashboard') {
+      loadDashboardStats();
+      loadRevenueData(selectedClub.id, selectedClub.tenantId);
+    } else if (activeItem === 'Staff Management') {
+      loadStaff();
+    } else if (activeItem === 'Credit Approvals') {
+      loadCreditRequests();
+    } else if (activeItem === 'Financial Overrides') {
+      loadTransactions();
+    } else if (activeItem === 'VIP Store') {
+      loadVipProducts();
+    } else if (activeItem === 'Logs & Audits') {
+      loadAuditLogs();
+    } else if (activeItem === 'Waitlist & Seating Overrides') {
+      loadWaitlist();
+      loadTables();
+    } else if (activeItem === 'Analytics & Reports') {
+      loadAnalytics();
+    } else if (activeItem === 'Global Settings') {
+      loadClubSettings();
+    }
+  }, [activeItem, selectedClub?.id]);
 
   // Helper functions for date/time
   const getCurrentDateTime = () => {
@@ -504,8 +978,8 @@ export default function SuperAdminPortal() {
     printWindow.document.close();
   };
 
-  // Generate report data (mock)
-  const generateReport = () => {
+  // Generate report data using APIs
+  const generateReport = async () => {
     if (!selectedReportType) {
       alert("Please select a report type");
       return;
@@ -514,63 +988,75 @@ export default function SuperAdminPortal() {
       alert("Please select date range");
       return;
     }
+    if (!selectedClub) {
+      alert("Please select a club");
+      return;
+    }
 
-    let mockData = [];
-    switch(selectedReportType) {
+    try {
+      setLoadingAnalytics(true);
+      let reportData = [];
+      
+      // Load analytics data if not already loaded
+      if (!analyticsData) {
+        await loadAnalytics();
+      }
+
+      switch(selectedReportType) {
       case "individual_player":
         if (!selectedPlayerForReport) {
           alert("Please select a player for individual report");
           return;
         }
-        mockData = [
+        reportData = [
           ["Player ID", "Name", "Total Games", "Total Revenue", "Total Rake", "Win/Loss"],
           [selectedPlayerForReport.id, selectedPlayerForReport.name, "45", "₹12,500", "₹1,250", "₹-5,000"]
         ];
         break;
       case "cumulative_player":
-        mockData = [
+        reportData = [
           ["Player ID", "Name", "Total Games", "Total Revenue", "Average Session", "Total Rake"],
           ["P101", "Alex Johnson", "125", "₹45,000", "₹360", "₹4,500"],
           ["P102", "Maria Garcia", "89", "₹32,500", "₹365", "₹3,250"]
         ];
         break;
       case "daily_transactions":
-        mockData = [
+        reportData = [
           ["Date", "Total Transactions", "Revenue", "Deposits", "Withdrawals"],
           ["2024-01-20", "45", "₹12,450", "₹25,000", "₹10,000"],
           ["2024-01-19", "38", "₹11,200", "₹22,500", "₹8,500"]
         ];
         break;
       case "daily_rake":
-        mockData = [
+        reportData = [
           ["Date", "Total Rake", "Tables", "Average Rake per Table", "Top Table"],
           ["2024-01-20", "₹1,245", "8", "₹155.63", "Table 1"],
           ["2024-01-19", "₹1,120", "8", "₹140.00", "Table 2"]
         ];
         break;
       case "per_table_transactions":
-        mockData = [
+        reportData = [
           ["Table", "Date", "Transactions", "Revenue", "Rake", "Players"],
           ["Table 1", "2024-01-20", "12", "₹5,200", "₹520", "8"],
           ["Table 2", "2024-01-20", "10", "₹4,100", "₹410", "6"]
         ];
         break;
       case "credit_transactions":
-        mockData = [
+        reportData = [
           ["Date", "Player", "Type", "Amount", "Balance Before", "Balance After"],
           ["2024-01-20", "P101", "Credit Granted", "₹50,000", "₹0", "₹50,000"],
           ["2024-01-20", "P102", "Credit Adjustment", "₹25,000", "₹25,000", "₹50,000"]
         ];
         break;
       case "expenses":
-        mockData = [
+        reportData = [
           ["Date", "Category", "Description", "Amount", "Approved By"],
           ["2024-01-20", "Operations", "Staff Payment", "₹15,000", "Admin"],
           ["2024-01-19", "Maintenance", "Equipment Repair", "₹8,500", "Admin"]
         ];
         break;
       case "bonus":
-        mockData = [
+        reportData = [
           ["Date", "Player", "Bonus Type", "Amount", "Status", "Expiry"],
           ["2024-01-20", "P101", "Welcome Bonus", "₹1,000", "Active", "2024-02-20"],
           ["2024-01-19", "P102", "Referral Bonus", "₹500", "Used", "N/A"]
@@ -581,811 +1067,379 @@ export default function SuperAdminPortal() {
           alert("Please select at least one report type for custom report");
           return;
         }
-        mockData = [
+        reportData = [
           ["Custom Report", "Compiled from multiple reports"],
           ["Report Types", customReportSelection.join(", ")],
           ["Generated", new Date().toLocaleString('en-IN')]
         ];
         break;
+      default:
+        alert("Invalid report type");
+        return;
+      }
+      
+      setReportData(reportData);
+      alert(`Report generated successfully! Preview below.`);
+    } catch (err) {
+      console.error('Failed to generate report:', err);
+      alert(`Failed to generate report: ${err.message}`);
+    } finally {
+      setLoadingAnalytics(false);
     }
-    setReportData(mockData);
-    alert(`Report generated successfully! Preview below.`);
   };
 
   const menuItems = useMemo(() => [
     "Dashboard",
+    "User Management",
     "Players",
     "Registered Players",
     "Staff Management",
+    "Affiliate Management",
     "Credit Approvals",
     "Financial Overrides",
     "Waitlist & Seating Overrides",
-    "Tournaments",
     "VIP Store",
     "Analytics & Reports",
-    "Push Notifications",
-    "Player Support",
     "Global Settings",
     "Logs & Audits",
     "System Control"
   ], []);
 
+  // User Management state
+  const [clubUsers, setClubUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({
+    email: '',
+    displayName: '',
+    role: 'ADMIN'
+  });
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [showSuperAdminForm, setShowSuperAdminForm] = useState(false);
+  const [newSuperAdminForm, setNewSuperAdminForm] = useState({
+    email: '',
+    displayName: ''
+  });
+  const [creatingSuperAdmin, setCreatingSuperAdmin] = useState(false);
 
-  const [staff, setStaff] = useState([
-    { id: "S001", name: "Alice Brown", role: "GRE", status: "Active", email: "alice@example.com" },
-    { id: "S002", name: "Bob Green", role: "Dealer", status: "Active", email: "bob@example.com" },
-    { id: "S003", name: "Sara White", role: "Cashier", status: "Deactivated", email: "sara@example.com" }
-  ]);
 
-  // State for custom staff role
-  const [selectedStaffRole, setSelectedStaffRole] = useState("GRE");
-  const [customStaffRole, setCustomStaffRole] = useState("");
+  // Dashboard stats
+  const [dashboardStats, setDashboardStats] = useState({
+    totalPlayers: 0,
+    activeStaff: 0,
+    pendingCredit: 0,
+    openOverrides: 0
+  });
 
-  // Custom Groups Management (using localStorage for persistence)
-  const loadCustomGroups = () => {
+  // Staff Management
+  const [staff, setStaff] = useState([]);
+  const [loadingStaff, setLoadingStaff] = useState(false);
+  const [showStaffForm, setShowStaffForm] = useState(false);
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [staffForm, setStaffForm] = useState({
+    name: '',
+    role: 'DEALER',
+    employeeId: '',
+    status: 'Active'
+  });
+
+  // Credit Requests
+  const [creditRequests, setCreditRequests] = useState([]);
+  const [loadingCreditRequests, setLoadingCreditRequests] = useState(false);
+
+  // Financial Transactions
+  const [transactions, setTransactions] = useState([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+
+  // VIP Products
+  const [vipProducts, setVipProducts] = useState([]);
+  const [loadingVipProducts, setLoadingVipProducts] = useState(false);
+
+  // Audit Logs
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
+
+  const [waitlist, setWaitlist] = useState([]);
+  const [loadingWaitlist, setLoadingWaitlist] = useState(false);
+
+  // Tables
+  const [tables, setTables] = useState([]);
+  const [loadingTables, setLoadingTables] = useState(false);
+
+  // Analytics
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+
+  // Club Settings
+  const [clubSettings, setClubSettings] = useState([]);
+  const [loadingSettings, setLoadingSettings] = useState(false);
+
+  // Credit approval handlers
+  const approveCredit = async (id) => {
+    if (!selectedClub) return;
     try {
-      const stored = localStorage.getItem('notification_custom_groups');
-      return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      return [];
+      const request = creditRequests.find(r => r.id === id);
+      if (!request) return;
+      await approveCreditRequest(selectedClub.id, selectedClub.tenantId, id, request.limit || request.amount);
+      await loadCreditRequests();
+    } catch (err) {
+      alert(`Failed to approve credit: ${err.message}`);
     }
   };
 
-  const saveCustomGroups = (groups) => {
+  const denyCredit = async (id) => {
+    if (!selectedClub) return;
     try {
-      localStorage.setItem('notification_custom_groups', JSON.stringify(groups));
-    } catch (e) {
-      console.error('Failed to save groups:', e);
+      await denyCreditRequest(selectedClub.id, selectedClub.tenantId, id);
+      await loadCreditRequests();
+    } catch (err) {
+      alert(`Failed to deny credit: ${err.message}`);
     }
   };
 
-  const [customGroups, setCustomGroups] = useState(loadCustomGroups);
-  
-  // Update groups in localStorage whenever they change
-  useEffect(() => {
-    saveCustomGroups(customGroups);
-  }, [customGroups]);
-
-  // Group creation state
-  const [showGroupForm, setShowGroupForm] = useState(false);
-  const [groupForm, setGroupForm] = useState({
-    name: "",
-    type: "player", // "player" or "staff"
-    memberIds: []
-  });
-  const [groupMemberSearch, setGroupMemberSearch] = useState("");
-  const [editingGroup, setEditingGroup] = useState(null);
-
-  // Get available members based on group type
-  const getAvailableMembers = () => {
-    if (groupForm.type === "player") {
-      return registeredPlayers.filter(p => 
-        !groupForm.memberIds.includes(p.id) &&
-        (!groupMemberSearch || 
-         p.name.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
-         p.id.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
-         (p.email && p.email.toLowerCase().includes(groupMemberSearch.toLowerCase())))
-      );
-    } else {
-      return staff.filter(s =>
-        !groupForm.memberIds.includes(s.id) &&
-        (!groupMemberSearch ||
-         s.name.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
-         s.id.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
-         (s.email && s.email.toLowerCase().includes(groupMemberSearch.toLowerCase())))
-      );
+  const handleUpdateCreditVisibility = async (id, visible) => {
+    if (!selectedClub) return;
+    try {
+      await updateCreditVisibility(selectedClub.id, selectedClub.tenantId, id, visible);
+      await loadCreditRequests();
+    } catch (err) {
+      alert(`Failed to update visibility: ${err.message}`);
     }
   };
 
-  // Handle create/update group
-  const handleSaveGroup = () => {
-    if (!groupForm.name.trim()) {
-      alert("Please enter a group name");
+  const handleUpdateCreditLimit = async (id, limit) => {
+    if (!selectedClub) return;
+    try {
+      await updateCreditLimit(selectedClub.id, selectedClub.tenantId, id, limit);
+      await loadCreditRequests();
+    } catch (err) {
+      alert(`Failed to update limit: ${err.message}`);
+    }
+  };
+
+  // Staff handlers
+  const addStaff = async (name, role) => {
+    if (!selectedClub || !name.trim()) return;
+    try {
+      await createStaff(selectedClub.id, selectedClub.tenantId, { name, role });
+      alert('Staff added successfully');
+      await loadStaff();
+    } catch (err) {
+      alert(`Failed to add staff: ${err.message}`);
+    }
+  };
+
+  const handleCreateStaff = async () => {
+    if (!staffForm.name.trim()) {
+      alert('Staff name is required');
       return;
     }
-    if (groupForm.memberIds.length === 0) {
-      alert("Please select at least one member for the group");
+    if (!selectedClub) return;
+
+    try {
+      await createStaff(selectedClub.id, selectedClub.tenantId, {
+        name: staffForm.name.trim(),
+        role: staffForm.role,
+        employeeId: staffForm.employeeId.trim() || undefined,
+        status: staffForm.status
+      });
+      alert('Staff member created successfully!');
+      setShowStaffForm(false);
+      setStaffForm({ name: '', role: 'DEALER', employeeId: '', status: 'Active' });
+      await loadStaff();
+    } catch (error) {
+      console.error('Failed to create staff:', error);
+      alert('Failed to create staff: ' + error.message);
+    }
+  };
+
+  const handleUpdateStaff = async () => {
+    if (!editingStaff || !staffForm.name.trim()) {
+      alert('Staff name is required');
       return;
     }
+    if (!selectedClub) return;
 
-    if (editingGroup) {
-      // Update existing group
-      setCustomGroups(prev => prev.map(g =>
-        g.id === editingGroup.id
-          ? { ...g, name: groupForm.name, type: groupForm.type, memberIds: groupForm.memberIds }
-          : g
-      ));
-      alert(`Group "${groupForm.name}" updated successfully!`);
-    } else {
-      // Create new group
-      const newGroup = {
-        id: `group-${Date.now()}`,
-        name: groupForm.name,
-        type: groupForm.type,
-        memberIds: groupForm.memberIds,
-        createdAt: new Date().toISOString()
-      };
-      setCustomGroups(prev => [...prev, newGroup]);
-      alert(`Group "${groupForm.name}" created successfully!`);
-    }
-
-    // Reset form
-    setGroupForm({ name: "", type: "player", memberIds: [] });
-    setGroupMemberSearch("");
-    setShowGroupForm(false);
-    setEditingGroup(null);
-  };
-
-  // Handle delete group
-  const handleDeleteGroup = (groupId) => {
-    if (window.confirm("Are you sure you want to delete this group?")) {
-      setCustomGroups(prev => prev.filter(g => g.id !== groupId));
-      alert("Group deleted successfully!");
+    try {
+      await updateStaff(selectedClub.id, selectedClub.tenantId, editingStaff.id, {
+        name: staffForm.name.trim(),
+        role: staffForm.role,
+        employeeId: staffForm.employeeId.trim() || null,
+        status: staffForm.status
+      });
+      alert('Staff member updated successfully!');
+      setEditingStaff(null);
+      setShowStaffForm(false);
+      setStaffForm({ name: '', role: 'DEALER', employeeId: '', status: 'Active' });
+      await loadStaff();
+    } catch (error) {
+      console.error('Failed to update staff:', error);
+      alert('Failed to update staff: ' + error.message);
     }
   };
 
-  // Handle edit group
-  const handleEditGroup = (group) => {
-    setEditingGroup(group);
-    setGroupForm({
-      name: group.name,
-      type: group.type,
-      memberIds: [...group.memberIds]
+  const handleDeleteStaff = async (staffId, staffName) => {
+    if (!window.confirm(`Are you sure you want to delete ${staffName}?`)) return;
+    if (!selectedClub) return;
+
+    try {
+      await deleteStaff(selectedClub.id, selectedClub.tenantId, staffId);
+      alert('Staff member deleted successfully!');
+      await loadStaff();
+    } catch (error) {
+      console.error('Failed to delete staff:', error);
+      alert('Failed to delete staff: ' + error.message);
+    }
+  };
+
+  const handleEditStaff = (staffMember) => {
+    setEditingStaff(staffMember);
+    setStaffForm({
+      name: staffMember.name,
+      role: staffMember.role,
+      employeeId: staffMember.employeeId || '',
+      status: staffMember.status
     });
-    setShowGroupForm(true);
+    setShowStaffForm(true);
   };
 
-  // Get group members details
-  const getGroupMembersDetails = (group) => {
-    if (group.type === "player") {
-      return group.memberIds.map(id => registeredPlayers.find(p => p.id === id)).filter(Boolean);
-    } else {
-      return group.memberIds.map(id => staff.find(s => s.id === id)).filter(Boolean);
+  const deactivateStaff = async (id) => {
+    if (!selectedClub) return;
+    try {
+      await updateStaff(selectedClub.id, selectedClub.tenantId, id, { status: 'Deactivated' });
+      await loadStaff();
+    } catch (err) {
+      alert(`Failed to deactivate staff: ${err.message}`);
     }
   };
 
-  // Get available audience options (including custom groups)
-  const getAudienceOptions = () => {
-    const standardOptions = [
-      "All Players",
-      "Tables in Play",
-      "Waitlist",
-      "VIP"
-    ];
-    const playerGroups = customGroups.filter(g => g.type === "player").map(g => `[Player Group] ${g.name}`);
-    const staffGroups = customGroups.filter(g => g.type === "staff").map(g => `[Staff Group] ${g.name}`);
-    return [...standardOptions, ...playerGroups, ...staffGroups];
-  };
-
-  // Push Notifications state
-  const [notificationForm, setNotificationForm] = useState({
-    title: "",
-    message: "",
-    audience: "All Players",
-    imageFile: null,
-    imageUrl: "",
-    videoUrl: "",
-    imagePreview: null
-  });
-  const [notificationErrors, setNotificationErrors] = useState({});
-
-  // Validate image file
-  const validateImageFile = (file) => {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (!validTypes.includes(file.type)) return "Image must be JPG, PNG, GIF, or WebP format";
-    if (file.size > maxSize) return "Image size must be less than 5MB";
-    return null;
-  };
-
-  // Validate video URL
-  const validateVideoUrl = (url) => {
-    if (!url) return null;
-    const videoUrlPattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|facebook\.com|instagram\.com)\/.+$/i;
-    return videoUrlPattern.test(url) ? null : "Please enter a valid video URL (YouTube, Vimeo, DailyMotion, Facebook, Instagram)";
-  };
-
-  // Handle image file selection
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const error = validateImageFile(file);
-    if (error) { 
-      setNotificationErrors(prev => ({...prev, image: error})); 
-      return; 
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setNotificationForm(prev => ({
-        ...prev,
-        imageFile: file,
-        imagePreview: reader.result,
-        imageUrl: ""
-      }));
-      setNotificationErrors(prev => ({...prev, image: null}));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Handle image URL input
-  const handleImageUrlChange = (url) => {
-    if (!url) {
-      setNotificationForm(prev => ({...prev, imageUrl: "", imageFile: null, imagePreview: null}));
-      setNotificationErrors(prev => ({...prev, image: null}));
-      return;
-    }
-    const urlPattern = /^https?:\/\/.+/i;
-    if (!urlPattern.test(url)) {
-      setNotificationErrors(prev => ({...prev, image: "Please enter a valid URL starting with http:// or https://"}));
-      return;
-    }
-    setNotificationForm(prev => ({
-      ...prev,
-      imageUrl: url,
-      imageFile: null,
-      imagePreview: null
-    }));
-    setNotificationErrors(prev => ({...prev, image: null}));
-  };
-
-  // Handle video URL input
-  const handleVideoUrlChange = (url) => {
-    setNotificationForm(prev => ({...prev, videoUrl: url}));
-    setNotificationErrors(prev => ({...prev, video: validateVideoUrl(url)}));
-  };
-
-  // Handle send notification
-  const handleSendNotification = () => {
-    const errors = {};
-    if (!notificationForm.title.trim()) errors.title = "Title is required";
-    if (!notificationForm.message.trim()) errors.message = "Message is required";
-    if (notificationForm.imageFile && notificationForm.imageUrl) errors.image = "Use either image upload OR image URL, not both";
-    if (notificationForm.videoUrl) {
-      const v = validateVideoUrl(notificationForm.videoUrl);
-      if (v) errors.video = v;
-    }
-    if (Object.keys(errors).length) { 
-      setNotificationErrors(errors); 
-      return; 
-    }
-
-    const payload = {
-      title: notificationForm.title,
-      message: notificationForm.message,
-      audience: notificationForm.audience,
-      media: {}
-    };
-    if (notificationForm.imageFile) {
-      payload.media.imageUrl = "https://api.example.com/uploads/" + notificationForm.imageFile.name;
-    } else if (notificationForm.imageUrl) {
-      payload.media.imageUrl = notificationForm.imageUrl;
-    }
-    if (notificationForm.videoUrl) payload.media.videoUrl = notificationForm.videoUrl;
-
-    console.log("Sending notification payload:", payload);
-    alert(`Notification sent!\nPayload: ${JSON.stringify(payload, null, 2)}`);
-    setNotificationForm({ title: "", message: "", audience: "All Players", imageFile: null, imageUrl: "", videoUrl: "", imagePreview: null });
-    setNotificationErrors({});
-  };
-
-  const [creditRequests, setCreditRequests] = useState([
-    { id: "CR-101", playerId: "P001", player: "John Doe", amount: 5000, status: "Pending", visibleToPlayer: false, limit: 0 },
-    { id: "CR-102", playerId: "P003", player: "Mike Johnson", amount: 2500, status: "Pending", visibleToPlayer: false, limit: 0 }
-  ]);
-
-  const [transactions, setTransactions] = useState([
-    { id: "TX-9001", type: "Deposit", player: "John Doe", amount: 3000, status: "Completed" },
-    { id: "TX-9002", type: "Cashout", player: "Jane Smith", amount: 1800, status: "Pending" },
-    { id: "TX-9003", type: "Bonus", player: "Mike Johnson", amount: 500, status: "Completed" }
-  ]);
-
-  // State for bonus creation
-  const [bonusPlayerSearch, setBonusPlayerSearch] = useState("");
-  const [selectedBonusPlayer, setSelectedBonusPlayer] = useState(null);
-  const [bonusForm, setBonusForm] = useState({
-    type: "Welcome Bonus",
-    amount: "",
-    reason: "",
-    expiryDays: 30
-  });
-
-  // Filter players for bonus creation
-  const filteredPlayersForBonus = bonusPlayerSearch.length >= 2
-    ? allPlayersForReport.filter(player => {
-        const searchLower = bonusPlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          (player.email && player.email.toLowerCase().includes(searchLower))
-        );
-      })
-    : [];
-
-  // Handle bonus creation
-  const handleCreateBonus = () => {
-    if (!selectedBonusPlayer) {
-      alert("Please select a player");
-      return;
-    }
-    if (!bonusForm.amount || parseFloat(bonusForm.amount) <= 0) {
-      alert("Please enter a valid bonus amount");
-      return;
-    }
-    const bonusId = `BONUS-${Date.now()}`;
-    const newBonus = {
-      id: bonusId,
-      playerId: selectedBonusPlayer.id,
-      player: selectedBonusPlayer.name,
-      type: bonusForm.type,
-      amount: parseFloat(bonusForm.amount),
-      reason: bonusForm.reason,
-      expiryDays: bonusForm.expiryDays,
-      status: "Active",
-      createdAt: new Date().toISOString(),
-      expiryDate: new Date(Date.now() + bonusForm.expiryDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    };
-    setTransactions(prev => [...prev, {
-      id: bonusId,
-      type: "Bonus",
-      player: selectedBonusPlayer.name,
-      amount: parseFloat(bonusForm.amount),
-      status: "Completed"
-    }]);
-    alert(`Bonus created successfully!\n\nPlayer: ${selectedBonusPlayer.name}\nType: ${bonusForm.type}\nAmount: ₹${parseFloat(bonusForm.amount).toLocaleString('en-IN')}\nReason: ${bonusForm.reason || 'N/A'}`);
-    // Reset form
-    setSelectedBonusPlayer(null);
-    setBonusPlayerSearch("");
-    setBonusForm({
-      type: "Welcome Bonus",
-      amount: "",
-      reason: "",
-      expiryDays: 30
-    });
-  };
-
-  // Mock table data
-  const tables = [
-    { id: 1, name: "Table 1 - Texas Hold'em", status: "Active", gameType: "Texas Hold'em", stakes: "₹1000.00/10000.00", maxPlayers: 6 },
-    { id: 2, name: "Table 2 - Omaha", status: "Active", gameType: "Omaha", stakes: "₹5000.00/50000.00", maxPlayers: 9 },
-    { id: 3, name: "Table 3 - Stud", status: "Paused", gameType: "Seven Card Stud", stakes: "₹10000.00/100000.00", maxPlayers: 6 },
-  ];
-
-  const [waitlist, setWaitlist] = useState([
-    { 
-      id: 1, 
-      pos: 1, 
-      player: "Alex Johnson", 
-      playerName: "Alex Johnson",
-      playerId: "P001",
-      game: "Hold'em",
-      gameType: "Texas Hold'em",
-      preferredSeat: 3,
-      preferredTable: 1
-    },
-    { 
-      id: 2, 
-      pos: 2, 
-      player: "Maria Garcia",
-      playerName: "Maria Garcia",
-      playerId: "P002",
-      game: "Omaha",
-      gameType: "Omaha",
-      preferredSeat: 5,
-      preferredTable: 2
-    }
-  ]);
-
-  // Track occupied seats by table
-  const [occupiedSeats, setOccupiedSeats] = useState({
-    1: [1, 2, 4, 7],
-    2: [2, 3, 6],
-    3: []
-  });
-
-  // State for table view modal (manager mode)
-  const [showTableView, setShowTableView] = useState(false);
-  const [selectedPlayerForSeating, setSelectedPlayerForSeating] = useState(null);
-  const [selectedTableForSeating, setSelectedTableForSeating] = useState(null);
-
-  // Check if a seat is available
-  const isSeatAvailable = (tableId, seatNumber) => {
-    const occupied = occupiedSeats[tableId] || [];
-    return !occupied.includes(seatNumber);
-  };
-
-  // Handle opening table view for seat assignment
-  const handleOpenTableView = (waitlistEntry, tableId = null) => {
-    setSelectedPlayerForSeating(waitlistEntry);
-    setSelectedTableForSeating(tableId || waitlistEntry.preferredTable || tables[0]?.id || 1);
-    setShowTableView(true);
-  };
-
-  // Handle seat assignment from table view
-  const handleSeatAssign = ({ playerId, playerName, tableId, seatNumber }) => {
-    const tableIdNum = parseInt(tableId);
-    const seatNum = parseInt(seatNumber);
-    
-    if (!isSeatAvailable(tableIdNum, seatNum)) {
-      alert(`Seat ${seatNum} at Table ${tableIdNum} is not available`);
-      return;
-    }
-    
-    // Assign seat
-    setOccupiedSeats(prev => ({
-      ...prev,
-      [tableIdNum]: [...(prev[tableIdNum] || []), seatNum]
-    }));
-    
-    // Remove from waitlist
-    setWaitlist(prev => prev.filter(item => 
-      (item.id !== parseInt(playerId)) && (item.playerId !== playerId)
-    ));
-    
-    alert(`Assigned ${playerName} to Table ${tableIdNum}, Seat ${seatNum}`);
-    
-    // Close table view
-    setShowTableView(false);
-    setSelectedPlayerForSeating(null);
-    setSelectedTableForSeating(null);
-  };
-
-  // Handle preferred seat assignment
-  const handleAssignPreferredSeat = (waitlistEntry) => {
-    if (!waitlistEntry.preferredSeat || !waitlistEntry.preferredTable) {
-      alert("Player has no preferred seat specified");
-      return;
-    }
-
-    if (isSeatAvailable(waitlistEntry.preferredTable, waitlistEntry.preferredSeat)) {
-      // Assign to preferred seat
-      setOccupiedSeats(prev => ({
-        ...prev,
-        [waitlistEntry.preferredTable]: [...(prev[waitlistEntry.preferredTable] || []), waitlistEntry.preferredSeat]
-      }));
-      // Remove from waitlist
-      setWaitlist(prev => prev.filter(item => item.id !== waitlistEntry.id));
-      alert(`Assigned ${waitlistEntry.playerName || waitlistEntry.player} to Table ${waitlistEntry.preferredTable}, Seat ${waitlistEntry.preferredSeat}`);
-    } else {
-      alert(`Preferred seat ${waitlistEntry.preferredSeat} at Table ${waitlistEntry.preferredTable} is not available`);
+  // Transaction handlers
+  const handleCancelTransaction = async (id) => {
+    if (!selectedClub) return;
+    if (!window.confirm('Cancel this transaction?')) return;
+    try {
+      await cancelTransaction(selectedClub.id, selectedClub.tenantId, id);
+      await loadTransactions();
+    } catch (err) {
+      alert(`Failed to cancel transaction: ${err.message}`);
     }
   };
 
-  // VIP Store state
-  const [vipProducts, setVipProducts] = useState([
-    { id: 'vip-1', clubId: 'club-01', title: 'VIP Hoodie', points: 1500 },
-    { id: 'vip-2', clubId: 'club-01', title: 'Free Dinner', points: 800 },
-    { id: 'vip-3', clubId: 'club-02', title: 'VIP Poker Set', points: 2500 },
-    { id: 'vip-4', clubId: 'club-02', title: 'Premium Tournament Entry', points: 3000 }
-  ]);
-
-  // Tournament Management State
-  const [tournaments, setTournaments] = useState([
-    {
-      id: "T001",
-      name: "Monday Night Hold'em",
-      type: "No Limit Hold'em",
-      status: "Scheduled",
-      buyIn: 1000,
-      entryFee: 100,
-      startingChips: 10000,
-      startTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      registeredPlayers: 12,
-      maxPlayers: 100,
-      blindStructure: "Standard",
-      blindLevels: 15,
-      rebuyAllowed: false,
-      addOnAllowed: true,
-      reEntryAllowed: false,
-      bountyAmount: 0,
-      lateRegistration: 60,
-      breakStructure: "Every 4 levels",
-      payoutStructure: "Top 15%",
-      createdBy: "Super Admin",
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      id: "T002",
-      name: "PLO Bounty Tournament",
-      type: "Pot Limit Omaha",
-      status: "Active",
-      buyIn: 2000,
-      entryFee: 200,
-      startingChips: 20000,
-      startTime: new Date().toISOString(),
-      registeredPlayers: 45,
-      maxPlayers: 100,
-      blindStructure: "Turbo",
-      blindLevels: 12,
-      rebuyAllowed: false,
-      addOnAllowed: false,
-      reEntryAllowed: true,
-      bountyAmount: 500,
-      lateRegistration: 30,
-      breakStructure: "Every 6 levels",
-      payoutStructure: "Top 20%",
-      createdBy: "Super Admin",
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-    }
-  ]);
-
-  const [tournamentForm, setTournamentForm] = useState({
-    name: "",
-    type: "No Limit Hold'em",
-    buyIn: "",
-    entryFee: "",
-    startingChips: "",
-    startTime: "",
-    maxPlayers: "",
-    blindStructure: "Standard",
-    blindLevels: 15,
-    blindInterval: 15,
-    rebuyAllowed: false,
-    rebuyChips: "",
-    rebuyFee: "",
-    rebuyPeriod: "",
-    addOnAllowed: false,
-    addOnChips: "",
-    addOnFee: "",
-    reEntryAllowed: false,
-    reEntryPeriod: "",
-    bountyAmount: "",
-    lateRegistration: 60,
-    breakStructure: "Every 4 levels",
-    breakDuration: 10,
-    payoutStructure: "Top 15%",
-    seatDrawMethod: "Random",
-    clockPauseRules: "Standard"
-  });
-
-  const [selectedTournament, setSelectedTournament] = useState(null);
-  const [showTournamentForm, setShowTournamentForm] = useState(false);
-
-  // Tournament types
-  const tournamentTypes = [
-    "No Limit Hold'em",
-    "Pot Limit Omaha",
-    "Pot Limit Omaha Hi-Lo",
-    "Limit Hold'em",
-    "Seven Card Stud",
-    "Seven Card Stud Hi-Lo",
-    "HORSE (Mixed)",
-    "8-Game Mix",
-    "Triple Draw Lowball",
-    "Razz",
-    "Badugi"
-  ];
-
-  // Blind structures
-  const blindStructures = [
-    "Standard",
-    "Turbo",
-    "Super Turbo",
-    "Deep Stack",
-    "Hyper Turbo",
-    "Custom"
-  ];
-
-  // Break structures
-  const breakStructures = [
-    "Every 4 levels",
-    "Every 6 levels",
-    "Every 8 levels",
-    "Every 10 levels",
-    "No breaks",
-    "Custom"
-  ];
-
-  // Payout structures
-  const payoutStructures = [
-    "Top 10%",
-    "Top 15%",
-    "Top 20%",
-    "Top 25%",
-    "Winner takes all",
-    "Top 3",
-    "Top 5",
-    "Top 9",
-    "Custom"
-  ];
-
-  // Handle tournament creation
-  const handleCreateTournament = () => {
-    if (!tournamentForm.name || !tournamentForm.buyIn || !tournamentForm.startingChips) {
-      alert("Please fill in all required fields");
-      return;
-    }
-    const newTournament = {
-      id: `T${Date.now().toString().slice(-6)}`,
-      name: tournamentForm.name,
-      type: tournamentForm.type,
-      status: "Scheduled",
-      buyIn: parseFloat(tournamentForm.buyIn),
-      entryFee: parseFloat(tournamentForm.entryFee) || 0,
-      startingChips: parseFloat(tournamentForm.startingChips),
-      startTime: tournamentForm.startTime || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      registeredPlayers: 0,
-      maxPlayers: tournamentForm.maxPlayers ? parseInt(tournamentForm.maxPlayers) : null, // null = unlimited
-      blindStructure: tournamentForm.blindStructure,
-      blindLevels: tournamentForm.blindLevels,
-      rebuyAllowed: tournamentForm.rebuyAllowed,
-      addOnAllowed: tournamentForm.addOnAllowed,
-      reEntryAllowed: tournamentForm.reEntryAllowed,
-      bountyAmount: tournamentForm.bountyAmount ? parseFloat(tournamentForm.bountyAmount) : 0,
-      lateRegistration: tournamentForm.lateRegistration,
-      breakStructure: tournamentForm.breakStructure,
-      payoutStructure: tournamentForm.payoutStructure,
-      createdBy: "Super Admin",
-      createdAt: new Date().toISOString(),
-      ...tournamentForm
-    };
-    setTournaments(prev => [newTournament, ...prev]);
-    alert(`Tournament "${tournamentForm.name}" created successfully!`);
-    setTournamentForm({
-      name: "",
-      type: "No Limit Hold'em",
-      buyIn: "",
-      entryFee: "",
-      startingChips: "",
-      startTime: "",
-      maxPlayers: "",
-      blindStructure: "Standard",
-      blindLevels: 15,
-      blindInterval: 15,
-      rebuyAllowed: false,
-      rebuyChips: "",
-      rebuyFee: "",
-      rebuyPeriod: "",
-      addOnAllowed: false,
-      addOnChips: "",
-      addOnFee: "",
-      reEntryAllowed: false,
-      reEntryPeriod: "",
-      bountyAmount: "",
-      lateRegistration: 60,
-      breakStructure: "Every 4 levels",
-      breakDuration: 10,
-      payoutStructure: "Top 15%",
-      seatDrawMethod: "Random",
-      clockPauseRules: "Standard"
-    });
-    setShowTournamentForm(false);
-  };
-
-  // Chat/Support System State
-  const [chatType, setChatType] = useState("player");
-  const [selectedChat, setSelectedChat] = useState(null);
-  const [newMessage, setNewMessage] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-
-  // Player chats
-  const [playerChats, setPlayerChats] = useState([
-    {
-      id: "PC001",
-      playerId: "P101",
-      playerName: "Alex Johnson",
-      status: "open",
-      lastMessage: "I need help with my account.",
-      lastMessageTime: new Date(Date.now() - 240000).toISOString(),
-      messages: [
-        { id: "M1", sender: "player", senderName: "Alex Johnson", text: "I need help with my account.", timestamp: new Date(Date.now() - 240000).toISOString() },
-        { id: "M2", sender: "staff", senderName: "Super Admin", text: "Hi Alex, how can I help you?", timestamp: new Date(Date.now() - 180000).toISOString() }
-      ],
-      createdAt: new Date(Date.now() - 600000).toISOString()
-    }
-  ]);
-
-  // Staff chats
-  const [staffChats, setStaffChats] = useState([
-    {
-      id: "SC001",
-      staffId: "ST001",
-      staffName: "Sarah Johnson",
-      staffRole: "Dealer",
-      status: "open",
-      lastMessage: "Need urgent assistance",
-      lastMessageTime: new Date(Date.now() - 300000).toISOString(),
-      messages: [
-        { id: "M3", sender: "staff", senderName: "Sarah Johnson", text: "Need urgent assistance", timestamp: new Date(Date.now() - 300000).toISOString() },
-        { id: "M4", sender: "admin", senderName: "Super Admin", text: "I'll assist you right away.", timestamp: new Date(Date.now() - 240000).toISOString() }
-      ],
-      createdAt: new Date(Date.now() - 300000).toISOString()
-    }
-  ]);
-
-  const filteredChats = chatType === "player" 
-    ? playerChats.filter(chat => statusFilter === "all" || chat.status === statusFilter)
-    : staffChats.filter(chat => statusFilter === "all" || chat.status === statusFilter);
-
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedChat) return;
-    
-    const message = {
-      id: `M${Date.now()}`,
-      sender: chatType === "player" ? "staff" : "admin",
-      senderName: "Super Admin",
-      text: newMessage.trim(),
-      timestamp: new Date().toISOString()
-    };
-
-    if (chatType === "player") {
-      setPlayerChats(prev => prev.map(chat => 
-        chat.id === selectedChat.id
-          ? {
-              ...chat,
-              messages: [...chat.messages, message],
-              lastMessage: message.text,
-              lastMessageTime: message.timestamp,
-              status: chat.status === "closed" ? "in_progress" : chat.status
-            }
-          : chat
-      ));
-    } else {
-      setStaffChats(prev => prev.map(chat => 
-        chat.id === selectedChat.id
-          ? {
-              ...chat,
-              messages: [...chat.messages, message],
-              lastMessage: message.text,
-              lastMessageTime: message.timestamp,
-              status: chat.status === "closed" ? "in_progress" : chat.status
-            }
-          : chat
-      ));
-    }
-    setNewMessage("");
-  };
-
-  const handleStatusChange = (chatId, newStatus) => {
-    if (chatType === "player") {
-      setPlayerChats(prev => prev.map(chat => 
-        chat.id === chatId ? { ...chat, status: newStatus } : chat
-      ));
-      if (selectedChat && selectedChat.id === chatId) {
-        const updatedChat = playerChats.find(c => c.id === chatId);
-        if (updatedChat) setSelectedChat({ ...updatedChat, status: newStatus });
-      }
-    } else {
-      setStaffChats(prev => prev.map(chat => 
-        chat.id === chatId ? { ...chat, status: newStatus } : chat
-      ));
-      if (selectedChat && selectedChat.id === chatId) {
-        const updatedChat = staffChats.find(c => c.id === chatId);
-        if (updatedChat) setSelectedChat({ ...updatedChat, status: newStatus });
-      }
+  // VIP Product handlers
+  const handleAddVipProduct = async (title, points) => {
+    if (!selectedClub || !title.trim() || !points) return;
+    try {
+      await createVipProduct(selectedClub.id, selectedClub.tenantId, { title, points });
+      await loadVipProducts();
+    } catch (err) {
+      alert(`Failed to add VIP product: ${err.message}`);
     }
   };
 
-  useEffect(() => {
-    if (selectedChat) {
-      const currentChats = chatType === "player" ? playerChats : staffChats;
-      const updatedChat = currentChats.find(c => c.id === selectedChat.id);
-      if (updatedChat) {
-        setSelectedChat(updatedChat);
-      } else {
-        setSelectedChat(null);
-      }
+  const handleDeleteVipProduct = async (id) => {
+    if (!selectedClub) return;
+    if (!window.confirm('Delete this VIP product?')) return;
+    try {
+      await deleteVipProduct(selectedClub.id, selectedClub.tenantId, id);
+      await loadVipProducts();
+    } catch (err) {
+      alert(`Failed to delete VIP product: ${err.message}`);
     }
-  }, [chatType, playerChats, staffChats]);
-
-  const approveCredit = (id) => {
-    setCreditRequests((prev) => prev.map((r) => r.id === id ? { ...r, status: "Approved", visibleToPlayer: true, limit: r.amount } : r));
   };
 
-  const denyCredit = (id) => {
-    setCreditRequests((prev) => prev.map((r) => r.id === id ? { ...r, status: "Denied", visibleToPlayer: false, limit: 0 } : r));
+  // Waitlist handlers
+  const handleCreateWaitlistEntry = async (entryData) => {
+    if (!selectedClub) return;
+    try {
+      await createWaitlistEntry(selectedClub.id, selectedClub.tenantId, entryData);
+      alert('Waitlist entry created');
+      await loadWaitlist();
+    } catch (err) {
+      alert(`Failed to create waitlist entry: ${err.message}`);
+    }
   };
 
-  const togglePlayerStatus = (playerId, nextStatus) => {
-    setPlayers((prev) => prev.map((p) => p.id === playerId ? { ...p, status: nextStatus } : p));
+  const handleAssignSeat = async (entryId, tableId) => {
+    if (!selectedClub) return;
+    try {
+      const superAdmin = JSON.parse(localStorage.getItem('superAdmin') || '{}');
+      await assignSeat(selectedClub.id, selectedClub.tenantId, entryId, tableId, superAdmin.id);
+      alert('Seat assigned successfully');
+      await loadWaitlist();
+      await loadTables();
+    } catch (err) {
+      alert(`Failed to assign seat: ${err.message}`);
+    }
   };
 
-  const addStaff = (name, role) => {
-    const id = `S${(Math.random()*10000|0).toString().padStart(3,'0')}`;
-    setStaff((prev) => [...prev, { id, name, role, status: "Active" }]);
+  const handleUnseatPlayer = async (entryId) => {
+    if (!selectedClub) return;
+    try {
+      await unseatPlayer(selectedClub.id, selectedClub.tenantId, entryId);
+      alert('Player unseated');
+      await loadWaitlist();
+      await loadTables();
+    } catch (err) {
+      alert(`Failed to unseat player: ${err.message}`);
+    }
   };
 
-  const deactivateStaff = (id) => {
-    setStaff((prev) => prev.map((s) => s.id === id ? { ...s, status: "Deactivated" } : s));
+  // Table handlers
+  const handleCreateTable = async (tableData) => {
+    if (!selectedClub) return;
+    try {
+      await createTable(selectedClub.id, selectedClub.tenantId, tableData);
+      alert('Table created');
+      await loadTables();
+    } catch (err) {
+      alert(`Failed to create table: ${err.message}`);
+    }
+  };
+
+  const handleUpdateTable = async (tableId, tableData) => {
+    if (!selectedClub) return;
+    try {
+      await updateTable(selectedClub.id, selectedClub.tenantId, tableId, tableData);
+      alert('Table updated');
+      await loadTables();
+    } catch (err) {
+      alert(`Failed to update table: ${err.message}`);
+    }
+  };
+
+  const handleDeleteTable = async (tableId) => {
+    if (!selectedClub) return;
+    if (!window.confirm('Delete this table?')) return;
+    try {
+      await deleteTable(selectedClub.id, selectedClub.tenantId, tableId);
+      alert('Table deleted');
+      await loadTables();
+    } catch (err) {
+      alert(`Failed to delete table: ${err.message}`);
+    }
+  };
+
+  // Settings handlers
+  const handleSetSetting = async (key, value) => {
+    if (!selectedClub) return;
+    try {
+      await setClubSetting(selectedClub.id, selectedClub.tenantId, key, value);
+      alert('Setting updated');
+      await loadClubSettings();
+    } catch (err) {
+      alert(`Failed to update setting: ${err.message}`);
+    }
+  };
+
+  const handleDeleteSetting = async (key) => {
+    if (!selectedClub) return;
+    if (!window.confirm(`Delete setting "${key}"?`)) return;
+    try {
+      await deleteClubSetting(selectedClub.id, selectedClub.tenantId, key);
+      alert('Setting deleted');
+      await loadClubSettings();
+    } catch (err) {
+      alert(`Failed to delete setting: ${err.message}`);
+    }
   };
 
   const factoryReset = () => {
@@ -1403,20 +1457,42 @@ export default function SuperAdminPortal() {
             Super Admin
           </div>
           <div className="bg-white/10 rounded-xl p-4 mb-6 text-white shadow-inner">
-            <div className="text-lg font-semibold">Root Administrator</div>
-            <div className="text-sm opacity-80">super@admin.com</div>
+            {(() => {
+              const superAdmin = JSON.parse(localStorage.getItem('superAdmin') || '{}');
+              return (
+                <>
+                  <div className="text-lg font-semibold">{superAdmin.displayName || 'Super Admin'}</div>
+                  <div className="text-sm opacity-80">{superAdmin.email || 'super@admin.com'}</div>
+                </>
+              );
+            })()}
           </div>
           
           {/* Club Selection Dropdown */}
           <div className="mb-6 relative">
             <label className="text-white text-sm mb-2 block">Select Club</label>
+            {loading ? (
+              <div className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-center">
+                Loading clubs...
+              </div>
+            ) : error ? (
+              <div className="w-full px-3 py-2 bg-red-500/20 border border-red-400/30 rounded text-red-300 text-sm">
+                {error}
+              </div>
+            ) : clubs.length === 0 ? (
+              <div className="w-full px-3 py-2 bg-yellow-500/20 border border-yellow-400/30 rounded text-yellow-300 text-sm">
+                No clubs assigned
+              </div>
+            ) : (
+              <>
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setIsClubDropdownOpen(!isClubDropdownOpen)}
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-left flex items-center justify-between hover:bg-white/15 transition-colors"
               >
-                <span className="truncate">{selectedClub?.name || 'Select Club'}</span>
+                    <span className="truncate">{selectedClub?.name || clubs[0]?.name || 'Select Club'}</span>
+                    {clubs.length > 1 && (
                 <svg 
                   className={`w-4 h-4 ml-2 transition-transform ${isClubDropdownOpen ? 'rotate-180' : ''}`} 
                   fill="none" 
@@ -1425,35 +1501,46 @@ export default function SuperAdminPortal() {
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
+                    )}
               </button>
               
-              {isClubDropdownOpen && (
+                  {isClubDropdownOpen && clubs.length > 1 && (
                 <>
                   <div 
                     className="fixed inset-0 z-10" 
                     onClick={() => setIsClubDropdownOpen(false)}
                   ></div>
                   <div className="absolute z-20 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {clubs.map(club => (
+                        {clubs.map(club => {
+                          const clubId = club.clubId || club.id;
+                          return (
                       <button
-                        key={club.id}
+                              key={clubId}
                         type="button"
                         onClick={() => {
-                          setSelectedClubId(club.id);
+                                handleClubChange(clubId);
                           setIsClubDropdownOpen(false);
                         }}
                         className={`w-full px-3 py-2 text-left text-white hover:bg-white/10 transition-colors ${
-                          selectedClubId === club.id ? 'bg-blue-600/30' : ''
+                                (selectedClubId === clubId) ? 'bg-blue-600/30' : ''
                         }`}
                       >
-                        {club.name}
+                              <div className="font-medium">{club.name}</div>
+                              {club.tenantName && (
+                                <div className="text-xs text-gray-400">{club.tenantName}</div>
+                              )}
                       </button>
-                    ))}
+                          );
+                        })}
                   </div>
                 </>
               )}
             </div>
-            <p className="text-xs text-gray-400 mt-1">Managing: {selectedClub?.name}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {selectedClub ? `Managing: ${selectedClub.name}` : clubs.length > 0 ? `Managing: ${clubs[0].name}` : 'No club selected'}
+                </p>
+              </>
+            )}
           </div>
           
           <nav className="space-y-3">
@@ -1491,10 +1578,10 @@ export default function SuperAdminPortal() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                 {[
-                  { title: "Total Players", value: allPlayers.length.toString(), color: "from-blue-400 via-indigo-500 to-purple-500" },
-                  { title: "Active Staff", value: staff.filter(s=>s.status==='Active').length.toString(), color: "from-green-400 via-emerald-500 to-teal-500" },
-                  { title: "Pending Credit", value: creditRequests.filter(r=>r.status==='Pending').length.toString(), color: "from-yellow-400 via-orange-500 to-red-500" },
-                  { title: "Open Overrides", value: transactions.filter(t=>t.status!=='Completed').length.toString(), color: "from-pink-400 via-red-500 to-rose-500" },
+                  { title: "Total Players", value: dashboardStats.totalPlayers.toString(), color: "from-blue-400 via-indigo-500 to-purple-500" },
+                  { title: "Active Staff", value: dashboardStats.activeStaff.toString(), color: "from-green-400 via-emerald-500 to-teal-500" },
+                  { title: "Pending Credit", value: dashboardStats.pendingCredit.toString(), color: "from-yellow-400 via-orange-500 to-red-500" },
+                  { title: "Open Overrides", value: dashboardStats.openOverrides.toString(), color: "from-pink-400 via-red-500 to-rose-500" },
                 ].map((card) => (
                   <div key={card.title} className={`p-6 rounded-xl bg-gradient-to-br ${card.color} text-gray-900 shadow-lg transition-transform transform hover:scale-105`}>
                     <div className="text-sm opacity-90 text-white/90">{card.title}</div>
@@ -1582,6 +1669,185 @@ export default function SuperAdminPortal() {
           )}
 
           {/* Players - KYC Pending Review */}
+          {activeItem === "User Management" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-purple-500/20 to-pink-700/30 rounded-xl shadow-md border border-indigo-800/40">
+                <h2 className="text-xl font-bold text-white mb-6">Club User Management - {selectedClub?.name}</h2>
+                
+                {!selectedClub ? (
+                  <div className="text-center py-8 text-gray-400">Please select a club first</div>
+                ) : (
+                  <>
+                    {/* Super Admin Creation Section */}
+                    <div className="mb-6 p-4 bg-purple-500/10 border border-purple-400/30 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white">Create Super Admin for Tenant</h3>
+                          <p className="text-sm text-gray-300 mt-1">
+                            Create another Super Admin who can access all clubs in this tenant
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setShowSuperAdminForm(!showSuperAdminForm)}
+                          className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
+                        >
+                          {showSuperAdminForm ? 'Cancel' : 'Create Super Admin'}
+                        </button>
+                      </div>
+                      
+                      {showSuperAdminForm && (
+                        <form onSubmit={handleCreateSuperAdmin} className="space-y-3 mt-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-white text-sm mb-1 block">Email *</label>
+                              <input
+                                type="email"
+                                value={newSuperAdminForm.email}
+                                onChange={(e) => setNewSuperAdminForm(prev => ({ ...prev, email: e.target.value }))}
+                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                                placeholder="superadmin@tenant.com"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="text-white text-sm mb-1 block">Display Name</label>
+                              <input
+                                type="text"
+                                value={newSuperAdminForm.displayName}
+                                onChange={(e) => setNewSuperAdminForm(prev => ({ ...prev, displayName: e.target.value }))}
+                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                                placeholder="John Doe"
+                              />
+                            </div>
+                          </div>
+                          <div className="p-2 bg-blue-500/10 border border-blue-400/30 rounded text-xs text-blue-300">
+                            <strong>Note:</strong> Super Admin will have access to ALL clubs in this tenant. Password will be auto-generated.
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={creatingSuperAdmin}
+                            className="bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-semibold text-sm"
+                          >
+                            {creatingSuperAdmin ? 'Creating...' : 'Create Super Admin'}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Create New Club User */}
+                      <div className="bg-white/10 p-4 rounded-lg">
+                        <h3 className="text-lg font-semibold text-white mb-4">Create Club User</h3>
+                      <form onSubmit={handleCreateClubUser} className="space-y-4">
+                        <div>
+                          <label className="text-white text-sm mb-1 block">Email *</label>
+                          <input
+                            type="email"
+                            value={newUserForm.email}
+                            onChange={(e) => setNewUserForm(prev => ({ ...prev, email: e.target.value }))}
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            placeholder="user@club.com"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-white text-sm mb-1 block">Display Name</label>
+                          <input
+                            type="text"
+                            value={newUserForm.displayName}
+                            onChange={(e) => setNewUserForm(prev => ({ ...prev, displayName: e.target.value }))}
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            placeholder="John Doe"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-white text-sm mb-1 block">Role *</label>
+                          <select
+                            value={newUserForm.role}
+                            onChange={(e) => setNewUserForm(prev => ({ ...prev, role: e.target.value }))}
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            required
+                          >
+                            <option value="ADMIN">Admin</option>
+                            <option value="MANAGER">Manager</option>
+                            <option value="HR">HR</option>
+                            <option value="STAFF">Staff</option>
+                            <option value="AFFILIATE">Affiliate</option>
+                            <option value="CASHIER">Cashier</option>
+                            <option value="GRE">GRE</option>
+                          </select>
+                        </div>
+
+                        <div className="p-3 bg-blue-500/10 border border-blue-400/30 rounded-lg">
+                          <div className="text-xs text-blue-300">
+                            <strong>🔒 Password:</strong> A strong 12-character password will be auto-generated and displayed after creation.
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-yellow-500/10 border border-yellow-400/30 rounded-lg">
+                          <div className="text-xs text-yellow-300">
+                            <strong>⚠️ Important:</strong> Each user can only belong to ONE club. If the email already exists in another club, creation will fail.
+                          </div>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={creatingUser}
+                          className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-semibold shadow"
+                        >
+                          {creatingUser ? 'Creating...' : 'Create User'}
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Existing Users */}
+                    <div className="bg-white/10 p-4 rounded-lg">
+                      <h3 className="text-lg font-semibold text-white mb-4">Club Users</h3>
+                      {loadingUsers ? (
+                        <div className="text-center py-8 text-gray-400">Loading users...</div>
+                      ) : clubUsers.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400">No users found. Create your first user!</div>
+                      ) : (
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                          {clubUsers.map((user) => (
+                            <div key={user.id} className="bg-white/5 p-3 rounded border border-white/10">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="text-white font-medium">{user.displayName || user.email}</div>
+                                  <div className="text-xs text-gray-400 mt-1">{user.email}</div>
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    {user.roles.map((role) => (
+                                      <span
+                                        key={role.roleId}
+                                        className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-500/30 text-indigo-300 rounded text-xs"
+                                      >
+                                        {role.role}
+                                        <button
+                                          onClick={() => handleRemoveUserRole(user.id, role.role)}
+                                          className="hover:text-red-400 transition-colors"
+                                          title="Remove role"
+                                        >
+                                          ×
+                                        </button>
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  </>
+                )}
+              </section>
+            </div>
+          )}
+
           {activeItem === "Players" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
@@ -2063,105 +2329,161 @@ export default function SuperAdminPortal() {
           {activeItem === "Staff Management" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Staff Management</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Add / Edit Staff</h3>
-                    <div className="space-y-3">
-                      <input 
-                        type="text" 
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                        placeholder="Full Name" 
-                        id="new-staff-name" 
-                      />
-                      <CustomSelect 
-                        className="w-full" 
-                        id="new-staff-role"
-                        value={selectedStaffRole}
-                        onChange={(e) => {
-                          setSelectedStaffRole(e.target.value);
-                          if (e.target.value !== "Custom") {
-                            setCustomStaffRole("");
-                          }
-                        }}
-                      >
-                        <option value="GRE">GRE</option>
-                        <option value="Dealer">Dealer</option>
-                        <option value="Cashier">Cashier</option>
-                        <option value="HR">HR</option>
-                        <option value="Manager">Manager</option>
-                        <option value="Custom">Custom Role</option>
-                      </CustomSelect>
-                      {selectedStaffRole === "Custom" && (
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Enter Custom Role Name</label>
-                          <input 
-                            type="text" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="e.g., Security, Helper, Bouncer, etc." 
-                            value={customStaffRole}
-                            onChange={(e) => setCustomStaffRole(e.target.value)}
-                          />
-                          <p className="text-xs text-gray-400 mt-1">
-                            Enter custom staff role like Security, Helper, Bouncer, Waiter, etc.
-                          </p>
-                        </div>
-                      )}
-                      <div className="flex gap-2">
-                        <button 
-                          className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold" 
-                          onClick={() => {
-                            const nameInput = document.getElementById('new-staff-name');
-                            const name = nameInput && 'value' in nameInput ? nameInput.value : '';
-                            
-                            if (!name || typeof name !== 'string' || !name.trim()) {
-                              alert("Please enter a staff name");
-                              return;
-                            }
-                            
-                            let role = selectedStaffRole;
-                            if (selectedStaffRole === "Custom") {
-                              if (!customStaffRole || !customStaffRole.trim()) {
-                                alert("Please enter a custom role name");
-                                return;
-                              }
-                              role = customStaffRole.trim();
-                            }
-                            
-                            addStaff(name.trim(), role);
-                            // Reset form
-                            if (nameInput) nameInput.value = '';
-                            setSelectedStaffRole("GRE");
-                            setCustomStaffRole("");
-                          }}
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-white">Staff Management</h2>
+                  <button
+                    onClick={() => {
+                      setEditingStaff(null);
+                      setStaffForm({ name: '', role: 'DEALER', employeeId: '', status: 'Active' });
+                      setShowStaffForm(true);
+                    }}
+                    className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold"
+                  >
+                    + Add New Staff
+                  </button>
+                </div>
+
+                {/* Staff Form */}
+                {showStaffForm && (
+                  <div className="bg-white/10 p-6 rounded-lg mb-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      {editingStaff ? 'Edit Staff Member' : 'Create New Staff Member'}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-white text-sm font-medium">Staff Name *</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter staff name"
+                          value={staffForm.name}
+                          onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm font-medium">Employee ID</label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="EMP001 (optional)"
+                          value={staffForm.employeeId}
+                          onChange={(e) => setStaffForm({ ...staffForm, employeeId: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm font-medium">Role *</label>
+                        <select
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          value={staffForm.role}
+                          onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })}
                         >
-                          Add Staff
-                        </button>
-                        <button className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">Edit Selected</button>
+                          <option value="GRE">GRE (Guest Relations Executive)</option>
+                          <option value="Dealer">Dealer</option>
+                          <option value="Cashier">Cashier</option>
+                          <option value="HR">HR</option>
+                          <option value="Manager">Manager</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-white text-sm font-medium">Status *</label>
+                        <select
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          value={staffForm.status}
+                          onChange={(e) => setStaffForm({ ...staffForm, status: e.target.value })}
+                        >
+                          <option value="Active">Active</option>
+                          <option value="On Break">On Break</option>
+                          <option value="Deactivated">Deactivated</option>
+                        </select>
                       </div>
                     </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Current Staff</h3>
-                    <div className="space-y-2">
-                      {staff.map((s) => (
-                        <div key={s.id} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
-                          <div className="text-white">
-                            <div className="font-semibold">{s.name} • {s.role}</div>
-                            <div className="text-sm text-white/80">{s.id} • {s.status}</div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm">Assign Role</button>
-                            <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">Contracts</button>
-                            <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-sm">Performance</button>
-                            {s.status !== 'Deactivated' && (
-                              <button onClick={() => deactivateStaff(s.id)} className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm">Deactivate</button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        onClick={editingStaff ? handleUpdateStaff : handleCreateStaff}
+                        className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-semibold"
+                      >
+                        {editingStaff ? 'Update Staff' : 'Create Staff'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowStaffForm(false);
+                          setEditingStaff(null);
+                          setStaffForm({ name: '', role: 'DEALER', employeeId: '', status: 'Active' });
+                        }}
+                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded-lg font-semibold"
+                      >
+                        Cancel
+                      </button>
                     </div>
                   </div>
+                )}
+
+                {/* Staff List */}
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">All Staff Members</h3>
+                  {loadingStaff ? (
+                    <div className="text-white text-center py-8">Loading staff...</div>
+                  ) : staff.length === 0 ? (
+                    <div className="text-white/60 text-center py-8">No staff members found. Create your first staff member!</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-white/20">
+                            <th className="text-white font-semibold py-3 px-4">Name</th>
+                            <th className="text-white font-semibold py-3 px-4">Employee ID</th>
+                            <th className="text-white font-semibold py-3 px-4">Role</th>
+                            <th className="text-white font-semibold py-3 px-4">Status</th>
+                            <th className="text-white font-semibold py-3 px-4">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {staff.map((s) => (
+                            <tr key={s.id} className="border-b border-white/10 hover:bg-white/5">
+                              <td className="text-white py-3 px-4">{s.name}</td>
+                              <td className="text-white/80 py-3 px-4">{s.employeeId || '-'}</td>
+                              <td className="py-3 px-4">
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  s.role === 'Manager' ? 'bg-purple-500/30 text-purple-300' :
+                                  s.role === 'HR' ? 'bg-blue-500/30 text-blue-300' :
+                                  s.role === 'Cashier' ? 'bg-green-500/30 text-green-300' :
+                                  s.role === 'Dealer' ? 'bg-yellow-500/30 text-yellow-300' :
+                                  'bg-cyan-500/30 text-cyan-300'
+                                }`}>
+                                  {s.role}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  s.status === 'Active' ? 'bg-green-500/30 text-green-300' :
+                                  s.status === 'On Break' ? 'bg-yellow-500/30 text-yellow-300' :
+                                  'bg-red-500/30 text-red-300'
+                                }`}>
+                                  {s.status}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleEditStaff(s)}
+                                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteStaff(s.id, s.name)}
+                                    className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </section>
             </div>
@@ -2174,6 +2496,9 @@ export default function SuperAdminPortal() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Pending Requests</h3>
+                    {loadingCreditRequests ? (
+                      <div className="text-center py-8 text-gray-400">Loading credit requests...</div>
+                    ) : (
                     <div className="space-y-2">
                       {creditRequests.map((r) => (
                         <div key={r.id} className="bg-white/5 p-3 rounded border border-white/10">
@@ -2188,9 +2513,13 @@ export default function SuperAdminPortal() {
                         </div>
                       ))}
                     </div>
+                    )}
                   </div>
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Dynamic Visibility & Limits</h3>
+                    {loadingCreditRequests ? (
+                      <div className="text-center py-8 text-gray-400">Loading credit requests...</div>
+                    ) : (
                     <div className="space-y-3">
                       {creditRequests.map((r) => (
                         <div key={`${r.id}-ctl`} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
@@ -2199,12 +2528,13 @@ export default function SuperAdminPortal() {
                             <div className="text-white/70">Visible: {r.visibleToPlayer ? 'Yes' : 'No'} • Limit: ₹{r.limit.toLocaleString('en-IN')}</div>
                           </div>
                           <div className="flex gap-2 items-center">
-                            <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm" onClick={() => setCreditRequests(prev => prev.map(x => x.id===r.id ? { ...x, visibleToPlayer: !x.visibleToPlayer } : x))}>{r.visibleToPlayer ? 'Hide' : 'Show'}</button>
-                            <input type="number" className="w-28 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="Set limit" onChange={(e) => setCreditRequests(prev => prev.map(x => x.id===r.id ? { ...x, limit: Number(e.target.value)||0 } : x))} />
+                            <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm" onClick={() => handleUpdateCreditVisibility(r.id, !r.visibleToPlayer)}>{r.visibleToPlayer ? 'Hide' : 'Show'}</button>
+                            <input type="number" className="w-28 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="Set limit" onBlur={(e) => { const limit = Number(e.target.value) || 0; if (limit !== r.limit) handleUpdateCreditLimit(r.id, limit); }} defaultValue={r.limit} />
                           </div>
                         </div>
                       ))}
                     </div>
+                    )}
                   </div>
                 </div>
               </section>
@@ -2218,6 +2548,9 @@ export default function SuperAdminPortal() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Edit / Cancel Transactions</h3>
+                    {loadingTransactions ? (
+                      <div className="text-center py-8 text-gray-400">Loading transactions...</div>
+                    ) : (
                     <div className="space-y-2 max-h-96 overflow-y-auto">
                       {transactions.map((t) => (
                         <div key={t.id} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
@@ -2227,11 +2560,12 @@ export default function SuperAdminPortal() {
                           </div>
                           <div className="flex gap-2">
                             <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">Edit</button>
-                            <button className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm" onClick={() => setTransactions(prev => prev.filter(x => x.id !== t.id))}>Cancel</button>
+                            <button className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm" onClick={() => handleCancelTransaction(t.id)}>Cancel</button>
                           </div>
                         </div>
                       ))}
                     </div>
+                    )}
                   </div>
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Cashouts & Bonuses</h3>
@@ -2247,124 +2581,6 @@ export default function SuperAdminPortal() {
                     </div>
                   </div>
                 </div>
-
-                {/* Custom Bonus Creation Section */}
-                <div className="mt-6">
-                  <div className="p-6 bg-gradient-to-r from-yellow-600/30 via-amber-500/20 to-orange-700/30 rounded-xl shadow-md border border-yellow-800/40">
-                    <h2 className="text-xl font-bold text-white mb-6">Create Custom Bonus</h2>
-                    <div className="bg-white/10 p-4 rounded-lg">
-                      <div className="space-y-4">
-                        {/* Player Search */}
-                        <div className="relative">
-                          <label className="text-white text-sm mb-1 block">Select Player</label>
-                          <input 
-                            type="text" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="Type at least 2 characters to search..." 
-                            value={bonusPlayerSearch}
-                            onChange={(e) => {
-                              setBonusPlayerSearch(e.target.value);
-                              setSelectedBonusPlayer(null);
-                            }}
-                          />
-                          {bonusPlayerSearch.length >= 2 && filteredPlayersForBonus.length > 0 && !selectedBonusPlayer && (
-                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                              {filteredPlayersForBonus.map(player => (
-                                <div
-                                  key={player.id}
-                                  onClick={() => {
-                                    setSelectedBonusPlayer(player);
-                                    setBonusPlayerSearch(`${player.name} (${player.id})`);
-                                  }}
-                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                                >
-                                  <div className="text-white font-medium">{player.name}</div>
-                                  <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email || 'N/A'}</div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {selectedBonusPlayer && (
-                            <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
-                              <span className="text-green-300">Selected: {selectedBonusPlayer.name} ({selectedBonusPlayer.id})</span>
-                              <button 
-                                onClick={() => {
-                                  setSelectedBonusPlayer(null);
-                                  setBonusPlayerSearch("");
-                                }}
-                                className="ml-2 text-red-400 hover:text-red-300 font-bold"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Bonus Type */}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Bonus Type</label>
-                          <CustomSelect
-                            className="w-full"
-                            value={bonusForm.type}
-                            onChange={(e) => setBonusForm({...bonusForm, type: e.target.value})}
-                          >
-                            <option value="Welcome Bonus">Welcome Bonus</option>
-                            <option value="Loyalty Bonus">Loyalty Bonus</option>
-                            <option value="Referral Bonus">Referral Bonus</option>
-                            <option value="Tournament Bonus">Tournament Bonus</option>
-                            <option value="Special Event Bonus">Special Event Bonus</option>
-                            <option value="Custom Bonus">Custom Bonus</option>
-                          </CustomSelect>
-                        </div>
-
-                        {/* Bonus Amount */}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Bonus Amount (₹)</label>
-                          <input 
-                            type="number" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="₹0.00" 
-                            value={bonusForm.amount}
-                            onChange={(e) => setBonusForm({...bonusForm, amount: e.target.value})}
-                          />
-                        </div>
-
-                        {/* Expiry Days */}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Expiry (Days)</label>
-                          <input 
-                            type="number" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="30" 
-                            value={bonusForm.expiryDays}
-                            onChange={(e) => setBonusForm({...bonusForm, expiryDays: parseInt(e.target.value) || 30})}
-                            min="1"
-                          />
-                        </div>
-
-                        {/* Reason */}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Reason / Notes</label>
-                          <textarea 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            rows="3" 
-                            placeholder="Enter reason for this bonus..." 
-                            value={bonusForm.reason}
-                            onChange={(e) => setBonusForm({...bonusForm, reason: e.target.value})}
-                          ></textarea>
-                        </div>
-
-                        {/* Create Bonus Button */}
-                        <button 
-                          onClick={handleCreateBonus}
-                          className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-4 py-3 rounded-lg font-semibold shadow-lg transition-all"
-                        >
-                          ✨ Create Bonus
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </section>
             </div>
           )}
@@ -2373,91 +2589,42 @@ export default function SuperAdminPortal() {
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Waitlist & Seating Overrides</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {loadingWaitlist ? (
+                  <div className="text-center py-8 text-gray-400">Loading waitlist...</div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Current Waitlist</h3>
-                    <div className="space-y-2 mb-6">
-                      {waitlist.map((entry) => {
-                        const preferredSeatAvailable = entry.preferredSeat 
-                          ? isSeatAvailable(entry.preferredTable, entry.preferredSeat)
-                          : false;
-                        
-                        return (
-                          <div key={entry.id || entry.pos} className="bg-blue-500/20 p-3 rounded-lg border border-blue-400/30">
-                            <div className="grid gap-5 sm:grid-cols-[60%,1fr] items-start">
-                              <div className="flex-1">
-                                <div className="font-semibold text-white">Player: {entry.playerName || entry.player}</div>
-                                <div className="text-sm text-gray-300">Position: {entry.pos || entry.position} | Game: {entry.gameType || entry.game}</div>
-                                {entry.preferredSeat ? (
-                                  <div className="mt-1 flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs text-yellow-300 font-medium flex items-center gap-1">
-                                      ⭐ Preferred: Table {entry.preferredTable}, Seat {entry.preferredSeat}
-                                    </span>
-                                    {preferredSeatAvailable ? (
-                                      <span className="text-xs bg-green-500/30 text-green-300 px-2 py-0.5 rounded-full border border-green-400/50">
-                                        ✓ Available
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs bg-red-500/30 text-red-300 px-2 py-0.5 rounded-full border border-red-400/50">
-                                        ✗ Occupied
-                                      </span>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="mt-1 text-xs text-gray-400">No preferred seat selected</div>
-                                )}
-                              </div>
-                              <div className="flex flex-col gap-2 ml-3">
-                                <button 
-                                  onClick={() => handleOpenTableView(entry, entry.preferredTable)}
-                                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
-                                  title="View table hologram to assign seat"
-                                >
-                                  🎯 View Table
-                                </button>
-                                {entry.preferredSeat && preferredSeatAvailable && (
-                                  <button 
-                                    onClick={() => handleAssignPreferredSeat(entry)}
-                                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
-                                    title={`Assign to preferred seat ${entry.preferredSeat} at Table ${entry.preferredTable}`}
-                                  >
-                                    Assign Preferred
-                                  </button>
-                                )}
-                                <button 
-                                  onClick={() => setWaitlist(prev => prev.filter(item => (item.id || item.pos) !== (entry.id || entry.pos)))}
-                                  className="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-sm"
-                                >
-                                  Remove
-                                </button>
-                              </div>
+                    <div className="space-y-2 max-h-96 overflow-y-auto mb-4">
+                      {waitlist.length === 0 ? (
+                        <div className="text-center py-4 text-gray-400">No waitlist entries</div>
+                      ) : (
+                        waitlist.map((w) => (
+                          <div key={w.id || w.pos} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
+                            <div className="text-white">
+                              <div className="font-semibold">{w.player}</div>
+                              <div className="text-sm text-white/70">Position {w.pos} • {w.game} • {w.status || 'PENDING'}</div>
                             </div>
+                            {w.tableNumber && (
+                              <div className="text-green-400 text-sm">Table {w.tableNumber}</div>
+                            )}
                           </div>
-                        );
-                      })}
-                      {waitlist.length === 0 && (
-                        <div className="text-center py-8 text-gray-400 text-sm">
-                          No players in waitlist
-                        </div>
+                        ))
                       )}
                     </div>
                   </div>
-
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Move Between Tables/Sessions</h3>
                     <div className="space-y-3">
                       <div>
                         <label className="text-white text-sm">Select Player</label>
-                        <CustomSelect className="w-full mt-1">
+                        <CustomSelect className="w-full mt-1" id="move-player-select">
                           <option value="">-- Select Player --</option>
-                          {waitlist.map((w) => (
+                          {waitlist.filter(w => w.status === 'PENDING' || w.status === 'SEATED').map((w) => (
                             <option key={w.id || w.pos} value={w.id || w.pos}>
-                              {w.playerName || w.player} - Position {w.pos || w.position} ({w.gameType || w.game})
+                              {w.player} - {w.status || 'PENDING'} {w.tableNumber ? `(Table ${w.tableNumber})` : ''}
                             </option>
                           ))}
-                          <option value="seated-1">John Doe - Table 1, Seat 3</option>
-                          <option value="seated-2">Jane Smith - Table 2, Seat 5</option>
-                          <option value="seated-3">Mike Johnson - Table 1, Seat 7</option>
                         </CustomSelect>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
@@ -2608,309 +2775,9 @@ export default function SuperAdminPortal() {
                       </div>
                     </div>
                   </div>
-                </div>
-              </section>
-            </div>
-          )}
-
-          {/* Tournaments */}
-          {activeItem === "Tournaments" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-amber-600/30 via-yellow-500/20 to-orange-700/30 rounded-xl shadow-md border border-amber-800/40">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-white">Tournament Management</h2>
-                  <button
-                    onClick={() => setShowTournamentForm(!showTournamentForm)}
-                    className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-6 py-2 rounded-lg font-semibold shadow-lg transition-all"
-                  >
-                    {showTournamentForm ? "Cancel" : "➕ Create Tournament"}
-                  </button>
-                </div>
-
-                {/* Create Tournament Form - Same as before but simplified for space */}
-                {showTournamentForm && (
-                  <div className="bg-white/10 p-6 rounded-lg border border-amber-400/30 mb-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Create New Tournament</h3>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <h4 className="text-white font-semibold border-b border-white/20 pb-2">Basic Information</h4>
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Tournament Name *</label>
-                          <input type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Monday Night Hold'em" value={tournamentForm.name} onChange={(e) => setTournamentForm({...tournamentForm, name: e.target.value})} />
-                        </div>
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Tournament Type *</label>
-                          <CustomSelect className="w-full" value={tournamentForm.type} onChange={(e) => setTournamentForm({...tournamentForm, type: e.target.value})}>
-                            {tournamentTypes.map(type => <option key={type} value={type}>{type}</option>)}
-                          </CustomSelect>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-white text-sm mb-1 block">Buy-in (₹) *</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="1000" value={tournamentForm.buyIn} onChange={(e) => setTournamentForm({...tournamentForm, buyIn: e.target.value})} />
-                          </div>
-                          <div>
-                            <label className="text-white text-sm mb-1 block">Entry Fee (₹)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="100" value={tournamentForm.entryFee} onChange={(e) => setTournamentForm({...tournamentForm, entryFee: e.target.value})} />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Starting Chips *</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10000" value={tournamentForm.startingChips} onChange={(e) => setTournamentForm({...tournamentForm, startingChips: e.target.value})} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-white text-sm mb-1 block">Start Time</label>
-                            <input type="datetime-local" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={tournamentForm.startTime} onChange={(e) => setTournamentForm({...tournamentForm, startTime: e.target.value})} />
-                          </div>
-                          <div>
-                            <label className="text-white text-sm mb-1 block">Max Players (unlimited if blank)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Unlimited" value={tournamentForm.maxPlayers} onChange={(e) => setTournamentForm({...tournamentForm, maxPlayers: e.target.value})} />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <h4 className="text-white font-semibold border-b border-white/20 pb-2">Tournament Rules</h4>
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Blind Structure *</label>
-                          <CustomSelect className="w-full" value={tournamentForm.blindStructure} onChange={(e) => setTournamentForm({...tournamentForm, blindStructure: e.target.value})}>
-                            {blindStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
-                          </CustomSelect>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-white text-sm mb-1 block">Number of Levels</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindLevels} onChange={(e) => setTournamentForm({...tournamentForm, blindLevels: parseInt(e.target.value) || 15})} />
-                          </div>
-                          <div>
-                            <label className="text-white text-sm mb-1 block">Minutes per Level</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindInterval} onChange={(e) => setTournamentForm({...tournamentForm, blindInterval: parseInt(e.target.value) || 15})} />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Break Structure</label>
-                          <CustomSelect className="w-full" value={tournamentForm.breakStructure} onChange={(e) => setTournamentForm({...tournamentForm, breakStructure: e.target.value})}>
-                            {breakStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
-                          </CustomSelect>
-                        </div>
-                        {tournamentForm.breakStructure !== "No breaks" && (
-                          <div>
-                            <label className="text-white text-sm mb-1 block">Break Duration (minutes)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10" value={tournamentForm.breakDuration} onChange={(e) => setTournamentForm({...tournamentForm, breakDuration: parseInt(e.target.value) || 10})} />
-                          </div>
-                        )}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Late Registration (minutes)</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="60" value={tournamentForm.lateRegistration} onChange={(e) => setTournamentForm({...tournamentForm, lateRegistration: parseInt(e.target.value) || 60})} />
-                        </div>
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Payout Structure</label>
-                          <CustomSelect className="w-full" value={tournamentForm.payoutStructure} onChange={(e) => setTournamentForm({...tournamentForm, payoutStructure: e.target.value})}>
-                            {payoutStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
-                          </CustomSelect>
-                        </div>
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Seat Draw Method</label>
-                          <CustomSelect className="w-full" value={tournamentForm.seatDrawMethod} onChange={(e) => setTournamentForm({...tournamentForm, seatDrawMethod: e.target.value})}>
-                            <option value="Random">Random</option>
-                            <option value="Table Balance">Table Balance</option>
-                            <option value="Manual">Manual</option>
-                          </CustomSelect>
-                        </div>
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Clock Pause Rules</label>
-                          <CustomSelect className="w-full" value={tournamentForm.clockPauseRules} onChange={(e) => setTournamentForm({...tournamentForm, clockPauseRules: e.target.value})}>
-                            <option value="Standard">Standard (pause on breaks)</option>
-                            <option value="No Pause">No Pause</option>
-                            <option value="Pause on All-in">Pause on All-in</option>
-                            <option value="Custom">Custom</option>
-                          </CustomSelect>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <h4 className="text-white font-semibold border-b border-white/20 pb-2">Rebuy, Add-on & Re-entry</h4>
-                        <div className="flex items-center gap-3">
-                          <input type="checkbox" id="rebuy-allowed" className="w-4 h-4" checked={tournamentForm.rebuyAllowed} onChange={(e) => setTournamentForm({...tournamentForm, rebuyAllowed: e.target.checked})} />
-                          <label htmlFor="rebuy-allowed" className="text-white text-sm">Allow Rebuys</label>
-                        </div>
-                        {tournamentForm.rebuyAllowed && (
-                          <div className="grid grid-cols-3 gap-3 ml-7">
-                            <div>
-                              <label className="text-white text-xs mb-1 block">Rebuy Chips</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.rebuyChips} onChange={(e) => setTournamentForm({...tournamentForm, rebuyChips: e.target.value})} />
-                            </div>
-                            <div>
-                              <label className="text-white text-xs mb-1 block">Rebuy Fee (₹)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="1000" value={tournamentForm.rebuyFee} onChange={(e) => setTournamentForm({...tournamentForm, rebuyFee: e.target.value})} />
-                            </div>
-                            <div>
-                              <label className="text-white text-xs mb-1 block">Rebuy Period (levels)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="6" value={tournamentForm.rebuyPeriod} onChange={(e) => setTournamentForm({...tournamentForm, rebuyPeriod: e.target.value})} />
-                            </div>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-3">
-                          <input type="checkbox" id="addon-allowed" className="w-4 h-4" checked={tournamentForm.addOnAllowed} onChange={(e) => setTournamentForm({...tournamentForm, addOnAllowed: e.target.checked})} />
-                          <label htmlFor="addon-allowed" className="text-white text-sm">Allow Add-on</label>
-                        </div>
-                        {tournamentForm.addOnAllowed && (
-                          <div className="grid grid-cols-2 gap-3 ml-7">
-                            <div>
-                              <label className="text-white text-xs mb-1 block">Add-on Chips</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.addOnChips} onChange={(e) => setTournamentForm({...tournamentForm, addOnChips: e.target.value})} />
-                            </div>
-                            <div>
-                              <label className="text-white text-xs mb-1 block">Add-on Fee (₹)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="500" value={tournamentForm.addOnFee} onChange={(e) => setTournamentForm({...tournamentForm, addOnFee: e.target.value})} />
-                            </div>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-3">
-                          <input type="checkbox" id="reentry-allowed" className="w-4 h-4" checked={tournamentForm.reEntryAllowed} onChange={(e) => setTournamentForm({...tournamentForm, reEntryAllowed: e.target.checked})} />
-                          <label htmlFor="reentry-allowed" className="text-white text-sm">Allow Re-entry</label>
-                        </div>
-                        {tournamentForm.reEntryAllowed && (
-                          <div className="ml-7">
-                            <label className="text-white text-xs mb-1 block">Re-entry Period (minutes)</label>
-                            <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="60" value={tournamentForm.reEntryPeriod} onChange={(e) => setTournamentForm({...tournamentForm, reEntryPeriod: e.target.value})} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-4">
-                        <h4 className="text-white font-semibold border-b border-white/20 pb-2">Bounty Options</h4>
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Bounty Amount (₹) - Leave blank for regular tournament</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" value={tournamentForm.bountyAmount} onChange={(e) => setTournamentForm({...tournamentForm, bountyAmount: e.target.value})} />
-                          <p className="text-xs text-gray-400 mt-1">If set, this becomes a knockout/bounty tournament</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-6 flex gap-3">
-                      <button onClick={handleCreateTournament} className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all">
-                        Create Tournament
-                      </button>
-                      <button onClick={() => setShowTournamentForm(false)} className="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-semibold">
-                        Cancel
-                      </button>
-                    </div>
                   </div>
                 )}
-
-                {/* Tournaments List */}
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">Tournaments ({tournaments.length})</h3>
-                  <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                    {tournaments.length > 0 ? (
-                      tournaments.map(tournament => (
-                        <div key={tournament.id} className="bg-white/5 p-4 rounded-lg border border-white/10 hover:bg-white/10 transition-all cursor-pointer" onClick={() => setSelectedTournament(tournament)}>
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h4 className="text-white font-semibold text-lg">{tournament.name}</h4>
-                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${tournament.status === "Active" ? "bg-green-500/30 text-green-300 border border-green-400/50" : tournament.status === "Scheduled" ? "bg-blue-500/30 text-blue-300 border border-blue-400/50" : "bg-gray-500/30 text-gray-300 border border-gray-400/50"}`}>
-                                  {tournament.status}
-                                </span>
-                                <span className="px-2 py-1 rounded text-xs bg-purple-500/30 text-purple-300 border border-purple-400/50">{tournament.type}</span>
-                              </div>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-300">
-                                <div><span className="text-gray-400">Buy-in:</span> <span className="text-white font-semibold">₹{tournament.buyIn.toLocaleString('en-IN')}</span></div>
-                                <div><span className="text-gray-400">Starting Chips:</span> <span className="text-white font-semibold">{tournament.startingChips.toLocaleString('en-IN')}</span></div>
-                                <div><span className="text-gray-400">Registered:</span> <span className="text-white font-semibold">{tournament.registeredPlayers}{tournament.maxPlayers ? `/${tournament.maxPlayers}` : '/∞'}</span></div>
-                                <div><span className="text-gray-400">Start:</span> <span className="text-white">{new Date(tournament.startTime).toLocaleString('en-IN')}</span></div>
-                              </div>
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {tournament.rebuyAllowed && <span className="px-2 py-1 rounded text-xs bg-yellow-500/30 text-yellow-300 border border-yellow-400/50">Rebuy</span>}
-                                {tournament.addOnAllowed && <span className="px-2 py-1 rounded text-xs bg-blue-500/30 text-blue-300 border border-blue-400/50">Add-on</span>}
-                                {tournament.reEntryAllowed && <span className="px-2 py-1 rounded text-xs bg-purple-500/30 text-purple-300 border border-purple-400/50">Re-entry</span>}
-                                {tournament.bountyAmount > 0 && <span className="px-2 py-1 rounded text-xs bg-red-500/30 text-red-300 border border-red-400/50">Bounty ₹{tournament.bountyAmount}</span>}
-                                <span className="px-2 py-1 rounded text-xs bg-indigo-500/30 text-indigo-300 border border-indigo-400/50">{tournament.blindStructure}</span>
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-2 ml-4">
-                              <button onClick={(e) => {e.stopPropagation(); setSelectedTournament(tournament);}} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-semibold">View Details</button>
-                              {tournament.status === "Scheduled" && <button onClick={(e) => {e.stopPropagation(); setTournaments(prev => prev.map(t => t.id === tournament.id ? {...t, status: "Active"} : t)); alert(`Tournament "${tournament.name}" started!`);}} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm font-semibold">Start</button>}
-                              <button onClick={(e) => {e.stopPropagation(); if (window.confirm(`Delete tournament "${tournament.name}"?`)) { setTournaments(prev => prev.filter(t => t.id !== tournament.id)); }}} className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold">Delete</button>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-12 text-gray-400">
-                        <div className="text-lg mb-2">No tournaments created yet</div>
-                        <div className="text-sm">Click "Create Tournament" to get started</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </section>
-
-              {/* Tournament Details Modal */}
-              {selectedTournament && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setSelectedTournament(null)}>
-                  <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl border border-amber-500/30 max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                    <div className="p-6 border-b border-white/10">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h2 className="text-2xl font-bold text-white mb-2">{selectedTournament.name}</h2>
-                          <p className="text-gray-400 text-sm">Tournament Details & Settings</p>
-                        </div>
-                        <button onClick={() => setSelectedTournament(null)} className="text-white/70 hover:text-white text-2xl font-bold">×</button>
-                      </div>
-                    </div>
-                    <div className="p-6 space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">Basic Info</h3>
-                          <div className="space-y-3">
-                            <div><label className="text-gray-400 text-xs">Tournament ID</label><div className="text-white font-medium">{selectedTournament.id}</div></div>
-                            <div><label className="text-gray-400 text-xs">Type</label><div className="text-white">{selectedTournament.type}</div></div>
-                            <div><label className="text-gray-400 text-xs">Status</label><div><span className={`px-3 py-1 rounded-full text-xs border font-medium ${selectedTournament.status === "Active" ? "bg-green-500/30 text-green-300 border-green-400/50" : selectedTournament.status === "Scheduled" ? "bg-blue-500/30 text-blue-300 border-blue-400/50" : "bg-gray-500/30 text-gray-300 border-gray-400/50"}`}>{selectedTournament.status}</span></div></div>
-                            <div><label className="text-gray-400 text-xs">Buy-in</label><div className="text-white font-semibold">₹{selectedTournament.buyIn.toLocaleString('en-IN')}</div></div>
-                            <div><label className="text-gray-400 text-xs">Entry Fee</label><div className="text-white">₹{selectedTournament.entryFee.toLocaleString('en-IN')}</div></div>
-                            <div><label className="text-gray-400 text-xs">Starting Chips</label><div className="text-white font-semibold">{selectedTournament.startingChips.toLocaleString('en-IN')}</div></div>
-                          </div>
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">Structure</h3>
-                          <div className="space-y-3">
-                            <div><label className="text-gray-400 text-xs">Blind Structure</label><div className="text-white">{selectedTournament.blindStructure}</div></div>
-                            <div><label className="text-gray-400 text-xs">Blind Levels</label><div className="text-white">{selectedTournament.blindLevels} levels</div></div>
-                            <div><label className="text-gray-400 text-xs">Break Structure</label><div className="text-white">{selectedTournament.breakStructure}</div></div>
-                            <div><label className="text-gray-400 text-xs">Payout Structure</label><div className="text-white">{selectedTournament.payoutStructure}</div></div>
-                            <div><label className="text-gray-400 text-xs">Players</label><div className="text-white">{selectedTournament.registeredPlayers}{selectedTournament.maxPlayers ? ` / ${selectedTournament.maxPlayers}` : " / Unlimited"}</div></div>
-                            <div><label className="text-gray-400 text-xs">Start Time</label><div className="text-white">{new Date(selectedTournament.startTime).toLocaleString('en-IN')}</div></div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="pt-4 border-t border-white/10">
-                        <h3 className="text-lg font-semibold text-white mb-4">Rules & Options</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="text-center p-3 bg-white/5 rounded border border-white/10">
-                            <div className="text-xs text-gray-400 mb-1">Rebuy</div>
-                            <div className={`text-sm font-semibold ${selectedTournament.rebuyAllowed ? 'text-green-300' : 'text-gray-500'}`}>{selectedTournament.rebuyAllowed ? '✓ Allowed' : '✗ Not Allowed'}</div>
-                          </div>
-                          <div className="text-center p-3 bg-white/5 rounded border border-white/10">
-                            <div className="text-xs text-gray-400 mb-1">Add-on</div>
-                            <div className={`text-sm font-semibold ${selectedTournament.addOnAllowed ? 'text-green-300' : 'text-gray-500'}`}>{selectedTournament.addOnAllowed ? '✓ Allowed' : '✗ Not Allowed'}</div>
-                          </div>
-                          <div className="text-center p-3 bg-white/5 rounded border border-white/10">
-                            <div className="text-xs text-gray-400 mb-1">Re-entry</div>
-                            <div className={`text-sm font-semibold ${selectedTournament.reEntryAllowed ? 'text-green-300' : 'text-gray-500'}`}>{selectedTournament.reEntryAllowed ? '✓ Allowed' : '✗ Not Allowed'}</div>
-                          </div>
-                          <div className="text-center p-3 bg-white/5 rounded border border-white/10">
-                            <div className="text-xs text-gray-400 mb-1">Bounty</div>
-                            <div className={`text-sm font-semibold ${selectedTournament.bountyAmount > 0 ? 'text-red-300' : 'text-gray-500'}`}>{selectedTournament.bountyAmount > 0 ? `₹${selectedTournament.bountyAmount}` : 'None'}</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-3 pt-4 border-t border-white/10">
-                        <button onClick={() => {setSelectedTournament(null); setShowTournamentForm(true);}} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold">Edit Tournament</button>
-                        <button onClick={() => setSelectedTournament(null)} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 rounded-lg font-semibold">Close</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -2948,13 +2815,13 @@ export default function SuperAdminPortal() {
                       />
                       <button 
                         className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded" 
-                        onClick={() => {
+                          onClick={async () => {
                           const t = document.getElementById('vip-title');
                           const p = document.getElementById('vip-points');
                           const title = t && 'value' in t ? t.value : '';
                           const pts = p && 'value' in p ? parseInt(p.value || '0', 10) : 0;
                           if (title.trim() && pts > 0) {
-                            setVipProducts(prev => [...prev, { id: `vip-${Date.now()}`, clubId: selectedClubId, title, points: pts }]);
+                              await handleAddVipProduct(title, pts);
                             if (t) t.value = '';
                             if (p) p.value = '';
                           }
@@ -2963,6 +2830,9 @@ export default function SuperAdminPortal() {
                         Add
                       </button>
                     </div>
+                    {loadingVipProducts ? (
+                      <div className="text-center py-8 text-gray-400">Loading VIP products...</div>
+                    ) : (
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {vipProducts.filter(v => v.clubId === selectedClubId).map(v => (
                         <div key={v.id} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
@@ -2970,11 +2840,7 @@ export default function SuperAdminPortal() {
                           <div className="flex items-center gap-2">
                             <div className="text-white/80 text-xs">{v.points} pts</div>
                             <button 
-                              onClick={() => {
-                                if (window.confirm(`Delete "${v.title}"?`)) {
-                                  setVipProducts(prev => prev.filter(p => p.id !== v.id));
-                                }
-                              }}
+                              onClick={() => handleDeleteVipProduct(v.id)}
                               className="text-red-400 hover:text-red-300 text-xs"
                             >
                               ✕
@@ -2988,6 +2854,7 @@ export default function SuperAdminPortal() {
                         </div>
                       )}
                     </div>
+                    )}
                   </div>
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Points Calculator</h3>
@@ -3708,554 +3575,6 @@ export default function SuperAdminPortal() {
             </div>
           )}
 
-          {/* Push Notifications */}
-          {activeItem === "Push Notifications" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-purple-500/20 to-pink-700/30 rounded-xl shadow-md border border-indigo-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Push Notifications</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Compose Notification</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Title</label>
-                        <input 
-                          type="text" 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${
-                            notificationErrors.title ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          placeholder="Enter title" 
-                          value={notificationForm.title}
-                          onChange={(e) => {
-                            setNotificationForm({...notificationForm, title: e.target.value});
-                            setNotificationErrors({...notificationErrors, title: null});
-                          }}
-                        />
-                        {notificationErrors.title && (
-                          <p className="text-red-400 text-xs mt-1">{notificationErrors.title}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Message</label>
-                        <textarea 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${
-                            notificationErrors.message ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          rows="3" 
-                          placeholder="Enter message..."
-                          value={notificationForm.message}
-                          onChange={(e) => {
-                            setNotificationForm({...notificationForm, message: e.target.value});
-                            setNotificationErrors({...notificationErrors, message: null});
-                          }}
-                        ></textarea>
-                        {notificationErrors.message && (
-                          <p className="text-red-400 text-xs mt-1">{notificationErrors.message}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Audience</label>
-                        <CustomSelect
-                          className="w-full"
-                          value={notificationForm.audience}
-                          onChange={(e) => setNotificationForm({...notificationForm, audience: e.target.value})}
-                        >
-                          {getAudienceOptions().map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </CustomSelect>
-                      </div>
-                      
-                      {/* Image Section */}
-                      <div className="border-t border-white/20 pt-4">
-                        <label className="text-white text-sm font-semibold mb-2 block">Image (Optional)</label>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-white text-xs">Upload Image</label>
-                            <div className="mt-1 border-2 border-dashed border-white/30 rounded-lg p-4 text-center">
-                              <input 
-                                type="file" 
-                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                                className="hidden"
-                                id="image-upload-super-admin"
-                                onChange={handleImageUpload}
-                              />
-                              <label htmlFor="image-upload-super-admin" className="cursor-pointer">
-                                <div className="text-white text-sm mb-1">Click to upload or drag and drop</div>
-                                <div className="text-gray-400 text-xs">JPG, PNG, GIF, WebP (max 5MB)</div>
-                              </label>
-                              {notificationForm.imagePreview && (
-                                <div className="mt-3">
-                                  <img src={notificationForm.imagePreview} alt="Preview" className="max-h-32 mx-auto rounded" />
-                                  <button
-                                    type="button"
-                                    onClick={() => setNotificationForm({...notificationForm, imageFile: null, imagePreview: null})}
-                                    className="mt-2 text-red-400 text-xs hover:text-red-300"
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-center text-white/60 text-xs">OR</div>
-                          <div>
-                            <label className="text-white text-xs">Image URL</label>
-                            <input 
-                              type="url" 
-                              className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${
-                                notificationErrors.image ? 'border-red-500' : 'border-white/20'
-                              }`}
-                              placeholder="https://example.com/image.jpg"
-                              value={notificationForm.imageUrl}
-                              onChange={(e) => handleImageUrlChange(e.target.value)}
-                            />
-                          </div>
-                          {notificationErrors.image && (
-                            <p className="text-red-400 text-xs">{notificationErrors.image}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Video Section */}
-                      <div className="border-t border-white/20 pt-4">
-                        <label className="text-white text-sm font-semibold mb-2 block">Video Link (Optional)</label>
-                        <input 
-                          type="url" 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${
-                            notificationErrors.video ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
-                          value={notificationForm.videoUrl}
-                          onChange={(e) => handleVideoUrlChange(e.target.value)}
-                        />
-                        {notificationErrors.video && (
-                          <p className="text-red-400 text-xs mt-1">{notificationErrors.video}</p>
-                        )}
-                        <p className="text-gray-400 text-xs mt-1">
-                          Supported: YouTube, Vimeo, DailyMotion, Facebook, Instagram
-                        </p>
-                      </div>
-
-                      <button 
-                        onClick={handleSendNotification}
-                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-semibold mt-4"
-                      >
-                        Send Notification
-                      </button>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Notifications</h3>
-                    <div className="space-y-2">
-                      {[{title:'Welcome Offer', time:'2h ago'}, {title:'Table 2 starting soon', time:'10m ago'}].map(n => (
-                        <div key={n.title} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
-                          <div className="text-white">{n.title}</div>
-                          <div className="text-white/60 text-sm">{n.time}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Custom Groups Management */}
-              <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-white">Custom Notification Groups</h2>
-                  <button
-                    onClick={() => {
-                      setShowGroupForm(true);
-                      setEditingGroup(null);
-                      setGroupForm({ name: "", type: "player", memberIds: [] });
-                      setGroupMemberSearch("");
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold"
-                  >
-                    ➕ Create Group
-                  </button>
-                </div>
-
-                {/* Group Form */}
-                {showGroupForm && (
-                  <div className="bg-white/10 p-6 rounded-lg border border-emerald-400/30 mb-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      {editingGroup ? "Edit Group" : "Create New Group"}
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm mb-1 block">Group Name *</label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="Enter group name"
-                          value={groupForm.name}
-                          onChange={(e) => setGroupForm({...groupForm, name: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm mb-1 block">Group Type *</label>
-                        <CustomSelect
-                          className="w-full"
-                          value={groupForm.type}
-                          onChange={(e) => {
-                            setGroupForm({...groupForm, type: e.target.value, memberIds: []});
-                            setGroupMemberSearch("");
-                          }}
-                        >
-                          <option value="player">Player Group</option>
-                          <option value="staff">Staff Group</option>
-                        </CustomSelect>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm mb-1 block">
-                          Add Members ({groupForm.memberIds.length} selected)
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white mb-2"
-                          placeholder="Search by name, ID, or email..."
-                          value={groupMemberSearch}
-                          onChange={(e) => setGroupMemberSearch(e.target.value)}
-                        />
-                        <div className="max-h-48 overflow-y-auto border border-white/20 rounded bg-white/5 p-2 space-y-1">
-                          {getAvailableMembers().length > 0 ? (
-                            getAvailableMembers().map(member => (
-                              <div
-                                key={member.id}
-                                onClick={() => {
-                                  if (!groupForm.memberIds.includes(member.id)) {
-                                    setGroupForm({
-                                      ...groupForm,
-                                      memberIds: [...groupForm.memberIds, member.id]
-                                    });
-                                  }
-                                }}
-                                className="p-2 hover:bg-white/10 cursor-pointer rounded text-white text-sm"
-                              >
-                                {member.name} ({member.id}) - {member.email || member.role}
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-gray-400 text-sm p-2">No members found</div>
-                          )}
-                        </div>
-                      </div>
-                      {groupForm.memberIds.length > 0 && (
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Selected Members</label>
-                          <div className="flex flex-wrap gap-2 p-3 bg-white/5 rounded border border-white/20">
-                            {groupForm.memberIds.map(memberId => {
-                              const member = groupForm.type === "player"
-                                ? registeredPlayers.find(p => p.id === memberId)
-                                : staff.find(s => s.id === memberId);
-                              if (!member) return null;
-                              return (
-                                <div
-                                  key={memberId}
-                                  className="bg-emerald-500/30 text-emerald-200 px-3 py-1 rounded-full text-xs flex items-center gap-2"
-                                >
-                                  {member.name}
-                                  <button
-                                    onClick={() => {
-                                      setGroupForm({
-                                        ...groupForm,
-                                        memberIds: groupForm.memberIds.filter(id => id !== memberId)
-                                      });
-                                    }}
-                                    className="hover:text-red-300"
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                      <div className="flex gap-3">
-                        <button
-                          onClick={handleSaveGroup}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold"
-                        >
-                          {editingGroup ? "Update Group" : "Create Group"}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowGroupForm(false);
-                            setEditingGroup(null);
-                            setGroupForm({ name: "", type: "player", memberIds: [] });
-                            setGroupMemberSearch("");
-                          }}
-                          className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-semibold"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Groups List */}
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">Groups ({customGroups.length})</h3>
-                  {customGroups.length > 0 ? (
-                    <div className="space-y-3">
-                      {customGroups.map(group => {
-                        const members = getGroupMembersDetails(group);
-                        return (
-                          <div key={group.id} className="bg-white/5 p-4 rounded-lg border border-white/10">
-                            <div className="flex items-start justify-between mb-3">
-                              <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="text-white font-semibold text-lg">{group.name}</h4>
-                                  <span className={`px-2 py-1 rounded text-xs ${
-                                    group.type === "player"
-                                      ? "bg-blue-500/30 text-blue-300 border border-blue-400/50"
-                                      : "bg-purple-500/30 text-purple-300 border border-purple-400/50"
-                                  }`}>
-                                    {group.type === "player" ? "Player Group" : "Staff Group"}
-                                  </span>
-                                </div>
-                                <div className="text-gray-400 text-sm">
-                                  {members.length} member(s)
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleEditGroup(group)}
-                                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteGroup(group.id)}
-                                  className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                            {members.length > 0 && (
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {members.slice(0, 5).map(member => (
-                                  <div
-                                    key={member.id}
-                                    className="bg-white/5 text-gray-300 px-2 py-1 rounded text-xs"
-                                  >
-                                    {member.name}
-                                  </div>
-                                ))}
-                                {members.length > 5 && (
-                                  <div className="bg-white/5 text-gray-400 px-2 py-1 rounded text-xs">
-                                    +{members.length - 5} more
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-400">
-                      No custom groups created yet. Click "Create Group" to get started.
-                    </div>
-                  )}
-                </div>
-              </section>
-            </div>
-          )}
-
-          {/* Player Support - Chat System */}
-          {activeItem === "Player Support" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Player & Staff Support Chat</h2>
-                
-                {/* Chat Type Tabs */}
-                <div className="flex gap-2 mb-6">
-                  <button
-                    onClick={() => {
-                      setChatType("player");
-                      setSelectedChat(null);
-                      setStatusFilter("all");
-                    }}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                      chatType === "player"
-                        ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
-                  >
-                    📱 Player Chat
-                  </button>
-                  <button
-                    onClick={() => {
-                      setChatType("staff");
-                      setSelectedChat(null);
-                      setStatusFilter("all");
-                    }}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                      chatType === "staff"
-                        ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
-                  >
-                    👥 Staff Chat
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Chat List Sidebar */}
-                  <div className="lg:col-span-1 bg-white/10 p-4 rounded-lg">
-                    <div className="mb-4">
-                      <label className="text-white text-sm mb-2 block">Filter by Status</label>
-                      <CustomSelect
-                        className="w-full"
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                      >
-                        <option value="all">All Status</option>
-                        <option value="open">Open</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="closed">Closed</option>
-                      </CustomSelect>
-                    </div>
-                    
-                    <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                      {filteredChats.length > 0 ? (
-                        filteredChats.map(chat => (
-                          <div
-                            key={chat.id}
-                            onClick={() => setSelectedChat(chat)}
-                            className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                              selectedChat?.id === chat.id
-                                ? "bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50"
-                                : "bg-white/5 border-white/10 hover:bg-white/10"
-                            }`}
-                          >
-                            <div className="flex items-start justify-between mb-1">
-                              <div className="font-semibold text-white text-sm">
-                                {chatType === "player" ? chat.playerName : chat.staffName}
-                              </div>
-                              <span className={`px-2 py-1 rounded text-xs ${
-                                chat.status === "open"
-                                  ? "bg-yellow-500/30 text-yellow-300"
-                                  : chat.status === "in_progress"
-                                  ? "bg-blue-500/30 text-blue-300"
-                                  : "bg-gray-500/30 text-gray-300"
-                              }`}>
-                                {chat.status === "open" ? "Open" : chat.status === "in_progress" ? "In Progress" : "Closed"}
-                              </span>
-                            </div>
-                            {chatType === "staff" && (
-                              <div className="text-xs text-gray-400 mb-1">{chat.staffRole}</div>
-                            )}
-                            <div className="text-xs text-gray-300 truncate">{chat.lastMessage}</div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {new Date(chat.lastMessageTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-gray-400 text-sm">
-                          No {statusFilter !== "all" ? statusFilter : ""} chats found
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Chat Window */}
-                  <div className="lg:col-span-2 bg-white/10 p-4 rounded-lg">
-                    {selectedChat ? (
-                      <div className="flex flex-col h-[600px]">
-                        {/* Chat Header */}
-                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/20">
-                          <div>
-                            <div className="font-semibold text-white text-lg">
-                              {chatType === "player" ? selectedChat.playerName : selectedChat.staffName}
-                            </div>
-                            {chatType === "staff" && (
-                              <div className="text-sm text-gray-400">{selectedChat.staffRole}</div>
-                            )}
-                            {chatType === "player" && (
-                              <div className="text-sm text-gray-400">ID: {selectedChat.playerId}</div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <CustomSelect
-                              className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                              value={selectedChat.status}
-                              onChange={(e) => handleStatusChange(selectedChat.id, e.target.value)}
-                            >
-                              <option value="open">Open</option>
-                              <option value="in_progress">In Progress</option>
-                              <option value="closed">Closed</option>
-                            </CustomSelect>
-                          </div>
-                        </div>
-
-                        {/* Messages */}
-                        <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-                          {selectedChat.messages.map(message => (
-                            <div
-                              key={message.id}
-                              className={`flex ${message.sender === "staff" || message.sender === "admin" ? "justify-end" : "justify-start"}`}
-                            >
-                              <div className={`max-w-[70%] rounded-lg p-3 ${
-                                message.sender === "staff" || message.sender === "admin"
-                                  ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white"
-                                  : "bg-white/20 text-white"
-                              }`}>
-                                <div className="text-xs font-semibold mb-1 opacity-90">{message.senderName}</div>
-                                <div className="text-sm">{message.text}</div>
-                                <div className="text-xs opacity-70 mt-1">
-                                  {new Date(message.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Message Input */}
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400"
-                            placeholder="Type your message..."
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                            disabled={selectedChat.status === "closed"}
-                          />
-                          <button
-                            onClick={handleSendMessage}
-                            disabled={selectedChat.status === "closed" || !newMessage.trim()}
-                            className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-400 hover:to-cyan-500 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Send
-                          </button>
-                        </div>
-                        {selectedChat.status === "closed" && (
-                          <div className="text-xs text-gray-400 mt-2 text-center">
-                            This chat is closed. Change status to reopen.
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center h-[600px] text-gray-400">
-                        <div className="text-center">
-                          <div className="text-4xl mb-4">💬</div>
-                          <div className="text-lg">Select a {chatType === "player" ? "player" : "staff"} chat to start messaging</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            </div>
-          )}
-
           {activeItem === "Global Settings" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-gray-600/30 via-slate-500/20 to-zinc-700/30 rounded-xl shadow-md border border-gray-800/40">
@@ -4352,25 +3671,6 @@ export default function SuperAdminPortal() {
           )}
         </main>
       </div>
-
-      {/* Table View Modal for Seat Assignment (Manager Mode) */}
-      {showTableView && selectedPlayerForSeating && (
-        <div className="fixed inset-0 z-50 bg-black/90">
-          <TableView
-            tableId={selectedTableForSeating}
-            onClose={() => {
-              setShowTableView(false);
-              setSelectedPlayerForSeating(null);
-              setSelectedTableForSeating(null);
-            }}
-            isManagerMode={true}
-            selectedPlayerForSeating={selectedPlayerForSeating}
-            occupiedSeats={occupiedSeats}
-            onSeatAssign={handleSeatAssign}
-            tables={tables}
-          />
-        </div>
-      )}
     </div>
   );
 }

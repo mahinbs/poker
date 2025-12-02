@@ -4,7 +4,8 @@
   "description": "Poker Staff Dashboard for Guest Relation Executive",
   "main": "index.js",
   "scripts": {
-    "start": "react-scripts start",
+    "start": "node scripts/start-with-port.js",
+    "start:default": "react-scripts start",
     "start:clear": "node -e \"const fs = require('fs'); const path = require('path'); const cacheFile = path.join('node_modules', '.cache', '.eslintcache'); try { fs.unlinkSync(cacheFile); } catch(e) {}\" && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

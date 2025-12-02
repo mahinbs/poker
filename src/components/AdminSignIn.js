@@ -1,17 +1,55 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { login } from '../utils/api';
 
 export default function AdminSignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignIn = (e) => {
+  const handleSignIn = async (e) => {
     e.preventDefault();
-    if (email === 'admin@pokerroom.com' && password === 'admin123') {
-      navigate('/admin');
-    } else {
-      alert('Invalid credentials');
+    setError('');
+    setLoading(true);
+
+    try {
+      const result = await login(email, password);
+
+      // Check if user has club roles (Admin, Manager, etc.)
+      if (!result.clubs || result.clubs.length === 0) {
+        setError('You do not have access to any clubs. Please contact your Super Admin.');
+        setLoading(false);
+        return;
+      }
+
+      // Store user info in session/localStorage
+      // Admin can only belong to one club, so we'll use the first club
+      const adminClub = result.clubs[0];
+      localStorage.setItem('admin', JSON.stringify({
+        id: result.user.id,
+        email: result.user.email,
+        displayName: result.user.displayName,
+        clubId: adminClub.clubId,
+        clubName: adminClub.clubName,
+        tenantId: adminClub.tenantId,
+        tenantName: adminClub.tenantName,
+        roles: adminClub.roles
+      }));
+
+      // Check if password reset is required
+      if (result.mustResetPassword) {
+        navigate('/admin/reset-password', {
+          state: { email, mustReset: true }
+        });
+      } else {
+        navigate('/admin');
+      }
+    } catch (err) {
+      setError(err.message || 'Invalid email or password');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -21,9 +59,9 @@ export default function AdminSignIn() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-blue-400 drop-shadow-lg mb-4">
-            Super Admin Portal
+            Admin Portal
           </div>
-          <p className="text-gray-300">System-wide administration & configuration</p>
+          <p className="text-gray-300">Club management & operations</p>
         </div>
 
         {/* Sign In Form */}
@@ -31,6 +69,12 @@ export default function AdminSignIn() {
           <h2 className="text-2xl font-bold text-white mb-6 text-center">Sign In</h2>
           
           <form onSubmit={handleSignIn} className="space-y-6">
+            {error && (
+              <div className="p-3 bg-red-500/20 border border-red-400/30 rounded-lg">
+                <p className="text-sm text-red-300">{error}</p>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Email Address
@@ -38,9 +82,12 @@ export default function AdminSignIn() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError('');
+                }}
                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="admin@pokerroom.com"
+                placeholder="admin@club.com"
                 required
               />
             </div>
@@ -52,7 +99,10 @@ export default function AdminSignIn() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError('');
+                }}
                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="Enter password"
                 required
@@ -61,29 +111,27 @@ export default function AdminSignIn() {
             
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105"
             >
-              Sign In
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
           
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-2">
+            <p className="text-gray-400 text-sm">
+              Don't have an account?{' '}
+              <button onClick={() => navigate('/admin/signup')} className="text-red-400 hover:text-red-300 font-semibold">
+                Sign Up
+              </button>
+            </p>
             <button 
               onClick={() => navigate('/manager')}
-              className="text-gray-400 hover:text-white text-sm transition-colors"
+              className="text-gray-400 hover:text-white text-sm transition-colors block w-full"
             >
               ← Back to Manager Portal
             </button>
           </div>
-        </div>
-        
-        {/* Demo Credentials */}
-        <div className="mt-6 p-4 bg-gradient-to-r from-red-500/20 to-purple-500/20 rounded-lg border border-red-400/30">
-          <p className="text-sm text-gray-300 text-center">
-            <strong>Demo Credentials:</strong><br />
-            Email: admin@pokerroom.com<br />
-            Password: admin123
-          </p>
         </div>
       </div>
     </div>
