@@ -26,6 +26,9 @@ import StaffDashboard from './components/StaffDashboard';
 import AffiliateDashboard from './components/AffiliateDashboard';
 import LoginLanding from './components/LoginLanding';
 import ClubStaffLogin from './components/ClubStaffLogin';
+import PlayerLogin from './components/PlayerLogin';
+import PlayerSignup from './components/PlayerSignup';
+import PlayerPortal from './components/PlayerPortal';
 
 function App() {
   return (
@@ -37,6 +40,9 @@ function App() {
           <Route path="/login/master-admin" element={<MasterAdminSignIn />} />
           <Route path="/login/super-admin" element={<SuperAdminSignIn />} />
           <Route path="/login/club" element={<ClubStaffLogin />} />
+          <Route path="/player/login" element={<PlayerLogin />} />
+          <Route path="/player/signup" element={<PlayerSignup />} />
+          <Route path="/player" element={<PlayerPortal />} />
           <Route path="/manager" element={<DashboardPage />} />
           <Route path="/gre/signin" element={<GreSignIn />} />
           <Route path="/gre" element={<GreDashboard />} />

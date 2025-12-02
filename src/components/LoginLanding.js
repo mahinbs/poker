@@ -14,7 +14,22 @@ export default function LoginLanding() {
           <p className="text-gray-300 text-xl">Choose your login portal</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Player Portal */}
+          <div 
+            onClick={() => navigate('/player/login')}
+            className="bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-2xl p-8 shadow-2xl border border-gray-700 cursor-pointer hover:border-teal-500 transition-all duration-300 transform hover:scale-105"
+          >
+            <div className="text-center">
+              <div className="text-4xl mb-4">🎮</div>
+              <h3 className="text-2xl font-bold text-white mb-2">Player Portal</h3>
+              <p className="text-gray-400 text-sm mb-6">Join games, manage balance, and more</p>
+              <button className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-300">
+                Sign In
+              </button>
+            </div>
+          </div>
+
           {/* Master Admin Login */}
           <div 
             onClick={() => navigate('/login/master-admin')}

@@ -925,3 +925,156 @@ export async function getMyAffiliatePlayers(clubId) {
   return affiliateApiRequest(`/clubs/${clubId}/affiliates/${myAffiliate.id}/players`);
 }
 
+// ========== Player Portal APIs ==========
+
+/**
+ * Make API request with Player authentication
+ * Requires playerId and clubId from localStorage
+ */
+export async function playerApiRequest(endpoint, options = {}) {
+  const player = JSON.parse(localStorage.getItem('player') || '{}');
+  const playerId = player.id;
+  const clubId = player.clubId;
+  
+  if (!playerId) {
+    throw new Error('Player not authenticated');
+  }
+
+  if (!clubId) {
+    throw new Error('Club ID not set');
+  }
+
+  const url = `${API_BASE_URL}${endpoint}`;
+  
+  const { headers: optionsHeaders, ...restOptions } = options;
+  
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+    'x-player-id': sanitizeHeaderValue(playerId),
+    'x-club-id': sanitizeHeaderValue(clubId)
+  };
+  
+  const headers = {
+    ...defaultHeaders,
+    ...(optionsHeaders && Object.fromEntries(
+      Object.entries(optionsHeaders).map(([key, value]) => [key, sanitizeHeaderValue(value)])
+    ))
+  };
+
+  try {
+    const response = await fetch(url, {
+      ...restOptions,
+      headers
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(error.message || `API Error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Player API Request Error:', error);
+    throw error;
+  }
+}
+
+// ========== Club Code Verification ==========
+export async function verifyClubCode(clubCode) {
+  return apiRequest('/clubs/verify-code', {
+    method: 'POST',
+    body: JSON.stringify({ code: clubCode })
+  });
+}
+
+// ========== Player Authentication ==========
+export async function playerLogin(clubCode, email, password) {
+  return apiRequest('/auth/player/login', {
+    method: 'POST',
+    body: JSON.stringify({ clubCode, email, password })
+  });
+}
+
+export async function playerSignup(clubCode, signupData) {
+  return apiRequest('/auth/player/signup', {
+    method: 'POST',
+    body: JSON.stringify({
+      clubCode,
+      firstName: signupData.firstName,
+      lastName: signupData.lastName,
+      email: signupData.email,
+      password: signupData.password,
+      phoneNumber: signupData.phoneNumber,
+      nickname: signupData.nickname,
+      referralCode: signupData.referralCode
+    })
+  });
+}
+
+// ========== Player Profile ==========
+export async function getPlayerProfile() {
+  return playerApiRequest('/auth/player/me');
+}
+
+export async function updatePlayerProfile(profileData) {
+  return playerApiRequest('/auth/player/profile', {
+    method: 'PUT',
+    body: JSON.stringify(profileData)
+  });
+}
+
+export async function changePlayerPassword(currentPassword, newPassword) {
+  return playerApiRequest('/auth/player/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword })
+  });
+}
+
+// ========== Player Balance & Transactions ==========
+export async function getPlayerBalance() {
+  return playerApiRequest('/auth/player/balance');
+}
+
+export async function getPlayerTransactions(limit = 50, offset = 0) {
+  return playerApiRequest(`/auth/player/transactions?limit=${limit}&offset=${offset}`);
+}
+
+// ========== Waitlist Management ==========
+export async function joinWaitlist(tableType, partySize = 1) {
+  return playerApiRequest('/auth/player/waitlist', {
+    method: 'POST',
+    body: JSON.stringify({ tableType, partySize })
+  });
+}
+
+export async function getWaitlistStatus() {
+  return playerApiRequest('/auth/player/waitlist');
+}
+
+export async function cancelWaitlist(entryId) {
+  return playerApiRequest(`/auth/player/waitlist/${entryId}`, {
+    method: 'DELETE'
+  });
+}
+
+// ========== Tables ==========
+export async function getAvailableTables() {
+  return playerApiRequest('/auth/player/tables');
+}
+
+export async function getTableDetails(tableId) {
+  return playerApiRequest(`/auth/player/tables/${tableId}`);
+}
+
+// ========== Credit & Stats ==========
+export async function requestCredit(amount, notes) {
+  return playerApiRequest('/auth/player/credit-request', {
+    method: 'POST',
+    body: JSON.stringify({ amount, notes })
+  });
+}
+
+export async function getPlayerStats() {
+  return playerApiRequest('/auth/player/stats');
+}
+
