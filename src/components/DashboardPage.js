@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "./common/CustomSelect";
 import TableView from "./hologram/TableView";
+import TableManagementSection from "./TableManagementSection";
 
 export default function DashboardPage() {
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -17,13 +18,20 @@ export default function DashboardPage() {
   });
 
   // Mock table data - in real app, this would come from API
-  const tables = [
-    { id: 1, name: "Table 1 - Texas Hold'em", status: "Active" },
-    { id: 2, name: "Table 2 - Omaha", status: "Paused" },
-    { id: 3, name: "Table 3 - Stud", status: "Ended" },
-  ];
+  const [tables, setTables] = useState([
+    { id: 1, name: "Table 1 - Texas Hold'em", status: "Active", gameType: "Texas Hold'em", maxPlayers: 6, stakes: "₹1000.00/10000.00" },
+    { id: 2, name: "Table 2 - Omaha", status: "Paused", gameType: "Omaha", maxPlayers: 9, stakes: "₹5000.00/50000.00" },
+    { id: 3, name: "Table 3 - Stud", status: "Ended", gameType: "Seven Card Stud", maxPlayers: 6, stakes: "₹10000.00/100000.00" },
+  ]);
 
   const activeTables = tables.filter(table => table.status === "Active");
+
+  // Mock dealers data
+  const dealers = [
+    { id: 1, name: "John" },
+    { id: 2, name: "Sarah" },
+    { id: 3, name: "Mike" },
+  ];
 
   // Mock players data with balances (connected across all portals)
   const [playerBalances, setPlayerBalances] = useState({
@@ -970,7 +978,7 @@ export default function DashboardPage() {
   const menuItems = [
     "Dashboard",
     "Session Control",
-    "Table Operations",
+    "Table Management",
     "Tournaments",
     "Player Flow",
     "Seating Management",
@@ -1336,103 +1344,31 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Table Operations */}
-          {activeItem === "Table Operations" && (
+          {/* Table Management */}
+          {activeItem === "Table Management" && (
             <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Table Management</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Create New Table</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-white text-sm">Table Name</label>
-                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Table 1" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Game Type</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Texas Hold'em</option>
-                          <option>Omaha</option>
-                          <option>Seven Card Stud</option>
-                          <option>Razz</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Max Players</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="8" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Blind Levels</label>
-                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹25/₹50" />
-                      </div>
-                      <div className="border-t border-white/20 pt-3 mt-3">
-                        <h4 className="text-white text-sm font-semibold mb-2">Session Parameters</h4>
-                        <div className="space-y-2">
-                          <div>
-                            <label className="text-white text-xs">Min Play Time (minutes)</label>
-                            <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="30" />
-                          </div>
-                          <div>
-                            <label className="text-white text-xs">Call Time (minutes)</label>
-                            <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="5" />
-                          </div>
-                          <div>
-                            <label className="text-white text-xs">Cash-out Window (minutes)</label>
-                            <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10" />
-                          </div>
-                          <div>
-                            <label className="text-white text-xs">Session Timeout (minutes)</label>
-                            <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="120" />
-                          </div>
-                        </div>
-                      </div>
-                      <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold mt-4">
-                        Create Table
-                      </button>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Table Actions</h3>
-                    <div className="space-y-3">
-                      <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Edit Table Settings
-                      </button>
-                      <button className="w-full bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Activate/Deactivate Table
-                      </button>
-                      <button className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Delete Table
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Dealer Assignment</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-white text-sm">Select Table</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Table 1 - Texas Hold'em</option>
-                          <option>Table 2 - Omaha</option>
-                          <option>Table 3 - Stud</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Assign Dealer</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Dealer 1 - John</option>
-                          <option>Dealer 2 - Sarah</option>
-                          <option>Dealer 3 - Mike</option>
-                        </select>
-                      </div>
-                      <button className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Assign Dealer
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
+              <TableManagementSection
+                userRole="manager"
+                tables={tables}
+                setTables={setTables}
+                playerBalances={playerBalances}
+                tableBalances={{}}
+                occupiedSeats={occupiedSeats}
+                mockPlayers={mockPlayers}
+                onSeatAssign={handleSeatAssign}
+                showTableView={showTableView}
+                setShowTableView={setShowTableView}
+                selectedPlayerForSeating={selectedPlayerForSeating}
+                setSelectedPlayerForSeating={setSelectedPlayerForSeating}
+                selectedTableForSeating={selectedTableForSeating}
+                setSelectedTableForSeating={setSelectedTableForSeating}
+                waitlist={waitlist}
+                setWaitlist={setWaitlist}
+                isSeatAvailable={isSeatAvailable}
+                handleAssignPreferredSeat={handleAssignPreferredSeat}
+                handleOpenTableViewForWaitlist={handleOpenTableView}
+                dealers={dealers}
+              />
 
               <section className="p-6 bg-gradient-to-r from-orange-600/30 via-red-500/20 to-pink-700/30 rounded-xl shadow-md border border-orange-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Rake Entry Form</h2>
@@ -3469,7 +3405,7 @@ export default function DashboardPage() {
 
       {/* Table View Modal for Seat Assignment (Manager Mode) */}
       {showTableView && selectedPlayerForSeating && (
-        <div className="fixed inset-0 z-50 bg-black/90">
+        <div className="fixed inset-0 z-50 bg-black/90 overflow-y-auto hide-scrollbar">
           <TableView
             tableId={selectedTableForSeating}
             onClose={() => {
