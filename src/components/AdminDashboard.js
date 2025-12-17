@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CustomSelect from './common/CustomSelect';
 import TableView from './hologram/TableView';
+import TableManagementSection from './TableManagementSection';
 
 export default function AdminDashboard() {
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -11,12 +12,12 @@ export default function AdminDashboard() {
     "Dashboard",
     "Players",
     "Registered Players",
+    "Table Management",
     "Credit Management",
     "Staff Bonuses Approval",
     "Core Management", 
     "Player Registration",
     "Session Control",
-    "Seating Management",
     "Waitlist & Seating Overrides",
     "Tournaments",
     "VIP Store",
@@ -486,11 +487,11 @@ export default function AdminDashboard() {
   const [selectedPlayerDetails, setSelectedPlayerDetails] = useState(null);
 
   // Mock table data
-  const tables = [
+  const [tables, setTables] = useState([
     { id: 1, name: "Table 1 - Texas Hold'em", status: "Active", gameType: "Texas Hold'em", stakes: "₹1000.00/10000.00", maxPlayers: 6 },
     { id: 2, name: "Table 2 - Omaha", status: "Active", gameType: "Omaha", stakes: "₹5000.00/50000.00", maxPlayers: 9 },
     { id: 3, name: "Table 3 - Stud", status: "Paused", gameType: "Seven Card Stud", stakes: "₹10000.00/100000.00", maxPlayers: 6 },
-  ];
+  ]);
 
   // Waitlist management state
   const [waitlist, setWaitlist] = useState([
@@ -3032,112 +3033,29 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {activeItem === "Seating Management" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Waitlist Management</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Current Waitlist</h3>
-                    <div className="space-y-2">
-                      {waitlist.map((entry) => {
-                        const preferredSeatAvailable = entry.preferredSeat 
-                          ? isSeatAvailable(entry.preferredTable, entry.preferredSeat)
-                          : false;
-                        
-                        return (
-                          <div key={entry.id} className="bg-blue-500/20 p-3 rounded-lg border border-blue-400/30">
-                            <div className="grid gap-5 sm:grid-cols-[60%,1fr] items-start">
-                              <div className="flex-1">
-                                <div className="font-semibold text-white">Player: {entry.playerName}</div>
-                                <div className="text-sm text-gray-300">Position: {entry.position} | Game: {entry.gameType}</div>
-                                {entry.preferredSeat ? (
-                                  <div className="mt-1 flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs text-yellow-300 font-medium flex items-center gap-1">
-                                      ⭐ Preferred: Table {entry.preferredTable}, Seat {entry.preferredSeat}
-                                    </span>
-                                    {preferredSeatAvailable ? (
-                                      <span className="text-xs bg-green-500/30 text-green-300 px-2 py-0.5 rounded-full border border-green-400/50">
-                                        ✓ Available
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs bg-red-500/30 text-red-300 px-2 py-0.5 rounded-full border border-red-400/50">
-                                        ✗ Occupied
-                                      </span>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="mt-1 text-xs text-gray-400">No preferred seat selected</div>
-                                )}
-                              </div>
-                              <div className="flex flex-col gap-2 ml-3">
-                                <button 
-                                  onClick={() => handleOpenTableView(entry, entry.preferredTable)}
-                                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
-                                  title="View table hologram to assign seat"
-                                >
-                                  🎯 View Table
-                                </button>
-                                {entry.preferredSeat && preferredSeatAvailable && (
-                                  <button 
-                                    onClick={() => handleAssignPreferredSeat(entry)}
-                                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
-                                    title={`Assign to preferred seat ${entry.preferredSeat} at Table ${entry.preferredTable}`}
-                                  >
-                                    Assign Preferred
-                                  </button>
-                                )}
-                                <button 
-                                  onClick={() => setWaitlist(prev => prev.filter(item => item.id !== entry.id))}
-                                  className="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-sm"
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {waitlist.length === 0 && (
-                        <div className="text-center py-8 text-gray-400 text-sm">
-                          No players in waitlist
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Seat Allocation</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Select Player</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>-- Select Player --</option>
-                          {waitlist.map(entry => (
-                            <option key={entry.id} value={entry.id}>
-                              {entry.playerName} (Position {entry.position})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Assign Table</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>-- Select Table --</option>
-                          {tables.map(table => (
-                            <option key={table.id} value={table.id}>
-                              {table.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold shadow">
-                        Assign Seat
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
+          {activeItem === "Table Management" && (
+            <TableManagementSection
+              userRole="admin"
+              tables={tables}
+              setTables={setTables}
+              playerBalances={{}}
+              tableBalances={{}}
+              occupiedSeats={occupiedSeats}
+              mockPlayers={[]}
+              onSeatAssign={handleSeatAssign}
+              showTableView={showTableView}
+              setShowTableView={setShowTableView}
+              selectedPlayerForSeating={selectedPlayerForSeating}
+              setSelectedPlayerForSeating={setSelectedPlayerForSeating}
+              selectedTableForSeating={selectedTableForSeating}
+              setSelectedTableForSeating={setSelectedTableForSeating}
+              waitlist={waitlist}
+              setWaitlist={setWaitlist}
+              isSeatAvailable={isSeatAvailable}
+              handleAssignPreferredSeat={handleAssignPreferredSeat}
+              handleOpenTableViewForWaitlist={handleOpenTableView}
+              dealers={[]}
+            />
           )}
 
           {/* Waitlist & Seating Overrides */}
@@ -5176,7 +5094,7 @@ export default function AdminDashboard() {
 
       {/* Table View Modal for Seat Assignment (Manager Mode) */}
       {showTableView && selectedPlayerForSeating && (
-        <div className="fixed inset-0 z-50 bg-black/90">
+        <div className="fixed inset-0 z-50 bg-black/90 overflow-y-auto hide-scrollbar">
           <TableView
             tableId={selectedTableForSeating}
             onClose={() => {

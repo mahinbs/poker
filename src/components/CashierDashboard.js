@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "./common/CustomSelect";
 import TableView from "./hologram/TableView";
+import TableManagementSection from "./TableManagementSection";
 
 export default function CashierDashboard() {
   const [activeItem, setActiveItem] = useState("Transactions Dashboard");
@@ -12,7 +13,6 @@ export default function CashierDashboard() {
     "Transactions Dashboard",
     "Balance Management",
     "Live Tables",
-    "Table View",
     "Payroll Management", 
     "Transaction History & Reports",
     "Shift Reconciliation",
@@ -577,22 +577,6 @@ export default function CashierDashboard() {
   const isSeatAvailable = (tableId, seatNumber) => {
     const occupied = occupiedSeats[tableId] || [];
     return !occupied.includes(seatNumber);
-  };
-
-  // Handle opening table view for seat assignment
-  const handleOpenTableView = (tableId, player = null) => {
-    if (player) {
-      setSelectedPlayerForSeating({
-        id: player.id,
-        playerId: player.id,
-        playerName: player.name,
-        name: player.name
-      });
-    } else {
-      setSelectedPlayerForSeating(null);
-    }
-    setSelectedTableForSeating(tableId);
-    setShowTableView(true);
   };
 
   // Handle seat assignment from table view with buy-in
@@ -1492,274 +1476,31 @@ export default function CashierDashboard() {
 
           {/* Live Tables */}
           {activeItem === "Live Tables" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Live Tables - Hologram View</h2>
-                    <p className="text-gray-300 text-sm mt-1">Manage live tables, seat players, and handle buy-ins using table hologram.</p>
-                  </div>
-                  <div className="text-xs text-gray-400 bg-white/10 px-3 py-2 rounded-lg border border-white/10">
-                    <div>Active Tables: {tables.filter(t => t.status === "Active").length}</div>
-                    <div>Total Players: {Object.values(playerBalances).filter(p => p.tableId).length}</div>
-                  </div>
-                </div>
-
-                {/* Player Selection for Seating */}
-                <div className="bg-white/10 p-4 rounded-lg mb-6">
-                  <h3 className="text-lg font-semibold text-white mb-4">Select Player to Seat (Optional)</h3>
-                  <div className="relative">
-                    <label className="text-white text-sm mb-2 block">Search Player (Type at least 3 characters)</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                      placeholder="Search by name, ID, or email..." 
-                      value={liveTablePlayerSearch}
-                      onChange={(e) => {
-                        setLiveTablePlayerSearch(e.target.value);
-                        setSelectedLiveTablePlayer(null);
-                      }}
-                    />
-                    {liveTablePlayerSearch.length >= 3 && filteredLiveTablePlayers.length > 0 && !selectedLiveTablePlayer && (
-                      <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        {filteredLiveTablePlayers.map(player => (
-                          <div
-                            key={player.id}
-                            onClick={() => {
-                              setSelectedLiveTablePlayer(player);
-                              setLiveTablePlayerSearch(`${player.name} (${player.id})`);
-                            }}
-                            className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                          >
-                            <div className="text-white font-medium">{player.name}</div>
-                            <div className="text-gray-400 text-xs">
-                              ID: {player.id} | Email: {player.email}
-                              {playerBalances[player.id] && (
-                                <> | Balance: ₹{playerBalances[player.id].availableBalance.toLocaleString('en-IN')}</>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {selectedLiveTablePlayer && (
-                      <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                        <span className="text-green-300">Selected: {selectedLiveTablePlayer.name} ({selectedLiveTablePlayer.id})</span>
-                        {playerBalances[selectedLiveTablePlayer.id] && (
-                          <div className="text-xs text-gray-300 mt-1">
-                            Available Balance: ₹{playerBalances[selectedLiveTablePlayer.id].availableBalance.toLocaleString('en-IN')}
-                          </div>
-                        )}
-                        <button 
-                          onClick={() => {
-                            setSelectedLiveTablePlayer(null);
-                            setLiveTablePlayerSearch("");
-                          }}
-                          className="ml-2 text-red-400 hover:text-red-300"
-                        >
-                          X
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  {selectedLiveTablePlayer && (
-                    <div className="mt-4">
-                      <label className="text-white text-sm mb-2 block">Buy-in Amount (Optional - for fresh buy-in)</label>
-                      <input 
-                        type="number" 
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                        placeholder="₹0.00 - Leave empty if no buy-in needed" 
-                        value={buyInAmount}
-                        onChange={(e) => setBuyInAmount(e.target.value)}
-                      />
-                      <p className="text-xs text-gray-400 mt-1">
-                        Enter buy-in amount to deduct from player's available balance and add to table balance when seating.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Tables List */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {tables.filter(table => table.status === "Active").map(table => {
-                    const tableBalance = tableBalances[table.id];
-                    const occupiedSeatsForTable = occupiedSeats[table.id] || [];
-                    const availableSeats = table.maxPlayers - occupiedSeatsForTable.length;
-                    
-                    return (
-                      <div
-                        key={table.id}
-                        className="bg-white/10 p-5 rounded-xl border border-blue-400/30 shadow-lg space-y-4"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <h3 className="text-lg font-semibold text-white leading-tight">{table.name}</h3>
-                            <div className="text-xs text-gray-400 mt-1">
-                              {table.gameType} | Stakes: {table.stakes}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs text-gray-400 uppercase tracking-wide">Table Balance</div>
-                            <div className="text-xl font-bold text-blue-300">
-                              ₹{(tableBalance?.totalBalance || 0).toLocaleString('en-IN')}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-300">Occupied Seats:</span>
-                            <span className="text-white font-semibold">
-                              {occupiedSeatsForTable.length} / {table.maxPlayers}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-300">Available Seats:</span>
-                            <span className="text-green-300 font-semibold">{availableSeats}</span>
-                          </div>
-                          {occupiedSeatsForTable.length > 0 && (
-                            <div className="text-xs text-gray-400">
-                              Occupied: {occupiedSeatsForTable.join(", ")}
-                            </div>
-                          )}
-                        </div>
-
-                        <button
-                          onClick={() => handleOpenTableView(table.id, selectedLiveTablePlayer || null)}
-                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white px-4 py-3 rounded-lg font-semibold shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
-                        >
-                          <span className="text-xl">🎯</span>
-                          <span>View Table Hologram</span>
-                          {selectedLiveTablePlayer && (
-                            <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
-                              Seating: {selectedLiveTablePlayer.name}
-                            </span>
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {tables.filter(table => table.status === "Active").length === 0 && (
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-10 text-center text-gray-400">
-                    No active tables available. Tables will appear here when they are activated.
-                  </div>
-                )}
-              </section>
-            </div>
+            <TableManagementSection
+              userRole="cashier"
+              tables={tables}
+              playerBalances={playerBalances}
+              tableBalances={tableBalances}
+              occupiedSeats={occupiedSeats}
+              mockPlayers={mockPlayers}
+              onSeatAssign={handleSeatAssign}
+              showTableView={showTableView}
+              setShowTableView={setShowTableView}
+              selectedPlayerForSeating={selectedPlayerForSeating}
+              setSelectedPlayerForSeating={setSelectedPlayerForSeating}
+              selectedTableForSeating={selectedTableForSeating}
+              setSelectedTableForSeating={setSelectedTableForSeating}
+              liveTablePlayerSearch={liveTablePlayerSearch}
+              setLiveTablePlayerSearch={setLiveTablePlayerSearch}
+              selectedLiveTablePlayer={selectedLiveTablePlayer}
+              setSelectedLiveTablePlayer={setSelectedLiveTablePlayer}
+              buyInAmount={buyInAmount}
+              setBuyInAmount={setBuyInAmount}
+              forceTab='live-tables'
+            />
           )}
 
-          {/* Table View */}
-          {activeItem === "Table View" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Table View</h2>
-                    <p className="text-gray-300 text-sm mt-1">Snapshot of active tables, seated players, and chip counts.</p>
-                  </div>
-                  <div className="text-xs text-gray-400 bg-white/10 px-3 py-2 rounded-lg border border-white/10">
-                    <div>Refreshed: {currentDateTime.full}</div>
-                    <div>Total Tables: {Object.keys(tableBalances).length}</div>
-                  </div>
-                </div>
-
-                {Object.values(tableBalances).length > 0 ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {Object.values(tableBalances).map((table) => {
-                      const hasPlayers = (table.players || []).length > 0;
-                      return (
-                        <div
-                          key={table.id}
-                          className="bg-white/10 p-5 rounded-xl border border-cyan-400/30 shadow-lg space-y-4"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <h3 className="text-lg font-semibold text-white leading-tight">{table.name}</h3>
-                              <div className="text-xs text-gray-400 mt-1">
-                                Table ID: {table.id}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xs text-gray-400 uppercase tracking-wide">Table Balance</div>
-                              <div className="text-2xl font-bold text-cyan-300">
-                                ₹{(table.totalBalance || 0).toLocaleString('en-IN')}
-                              </div>
-                              <div
-                                className={`mt-2 inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
-                                  hasPlayers
-                                    ? "bg-green-500/20 text-green-300 border border-green-400/30"
-                                    : "bg-gray-500/20 text-gray-300 border border-gray-400/30"
-                                }`}
-                              >
-                                {hasPlayers ? (
-                                  <>
-                                    <span className="text-lg leading-none">●</span>
-                                    <span>{table.players.length} {table.players.length === 1 ? "Player" : "Players"}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <span className="text-lg leading-none">○</span>
-                                    <span>No Players</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="rounded-lg bg-white/5 border border-white/10 p-4 space-y-3">
-                            <div className="text-xs font-semibold text-gray-300 uppercase tracking-wide">
-                              Players at Table
-                            </div>
-                            {hasPlayers ? (
-                              table.players.map((playerId) => {
-                                const player = playerBalances[playerId];
-                                if (!player) return null;
-                                return (
-                                  <div
-                                    key={playerId}
-                                    className="flex items-center justify-between gap-3 border-b border-white/10 pb-3 last:pb-0 last:border-0"
-                                  >
-                                    <div className="flex-1">
-                                      <div className="text-white text-sm font-medium">{player.name}</div>
-                                      <div className="text-xs text-gray-400">
-                                        ID: {player.id}
-                                        {player.seatNumber ? ` · Seat ${player.seatNumber}` : ""}
-                                      </div>
-                                    </div>
-                                    <div className="text-right">
-                                      <div className="text-xs text-gray-400 uppercase tracking-wide">Chip Count</div>
-                                      <div className="text-lg font-semibold text-yellow-300">
-                                        ₹{(player.tableBalance || 0).toLocaleString('en-IN')}
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <div className="text-sm text-gray-400 italic">
-                                No active players seated at this table.
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="text-xs text-gray-400">
-                            <div>Snapshot generated from live chip tracking.</div>
-                            <div>Updates occur automatically when manager verifies chip counts.</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-10 text-center text-gray-400">
-                    No table data available. Tables will appear here as soon as they are configured.
-                  </div>
-                )}
-              </section>
-            </div>
-          )}
+          
 
           {/* Payroll Management */}
           {activeItem === "Payroll Management" && (
@@ -2828,7 +2569,7 @@ export default function CashierDashboard() {
 
       {/* Table View Modal for Seat Assignment (Cashier Mode) */}
       {showTableView && selectedTableForSeating && (
-        <div className="fixed inset-0 z-50 bg-black/90">
+        <div className="fixed inset-0 z-50 bg-black/90 overflow-y-auto hide-scrollbar">
           <TableView
             tableId={selectedTableForSeating}
             onClose={() => {

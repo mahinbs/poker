@@ -4355,7 +4355,7 @@ export default function SuperAdminPortal() {
 
       {/* Table View Modal for Seat Assignment (Manager Mode) */}
       {showTableView && selectedPlayerForSeating && (
-        <div className="fixed inset-0 z-50 bg-black/90">
+        <div className="fixed inset-0 z-50 bg-black/90 overflow-y-auto hide-scrollbar">
           <TableView
             tableId={selectedTableForSeating}
             onClose={() => {
