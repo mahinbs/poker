@@ -1,6 +1,6 @@
-import React, { useState } from "react";
 import TableView from "./hologram/TableView";
 import CustomSelect from "./common/CustomSelect";
+import { useState } from "react";
 
 export default function TableManagementSection({
   userRole = "cashier", // "cashier", "admin", "superadmin", "manager"
@@ -37,7 +37,10 @@ export default function TableManagementSection({
 }) {
   const [activeTab, setActiveTab] = useState(forceTab || "live-tables");
 
+  const getSelectValue = (e, option) => option?.value ?? e?.target?.value ?? "";
+
   // Table Management state
+  const [tableMgmtSubTab, setTableMgmtSubTab] = useState("list"); // "list" | "add"
   const [tableForm, setTableForm] = useState({
     name: "",
     gameType: "Texas Hold'em",
@@ -48,10 +51,19 @@ export default function TableManagementSection({
     cashOutWindow: 10,
     sessionTimeout: 120,
   });
+  const [minPlayTimePreset, setMinPlayTimePreset] = useState("30"); // "30" | "45" | ... | "custom"
   const [editingTable, setEditingTable] = useState(null);
   const [selectedTableForActions, setSelectedTableForActions] = useState("");
   const [selectedTableForDealer, setSelectedTableForDealer] = useState("");
   const [selectedDealer, setSelectedDealer] = useState("");
+
+  // Seating Management state
+  const [seatAssignment, setSeatAssignment] = useState({
+    playerId: "",
+    tableId: "",
+    seatNumber: "",
+    playerName: ""
+  });
 
   // Table Management permissions
   const canCreateTable = ["admin", "superadmin", "manager"].includes(userRole);
@@ -59,7 +71,10 @@ export default function TableManagementSection({
   const canEditTable = ["admin", "superadmin", "manager"].includes(userRole);
 
   // Determine which tabs are accessible based on role
-  const canAccessTableManagement = canViewTable; // Anyone who can view tables can access the tab
+  // NOTE: Cashier should NOT see Table Management UI (only Live Tables).
+  const canAccessTableManagement = ["admin", "superadmin", "manager"].includes(
+    userRole
+  );
   const canAccessSeatingManagement = [
     "admin",
     "superadmin",
@@ -70,19 +85,24 @@ export default function TableManagementSection({
   const filteredLiveTablePlayers =
     liveTablePlayerSearch.length >= 3
       ? mockPlayers.filter((player) => {
-          const searchLower = liveTablePlayerSearch.toLowerCase();
-          return (
-            player.name.toLowerCase().includes(searchLower) ||
-            player.id.toLowerCase().includes(searchLower) ||
-            player.email.toLowerCase().includes(searchLower)
-          );
-        })
+        const searchLower = liveTablePlayerSearch.toLowerCase();
+        return (
+          player.name.toLowerCase().includes(searchLower) ||
+          player.id.toLowerCase().includes(searchLower) ||
+          player.email.toLowerCase().includes(searchLower)
+        );
+      })
       : [];
 
   // Table Management functions
   const handleCreateTable = () => {
     if (!setTables || !canCreateTable) return;
-    
+
+    const normalizedMinPlayTime =
+      minPlayTimePreset === "custom"
+        ? Math.max(30, parseInt(tableForm.minPlayTime) || 30)
+        : Math.max(30, parseInt(minPlayTimePreset) || 30);
+
     const newTable = {
       id: tables.length > 0 ? Math.max(...tables.map(t => t.id)) + 1 : 1,
       name: tableForm.name,
@@ -90,14 +110,14 @@ export default function TableManagementSection({
       maxPlayers: parseInt(tableForm.maxPlayers),
       stakes: tableForm.stakes,
       status: "Inactive",
-      minPlayTime: parseInt(tableForm.minPlayTime),
+      minPlayTime: normalizedMinPlayTime,
       callTime: parseInt(tableForm.callTime),
       cashOutWindow: parseInt(tableForm.cashOutWindow),
       sessionTimeout: parseInt(tableForm.sessionTimeout),
     };
 
     setTables([...tables, newTable]);
-    
+
     // Reset form
     setTableForm({
       name: "",
@@ -109,13 +129,16 @@ export default function TableManagementSection({
       cashOutWindow: 10,
       sessionTimeout: 120,
     });
-    
+    setMinPlayTimePreset("30");
+    setTableMgmtSubTab("list");
+
     alert(`Table "${newTable.name}" created successfully!`);
   };
 
   const handleEditTable = (table) => {
     if (!canEditTable || !table) return;
     setEditingTable(table);
+    setTableMgmtSubTab("add");
     setTableForm({
       name: table.name || "",
       gameType: table.gameType || "Texas Hold'em",
@@ -126,27 +149,36 @@ export default function TableManagementSection({
       cashOutWindow: table.cashOutWindow || 10,
       sessionTimeout: table.sessionTimeout || 120,
     });
+
+    const presets = new Set(["30", "45", "60", "90", "120", "150", "180"]);
+    const v = String(table.minPlayTime || 30);
+    setMinPlayTimePreset(presets.has(v) ? v : "custom");
   };
 
   const handleUpdateTable = () => {
     if (!setTables || !canEditTable || !editingTable) return;
-    
+
+    const normalizedMinPlayTime =
+      minPlayTimePreset === "custom"
+        ? Math.max(30, parseInt(tableForm.minPlayTime) || 30)
+        : Math.max(30, parseInt(minPlayTimePreset) || 30);
+
     const updatedTables = tables.map(table =>
       table.id === editingTable.id
         ? {
-            ...table,
-            name: tableForm.name,
-            gameType: tableForm.gameType,
-            maxPlayers: parseInt(tableForm.maxPlayers),
-            stakes: tableForm.stakes,
-            minPlayTime: parseInt(tableForm.minPlayTime),
-            callTime: parseInt(tableForm.callTime),
-            cashOutWindow: parseInt(tableForm.cashOutWindow),
-            sessionTimeout: parseInt(tableForm.sessionTimeout),
-          }
+          ...table,
+          name: tableForm.name,
+          gameType: tableForm.gameType,
+          maxPlayers: parseInt(tableForm.maxPlayers),
+          stakes: tableForm.stakes,
+          minPlayTime: normalizedMinPlayTime,
+          callTime: parseInt(tableForm.callTime),
+          cashOutWindow: parseInt(tableForm.cashOutWindow),
+          sessionTimeout: parseInt(tableForm.sessionTimeout),
+        }
         : table
     );
-    
+
     setTables(updatedTables);
     setEditingTable(null);
     setTableForm({
@@ -159,33 +191,35 @@ export default function TableManagementSection({
       cashOutWindow: 10,
       sessionTimeout: 120,
     });
-    
+    setMinPlayTimePreset("30");
+    setTableMgmtSubTab("list");
+
     alert(`Table "${tableForm.name}" updated successfully!`);
   };
 
   const handleToggleTableStatus = (tableId) => {
     if (!setTables || !canEditTable) return;
-    
+
     const table = tables.find(t => t.id === tableId || t.id === parseInt(tableId));
     if (!table) return;
-    
+
     const newStatus = table.status === "Active" ? "Inactive" : "Active";
     const updatedTables = tables.map(t =>
       (t.id === tableId || t.id === parseInt(tableId))
         ? { ...t, status: newStatus }
         : t
     );
-    
+
     setTables(updatedTables);
     alert(`Table "${table.name}" ${newStatus === "Active" ? "activated" : "deactivated"}!`);
   };
 
   const handleDeleteTable = (tableId) => {
     if (!setTables || !canEditTable) return;
-    
+
     const table = tables.find(t => t.id === tableId || t.id === parseInt(tableId));
     if (!table) return;
-    
+
     if (window.confirm(`Are you sure you want to delete "${table.name}"?`)) {
       setTables(tables.filter(t => t.id !== tableId && t.id !== parseInt(tableId)));
       alert(`Table "${table.name}" deleted successfully!`);
@@ -233,11 +267,10 @@ export default function TableManagementSection({
             {canAccessLiveTables && (
               <button
                 onClick={() => setActiveTab("live-tables")}
-                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
-                  activeTab === "live-tables"
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
-                    : "bg-white/10 text-white/70 hover:bg-white/15"
-                }`}
+                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${activeTab === "live-tables"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
+                  : "bg-white/10 text-white/70 hover:bg-white/15"
+                  }`}
               >
                 Live Tables
               </button>
@@ -245,11 +278,10 @@ export default function TableManagementSection({
             {canAccessTableManagement && (
               <button
                 onClick={() => setActiveTab("table-management")}
-                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
-                  activeTab === "table-management"
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
-                    : "bg-white/10 text-white/70 hover:bg-white/15"
-                }`}
+                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${activeTab === "table-management"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
+                  : "bg-white/10 text-white/70 hover:bg-white/15"
+                  }`}
               >
                 Table Management
               </button>
@@ -257,11 +289,10 @@ export default function TableManagementSection({
             {canAccessSeatingManagement && (
               <button
                 onClick={() => setActiveTab("seating-management")}
-                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
-                  activeTab === "seating-management"
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
-                    : "bg-white/10 text-white/70 hover:bg-white/15"
-                }`}
+                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${activeTab === "seating-management"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
+                  : "bg-white/10 text-white/70 hover:bg-white/15"
+                  }`}
               >
                 Seating Management
               </button>
@@ -274,9 +305,34 @@ export default function TableManagementSection({
         <div className="space-y-6">
           <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
             <h2 className="text-xl font-bold text-white mb-6">Table Management</h2>
+
+            {/* Sub Tabs: Add New Table / All Tables */}
+            <div className="flex gap-2 border-b border-white/20 pb-4 mb-6">
+              <button
+                onClick={() => setTableMgmtSubTab("list")}
+                className={`px-5 py-2 rounded-t-lg font-semibold transition-all ${tableMgmtSubTab === "list"
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg"
+                  : "bg-white/10 text-white/70 hover:bg-white/15"
+                  }`}
+              >
+                All Tables
+              </button>
+              {canCreateTable && (
+                <button
+                  onClick={() => setTableMgmtSubTab("add")}
+                  className={`px-5 py-2 rounded-t-lg font-semibold transition-all ${tableMgmtSubTab === "add"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg"
+                    : "bg-white/10 text-white/70 hover:bg-white/15"
+                    }`}
+                >
+                  Add New Table
+                </button>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Create/Edit Table Form */}
-              {canCreateTable && (
+              {canCreateTable && tableMgmtSubTab === "add" && (
                 <div className="bg-white/10 p-4 rounded-lg">
                   <h3 className="text-lg font-semibold text-white mb-4">
                     {editingTable ? "Edit Table" : "Create New Table"}
@@ -302,7 +358,12 @@ export default function TableManagementSection({
                           { value: "Razz", label: "Razz" },
                         ]}
                         value={tableForm.gameType}
-                        onChange={(value) => setTableForm({ ...tableForm, gameType: value })}
+                        onChange={(e, option) =>
+                          setTableForm({
+                            ...tableForm,
+                            gameType: getSelectValue(e, option),
+                          })
+                        }
                         className="w-full mt-1"
                       />
                     </div>
@@ -331,13 +392,53 @@ export default function TableManagementSection({
                       <div className="space-y-2">
                         <div>
                           <label className="text-white text-xs">Min Play Time (minutes)</label>
-                          <input
-                            type="number"
-                            className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                            placeholder="30"
-                            value={tableForm.minPlayTime}
-                            onChange={(e) => setTableForm({ ...tableForm, minPlayTime: e.target.value })}
-                          />
+                          <div className="mt-1 space-y-2">
+                            <CustomSelect
+                              options={[
+                                { value: "30", label: "30 minutes" },
+                                { value: "45", label: "45 minutes" },
+                                { value: "60", label: "60 minutes" },
+                                { value: "90", label: "90 minutes" },
+                                { value: "120", label: "120 minutes" },
+                                { value: "150", label: "150 minutes" },
+                                { value: "180", label: "180 minutes" },
+                                { value: "custom", label: "Custom..." },
+                              ]}
+                              value={minPlayTimePreset}
+                              onChange={(e, option) => {
+                                const nextValue =
+                                  option?.value ?? e?.target?.value ?? "";
+                                setMinPlayTimePreset(nextValue);
+                                if (nextValue !== "custom") {
+                                  setTableForm({
+                                    ...tableForm,
+                                    minPlayTime: parseInt(nextValue),
+                                  });
+                                } else if (
+                                  !tableForm.minPlayTime ||
+                                  parseInt(tableForm.minPlayTime) < 30
+                                ) {
+                                  setTableForm({ ...tableForm, minPlayTime: 30 });
+                                }
+                              }}
+                              className="w-full"
+                            />
+                            {minPlayTimePreset === "custom" && (
+                              <input
+                                type="number"
+                                min={30}
+                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                                placeholder="Enter minutes (min 30)"
+                                value={tableForm.minPlayTime}
+                                onChange={(e) =>
+                                  setTableForm({
+                                    ...tableForm,
+                                    minPlayTime: e.target.value,
+                                  })
+                                }
+                              />
+                            )}
+                          </div>
                         </div>
                         <div>
                           <label className="text-white text-xs">Call Time (minutes)</label>
@@ -392,6 +493,8 @@ export default function TableManagementSection({
                               cashOutWindow: 10,
                               sessionTimeout: 120,
                             });
+                            setMinPlayTimePreset("30");
+                            setTableMgmtSubTab("list");
                           }}
                           className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold mt-4"
                         >
@@ -419,7 +522,9 @@ export default function TableManagementSection({
                           })),
                         ]}
                         value={selectedTableForActions}
-                        onChange={(value) => setSelectedTableForActions(value)}
+                        onChange={(e, option) =>
+                          setSelectedTableForActions(getSelectValue(e, option))
+                        }
                         className="w-full"
                       />
                     </div>
@@ -427,8 +532,8 @@ export default function TableManagementSection({
                       <>
                         <button
                           onClick={() => {
-                            const tableToEdit = tables.find(t => 
-                              t.id.toString() === selectedTableForActions || 
+                            const tableToEdit = tables.find(t =>
+                              t.id.toString() === selectedTableForActions ||
                               t.id === parseInt(selectedTableForActions)
                             );
                             if (tableToEdit) {
@@ -443,8 +548,8 @@ export default function TableManagementSection({
                           onClick={() => handleToggleTableStatus(parseInt(selectedTableForActions))}
                           className="w-full bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold"
                         >
-                          {tables.find(t => t.id.toString() === selectedTableForActions)?.status === "Active" 
-                            ? "Deactivate Table" 
+                          {tables.find(t => t.id.toString() === selectedTableForActions)?.status === "Active"
+                            ? "Deactivate Table"
                             : "Activate Table"}
                         </button>
                         <button
@@ -475,7 +580,9 @@ export default function TableManagementSection({
                           })),
                         ]}
                         value={selectedTableForDealer}
-                        onChange={(value) => setSelectedTableForDealer(value)}
+                        onChange={(e, option) =>
+                          setSelectedTableForDealer(getSelectValue(e, option))
+                        }
                         className="w-full mt-1"
                       />
                     </div>
@@ -490,7 +597,9 @@ export default function TableManagementSection({
                           })),
                         ]}
                         value={selectedDealer}
-                        onChange={(value) => setSelectedDealer(value)}
+                        onChange={(e, option) =>
+                          setSelectedDealer(getSelectValue(e, option))
+                        }
                         className="w-full mt-1"
                       />
                     </div>
@@ -505,7 +614,10 @@ export default function TableManagementSection({
               )}
 
               {/* View Tables List */}
-              <div className="bg-white/10 p-4 rounded-lg">
+              <div
+                className={`bg-white/10 p-4 rounded-lg ${tableMgmtSubTab === "list" ? "lg:col-span-2" : ""
+                  }`}
+              >
                 <h3 className="text-lg font-semibold text-white mb-4">All Tables</h3>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {tables.length === 0 ? (
@@ -527,13 +639,16 @@ export default function TableManagementSection({
                             <div className="text-xs text-gray-400 mt-1">
                               Stakes: {table.stakes || "N/A"} | Status:{" "}
                               <span
-                                className={`font-semibold ${
-                                  table.status === "Active"
-                                    ? "text-green-400"
-                                    : "text-red-400"
-                                }`}
+                                className={`font-semibold ${table.status === "Active"
+                                  ? "text-green-400"
+                                  : "text-red-400"
+                                  }`}
                               >
                                 {table.status}
+                              </span>
+                              {" "} | Timer:{" "}
+                              <span className="text-white/90 font-semibold">
+                                {Math.max(30, parseInt(table.minPlayTime) || 30)}m
                               </span>
                             </div>
                           </div>
@@ -573,9 +688,9 @@ export default function TableManagementSection({
                     const preferredSeatAvailable =
                       entry.preferredSeat && isSeatAvailable
                         ? isSeatAvailable(
-                            entry.preferredTable,
-                            entry.preferredSeat
-                          )
+                          entry.preferredTable,
+                          entry.preferredSeat
+                        )
                         : false;
 
                     return (
@@ -677,36 +792,175 @@ export default function TableManagementSection({
                       options={[
                         { value: "", label: "-- Select Player --" },
                         ...waitlist.map((entry) => ({
-                          value: entry.id,
+                          value: entry.id.toString(),
                           label: `${entry.playerName} (Position ${entry.position})`,
                         })),
                       ]}
-                      value=""
-                      onChange={() => {}}
+                      value={seatAssignment.playerId}
+                      onChange={(e) => {
+                        const selectedEntry = waitlist.find(w => w.id.toString() === e.target.value.toString());
+                        setSeatAssignment({
+                          ...seatAssignment,
+                          playerId: e.target.value,
+                          playerName: selectedEntry?.playerName || "",
+                          tableId: selectedEntry?.preferredTable?.toString() || ""
+                        });
+                      }}
                       className="w-full mt-1"
                     />
                   </div>
                   <div>
-                    <label className="text-white text-sm">Assign Table</label>
+                    <label className="text-white text-sm">Select Table</label>
                     <CustomSelect
                       options={[
                         { value: "", label: "-- Select Table --" },
                         ...tables.map((table) => ({
-                          value: table.id,
+                          value: table.id.toString(),
                           label: table.name,
                         })),
                       ]}
-                      value=""
-                      onChange={() => {}}
+                      value={seatAssignment.tableId}
+                      onChange={(e) => setSeatAssignment({ ...seatAssignment, tableId: e.target.value, seatNumber: "" })}
                       className="w-full mt-1"
                     />
                   </div>
-                  <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold shadow">
+                  <div>
+                    <label className="text-white text-sm">Seat Number</label>
+                    <CustomSelect
+                      options={[
+                        { value: "", label: "-- Select Seat --" },
+                        ...(seatAssignment.tableId ? Array.from({ length: 8 }, (_, i) => i + 1).map((seatNum) => {
+                          const available = isSeatAvailable ? isSeatAvailable(parseInt(seatAssignment.tableId), seatNum) : true;
+                          const selectedEntry = waitlist.find(w => w.id.toString() === seatAssignment.playerId.toString());
+                          const isPreferred = selectedEntry?.preferredSeat === seatNum &&
+                            selectedEntry?.preferredTable === parseInt(seatAssignment.tableId);
+                          return {
+                            value: seatNum.toString(),
+                            label: `Seat ${seatNum} ${!available ? "(Occupied)" : ""} ${isPreferred ? "(Preferred)" : ""}`
+                          };
+                        }) : [])
+                      ]}
+                      value={seatAssignment.seatNumber}
+                      onChange={(e) => setSeatAssignment({ ...seatAssignment, seatNumber: e.target.value })}
+                      disabled={!seatAssignment.tableId}
+                      className="w-full mt-1"
+                    />
+                  </div>
+                  {seatAssignment.playerId && seatAssignment.tableId && seatAssignment.seatNumber && (
+                    <div className="p-2 bg-blue-500/20 rounded border border-blue-400/30">
+                      <div className="text-xs text-blue-300">
+                        {(() => {
+                          const selectedEntry = waitlist.find(w => w.id.toString() === seatAssignment.playerId.toString());
+                          const isPreferred = selectedEntry?.preferredSeat === parseInt(seatAssignment.seatNumber) &&
+                            selectedEntry?.preferredTable === parseInt(seatAssignment.tableId);
+                          return isPreferred ? "✓ This is the player's preferred seat" : "";
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold disabled:bg-gray-600 disabled:cursor-not-allowed"
+                    disabled={!seatAssignment.playerId || !seatAssignment.tableId || !seatAssignment.seatNumber}
+                    onClick={() => {
+                      if (onSeatAssign) {
+                        onSeatAssign({
+                          playerId: seatAssignment.playerId,
+                          playerName: seatAssignment.playerName,
+                          tableId: seatAssignment.tableId,
+                          seatNumber: seatAssignment.seatNumber
+                        });
+                        // Reset form
+                        setSeatAssignment({
+                          playerId: "",
+                          tableId: "",
+                          seatNumber: "",
+                          playerName: ""
+                        });
+                      }
+                    }}
+                  >
                     Assign Seat
                   </button>
+                  {/* Removed duplicate Assign Table controls */}
                 </div>
               </div>
             </div>
+
+            <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-blue-500/20 to-cyan-700/30 rounded-xl shadow-md border border-indigo-800/40">
+              <h2 className="text-xl font-bold text-white mb-6">Player Call & Reorder</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">Call Players</h3>
+                  <div className="space-y-3">
+                    <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
+                      Call Next Player
+                    </button>
+                    <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
+                      Call All Players
+                    </button>
+                    <button className="w-full bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold">
+                      Send SMS Notification
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4">Reorder Waitlist</h3>
+                  <div className="space-y-2">
+                    {waitlist.map((entry, index) => (
+                      <div key={entry.id} className="bg-white/5 p-2 rounded flex justify-between items-center">
+                        <span className="text-white">
+                          {entry.position}. {entry.playerName}
+                          {entry.preferredSeat && (
+                            <span className="text-xs text-yellow-300 ml-2">
+                              (Pref: T{entry.preferredTable}-S{entry.preferredSeat})
+                            </span>
+                          )}
+                        </span>
+                        <div className="flex gap-1">
+                          <button
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-xs disabled:bg-gray-600 disabled:cursor-not-allowed"
+                            disabled={index === 0}
+                            onClick={() => {
+                              if (index > 0 && setWaitlist) {
+                                const newWaitlist = [...waitlist];
+                                [newWaitlist[index], newWaitlist[index - 1]] = [newWaitlist[index - 1], newWaitlist[index]];
+                                newWaitlist[index].position = index + 1;
+                                newWaitlist[index - 1].position = index;
+                                setWaitlist(newWaitlist);
+                              }
+                            }}
+                          >
+                            ↑
+                          </button>
+                          <button
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-xs disabled:bg-gray-600 disabled:cursor-not-allowed"
+                            disabled={index === waitlist.length - 1}
+                            onClick={() => {
+                              if (index < waitlist.length - 1 && setWaitlist) {
+                                const newWaitlist = [...waitlist];
+                                [newWaitlist[index], newWaitlist[index + 1]] = [newWaitlist[index + 1], newWaitlist[index]];
+                                newWaitlist[index].position = index + 1;
+                                newWaitlist[index + 1].position = index + 2;
+                                setWaitlist(newWaitlist);
+                              }
+                            }}
+                          >
+                            ↓
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {waitlist.length === 0 && (
+                      <div className="text-center py-4 text-gray-400 text-sm">
+                        No players to reorder
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+
           </section>
         </div>
       )}
@@ -930,11 +1184,11 @@ export default function TableManagementSection({
 
             {tables.filter((table) => table.status === "Active").length ===
               0 && (
-              <div className="bg-white/5 border border-white/10 rounded-xl p-10 text-center text-gray-400">
-                No active tables available. Tables will appear here when they
-                are activated.
-              </div>
-            )}
+                <div className="bg-white/5 border border-white/10 rounded-xl p-10 text-center text-gray-400">
+                  No active tables available. Tables will appear here when they
+                  are activated.
+                </div>
+              )}
           </section>
         </div>
       )}
@@ -949,7 +1203,9 @@ export default function TableManagementSection({
               if (setSelectedPlayerForSeating) setSelectedPlayerForSeating(null);
               if (setSelectedTableForSeating) setSelectedTableForSeating(null);
             }}
-            isManagerMode={true}
+            isManagerMode={["admin", "superadmin", "manager", "cashier"].includes(
+              userRole
+            )}
             selectedPlayerForSeating={selectedPlayerForSeating}
             occupiedSeats={occupiedSeats}
             onSeatAssign={onSeatAssign}

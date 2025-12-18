@@ -1,6 +1,9 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "./common/CustomSelect";
+import StaffManagement from './StaffManagement';
+import TableManagementSection from "./TableManagementSection";
+import SessionControl from "./SessionControl";
 
 export default function SuperAdminPortal() {
   const navigate = useNavigate();
@@ -40,7 +43,7 @@ export default function SuperAdminPortal() {
   // Revenue, Rake & Tips data with date/time
   const currentDateTime = getCurrentDateTime();
   const previousDateTime = getPreviousDayDateTime();
-  
+
   const TIP_HOLD_PERCENT = 0.15;
 
   const formatCurrency = (value) => `₹${value.toLocaleString('en-IN')}`;
@@ -80,7 +83,7 @@ export default function SuperAdminPortal() {
     registrationDate: "all",
     documentType: "all"
   });
-  
+
   // Mock players data with kycStatus: 'pending'
   const [allPlayers, setAllPlayers] = useState([
     {
@@ -143,15 +146,15 @@ export default function SuperAdminPortal() {
   // Filter players for dropdown search
   const filteredPlayersForSearch = playersSearch.length >= 2
     ? allPlayers.filter(player => {
-        if (player.kycStatus !== "pending") return false;
-        const searchLower = playersSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.phone.includes(playersSearch)
-        );
-      })
+      if (player.kycStatus !== "pending") return false;
+      const searchLower = playersSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.email.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        player.phone.includes(playersSearch)
+      );
+    })
     : [];
 
   // Filter players based on search and filters (for display list)
@@ -162,7 +165,7 @@ export default function SuperAdminPortal() {
     // Otherwise, filter by search text
     if (!selectedPlayer && playersSearch) {
       const searchLower = playersSearch.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         player.name.toLowerCase().includes(searchLower) ||
         player.email.toLowerCase().includes(searchLower) ||
         player.id.toLowerCase().includes(searchLower) ||
@@ -289,15 +292,15 @@ export default function SuperAdminPortal() {
   // Filter registered players for dropdown search
   const filteredRegisteredPlayersForSearch = registeredPlayersSearch.length >= 2
     ? registeredPlayers.filter(player => {
-        if (player.kycStatus !== "approved") return false;
-        const searchLower = registeredPlayersSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.phone.includes(registeredPlayersSearch)
-        );
-      })
+      if (player.kycStatus !== "approved") return false;
+      const searchLower = registeredPlayersSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.email.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        player.phone.includes(registeredPlayersSearch)
+      );
+    })
     : [];
 
   // Filter registered players (for display list)
@@ -308,7 +311,7 @@ export default function SuperAdminPortal() {
     // Otherwise, filter by search text
     if (!selectedRegisteredPlayer && registeredPlayersSearch) {
       const searchLower = registeredPlayersSearch.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         player.name.toLowerCase().includes(searchLower) ||
         player.email.toLowerCase().includes(searchLower) ||
         player.id.toLowerCase().includes(searchLower) ||
@@ -428,13 +431,13 @@ export default function SuperAdminPortal() {
   const [playerReportSearch, setPlayerReportSearch] = useState("");
   const filteredPlayersForReport = playerReportSearch.length >= 3
     ? allPlayersForReport.filter(player => {
-        const searchLower = playerReportSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
+      const searchLower = playerReportSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        player.email.toLowerCase().includes(searchLower)
+      );
+    })
     : [];
 
   // Handle export CSV for reports
@@ -445,7 +448,7 @@ export default function SuperAdminPortal() {
       [],
       ...(data || []).map(row => Array.isArray(row) ? row : Object.values(row))
     ].map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(',')).join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -516,7 +519,7 @@ export default function SuperAdminPortal() {
     }
 
     let mockData = [];
-    switch(selectedReportType) {
+    switch (selectedReportType) {
       case "individual_player":
         if (!selectedPlayerForReport) {
           alert("Please select a player for individual report");
@@ -596,10 +599,12 @@ export default function SuperAdminPortal() {
     "Dashboard",
     "Players",
     "Registered Players",
+    "Table Management",
+    "Session Control",
     "Staff Management",
+    "Affiliates",
     "Credit Approvals",
     "Financial Overrides",
-    "Waitlist & Seating Overrides",
     "Tournaments",
     "VIP Store",
     "Analytics & Reports",
@@ -607,8 +612,9 @@ export default function SuperAdminPortal() {
     "Player Support",
     "Global Settings",
     "Logs & Audits",
-    "System Control"
+    "System Control",
   ], []);
+
 
 
   const [staff, setStaff] = useState([
@@ -640,7 +646,7 @@ export default function SuperAdminPortal() {
   };
 
   const [customGroups, setCustomGroups] = useState(loadCustomGroups);
-  
+
   // Update groups in localStorage whenever they change
   useEffect(() => {
     saveCustomGroups(customGroups);
@@ -659,20 +665,20 @@ export default function SuperAdminPortal() {
   // Get available members based on group type
   const getAvailableMembers = () => {
     if (groupForm.type === "player") {
-      return registeredPlayers.filter(p => 
+      return registeredPlayers.filter(p =>
         !groupForm.memberIds.includes(p.id) &&
-        (!groupMemberSearch || 
-         p.name.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
-         p.id.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
-         (p.email && p.email.toLowerCase().includes(groupMemberSearch.toLowerCase())))
+        (!groupMemberSearch ||
+          p.name.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
+          p.id.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
+          (p.email && p.email.toLowerCase().includes(groupMemberSearch.toLowerCase())))
       );
     } else {
       return staff.filter(s =>
         !groupForm.memberIds.includes(s.id) &&
         (!groupMemberSearch ||
-         s.name.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
-         s.id.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
-         (s.email && s.email.toLowerCase().includes(groupMemberSearch.toLowerCase())))
+          s.name.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
+          s.id.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
+          (s.email && s.email.toLowerCase().includes(groupMemberSearch.toLowerCase())))
       );
     }
   };
@@ -790,9 +796,9 @@ export default function SuperAdminPortal() {
     const file = e.target.files?.[0];
     if (!file) return;
     const error = validateImageFile(file);
-    if (error) { 
-      setNotificationErrors(prev => ({...prev, image: error})); 
-      return; 
+    if (error) {
+      setNotificationErrors(prev => ({ ...prev, image: error }));
+      return;
     }
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -802,7 +808,7 @@ export default function SuperAdminPortal() {
         imagePreview: reader.result,
         imageUrl: ""
       }));
-      setNotificationErrors(prev => ({...prev, image: null}));
+      setNotificationErrors(prev => ({ ...prev, image: null }));
     };
     reader.readAsDataURL(file);
   };
@@ -810,13 +816,13 @@ export default function SuperAdminPortal() {
   // Handle image URL input
   const handleImageUrlChange = (url) => {
     if (!url) {
-      setNotificationForm(prev => ({...prev, imageUrl: "", imageFile: null, imagePreview: null}));
-      setNotificationErrors(prev => ({...prev, image: null}));
+      setNotificationForm(prev => ({ ...prev, imageUrl: "", imageFile: null, imagePreview: null }));
+      setNotificationErrors(prev => ({ ...prev, image: null }));
       return;
     }
     const urlPattern = /^https?:\/\/.+/i;
     if (!urlPattern.test(url)) {
-      setNotificationErrors(prev => ({...prev, image: "Please enter a valid URL starting with http:// or https://"}));
+      setNotificationErrors(prev => ({ ...prev, image: "Please enter a valid URL starting with http:// or https://" }));
       return;
     }
     setNotificationForm(prev => ({
@@ -825,13 +831,13 @@ export default function SuperAdminPortal() {
       imageFile: null,
       imagePreview: null
     }));
-    setNotificationErrors(prev => ({...prev, image: null}));
+    setNotificationErrors(prev => ({ ...prev, image: null }));
   };
 
   // Handle video URL input
   const handleVideoUrlChange = (url) => {
-    setNotificationForm(prev => ({...prev, videoUrl: url}));
-    setNotificationErrors(prev => ({...prev, video: validateVideoUrl(url)}));
+    setNotificationForm(prev => ({ ...prev, videoUrl: url }));
+    setNotificationErrors(prev => ({ ...prev, video: validateVideoUrl(url) }));
   };
 
   // Handle send notification
@@ -844,9 +850,9 @@ export default function SuperAdminPortal() {
       const v = validateVideoUrl(notificationForm.videoUrl);
       if (v) errors.video = v;
     }
-    if (Object.keys(errors).length) { 
-      setNotificationErrors(errors); 
-      return; 
+    if (Object.keys(errors).length) {
+      setNotificationErrors(errors);
+      return;
     }
 
     const payload = {
@@ -892,13 +898,13 @@ export default function SuperAdminPortal() {
   // Filter players for bonus creation
   const filteredPlayersForBonus = bonusPlayerSearch.length >= 2
     ? allPlayersForReport.filter(player => {
-        const searchLower = bonusPlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          (player.email && player.email.toLowerCase().includes(searchLower))
-        );
-      })
+      const searchLower = bonusPlayerSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        (player.email && player.email.toLowerCase().includes(searchLower))
+      );
+    })
     : [];
 
   // Handle bonus creation
@@ -944,17 +950,41 @@ export default function SuperAdminPortal() {
   };
 
   // Mock table data
-  const tables = [
-    { id: 1, name: "Table 1 - Texas Hold'em", status: "Active", gameType: "Texas Hold'em", stakes: "₹1000.00/10000.00", maxPlayers: 6 },
-    { id: 2, name: "Table 2 - Omaha", status: "Active", gameType: "Omaha", stakes: "₹5000.00/50000.00", maxPlayers: 9 },
-    { id: 3, name: "Table 3 - Stud", status: "Paused", gameType: "Seven Card Stud", stakes: "₹10000.00/100000.00", maxPlayers: 6 },
-  ];
+  const [tables, setTables] = useState([
+    {
+      id: 1,
+      name: "Table 1 - Texas Hold'em",
+      status: "Active",
+      gameType: "Texas Hold'em",
+      stakes: "₹1000.00/10000.00",
+      maxPlayers: 6,
+      minPlayTime: 30,
+    },
+    {
+      id: 2,
+      name: "Table 2 - Omaha",
+      status: "Active",
+      gameType: "Omaha",
+      stakes: "₹5000.00/50000.00",
+      maxPlayers: 9,
+      minPlayTime: 30,
+    },
+    {
+      id: 3,
+      name: "Table 3 - Stud",
+      status: "Paused",
+      gameType: "Seven Card Stud",
+      stakes: "₹10000.00/100000.00",
+      maxPlayers: 6,
+      minPlayTime: 30,
+    },
+  ]);
 
   const [waitlist, setWaitlist] = useState([
-    { 
-      id: 1, 
-      pos: 1, 
-      player: "Alex Johnson", 
+    {
+      id: 1,
+      pos: 1,
+      player: "Alex Johnson",
       playerName: "Alex Johnson",
       playerId: "P001",
       game: "Hold'em",
@@ -962,9 +992,9 @@ export default function SuperAdminPortal() {
       preferredSeat: 3,
       preferredTable: 1
     },
-    { 
-      id: 2, 
-      pos: 2, 
+    {
+      id: 2,
+      pos: 2,
       player: "Maria Garcia",
       playerName: "Maria Garcia",
       playerId: "P002",
@@ -987,6 +1017,28 @@ export default function SuperAdminPortal() {
   const [selectedPlayerForSeating, setSelectedPlayerForSeating] = useState(null);
   const [selectedTableForSeating, setSelectedTableForSeating] = useState(null);
 
+  // Live tables (for TableManagementSection)
+  const superAdminMockPlayers = useMemo(
+    () =>
+      (registeredPlayers || []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        email: p.email || "",
+      })),
+    [registeredPlayers]
+  );
+  const [liveTablePlayerSearch, setLiveTablePlayerSearch] = useState("");
+  const [selectedLiveTablePlayer, setSelectedLiveTablePlayer] = useState(null);
+  const [buyInAmount, setBuyInAmount] = useState("");
+
+  const dealers = useMemo(
+    () =>
+      (staff || [])
+        .filter((s) => (s.role || "").toLowerCase() === "dealer")
+        .map((s) => ({ id: s.id, name: s.name })),
+    [staff]
+  );
+
   // Check if a seat is available
   const isSeatAvailable = (tableId, seatNumber) => {
     const occupied = occupiedSeats[tableId] || [];
@@ -998,31 +1050,33 @@ export default function SuperAdminPortal() {
     setSelectedPlayerForSeating(waitlistEntry);
     setSelectedTableForSeating(tableId || waitlistEntry.preferredTable || tables[0]?.id || 1);
     setShowTableView(true);
+    // Route to the unified TableManagementSection (so only it owns the hologram modal)
+    setActiveItem("Table Management");
   };
 
   // Handle seat assignment from table view
   const handleSeatAssign = ({ playerId, playerName, tableId, seatNumber }) => {
     const tableIdNum = parseInt(tableId);
     const seatNum = parseInt(seatNumber);
-    
+
     if (!isSeatAvailable(tableIdNum, seatNum)) {
       alert(`Seat ${seatNum} at Table ${tableIdNum} is not available`);
       return;
     }
-    
+
     // Assign seat
     setOccupiedSeats(prev => ({
       ...prev,
       [tableIdNum]: [...(prev[tableIdNum] || []), seatNum]
     }));
-    
+
     // Remove from waitlist
-    setWaitlist(prev => prev.filter(item => 
+    setWaitlist(prev => prev.filter(item =>
       (item.id !== parseInt(playerId)) && (item.playerId !== playerId)
     ));
-    
+
     alert(`Assigned ${playerName} to Table ${tableIdNum}, Seat ${seatNum}`);
-    
+
     // Close table view
     setShowTableView(false);
     setSelectedPlayerForSeating(null);
@@ -1052,10 +1106,10 @@ export default function SuperAdminPortal() {
 
   // VIP Store state
   const [vipProducts, setVipProducts] = useState([
-    { id: 'vip-1', clubId: 'club-01', title: 'VIP Hoodie', points: 1500 },
-    { id: 'vip-2', clubId: 'club-01', title: 'Free Dinner', points: 800 },
-    { id: 'vip-3', clubId: 'club-02', title: 'VIP Poker Set', points: 2500 },
-    { id: 'vip-4', clubId: 'club-02', title: 'Premium Tournament Entry', points: 3000 }
+    { id: 'vip-1', clubId: 'club-01', title: 'VIP Hoodie', points: 1500, image: "https://placehold.co/100x100/333/FFF?text=Hoodie" },
+    { id: 'vip-2', clubId: 'club-01', title: 'Free Dinner', points: 800, image: "https://placehold.co/100x100/333/FFF?text=Dinner" },
+    { id: 'vip-3', clubId: 'club-02', title: 'VIP Poker Set', points: 2500, image: "https://placehold.co/100x100/333/FFF?text=PokerSet" },
+    { id: 'vip-4', clubId: 'club-02', title: 'Premium Tournament Entry', points: 3000, image: "https://placehold.co/100x100/333/FFF?text=Entry" }
   ]);
 
   // Tournament Management State
@@ -1292,13 +1346,13 @@ export default function SuperAdminPortal() {
     }
   ]);
 
-  const filteredChats = chatType === "player" 
+  const filteredChats = chatType === "player"
     ? playerChats.filter(chat => statusFilter === "all" || chat.status === statusFilter)
     : staffChats.filter(chat => statusFilter === "all" || chat.status === statusFilter);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedChat) return;
-    
+
     const message = {
       id: `M${Date.now()}`,
       sender: chatType === "player" ? "staff" : "admin",
@@ -1308,27 +1362,27 @@ export default function SuperAdminPortal() {
     };
 
     if (chatType === "player") {
-      setPlayerChats(prev => prev.map(chat => 
+      setPlayerChats(prev => prev.map(chat =>
         chat.id === selectedChat.id
           ? {
-              ...chat,
-              messages: [...chat.messages, message],
-              lastMessage: message.text,
-              lastMessageTime: message.timestamp,
-              status: chat.status === "closed" ? "in_progress" : chat.status
-            }
+            ...chat,
+            messages: [...chat.messages, message],
+            lastMessage: message.text,
+            lastMessageTime: message.timestamp,
+            status: chat.status === "closed" ? "in_progress" : chat.status
+          }
           : chat
       ));
     } else {
-      setStaffChats(prev => prev.map(chat => 
+      setStaffChats(prev => prev.map(chat =>
         chat.id === selectedChat.id
           ? {
-              ...chat,
-              messages: [...chat.messages, message],
-              lastMessage: message.text,
-              lastMessageTime: message.timestamp,
-              status: chat.status === "closed" ? "in_progress" : chat.status
-            }
+            ...chat,
+            messages: [...chat.messages, message],
+            lastMessage: message.text,
+            lastMessageTime: message.timestamp,
+            status: chat.status === "closed" ? "in_progress" : chat.status
+          }
           : chat
       ));
     }
@@ -1337,7 +1391,7 @@ export default function SuperAdminPortal() {
 
   const handleStatusChange = (chatId, newStatus) => {
     if (chatType === "player") {
-      setPlayerChats(prev => prev.map(chat => 
+      setPlayerChats(prev => prev.map(chat =>
         chat.id === chatId ? { ...chat, status: newStatus } : chat
       ));
       if (selectedChat && selectedChat.id === chatId) {
@@ -1345,7 +1399,7 @@ export default function SuperAdminPortal() {
         if (updatedChat) setSelectedChat({ ...updatedChat, status: newStatus });
       }
     } else {
-      setStaffChats(prev => prev.map(chat => 
+      setStaffChats(prev => prev.map(chat =>
         chat.id === chatId ? { ...chat, status: newStatus } : chat
       ));
       if (selectedChat && selectedChat.id === chatId) {
@@ -1380,7 +1434,7 @@ export default function SuperAdminPortal() {
   };
 
   const addStaff = (name, role) => {
-    const id = `S${(Math.random()*10000|0).toString().padStart(3,'0')}`;
+    const id = `S${(Math.random() * 10000 | 0).toString().padStart(3, '0')}`;
     setStaff((prev) => [...prev, { id, name, role, status: "Active" }]);
   };
 
@@ -1391,8 +1445,65 @@ export default function SuperAdminPortal() {
   const factoryReset = () => {
     try {
       localStorage.clear();
-    } catch {}
+    } catch { }
     window.location.reload();
+  };
+
+  // Affiliate Management State
+  const [affiliates, setAffiliates] = useState([
+    { id: "AFF001", name: "Agent X", email: "agent.x@example.com", referralCode: "AGTX-ALPHA", status: "Active", kycStatus: "Verified", totalReferrals: 12, earnings: 45000 },
+    { id: "AFF002", name: "Agent Y", email: "agent.y@example.com", referralCode: "AGTY-BETA", status: "Active", kycStatus: "Pending", totalReferrals: 8, earnings: 28000 },
+    { id: "AFF003", name: "Agent Z", email: "agent.z@example.com", referralCode: "AGTZ-GAMMA", status: "Inactive", kycStatus: "Rejected", totalReferrals: 3, earnings: 5000 }
+  ]);
+  const [showAffiliateModal, setShowAffiliateModal] = useState(false);
+  const [viewingAffiliate, setViewingAffiliate] = useState(null);
+
+  const [newAffiliate, setNewAffiliate] = useState({ name: "", email: "", referralCode: "" });
+  const [createdCredentials, setCreatedCredentials] = useState(null);
+
+  const handleAddAffiliate = () => {
+    if (!newAffiliate.name || !newAffiliate.email || !newAffiliate.referralCode) {
+      alert("Please fill all fields");
+      return;
+    }
+
+    // Generate simple random password
+    const tempPassword = Math.random().toString(36).slice(-8).toUpperCase();
+
+    const newAff = {
+      id: `AFF${Date.now()}`,
+      ...newAffiliate,
+      status: "Active",
+      kycStatus: "Pending",
+      totalReferrals: 0,
+      earnings: 0
+    };
+    setAffiliates([...affiliates, newAff]);
+    setShowAffiliateModal(false);
+    setNewAffiliate({ name: "", email: "", referralCode: "" });
+
+    // Show credentials popup
+    setCreatedCredentials({
+      name: newAff.name,
+      referralCode: newAff.referralCode,
+      password: tempPassword
+    });
+  };
+
+  const getReferredUsers = (code) => {
+    // In a real app, this would query backend. Here we filter mock registered players or generate mock data.
+    const realMatches = registeredPlayers.filter(p => p.referralCode === code);
+    // If no matches in our small mock data, let's fake some for demo purposes if the affiliate has stats
+    if (realMatches.length === 0 && viewingAffiliate && viewingAffiliate.totalReferrals > 0) {
+      return Array(viewingAffiliate.totalReferrals).fill(0).map((_, i) => ({
+        id: `REF-${i}`,
+        name: `Referred User ${i + 1}`,
+        email: `user${i}@example.com`,
+        registrationDate: "2024-01-20",
+        status: "Active"
+      }));
+    }
+    return realMatches;
   };
 
   return (
@@ -1406,7 +1517,7 @@ export default function SuperAdminPortal() {
             <div className="text-lg font-semibold">Root Administrator</div>
             <div className="text-sm opacity-80">super@admin.com</div>
           </div>
-          
+
           {/* Club Selection Dropdown */}
           <div className="mb-6 relative">
             <label className="text-white text-sm mb-2 block">Select Club</label>
@@ -1417,20 +1528,20 @@ export default function SuperAdminPortal() {
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-left flex items-center justify-between hover:bg-white/15 transition-colors"
               >
                 <span className="truncate">{selectedClub?.name || 'Select Club'}</span>
-                <svg 
-                  className={`w-4 h-4 ml-2 transition-transform ${isClubDropdownOpen ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  stroke="currentColor" 
+                <svg
+                  className={`w-4 h-4 ml-2 transition-transform ${isClubDropdownOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              
+
               {isClubDropdownOpen && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-10" 
+                  <div
+                    className="fixed inset-0 z-10"
                     onClick={() => setIsClubDropdownOpen(false)}
                   ></div>
                   <div className="absolute z-20 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -1442,9 +1553,8 @@ export default function SuperAdminPortal() {
                           setSelectedClubId(club.id);
                           setIsClubDropdownOpen(false);
                         }}
-                        className={`w-full px-3 py-2 text-left text-white hover:bg-white/10 transition-colors ${
-                          selectedClubId === club.id ? 'bg-blue-600/30' : ''
-                        }`}
+                        className={`w-full px-3 py-2 text-left text-white hover:bg-white/10 transition-colors ${selectedClubId === club.id ? 'bg-blue-600/30' : ''
+                          }`}
                       >
                         {club.name}
                       </button>
@@ -1455,17 +1565,16 @@ export default function SuperAdminPortal() {
             </div>
             <p className="text-xs text-gray-400 mt-1">Managing: {selectedClub?.name}</p>
           </div>
-          
+
           <nav className="space-y-3">
             {menuItems.map((item) => (
               <button
                 key={item}
                 onClick={() => setActiveItem(item)}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-red-400 to-purple-600 text-white font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-red-400/20 hover:to-purple-500/20 text-white"
-                }`}
+                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${activeItem === item
+                  ? "bg-gradient-to-r from-red-400 to-purple-600 text-white font-bold shadow-lg scale-[1.02]"
+                  : "bg-white/5 hover:bg-gradient-to-r hover:from-red-400/20 hover:to-purple-500/20 text-white"
+                  }`}
               >
                 {item}
               </button>
@@ -1492,9 +1601,9 @@ export default function SuperAdminPortal() {
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                 {[
                   { title: "Total Players", value: allPlayers.length.toString(), color: "from-blue-400 via-indigo-500 to-purple-500" },
-                  { title: "Active Staff", value: staff.filter(s=>s.status==='Active').length.toString(), color: "from-green-400 via-emerald-500 to-teal-500" },
-                  { title: "Pending Credit", value: creditRequests.filter(r=>r.status==='Pending').length.toString(), color: "from-yellow-400 via-orange-500 to-red-500" },
-                  { title: "Open Overrides", value: transactions.filter(t=>t.status!=='Completed').length.toString(), color: "from-pink-400 via-red-500 to-rose-500" },
+                  { title: "Active Staff", value: staff.filter(s => s.status === 'Active').length.toString(), color: "from-green-400 via-emerald-500 to-teal-500" },
+                  { title: "Pending Credit", value: creditRequests.filter(r => r.status === 'Pending').length.toString(), color: "from-yellow-400 via-orange-500 to-red-500" },
+                  { title: "Open Overrides", value: transactions.filter(t => t.status !== 'Completed').length.toString(), color: "from-pink-400 via-red-500 to-rose-500" },
                 ].map((card) => (
                   <div key={card.title} className={`p-6 rounded-xl bg-gradient-to-br ${card.color} text-gray-900 shadow-lg transition-transform transform hover:scale-105`}>
                     <div className="text-sm opacity-90 text-white/90">{card.title}</div>
@@ -1586,17 +1695,17 @@ export default function SuperAdminPortal() {
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Players - KYC Pending Review</h2>
-                
+
                 {/* Search and Filters */}
                 <div className="bg-white/10 p-4 rounded-lg mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     <div className="md:col-span-2">
                       <label className="text-white text-sm mb-1 block">Search Player</label>
                       <div className="relative">
-                        <input 
-                          type="text" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Type at least 2 characters to search..." 
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Type at least 2 characters to search..."
                           value={playersSearch}
                           onChange={(e) => {
                             setPlayersSearch(e.target.value);
@@ -1623,7 +1732,7 @@ export default function SuperAdminPortal() {
                         {selectedPlayer && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
                             <span className="text-green-300">Selected: {selectedPlayer.name} ({selectedPlayer.id})</span>
-                            <button 
+                            <button
                               onClick={() => {
                                 setSelectedPlayer(null);
                                 setPlayersSearch("");
@@ -1641,7 +1750,7 @@ export default function SuperAdminPortal() {
                       <CustomSelect
                         className="w-full"
                         value={playersFilter.registrationDate}
-                        onChange={(e) => setPlayersFilter({...playersFilter, registrationDate: e.target.value})}
+                        onChange={(e) => setPlayersFilter({ ...playersFilter, registrationDate: e.target.value })}
                       >
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
@@ -1654,7 +1763,7 @@ export default function SuperAdminPortal() {
                       <CustomSelect
                         className="w-full"
                         value={playersFilter.documentType}
-                        onChange={(e) => setPlayersFilter({...playersFilter, documentType: e.target.value})}
+                        onChange={(e) => setPlayersFilter({ ...playersFilter, documentType: e.target.value })}
                       >
                         <option value="all">All Documents</option>
                         <option value="PAN Card">PAN Card</option>
@@ -1668,11 +1777,11 @@ export default function SuperAdminPortal() {
                     <div className="text-white text-sm">
                       Showing <span className="font-semibold">{filteredPlayers.length}</span> of <span className="font-semibold">{allPlayers.filter(p => p.kycStatus === 'pending').length}</span> pending KYC verifications
                     </div>
-                    <button 
+                    <button
                       onClick={() => {
                         setPlayersSearch("");
                         setSelectedPlayer(null);
-                        setPlayersFilter({kycStatus: "pending", registrationDate: "all", documentType: "all"});
+                        setPlayersFilter({ kycStatus: "pending", registrationDate: "all", documentType: "all" });
                       }}
                       className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                     >
@@ -1720,13 +1829,13 @@ export default function SuperAdminPortal() {
                             {/* Action Buttons */}
                             <div className="md:col-span-4 flex flex-col gap-2">
                               <div className="flex gap-2">
-                                <button 
+                                <button
                                   onClick={() => handleKYCVerification(player.id, "approve")}
                                   className="flex-1 bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                 >
                                   ✓ Approve
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => {
                                     const notes = prompt("Enter rejection reason (optional):");
                                     if (notes !== null) {
@@ -1739,13 +1848,13 @@ export default function SuperAdminPortal() {
                                 </button>
                               </div>
                               <div className="flex gap-2">
-                                <button 
+                                <button
                                   className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                   onClick={() => alert(`View documents for ${player.name} (${player.id})\nDocument Type: ${player.documentType}`)}
                                 >
                                   View Docs
                                 </button>
-                                <button 
+                                <button
                                   className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                   onClick={() => alert(`Player Details:\n\nName: ${player.name}\nEmail: ${player.email}\nPhone: ${player.phone}\nDocument: ${player.documentType}\nRegistration: ${player.registrationDate}`)}
                                 >
@@ -1777,17 +1886,17 @@ export default function SuperAdminPortal() {
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Registered Players - Verified Users</h2>
-                
+
                 {/* Search and Filters */}
                 <div className="bg-white/10 p-4 rounded-lg mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                     <div className="md:col-span-2">
                       <label className="text-white text-sm mb-1 block">Search Player</label>
                       <div className="relative">
-                        <input 
-                          type="text" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Type at least 2 characters to search..." 
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Type at least 2 characters to search..."
                           value={registeredPlayersSearch}
                           onChange={(e) => {
                             setRegisteredPlayersSearch(e.target.value);
@@ -1814,7 +1923,7 @@ export default function SuperAdminPortal() {
                         {selectedRegisteredPlayer && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
                             <span className="text-green-300">Selected: {selectedRegisteredPlayer.name} ({selectedRegisteredPlayer.id})</span>
-                            <button 
+                            <button
                               onClick={() => {
                                 setSelectedRegisteredPlayer(null);
                                 setRegisteredPlayersSearch("");
@@ -1832,7 +1941,7 @@ export default function SuperAdminPortal() {
                       <CustomSelect
                         className="w-full"
                         value={registeredPlayersFilter.status}
-                        onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, status: e.target.value})}
+                        onChange={(e) => setRegisteredPlayersFilter({ ...registeredPlayersFilter, status: e.target.value })}
                       >
                         <option value="all">All Status</option>
                         <option value="Active">Active</option>
@@ -1845,7 +1954,7 @@ export default function SuperAdminPortal() {
                       <CustomSelect
                         className="w-full"
                         value={registeredPlayersFilter.registrationDate}
-                        onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, registrationDate: e.target.value})}
+                        onChange={(e) => setRegisteredPlayersFilter({ ...registeredPlayersFilter, registrationDate: e.target.value })}
                       >
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
@@ -1858,7 +1967,7 @@ export default function SuperAdminPortal() {
                       <CustomSelect
                         className="w-full"
                         value={registeredPlayersFilter.documentType}
-                        onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, documentType: e.target.value})}
+                        onChange={(e) => setRegisteredPlayersFilter({ ...registeredPlayersFilter, documentType: e.target.value })}
                       >
                         <option value="all">All Documents</option>
                         <option value="PAN Card">PAN Card</option>
@@ -1873,17 +1982,17 @@ export default function SuperAdminPortal() {
                       Showing <span className="font-semibold">{filteredRegisteredPlayers.length}</span> of <span className="font-semibold">{registeredPlayers.length}</span> verified players
                     </div>
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         onClick={() => {
                           setRegisteredPlayersSearch("");
                           setSelectedRegisteredPlayer(null);
-                          setRegisteredPlayersFilter({status: "all", registrationDate: "all", documentType: "all", verifiedDate: "all"});
+                          setRegisteredPlayersFilter({ status: "all", registrationDate: "all", documentType: "all", verifiedDate: "all" });
                         }}
                         className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                       >
                         Clear Filters
                       </button>
-                      <button 
+                      <button
                         onClick={handleExportCSV}
                         className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                       >
@@ -1903,13 +2012,12 @@ export default function SuperAdminPortal() {
                             <div className="md:col-span-8 space-y-2">
                               <div className="flex items-center gap-3">
                                 <div className="font-semibold text-white text-lg">{player.name}</div>
-                                <span className={`px-3 py-1 rounded-full text-xs border font-medium ${
-                                  player.accountStatus === "Active" 
-                                    ? "bg-green-500/30 text-green-300 border-green-400/50"
-                                    : player.accountStatus === "Suspended"
+                                <span className={`px-3 py-1 rounded-full text-xs border font-medium ${player.accountStatus === "Active"
+                                  ? "bg-green-500/30 text-green-300 border-green-400/50"
+                                  : player.accountStatus === "Suspended"
                                     ? "bg-red-500/30 text-red-300 border-red-400/50"
                                     : "bg-gray-500/30 text-gray-300 border-gray-400/50"
-                                }`}>
+                                  }`}>
                                   {player.accountStatus}
                                 </span>
                               </div>
@@ -1938,13 +2046,13 @@ export default function SuperAdminPortal() {
                             {/* Action Buttons */}
                             <div className="md:col-span-4 flex flex-col gap-2">
                               <div className="flex gap-2">
-                                <button 
+                                <button
                                   className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                   onClick={() => setSelectedPlayerDetails(player)}
                                 >
                                   View Details
                                 </button>
-                                <button 
+                                <button
                                   className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                   onClick={() => handleDownloadKYCDoc(player.id, player.kycDocUrl)}
                                 >
@@ -1953,27 +2061,27 @@ export default function SuperAdminPortal() {
                               </div>
                               <div className="flex gap-2">
                                 {player.accountStatus === "Active" ? (
-                                  <button 
+                                  <button
                                     className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                     onClick={() => {
-                                      setRegisteredPlayers(prev => prev.map(p => p.id === player.id ? {...p, accountStatus: "Suspended"} : p));
+                                      setRegisteredPlayers(prev => prev.map(p => p.id === player.id ? { ...p, accountStatus: "Suspended" } : p));
                                       alert(`Player ${player.name} has been suspended`);
                                     }}
                                   >
                                     Suspend
                                   </button>
                                 ) : (
-                                  <button 
+                                  <button
                                     className="flex-1 bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                     onClick={() => {
-                                      setRegisteredPlayers(prev => prev.map(p => p.id === player.id ? {...p, accountStatus: "Active"} : p));
+                                      setRegisteredPlayers(prev => prev.map(p => p.id === player.id ? { ...p, accountStatus: "Active" } : p));
                                       alert(`Player ${player.name} has been activated`);
                                     }}
                                   >
                                     Activate
                                   </button>
                                 )}
-                                <button 
+                                <button
                                   className="flex-1 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                   onClick={() => {
                                     if (window.confirm(`Are you sure you want to delete ${player.name}?`)) {
@@ -2009,7 +2117,7 @@ export default function SuperAdminPortal() {
                   <div className="bg-gray-800 rounded-xl p-6 max-w-2xl w-full mx-4 border border-gray-700" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-bold text-white">Player Details</h3>
-                      <button 
+                      <button
                         onClick={() => setSelectedPlayerDetails(null)}
                         className="text-gray-400 hover:text-white text-2xl"
                       >
@@ -2060,110 +2168,17 @@ export default function SuperAdminPortal() {
             </div>
           )}
 
+          {activeItem === "Session Control" && (
+            <SessionControl
+              tables={tables}
+              setTables={setTables}
+              userRole="super_admin"
+            />
+          )}
+
           {activeItem === "Staff Management" && (
             <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Staff Management</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Add / Edit Staff</h3>
-                    <div className="space-y-3">
-                      <input 
-                        type="text" 
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                        placeholder="Full Name" 
-                        id="new-staff-name" 
-                      />
-                      <CustomSelect 
-                        className="w-full" 
-                        id="new-staff-role"
-                        value={selectedStaffRole}
-                        onChange={(e) => {
-                          setSelectedStaffRole(e.target.value);
-                          if (e.target.value !== "Custom") {
-                            setCustomStaffRole("");
-                          }
-                        }}
-                      >
-                        <option value="GRE">GRE</option>
-                        <option value="Dealer">Dealer</option>
-                        <option value="Cashier">Cashier</option>
-                        <option value="HR">HR</option>
-                        <option value="Manager">Manager</option>
-                        <option value="Custom">Custom Role</option>
-                      </CustomSelect>
-                      {selectedStaffRole === "Custom" && (
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Enter Custom Role Name</label>
-                          <input 
-                            type="text" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="e.g., Security, Helper, Bouncer, etc." 
-                            value={customStaffRole}
-                            onChange={(e) => setCustomStaffRole(e.target.value)}
-                          />
-                          <p className="text-xs text-gray-400 mt-1">
-                            Enter custom staff role like Security, Helper, Bouncer, Waiter, etc.
-                          </p>
-                        </div>
-                      )}
-                      <div className="flex gap-2">
-                        <button 
-                          className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold" 
-                          onClick={() => {
-                            const nameInput = document.getElementById('new-staff-name');
-                            const name = nameInput && 'value' in nameInput ? nameInput.value : '';
-                            
-                            if (!name || typeof name !== 'string' || !name.trim()) {
-                              alert("Please enter a staff name");
-                              return;
-                            }
-                            
-                            let role = selectedStaffRole;
-                            if (selectedStaffRole === "Custom") {
-                              if (!customStaffRole || !customStaffRole.trim()) {
-                                alert("Please enter a custom role name");
-                                return;
-                              }
-                              role = customStaffRole.trim();
-                            }
-                            
-                            addStaff(name.trim(), role);
-                            // Reset form
-                            if (nameInput) nameInput.value = '';
-                            setSelectedStaffRole("GRE");
-                            setCustomStaffRole("");
-                          }}
-                        >
-                          Add Staff
-                        </button>
-                        <button className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">Edit Selected</button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Current Staff</h3>
-                    <div className="space-y-2">
-                      {staff.map((s) => (
-                        <div key={s.id} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
-                          <div className="text-white">
-                            <div className="font-semibold">{s.name} • {s.role}</div>
-                            <div className="text-sm text-white/80">{s.id} • {s.status}</div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm">Assign Role</button>
-                            <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">Contracts</button>
-                            <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-sm">Performance</button>
-                            {s.status !== 'Deactivated' && (
-                              <button onClick={() => deactivateStaff(s.id)} className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm">Deactivate</button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </section>
+              <StaffManagement />
             </div>
           )}
 
@@ -2179,7 +2194,7 @@ export default function SuperAdminPortal() {
                         <div key={r.id} className="bg-white/5 p-3 rounded border border-white/10">
                           <div className="flex items-center justify-between">
                             <div className="text-white font-semibold">{r.player} • ₹{r.amount.toLocaleString('en-IN')}</div>
-                            <span className={`text-xs px-2 py-1 rounded ${r.status==='Approved'?'bg-green-500/30 text-green-300':r.status==='Denied'?'bg-red-500/30 text-red-300':'bg-yellow-500/30 text-yellow-300'}`}>{r.status}</span>
+                            <span className={`text-xs px-2 py-1 rounded ${r.status === 'Approved' ? 'bg-green-500/30 text-green-300' : r.status === 'Denied' ? 'bg-red-500/30 text-red-300' : 'bg-yellow-500/30 text-yellow-300'}`}>{r.status}</span>
                           </div>
                           <div className="mt-2 flex gap-2">
                             <button className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm" onClick={() => approveCredit(r.id)}>Approve</button>
@@ -2199,8 +2214,8 @@ export default function SuperAdminPortal() {
                             <div className="text-white/70">Visible: {r.visibleToPlayer ? 'Yes' : 'No'} • Limit: ₹{r.limit.toLocaleString('en-IN')}</div>
                           </div>
                           <div className="flex gap-2 items-center">
-                            <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm" onClick={() => setCreditRequests(prev => prev.map(x => x.id===r.id ? { ...x, visibleToPlayer: !x.visibleToPlayer } : x))}>{r.visibleToPlayer ? 'Hide' : 'Show'}</button>
-                            <input type="number" className="w-28 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="Set limit" onChange={(e) => setCreditRequests(prev => prev.map(x => x.id===r.id ? { ...x, limit: Number(e.target.value)||0 } : x))} />
+                            <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm" onClick={() => setCreditRequests(prev => prev.map(x => x.id === r.id ? { ...x, visibleToPlayer: !x.visibleToPlayer } : x))}>{r.visibleToPlayer ? 'Hide' : 'Show'}</button>
+                            <input type="number" className="w-28 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="Set limit" onChange={(e) => setCreditRequests(prev => prev.map(x => x.id === r.id ? { ...x, limit: Number(e.target.value) || 0 } : x))} />
                           </div>
                         </div>
                       ))}
@@ -2257,10 +2272,10 @@ export default function SuperAdminPortal() {
                         {/* Player Search */}
                         <div className="relative">
                           <label className="text-white text-sm mb-1 block">Select Player</label>
-                          <input 
-                            type="text" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="Type at least 2 characters to search..." 
+                          <input
+                            type="text"
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            placeholder="Type at least 2 characters to search..."
                             value={bonusPlayerSearch}
                             onChange={(e) => {
                               setBonusPlayerSearch(e.target.value);
@@ -2287,7 +2302,7 @@ export default function SuperAdminPortal() {
                           {selectedBonusPlayer && (
                             <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
                               <span className="text-green-300">Selected: {selectedBonusPlayer.name} ({selectedBonusPlayer.id})</span>
-                              <button 
+                              <button
                                 onClick={() => {
                                   setSelectedBonusPlayer(null);
                                   setBonusPlayerSearch("");
@@ -2306,7 +2321,7 @@ export default function SuperAdminPortal() {
                           <CustomSelect
                             className="w-full"
                             value={bonusForm.type}
-                            onChange={(e) => setBonusForm({...bonusForm, type: e.target.value})}
+                            onChange={(e) => setBonusForm({ ...bonusForm, type: e.target.value })}
                           >
                             <option value="Welcome Bonus">Welcome Bonus</option>
                             <option value="Loyalty Bonus">Loyalty Bonus</option>
@@ -2320,24 +2335,24 @@ export default function SuperAdminPortal() {
                         {/* Bonus Amount */}
                         <div>
                           <label className="text-white text-sm mb-1 block">Bonus Amount (₹)</label>
-                          <input 
-                            type="number" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="₹0.00" 
+                          <input
+                            type="number"
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            placeholder="₹0.00"
                             value={bonusForm.amount}
-                            onChange={(e) => setBonusForm({...bonusForm, amount: e.target.value})}
+                            onChange={(e) => setBonusForm({ ...bonusForm, amount: e.target.value })}
                           />
                         </div>
 
                         {/* Expiry Days */}
                         <div>
                           <label className="text-white text-sm mb-1 block">Expiry (Days)</label>
-                          <input 
-                            type="number" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="30" 
+                          <input
+                            type="number"
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            placeholder="30"
                             value={bonusForm.expiryDays}
-                            onChange={(e) => setBonusForm({...bonusForm, expiryDays: parseInt(e.target.value) || 30})}
+                            onChange={(e) => setBonusForm({ ...bonusForm, expiryDays: parseInt(e.target.value) || 30 })}
                             min="1"
                           />
                         </div>
@@ -2345,17 +2360,17 @@ export default function SuperAdminPortal() {
                         {/* Reason */}
                         <div>
                           <label className="text-white text-sm mb-1 block">Reason / Notes</label>
-                          <textarea 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            rows="3" 
-                            placeholder="Enter reason for this bonus..." 
+                          <textarea
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            rows="3"
+                            placeholder="Enter reason for this bonus..."
                             value={bonusForm.reason}
-                            onChange={(e) => setBonusForm({...bonusForm, reason: e.target.value})}
+                            onChange={(e) => setBonusForm({ ...bonusForm, reason: e.target.value })}
                           ></textarea>
                         </div>
 
                         {/* Create Bonus Button */}
-                        <button 
+                        <button
                           onClick={handleCreateBonus}
                           className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-4 py-3 rounded-lg font-semibold shadow-lg transition-all"
                         >
@@ -2369,249 +2384,41 @@ export default function SuperAdminPortal() {
             </div>
           )}
 
-          {activeItem === "Waitlist & Seating Overrides" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Waitlist & Seating Overrides</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Current Waitlist</h3>
-                    <div className="space-y-2 mb-6">
-                      {waitlist.map((entry) => {
-                        const preferredSeatAvailable = entry.preferredSeat 
-                          ? isSeatAvailable(entry.preferredTable, entry.preferredSeat)
-                          : false;
-                        
-                        return (
-                          <div key={entry.id || entry.pos} className="bg-blue-500/20 p-3 rounded-lg border border-blue-400/30">
-                            <div className="grid gap-5 sm:grid-cols-[60%,1fr] items-start">
-                              <div className="flex-1">
-                                <div className="font-semibold text-white">Player: {entry.playerName || entry.player}</div>
-                                <div className="text-sm text-gray-300">Position: {entry.pos || entry.position} | Game: {entry.gameType || entry.game}</div>
-                                {entry.preferredSeat ? (
-                                  <div className="mt-1 flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs text-yellow-300 font-medium flex items-center gap-1">
-                                      ⭐ Preferred: Table {entry.preferredTable}, Seat {entry.preferredSeat}
-                                    </span>
-                                    {preferredSeatAvailable ? (
-                                      <span className="text-xs bg-green-500/30 text-green-300 px-2 py-0.5 rounded-full border border-green-400/50">
-                                        ✓ Available
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs bg-red-500/30 text-red-300 px-2 py-0.5 rounded-full border border-red-400/50">
-                                        ✗ Occupied
-                                      </span>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="mt-1 text-xs text-gray-400">No preferred seat selected</div>
-                                )}
-                              </div>
-                              <div className="flex flex-col gap-2 ml-3">
-                                <button 
-                                  onClick={() => handleOpenTableView(entry, entry.preferredTable)}
-                                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
-                                  title="View table hologram to assign seat"
-                                >
-                                  🎯 View Table
-                                </button>
-                                {entry.preferredSeat && preferredSeatAvailable && (
-                                  <button 
-                                    onClick={() => handleAssignPreferredSeat(entry)}
-                                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
-                                    title={`Assign to preferred seat ${entry.preferredSeat} at Table ${entry.preferredTable}`}
-                                  >
-                                    Assign Preferred
-                                  </button>
-                                )}
-                                <button 
-                                  onClick={() => setWaitlist(prev => prev.filter(item => (item.id || item.pos) !== (entry.id || entry.pos)))}
-                                  className="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-sm"
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {waitlist.length === 0 && (
-                        <div className="text-center py-8 text-gray-400 text-sm">
-                          No players in waitlist
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Move Between Tables/Sessions</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-white text-sm">Select Player</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option value="">-- Select Player --</option>
-                          {waitlist.map((w) => (
-                            <option key={w.id || w.pos} value={w.id || w.pos}>
-                              {w.playerName || w.player} - Position {w.pos || w.position} ({w.gameType || w.game})
-                            </option>
-                          ))}
-                          <option value="seated-1">John Doe - Table 1, Seat 3</option>
-                          <option value="seated-2">Jane Smith - Table 2, Seat 5</option>
-                          <option value="seated-3">Mike Johnson - Table 1, Seat 7</option>
-                        </CustomSelect>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-white text-sm">From Table</label>
-                          <CustomSelect className="w-full mt-1">
-                            <option value="">-- Select Table --</option>
-                            <option value="1">Table 1 - Texas Hold'em</option>
-                            <option value="2">Table 2 - Omaha</option>
-                            <option value="3">Table 3 - Seven Card Stud</option>
-                            <option value="waitlist">Waitlist</option>
-                          </CustomSelect>
-                        </div>
-                        <div>
-                          <label className="text-white text-sm">From Seat (Optional)</label>
-                          <CustomSelect className="w-full mt-1">
-                            <option value="">Any Seat</option>
-                            {[1,2,3,4,5,6,7,8].map(seat => (
-                              <option key={seat} value={seat}>Seat {seat}</option>
-                            ))}
-                          </CustomSelect>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-white text-sm">To Table</label>
-                          <CustomSelect className="w-full mt-1">
-                            <option value="">-- Select Table --</option>
-                            <option value="1">Table 1 - Texas Hold'em</option>
-                            <option value="2">Table 2 - Omaha</option>
-                            <option value="3">Table 3 - Seven Card Stud</option>
-                            <option value="waitlist">Waitlist</option>
-                          </CustomSelect>
-                        </div>
-                        <div>
-                          <label className="text-white text-sm">To Seat (Optional)</label>
-                          <CustomSelect className="w-full mt-1">
-                            <option value="">Any Available Seat</option>
-                            {[1,2,3,4,5,6,7,8].map(seat => (
-                              <option key={seat} value={seat}>Seat {seat}</option>
-                            ))}
-                          </CustomSelect>
-                        </div>
-                      </div>
-                      <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Move Player
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Force Seat Assignment (Override)</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-white text-sm">Select Player</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option value="">-- Select Player --</option>
-                          {waitlist.map((w) => (
-                            <option key={w.pos} value={w.pos}>
-                              {w.player} - Position {w.pos}
-                            </option>
-                          ))}
-                        </CustomSelect>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-white text-sm">Table</label>
-                          <CustomSelect className="w-full mt-1">
-                            <option value="">-- Select Table --</option>
-                            <option value="1">Table 1 - Texas Hold'em</option>
-                            <option value="2">Table 2 - Omaha</option>
-                            <option value="3">Table 3 - Seven Card Stud</option>
-                          </CustomSelect>
-                        </div>
-                        <div>
-                          <label className="text-white text-sm">Seat Number</label>
-                          <CustomSelect className="w-full mt-1">
-                            <option value="">-- Select Seat --</option>
-                            {[1,2,3,4,5,6,7,8].map(seat => (
-                              <option key={seat} value={seat}>Seat {seat}</option>
-                            ))}
-                          </CustomSelect>
-                        </div>
-                      </div>
-                      <div className="bg-yellow-500/20 border border-yellow-400/30 p-2 rounded text-xs text-yellow-300">
-                        ⚠️ Force assignment will override seat availability and move existing player if needed
-                      </div>
-                      <button className="w-full bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Force Assign Seat (Override)
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Override Waitlist Priority</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-white text-sm">Select Player from Waitlist</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option value="">-- Select Player --</option>
-                          {waitlist.map((w) => (
-                            <option key={w.pos} value={w.pos}>
-                              Position {w.pos}: {w.player}
-                            </option>
-                          ))}
-                        </CustomSelect>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">New Priority Position</label>
-                        <input 
-                          type="number" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder={`Enter position (1-${waitlist.length || 1})`}
-                          min="1"
-                          max={waitlist.length || 1}
-                        />
-                      </div>
-                      <button className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Update Priority
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Waitlist Actions</h3>
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <label className="text-white text-sm">Select Player to Remove</label>
-                        <CustomSelect className="w-full">
-                          <option value="">-- Select Player --</option>
-                          {waitlist.map((w) => (
-                            <option key={w.pos} value={w.pos}>
-                              {w.player} - Position {w.pos}
-                            </option>
-                          ))}
-                        </CustomSelect>
-                      </div>
-                      <button className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Remove from Waitlist
-                      </button>
-                      <div className="border-t border-white/20 pt-3 mt-3">
-                        <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold mb-2">
-                          Call Next Player
-                        </button>
-                        <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
-                          Call All Waitlisted Players
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
+          {activeItem === "Table Management" && (
+            <TableManagementSection
+              userRole="superadmin"
+              tables={tables}
+              setTables={setTables}
+              dealers={dealers}
+              // Seating
+              waitlist={waitlist}
+              setWaitlist={setWaitlist}
+              occupiedSeats={occupiedSeats}
+              isSeatAvailable={isSeatAvailable}
+              handleAssignPreferredSeat={handleAssignPreferredSeat}
+              handleOpenTableViewForWaitlist={handleOpenTableView}
+              onSeatAssign={handleSeatAssign}
+              // Live tables (SuperAdmin can view + seat via hologram)
+              mockPlayers={superAdminMockPlayers}
+              playerBalances={{}}
+              tableBalances={{}}
+              liveTablePlayerSearch={liveTablePlayerSearch}
+              setLiveTablePlayerSearch={setLiveTablePlayerSearch}
+              selectedLiveTablePlayer={selectedLiveTablePlayer}
+              setSelectedLiveTablePlayer={setSelectedLiveTablePlayer}
+              buyInAmount={buyInAmount}
+              setBuyInAmount={setBuyInAmount}
+              // TableView modal control (owned by TableManagementSection)
+              showTableView={showTableView}
+              setShowTableView={setShowTableView}
+              selectedPlayerForSeating={selectedPlayerForSeating}
+              setSelectedPlayerForSeating={setSelectedPlayerForSeating}
+              selectedTableForSeating={selectedTableForSeating}
+              setSelectedTableForSeating={setSelectedTableForSeating}
+            />
           )}
+
+
 
           {/* Tournaments */}
           {activeItem === "Tournaments" && (
@@ -2636,36 +2443,36 @@ export default function SuperAdminPortal() {
                         <h4 className="text-white font-semibold border-b border-white/20 pb-2">Basic Information</h4>
                         <div>
                           <label className="text-white text-sm mb-1 block">Tournament Name *</label>
-                          <input type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Monday Night Hold'em" value={tournamentForm.name} onChange={(e) => setTournamentForm({...tournamentForm, name: e.target.value})} />
+                          <input type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Monday Night Hold'em" value={tournamentForm.name} onChange={(e) => setTournamentForm({ ...tournamentForm, name: e.target.value })} />
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Tournament Type *</label>
-                          <CustomSelect className="w-full" value={tournamentForm.type} onChange={(e) => setTournamentForm({...tournamentForm, type: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.type} onChange={(e) => setTournamentForm({ ...tournamentForm, type: e.target.value })}>
                             {tournamentTypes.map(type => <option key={type} value={type}>{type}</option>)}
                           </CustomSelect>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-white text-sm mb-1 block">Buy-in (₹) *</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="1000" value={tournamentForm.buyIn} onChange={(e) => setTournamentForm({...tournamentForm, buyIn: e.target.value})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="1000" value={tournamentForm.buyIn} onChange={(e) => setTournamentForm({ ...tournamentForm, buyIn: e.target.value })} />
                           </div>
                           <div>
                             <label className="text-white text-sm mb-1 block">Entry Fee (₹)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="100" value={tournamentForm.entryFee} onChange={(e) => setTournamentForm({...tournamentForm, entryFee: e.target.value})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="100" value={tournamentForm.entryFee} onChange={(e) => setTournamentForm({ ...tournamentForm, entryFee: e.target.value })} />
                           </div>
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Starting Chips *</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10000" value={tournamentForm.startingChips} onChange={(e) => setTournamentForm({...tournamentForm, startingChips: e.target.value})} />
+                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10000" value={tournamentForm.startingChips} onChange={(e) => setTournamentForm({ ...tournamentForm, startingChips: e.target.value })} />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-white text-sm mb-1 block">Start Time</label>
-                            <input type="datetime-local" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={tournamentForm.startTime} onChange={(e) => setTournamentForm({...tournamentForm, startTime: e.target.value})} />
+                            <input type="datetime-local" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={tournamentForm.startTime} onChange={(e) => setTournamentForm({ ...tournamentForm, startTime: e.target.value })} />
                           </div>
                           <div>
                             <label className="text-white text-sm mb-1 block">Max Players (unlimited if blank)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Unlimited" value={tournamentForm.maxPlayers} onChange={(e) => setTournamentForm({...tournamentForm, maxPlayers: e.target.value})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Unlimited" value={tournamentForm.maxPlayers} onChange={(e) => setTournamentForm({ ...tournamentForm, maxPlayers: e.target.value })} />
                           </div>
                         </div>
                       </div>
@@ -2673,45 +2480,45 @@ export default function SuperAdminPortal() {
                         <h4 className="text-white font-semibold border-b border-white/20 pb-2">Tournament Rules</h4>
                         <div>
                           <label className="text-white text-sm mb-1 block">Blind Structure *</label>
-                          <CustomSelect className="w-full" value={tournamentForm.blindStructure} onChange={(e) => setTournamentForm({...tournamentForm, blindStructure: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.blindStructure} onChange={(e) => setTournamentForm({ ...tournamentForm, blindStructure: e.target.value })}>
                             {blindStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
                           </CustomSelect>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-white text-sm mb-1 block">Number of Levels</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindLevels} onChange={(e) => setTournamentForm({...tournamentForm, blindLevels: parseInt(e.target.value) || 15})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindLevels} onChange={(e) => setTournamentForm({ ...tournamentForm, blindLevels: parseInt(e.target.value) || 15 })} />
                           </div>
                           <div>
                             <label className="text-white text-sm mb-1 block">Minutes per Level</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindInterval} onChange={(e) => setTournamentForm({...tournamentForm, blindInterval: parseInt(e.target.value) || 15})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindInterval} onChange={(e) => setTournamentForm({ ...tournamentForm, blindInterval: parseInt(e.target.value) || 15 })} />
                           </div>
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Break Structure</label>
-                          <CustomSelect className="w-full" value={tournamentForm.breakStructure} onChange={(e) => setTournamentForm({...tournamentForm, breakStructure: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.breakStructure} onChange={(e) => setTournamentForm({ ...tournamentForm, breakStructure: e.target.value })}>
                             {breakStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
                           </CustomSelect>
                         </div>
                         {tournamentForm.breakStructure !== "No breaks" && (
                           <div>
                             <label className="text-white text-sm mb-1 block">Break Duration (minutes)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10" value={tournamentForm.breakDuration} onChange={(e) => setTournamentForm({...tournamentForm, breakDuration: parseInt(e.target.value) || 10})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10" value={tournamentForm.breakDuration} onChange={(e) => setTournamentForm({ ...tournamentForm, breakDuration: parseInt(e.target.value) || 10 })} />
                           </div>
                         )}
                         <div>
                           <label className="text-white text-sm mb-1 block">Late Registration (minutes)</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="60" value={tournamentForm.lateRegistration} onChange={(e) => setTournamentForm({...tournamentForm, lateRegistration: parseInt(e.target.value) || 60})} />
+                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="60" value={tournamentForm.lateRegistration} onChange={(e) => setTournamentForm({ ...tournamentForm, lateRegistration: parseInt(e.target.value) || 60 })} />
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Payout Structure</label>
-                          <CustomSelect className="w-full" value={tournamentForm.payoutStructure} onChange={(e) => setTournamentForm({...tournamentForm, payoutStructure: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.payoutStructure} onChange={(e) => setTournamentForm({ ...tournamentForm, payoutStructure: e.target.value })}>
                             {payoutStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
                           </CustomSelect>
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Seat Draw Method</label>
-                          <CustomSelect className="w-full" value={tournamentForm.seatDrawMethod} onChange={(e) => setTournamentForm({...tournamentForm, seatDrawMethod: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.seatDrawMethod} onChange={(e) => setTournamentForm({ ...tournamentForm, seatDrawMethod: e.target.value })}>
                             <option value="Random">Random</option>
                             <option value="Table Balance">Table Balance</option>
                             <option value="Manual">Manual</option>
@@ -2719,7 +2526,7 @@ export default function SuperAdminPortal() {
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Clock Pause Rules</label>
-                          <CustomSelect className="w-full" value={tournamentForm.clockPauseRules} onChange={(e) => setTournamentForm({...tournamentForm, clockPauseRules: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.clockPauseRules} onChange={(e) => setTournamentForm({ ...tournamentForm, clockPauseRules: e.target.value })}>
                             <option value="Standard">Standard (pause on breaks)</option>
                             <option value="No Pause">No Pause</option>
                             <option value="Pause on All-in">Pause on All-in</option>
@@ -2730,49 +2537,49 @@ export default function SuperAdminPortal() {
                       <div className="space-y-4">
                         <h4 className="text-white font-semibold border-b border-white/20 pb-2">Rebuy, Add-on & Re-entry</h4>
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" id="rebuy-allowed" className="w-4 h-4" checked={tournamentForm.rebuyAllowed} onChange={(e) => setTournamentForm({...tournamentForm, rebuyAllowed: e.target.checked})} />
+                          <input type="checkbox" id="rebuy-allowed" className="w-4 h-4" checked={tournamentForm.rebuyAllowed} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyAllowed: e.target.checked })} />
                           <label htmlFor="rebuy-allowed" className="text-white text-sm">Allow Rebuys</label>
                         </div>
                         {tournamentForm.rebuyAllowed && (
                           <div className="grid grid-cols-3 gap-3 ml-7">
                             <div>
                               <label className="text-white text-xs mb-1 block">Rebuy Chips</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.rebuyChips} onChange={(e) => setTournamentForm({...tournamentForm, rebuyChips: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.rebuyChips} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyChips: e.target.value })} />
                             </div>
                             <div>
                               <label className="text-white text-xs mb-1 block">Rebuy Fee (₹)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="1000" value={tournamentForm.rebuyFee} onChange={(e) => setTournamentForm({...tournamentForm, rebuyFee: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="1000" value={tournamentForm.rebuyFee} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyFee: e.target.value })} />
                             </div>
                             <div>
                               <label className="text-white text-xs mb-1 block">Rebuy Period (levels)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="6" value={tournamentForm.rebuyPeriod} onChange={(e) => setTournamentForm({...tournamentForm, rebuyPeriod: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="6" value={tournamentForm.rebuyPeriod} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyPeriod: e.target.value })} />
                             </div>
                           </div>
                         )}
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" id="addon-allowed" className="w-4 h-4" checked={tournamentForm.addOnAllowed} onChange={(e) => setTournamentForm({...tournamentForm, addOnAllowed: e.target.checked})} />
+                          <input type="checkbox" id="addon-allowed" className="w-4 h-4" checked={tournamentForm.addOnAllowed} onChange={(e) => setTournamentForm({ ...tournamentForm, addOnAllowed: e.target.checked })} />
                           <label htmlFor="addon-allowed" className="text-white text-sm">Allow Add-on</label>
                         </div>
                         {tournamentForm.addOnAllowed && (
                           <div className="grid grid-cols-2 gap-3 ml-7">
                             <div>
                               <label className="text-white text-xs mb-1 block">Add-on Chips</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.addOnChips} onChange={(e) => setTournamentForm({...tournamentForm, addOnChips: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.addOnChips} onChange={(e) => setTournamentForm({ ...tournamentForm, addOnChips: e.target.value })} />
                             </div>
                             <div>
                               <label className="text-white text-xs mb-1 block">Add-on Fee (₹)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="500" value={tournamentForm.addOnFee} onChange={(e) => setTournamentForm({...tournamentForm, addOnFee: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="500" value={tournamentForm.addOnFee} onChange={(e) => setTournamentForm({ ...tournamentForm, addOnFee: e.target.value })} />
                             </div>
                           </div>
                         )}
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" id="reentry-allowed" className="w-4 h-4" checked={tournamentForm.reEntryAllowed} onChange={(e) => setTournamentForm({...tournamentForm, reEntryAllowed: e.target.checked})} />
+                          <input type="checkbox" id="reentry-allowed" className="w-4 h-4" checked={tournamentForm.reEntryAllowed} onChange={(e) => setTournamentForm({ ...tournamentForm, reEntryAllowed: e.target.checked })} />
                           <label htmlFor="reentry-allowed" className="text-white text-sm">Allow Re-entry</label>
                         </div>
                         {tournamentForm.reEntryAllowed && (
                           <div className="ml-7">
                             <label className="text-white text-xs mb-1 block">Re-entry Period (minutes)</label>
-                            <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="60" value={tournamentForm.reEntryPeriod} onChange={(e) => setTournamentForm({...tournamentForm, reEntryPeriod: e.target.value})} />
+                            <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="60" value={tournamentForm.reEntryPeriod} onChange={(e) => setTournamentForm({ ...tournamentForm, reEntryPeriod: e.target.value })} />
                           </div>
                         )}
                       </div>
@@ -2780,7 +2587,7 @@ export default function SuperAdminPortal() {
                         <h4 className="text-white font-semibold border-b border-white/20 pb-2">Bounty Options</h4>
                         <div>
                           <label className="text-white text-sm mb-1 block">Bounty Amount (₹) - Leave blank for regular tournament</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" value={tournamentForm.bountyAmount} onChange={(e) => setTournamentForm({...tournamentForm, bountyAmount: e.target.value})} />
+                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" value={tournamentForm.bountyAmount} onChange={(e) => setTournamentForm({ ...tournamentForm, bountyAmount: e.target.value })} />
                           <p className="text-xs text-gray-400 mt-1">If set, this becomes a knockout/bounty tournament</p>
                         </div>
                       </div>
@@ -2827,9 +2634,9 @@ export default function SuperAdminPortal() {
                               </div>
                             </div>
                             <div className="flex flex-col gap-2 ml-4">
-                              <button onClick={(e) => {e.stopPropagation(); setSelectedTournament(tournament);}} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-semibold">View Details</button>
-                              {tournament.status === "Scheduled" && <button onClick={(e) => {e.stopPropagation(); setTournaments(prev => prev.map(t => t.id === tournament.id ? {...t, status: "Active"} : t)); alert(`Tournament "${tournament.name}" started!`);}} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm font-semibold">Start</button>}
-                              <button onClick={(e) => {e.stopPropagation(); if (window.confirm(`Delete tournament "${tournament.name}"?`)) { setTournaments(prev => prev.filter(t => t.id !== tournament.id)); }}} className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold">Delete</button>
+                              <button onClick={(e) => { e.stopPropagation(); setSelectedTournament(tournament); }} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-semibold">View Details</button>
+                              {tournament.status === "Scheduled" && <button onClick={(e) => { e.stopPropagation(); setTournaments(prev => prev.map(t => t.id === tournament.id ? { ...t, status: "Active" } : t)); alert(`Tournament "${tournament.name}" started!`); }} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm font-semibold">Start</button>}
+                              <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete tournament "${tournament.name}"?`)) { setTournaments(prev => prev.filter(t => t.id !== tournament.id)); } }} className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold">Delete</button>
                             </div>
                           </div>
                         </div>
@@ -2904,7 +2711,7 @@ export default function SuperAdminPortal() {
                         </div>
                       </div>
                       <div className="flex gap-3 pt-4 border-t border-white/10">
-                        <button onClick={() => {setSelectedTournament(null); setShowTournamentForm(true);}} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold">Edit Tournament</button>
+                        <button onClick={() => { setSelectedTournament(null); setShowTournamentForm(true); }} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold">Edit Tournament</button>
                         <button onClick={() => setSelectedTournament(null)} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 rounded-lg font-semibold">Close</button>
                       </div>
                     </div>
@@ -2934,42 +2741,91 @@ export default function SuperAdminPortal() {
                         ))}
                       </CustomSelect>
                     </div>
-                    <div className="flex gap-2 mb-3">
-                      <input 
-                        id="vip-title" 
-                        className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                        placeholder="Product name" 
-                      />
-                      <input 
-                        id="vip-points" 
-                        type="number" 
-                        className="w-32 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                        placeholder="Points" 
-                      />
-                      <button 
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded" 
-                        onClick={() => {
-                          const t = document.getElementById('vip-title');
-                          const p = document.getElementById('vip-points');
-                          const title = t && 'value' in t ? t.value : '';
-                          const pts = p && 'value' in p ? parseInt(p.value || '0', 10) : 0;
-                          if (title.trim() && pts > 0) {
-                            setVipProducts(prev => [...prev, { id: `vip-${Date.now()}`, clubId: selectedClubId, title, points: pts }]);
-                            if (t) t.value = '';
-                            if (p) p.value = '';
-                          }
-                        }}
-                      >
-                        Add
-                      </button>
+                    <div className="flex flex-col gap-3 mb-3">
+                      <div className="flex gap-2">
+                        <input
+                          id="vip-title"
+                          className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Product name"
+                        />
+                        <input
+                          id="vip-points"
+                          type="number"
+                          className="w-32 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Points"
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                          <input
+                            id="vip-image"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const fileName = e.target.files[0]?.name;
+                              if (fileName) document.getElementById('vip-image-label').innerText = fileName;
+                            }}
+                          />
+                          <label
+                            id="vip-image-label"
+                            htmlFor="vip-image"
+                            className="block w-full px-3 py-2 bg-white/10 border border-white/20 border-dashed rounded text-gray-400 cursor-pointer hover:bg-white/20 truncate"
+                          >
+                            Choose Product Image
+                          </label>
+                        </div>
+                        <button
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded font-bold"
+                          onClick={() => {
+                            const t = document.getElementById('vip-title');
+                            const p = document.getElementById('vip-points');
+                            const i = document.getElementById('vip-image');
+
+                            const title = t && 'value' in t ? t.value : '';
+                            const pts = p && 'value' in p ? parseInt(p.value || '0', 10) : 0;
+                            const file = i && i.files && i.files[0] ? i.files[0] : null;
+
+                            if (title.trim() && pts > 0) {
+                              let imageUrl = "https://placehold.co/100x100/333/FFF?text=Product";
+                              if (file) {
+                                imageUrl = URL.createObjectURL(file);
+                              }
+
+                              setVipProducts(prev => [...prev, {
+                                id: `vip-${Date.now()}`,
+                                clubId: selectedClubId,
+                                title,
+                                points: pts,
+                                image: imageUrl
+                              }]);
+
+                              if (t) t.value = '';
+                              if (p) p.value = '';
+                              if (i) i.value = '';
+                              document.getElementById('vip-image-label').innerText = "Choose Product Image";
+                            } else {
+                              alert("Please enter product name and points");
+                            }
+                          }}
+                        >
+                          Add Product
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {vipProducts.filter(v => v.clubId === selectedClubId).map(v => (
                         <div key={v.id} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
-                          <div className="text-white text-sm">{v.title}</div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded bg-gray-700 overflow-hidden flex-shrink-0">
+                              {v.image && <img src={v.image} alt={v.title} className="w-full h-full object-cover" />}
+                            </div>
+                            <div className="text-white text-sm font-medium">{v.title}</div>
+                          </div>
                           <div className="flex items-center gap-2">
                             <div className="text-white/80 text-xs">{v.points} pts</div>
-                            <button 
+                            <button
                               onClick={() => {
                                 if (window.confirm(`Delete "${v.title}"?`)) {
                                   setVipProducts(prev => prev.filter(p => p.id !== v.id));
@@ -2994,33 +2850,33 @@ export default function SuperAdminPortal() {
                     <div className="space-y-3">
                       <div>
                         <label className="text-white text-sm mb-1 block">Buy-in Total</label>
-                        <input 
-                          id="calc-buyin" 
-                          type="number" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Enter buy-in amount" 
+                        <input
+                          id="calc-buyin"
+                          type="number"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter buy-in amount"
                         />
                       </div>
                       <div>
                         <label className="text-white text-sm mb-1 block">Hours Played</label>
-                        <input 
-                          id="calc-hours" 
-                          type="number" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Enter hours played" 
+                        <input
+                          id="calc-hours"
+                          type="number"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter hours played"
                         />
                       </div>
                       <div>
                         <label className="text-white text-sm mb-1 block">Visit Frequency</label>
-                        <input 
-                          id="calc-visits" 
-                          type="number" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Enter visit frequency" 
+                        <input
+                          id="calc-visits"
+                          type="number"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter visit frequency"
                         />
                       </div>
-                      <button 
-                        className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold" 
+                      <button
+                        className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold"
                         onClick={() => {
                           const b = document.getElementById('calc-buyin');
                           const h = document.getElementById('calc-hours');
@@ -3057,9 +2913,14 @@ export default function SuperAdminPortal() {
                         <div className="space-y-2 max-h-40 overflow-y-auto">
                           {clubProducts.length > 0 ? (
                             clubProducts.map(product => (
-                              <div key={product.id} className="bg-white/5 p-2 rounded text-xs">
-                                <div className="text-white">{product.title}</div>
-                                <div className="text-purple-300">{product.points} pts</div>
+                              <div key={product.id} className="bg-white/5 p-2 rounded text-xs flex gap-2 items-center">
+                                <div className="w-8 h-8 rounded bg-gray-800 flex-shrink-0 overflow-hidden">
+                                  {product.image && <img src={product.image} alt={product.title} className="w-full h-full object-cover" />}
+                                </div>
+                                <div className="overflow-hidden">
+                                  <div className="text-white truncate" title={product.title}>{product.title}</div>
+                                  <div className="text-purple-300">{product.points} pts</div>
+                                </div>
                               </div>
                             ))
                           ) : (
@@ -3084,34 +2945,34 @@ export default function SuperAdminPortal() {
                     <h3 className="text-lg font-semibold text-white mb-4">Report Configuration</h3>
                     <div className="space-y-4">
                       <div className="w-full">
-                      <label className="text-white text-sm mb-2 block">Select Report Type</label>
-                      <CustomSelect
-                        className="w-full"
-                        value={selectedReportType}
-                        onChange={(e) => {
-                          setSelectedReportType(e.target.value);
-                          setReportData(null);
-                          if (e.target.value !== "individual_player") setSelectedPlayerForReport(null);
-                          if (e.target.value !== "custom") setCustomReportSelection([]);
-                        }}
-                        placeholder="-- Select Report Type --"
-                        allowSearch
-                      >
-                        <option value="w-full">-- Select Report Type --</option>
-                        {reportTypes.map(type => (
-                          <option key={type.id} value={type.id}>{type.icon} {type.name}</option>
-                        ))}
-                      </CustomSelect>
+                        <label className="text-white text-sm mb-2 block">Select Report Type</label>
+                        <CustomSelect
+                          className="w-full"
+                          value={selectedReportType}
+                          onChange={(e) => {
+                            setSelectedReportType(e.target.value);
+                            setReportData(null);
+                            if (e.target.value !== "individual_player") setSelectedPlayerForReport(null);
+                            if (e.target.value !== "custom") setCustomReportSelection([]);
+                          }}
+                          placeholder="-- Select Report Type --"
+                          allowSearch
+                        >
+                          <option value="w-full">-- Select Report Type --</option>
+                          {reportTypes.map(type => (
+                            <option key={type.id} value={type.id}>{type.icon} {type.name}</option>
+                          ))}
+                        </CustomSelect>
                       </div>
 
                       {/* Player Selection for Individual Player Report */}
                       {selectedReportType === "individual_player" && (
                         <div className="relative">
                           <label className="text-white text-sm mb-2 block">Search Player (Type at least 3 characters)</label>
-                          <input 
-                            type="text" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="Search by name, ID, or email..." 
+                          <input
+                            type="text"
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            placeholder="Search by name, ID, or email..."
                             value={playerReportSearch}
                             onChange={(e) => {
                               setPlayerReportSearch(e.target.value);
@@ -3138,7 +2999,7 @@ export default function SuperAdminPortal() {
                           {selectedPlayerForReport && (
                             <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
                               <span className="text-green-300">Selected: {selectedPlayerForReport.name} ({selectedPlayerForReport.id})</span>
-                              <button 
+                              <button
                                 onClick={() => {
                                   setSelectedPlayerForReport(null);
                                   setPlayerReportSearch("");
@@ -3206,26 +3067,26 @@ export default function SuperAdminPortal() {
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-gray-400 text-xs">Start Date</label>
-                            <input 
-                              type="date" 
-                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                            <input
+                              type="date"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                               value={reportDateRange.start}
-                              onChange={(e) => setReportDateRange({...reportDateRange, start: e.target.value})}
+                              onChange={(e) => setReportDateRange({ ...reportDateRange, start: e.target.value })}
                             />
                           </div>
                           <div>
                             <label className="text-gray-400 text-xs">End Date</label>
-                            <input 
-                              type="date" 
-                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                            <input
+                              type="date"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                               value={reportDateRange.end}
-                              onChange={(e) => setReportDateRange({...reportDateRange, end: e.target.value})}
+                              onChange={(e) => setReportDateRange({ ...reportDateRange, end: e.target.value })}
                             />
                           </div>
                         </div>
                       </div>
 
-                      <button 
+                      <button
                         onClick={generateReport}
                         className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold"
                       >
@@ -3259,19 +3120,19 @@ export default function SuperAdminPortal() {
                           </table>
                         </div>
                         <div className="flex gap-2">
-                          <button 
+                          <button
                             onClick={() => handleExportReportCSV(selectedReportType, reportData)}
                             className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                           >
                             📥 Export CSV
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleExportReportPDF(selectedReportType)}
                             className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                           >
                             📄 Export PDF
                           </button>
-                          <button 
+                          <button
                             onClick={() => {
                               const reportName = prompt("Enter report name to save:");
                               if (reportName) {
@@ -3316,11 +3177,10 @@ export default function SuperAdminPortal() {
                         if (type.id !== "custom") setCustomReportSelection([]);
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
-                      className={`p-4 rounded-lg border transition-all ${
-                        selectedReportType === type.id
-                          ? "bg-white/20 border-white/40 shadow-lg scale-105"
-                          : "bg-white/10 border-white/20 hover:bg-white/15"
-                      }`}
+                      className={`p-4 rounded-lg border transition-all ${selectedReportType === type.id
+                        ? "bg-white/20 border-white/40 shadow-lg scale-105"
+                        : "bg-white/10 border-white/20 hover:bg-white/15"
+                        }`}
                     >
                       <div className="text-2xl mb-2">{type.icon}</div>
                       <div className="text-white font-semibold text-sm">{type.name}</div>
@@ -3379,8 +3239,8 @@ export default function SuperAdminPortal() {
                                 onClick={() => {
                                   const newName = prompt("Enter new report name:", report.name);
                                   if (newName) {
-                                    setSavedReports(prev => prev.map(r => 
-                                      r.id === report.id ? {...r, name: newName} : r
+                                    setSavedReports(prev => prev.map(r =>
+                                      r.id === report.id ? { ...r, name: newName } : r
                                     ));
                                     alert("Report updated successfully!");
                                   }
@@ -3608,11 +3468,10 @@ export default function SuperAdminPortal() {
                                   setSelectedReferralAgent(agent || "");
                                   setReferralAgentSearch("");
                                 }}
-                                className={`px-3 py-1 rounded-full text-xs font-semibold transition border ${
-                                  (selectedReferralAgent || "").toLowerCase() === (agent || "").toLowerCase()
-                                    ? "bg-green-500/40 border-green-400/50 text-green-100"
-                                    : "bg-white/10 border-white/20 text-white/80 hover:bg-white/15"
-                                }`}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold transition border ${(selectedReferralAgent || "").toLowerCase() === (agent || "").toLowerCase()
+                                  ? "bg-green-500/40 border-green-400/50 text-green-100"
+                                  : "bg-white/10 border-white/20 text-white/80 hover:bg-white/15"
+                                  }`}
                               >
                                 {agent || "Unknown"}
                               </button>
@@ -3676,13 +3535,12 @@ export default function SuperAdminPortal() {
                                 </div>
                               </div>
                               <div className="flex flex-col gap-2">
-                                <span className={`px-2 py-1 rounded text-xs text-center font-semibold ${
-                                  player.accountStatus === "Active"
-                                    ? "bg-green-500/30 text-green-200"
-                                    : player.accountStatus === "Suspended"
+                                <span className={`px-2 py-1 rounded text-xs text-center font-semibold ${player.accountStatus === "Active"
+                                  ? "bg-green-500/30 text-green-200"
+                                  : player.accountStatus === "Suspended"
                                     ? "bg-red-500/30 text-red-200"
                                     : "bg-gray-500/30 text-gray-200"
-                                }`}>
+                                  }`}>
                                   {player.accountStatus}
                                 </span>
                                 <button
@@ -3719,16 +3577,15 @@ export default function SuperAdminPortal() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-white text-sm">Title</label>
-                        <input 
-                          type="text" 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${
-                            notificationErrors.title ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          placeholder="Enter title" 
+                        <input
+                          type="text"
+                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${notificationErrors.title ? 'border-red-500' : 'border-white/20'
+                            }`}
+                          placeholder="Enter title"
                           value={notificationForm.title}
                           onChange={(e) => {
-                            setNotificationForm({...notificationForm, title: e.target.value});
-                            setNotificationErrors({...notificationErrors, title: null});
+                            setNotificationForm({ ...notificationForm, title: e.target.value });
+                            setNotificationErrors({ ...notificationErrors, title: null });
                           }}
                         />
                         {notificationErrors.title && (
@@ -3737,16 +3594,15 @@ export default function SuperAdminPortal() {
                       </div>
                       <div>
                         <label className="text-white text-sm">Message</label>
-                        <textarea 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${
-                            notificationErrors.message ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          rows="3" 
+                        <textarea
+                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${notificationErrors.message ? 'border-red-500' : 'border-white/20'
+                            }`}
+                          rows="3"
                           placeholder="Enter message..."
                           value={notificationForm.message}
                           onChange={(e) => {
-                            setNotificationForm({...notificationForm, message: e.target.value});
-                            setNotificationErrors({...notificationErrors, message: null});
+                            setNotificationForm({ ...notificationForm, message: e.target.value });
+                            setNotificationErrors({ ...notificationErrors, message: null });
                           }}
                         ></textarea>
                         {notificationErrors.message && (
@@ -3758,14 +3614,14 @@ export default function SuperAdminPortal() {
                         <CustomSelect
                           className="w-full"
                           value={notificationForm.audience}
-                          onChange={(e) => setNotificationForm({...notificationForm, audience: e.target.value})}
+                          onChange={(e) => setNotificationForm({ ...notificationForm, audience: e.target.value })}
                         >
                           {getAudienceOptions().map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
                           ))}
                         </CustomSelect>
                       </div>
-                      
+
                       {/* Image Section */}
                       <div className="border-t border-white/20 pt-4">
                         <label className="text-white text-sm font-semibold mb-2 block">Image (Optional)</label>
@@ -3773,8 +3629,8 @@ export default function SuperAdminPortal() {
                           <div>
                             <label className="text-white text-xs">Upload Image</label>
                             <div className="mt-1 border-2 border-dashed border-white/30 rounded-lg p-4 text-center">
-                              <input 
-                                type="file" 
+                              <input
+                                type="file"
                                 accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                                 className="hidden"
                                 id="image-upload-super-admin"
@@ -3789,7 +3645,7 @@ export default function SuperAdminPortal() {
                                   <img src={notificationForm.imagePreview} alt="Preview" className="max-h-32 mx-auto rounded" />
                                   <button
                                     type="button"
-                                    onClick={() => setNotificationForm({...notificationForm, imageFile: null, imagePreview: null})}
+                                    onClick={() => setNotificationForm({ ...notificationForm, imageFile: null, imagePreview: null })}
                                     className="mt-2 text-red-400 text-xs hover:text-red-300"
                                   >
                                     Remove
@@ -3801,11 +3657,10 @@ export default function SuperAdminPortal() {
                           <div className="text-center text-white/60 text-xs">OR</div>
                           <div>
                             <label className="text-white text-xs">Image URL</label>
-                            <input 
-                              type="url" 
-                              className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${
-                                notificationErrors.image ? 'border-red-500' : 'border-white/20'
-                              }`}
+                            <input
+                              type="url"
+                              className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${notificationErrors.image ? 'border-red-500' : 'border-white/20'
+                                }`}
                               placeholder="https://example.com/image.jpg"
                               value={notificationForm.imageUrl}
                               onChange={(e) => handleImageUrlChange(e.target.value)}
@@ -3820,11 +3675,10 @@ export default function SuperAdminPortal() {
                       {/* Video Section */}
                       <div className="border-t border-white/20 pt-4">
                         <label className="text-white text-sm font-semibold mb-2 block">Video Link (Optional)</label>
-                        <input 
-                          type="url" 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${
-                            notificationErrors.video ? 'border-red-500' : 'border-white/20'
-                          }`}
+                        <input
+                          type="url"
+                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${notificationErrors.video ? 'border-red-500' : 'border-white/20'
+                            }`}
                           placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
                           value={notificationForm.videoUrl}
                           onChange={(e) => handleVideoUrlChange(e.target.value)}
@@ -3837,7 +3691,7 @@ export default function SuperAdminPortal() {
                         </p>
                       </div>
 
-                      <button 
+                      <button
                         onClick={handleSendNotification}
                         className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-semibold mt-4"
                       >
@@ -3848,7 +3702,7 @@ export default function SuperAdminPortal() {
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Recent Notifications</h3>
                     <div className="space-y-2">
-                      {[{title:'Welcome Offer', time:'2h ago'}, {title:'Table 2 starting soon', time:'10m ago'}].map(n => (
+                      {[{ title: 'Welcome Offer', time: '2h ago' }, { title: 'Table 2 starting soon', time: '10m ago' }].map(n => (
                         <div key={n.title} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
                           <div className="text-white">{n.title}</div>
                           <div className="text-white/60 text-sm">{n.time}</div>
@@ -3890,7 +3744,7 @@ export default function SuperAdminPortal() {
                           className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                           placeholder="Enter group name"
                           value={groupForm.name}
-                          onChange={(e) => setGroupForm({...groupForm, name: e.target.value})}
+                          onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
                         />
                       </div>
                       <div>
@@ -3899,7 +3753,7 @@ export default function SuperAdminPortal() {
                           className="w-full"
                           value={groupForm.type}
                           onChange={(e) => {
-                            setGroupForm({...groupForm, type: e.target.value, memberIds: []});
+                            setGroupForm({ ...groupForm, type: e.target.value, memberIds: [] });
                             setGroupMemberSearch("");
                           }}
                         >
@@ -4009,11 +3863,10 @@ export default function SuperAdminPortal() {
                               <div>
                                 <div className="flex items-center gap-2 mb-1">
                                   <h4 className="text-white font-semibold text-lg">{group.name}</h4>
-                                  <span className={`px-2 py-1 rounded text-xs ${
-                                    group.type === "player"
-                                      ? "bg-blue-500/30 text-blue-300 border border-blue-400/50"
-                                      : "bg-purple-500/30 text-purple-300 border border-purple-400/50"
-                                  }`}>
+                                  <span className={`px-2 py-1 rounded text-xs ${group.type === "player"
+                                    ? "bg-blue-500/30 text-blue-300 border border-blue-400/50"
+                                    : "bg-purple-500/30 text-purple-300 border border-purple-400/50"
+                                    }`}>
                                     {group.type === "player" ? "Player Group" : "Staff Group"}
                                   </span>
                                 </div>
@@ -4072,7 +3925,7 @@ export default function SuperAdminPortal() {
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Player & Staff Support Chat</h2>
-                
+
                 {/* Chat Type Tabs */}
                 <div className="flex gap-2 mb-6">
                   <button
@@ -4081,11 +3934,10 @@ export default function SuperAdminPortal() {
                       setSelectedChat(null);
                       setStatusFilter("all");
                     }}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                      chatType === "player"
-                        ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
+                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${chatType === "player"
+                      ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg"
+                      : "bg-white/10 text-white/70 hover:bg-white/15"
+                      }`}
                   >
                     📱 Player Chat
                   </button>
@@ -4095,11 +3947,10 @@ export default function SuperAdminPortal() {
                       setSelectedChat(null);
                       setStatusFilter("all");
                     }}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                      chatType === "staff"
-                        ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
+                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${chatType === "staff"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg"
+                      : "bg-white/10 text-white/70 hover:bg-white/15"
+                      }`}
                   >
                     👥 Staff Chat
                   </button>
@@ -4121,30 +3972,28 @@ export default function SuperAdminPortal() {
                         <option value="closed">Closed</option>
                       </CustomSelect>
                     </div>
-                    
+
                     <div className="space-y-2 max-h-[600px] overflow-y-auto">
                       {filteredChats.length > 0 ? (
                         filteredChats.map(chat => (
                           <div
                             key={chat.id}
                             onClick={() => setSelectedChat(chat)}
-                            className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                              selectedChat?.id === chat.id
-                                ? "bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50"
-                                : "bg-white/5 border-white/10 hover:bg-white/10"
-                            }`}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedChat?.id === chat.id
+                              ? "bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50"
+                              : "bg-white/5 border-white/10 hover:bg-white/10"
+                              }`}
                           >
                             <div className="flex items-start justify-between mb-1">
                               <div className="font-semibold text-white text-sm">
                                 {chatType === "player" ? chat.playerName : chat.staffName}
                               </div>
-                              <span className={`px-2 py-1 rounded text-xs ${
-                                chat.status === "open"
-                                  ? "bg-yellow-500/30 text-yellow-300"
-                                  : chat.status === "in_progress"
+                              <span className={`px-2 py-1 rounded text-xs ${chat.status === "open"
+                                ? "bg-yellow-500/30 text-yellow-300"
+                                : chat.status === "in_progress"
                                   ? "bg-blue-500/30 text-blue-300"
                                   : "bg-gray-500/30 text-gray-300"
-                              }`}>
+                                }`}>
                                 {chat.status === "open" ? "Open" : chat.status === "in_progress" ? "In Progress" : "Closed"}
                               </span>
                             </div>
@@ -4202,11 +4051,10 @@ export default function SuperAdminPortal() {
                               key={message.id}
                               className={`flex ${message.sender === "staff" || message.sender === "admin" ? "justify-end" : "justify-start"}`}
                             >
-                              <div className={`max-w-[70%] rounded-lg p-3 ${
-                                message.sender === "staff" || message.sender === "admin"
-                                  ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white"
-                                  : "bg-white/20 text-white"
-                              }`}>
+                              <div className={`max-w-[70%] rounded-lg p-3 ${message.sender === "staff" || message.sender === "admin"
+                                ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white"
+                                : "bg-white/20 text-white"
+                                }`}>
                                 <div className="text-xs font-semibold mb-1 opacity-90">{message.senderName}</div>
                                 <div className="text-sm">{message.text}</div>
                                 <div className="text-xs opacity-70 mt-1">
@@ -4350,28 +4198,260 @@ export default function SuperAdminPortal() {
               </section>
             </div>
           )}
+
+          {activeItem === "Affiliates" && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">Affiliate Management</h2>
+                <button
+                  onClick={() => setShowAffiliateModal(true)}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-2 rounded-lg font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                >
+                  + Add Affiliate
+                </button>
+              </div>
+
+              {/* Affiliates Table */}
+              <div className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700 overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="text-gray-400 border-b border-gray-700 text-sm uppercase">
+                    <tr>
+                      <th className="py-3 px-4">Name</th>
+                      <th className="py-3 px-4">Email</th>
+                      <th className="py-3 px-4">Code</th>
+                      <th className="py-3 px-4">KYC Status</th>
+                      <th className="py-3 px-4">Referrals</th>
+                      <th className="py-3 px-4">Earnings</th>
+                      <th className="py-3 px-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {affiliates.map((aff) => (
+                      <tr key={aff.id} className="hover:bg-gray-700/50 transition-colors cursor-pointer" onClick={() => setViewingAffiliate(aff)}>
+                        <td className="py-4 px-4 font-medium">{aff.name}</td>
+                        <td className="py-4 px-4 text-gray-400">{aff.email}</td>
+                        <td className="py-4 px-4 font-mono text-yellow-500">{aff.referralCode}</td>
+                        <td className="py-4 px-4">
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${aff.kycStatus === 'Verified' ? 'bg-green-900/50 text-green-400' :
+                            aff.kycStatus === 'Pending' ? 'bg-yellow-900/50 text-yellow-400' :
+                              'bg-red-900/50 text-red-400'
+                            }`}>
+                            {aff.kycStatus}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-blue-400">{aff.totalReferrals}</td>
+                        <td className="py-4 px-4 text-green-400">₹{aff.earnings.toLocaleString()}</td>
+                        <td className="py-4 px-4">
+                          <span className={`w-2 h-2 inline-block rounded-full mr-2 ${aff.status === 'Active' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                          {aff.status}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
-      {/* Table View Modal for Seat Assignment (Manager Mode) */}
-      {showTableView && selectedPlayerForSeating && (
-        <div className="fixed inset-0 z-50 bg-black/90 overflow-y-auto hide-scrollbar">
-          <TableView
-            tableId={selectedTableForSeating}
-            onClose={() => {
-              setShowTableView(false);
-              setSelectedPlayerForSeating(null);
-              setSelectedTableForSeating(null);
-            }}
-            isManagerMode={true}
-            selectedPlayerForSeating={selectedPlayerForSeating}
-            occupiedSeats={occupiedSeats}
-            onSeatAssign={handleSeatAssign}
-            tables={tables}
-          />
+      {/* Add Affiliate Modal */}
+      {showAffiliateModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md relative shadow-2xl">
+            <h3 className="text-xl font-bold mb-4">Add New Affiliate</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Name</label>
+                <input
+                  value={newAffiliate.name}
+                  onChange={(e) => setNewAffiliate({ ...newAffiliate, name: e.target.value })}
+                  className="w-full bg-black/50 border border-gray-700 rounded-lg p-3 focus:border-indigo-500 outline-none"
+                  placeholder="John Agent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Email</label>
+                <input
+                  value={newAffiliate.email}
+                  onChange={(e) => setNewAffiliate({ ...newAffiliate, email: e.target.value })}
+                  className="w-full bg-black/50 border border-gray-700 rounded-lg p-3 focus:border-indigo-500 outline-none"
+                  placeholder="agent@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Referral Code</label>
+                <input
+                  value={newAffiliate.referralCode}
+                  onChange={(e) => setNewAffiliate({ ...newAffiliate, referralCode: e.target.value })}
+                  className="w-full bg-black/50 border border-gray-700 rounded-lg p-3 focus:border-indigo-500 outline-none uppercase font-mono"
+                  placeholder="AGENT2025"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowAffiliateModal(false)}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-lg font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddAffiliate}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-lg font-bold shadow-lg"
+                >
+                  Create Affiliate
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Affiliate Details Overlay */}
+      {viewingAffiliate && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 overflow-y-auto">
+          <div className="min-h-screen p-8 max-w-5xl mx-auto">
+            <button
+              onClick={() => setViewingAffiliate(null)}
+              className="mb-6 text-gray-400 hover:text-white flex items-center gap-2"
+            >
+              ← Back to List
+            </button>
+
+            <div className="bg-gray-900 border border-t-4 border-t-indigo-500 rounded-2xl p-8 mb-8 shadow-2xl bg-gradient-to-r from-gray-900 to-gray-800">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-3xl font-bold text-white mb-2">{viewingAffiliate.name}</h2>
+                  <div className="flex gap-4 text-sm text-gray-400">
+                    <span>Ref Code: <span className="text-yellow-400 font-mono">{viewingAffiliate.referralCode}</span></span>
+                    <span>•</span>
+                    <span>{viewingAffiliate.email}</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-400">Total Earnings</div>
+                  <div className="text-3xl font-bold text-green-400">₹{viewingAffiliate.earnings.toLocaleString()}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+                <div className="bg-black/30 p-4 rounded-xl border border-gray-700">
+                  <div className="text-xs text-gray-500 uppercase">KYC Status</div>
+                  <div className={`text-lg font-bold ${viewingAffiliate.kycStatus === 'Verified' ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {viewingAffiliate.kycStatus}
+                  </div>
+                </div>
+                <div className="bg-black/30 p-4 rounded-xl border border-gray-700">
+                  <div className="text-xs text-gray-500 uppercase">Status</div>
+                  <div className="text-lg font-bold text-white">{viewingAffiliate.status}</div>
+                </div>
+                <div className="bg-black/30 p-4 rounded-xl border border-gray-700">
+                  <div className="text-xs text-gray-500 uppercase">Total Referrals</div>
+                  <div className="text-lg font-bold text-blue-400">{viewingAffiliate.totalReferrals}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-xl">
+              <div className="p-6 border-b border-gray-700 bg-gray-800/50">
+                <h3 className="text-xl font-bold">Referred Players</h3>
+                <p className="text-gray-400 text-sm">Users who signed up using {viewingAffiliate.name}'s code</p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="text-gray-400 border-b border-gray-700 text-sm uppercase bg-gray-900/50">
+                    <tr>
+                      <th className="py-3 px-6">Player Name</th>
+                      <th className="py-3 px-6">Email</th>
+                      <th className="py-3 px-6">Joined Date</th>
+                      <th className="py-3 px-6">Account Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {getReferredUsers(viewingAffiliate.referralCode).length > 0 ? (
+                      getReferredUsers(viewingAffiliate.referralCode).map((user, idx) => (
+                        <tr key={user.id || idx} className="hover:bg-gray-700/30">
+                          <td className="py-4 px-6 font-medium text-white">{user.name}</td>
+                          <td className="py-4 px-6 text-gray-400">{user.email}</td>
+                          <td className="py-4 px-6 text-gray-400">{user.registrationDate || "N/A"}</td>
+                          <td className="py-4 px-6">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${user.accountStatus === 'Active' ? 'bg-green-900/30 text-green-400' : 'bg-gray-700 text-gray-400'
+                              }`}>
+                              {user.accountStatus || 'Active'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="4" className="py-8 text-center text-gray-500">
+                          No referred users found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* Affiliate Credentials Modal */}
+      {createdCredentials && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-green-500/50 rounded-2xl p-8 w-full max-w-md relative shadow-2xl bg-gradient-to-b from-gray-900 to-gray-800">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/30">
+                <span className="text-3xl">✅</span>
+              </div>
+              <h3 className="text-2xl font-bold text-white">Affiliate Created!</h3>
+              <p className="text-gray-400 mt-2">Share these credentials with {createdCredentials.name}</p>
+            </div>
+
+            <div className="space-y-4 bg-black/40 p-6 rounded-xl border border-gray-700">
+              <div>
+                <label className="text-xs text-gray-500 uppercase font-semibold">Referral Code</label>
+                <div className="flex justify-between items-center mt-1">
+                  <div className="font-mono text-xl text-yellow-400 font-bold tracking-wider">{createdCredentials.referralCode}</div>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(createdCredentials.referralCode)}
+                    className="text-gray-400 hover:text-white text-sm"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-700/50 pt-4">
+                <label className="text-xs text-gray-500 uppercase font-semibold">Temporary Password</label>
+                <div className="flex justify-between items-center mt-1">
+                  <div className="font-mono text-xl text-green-400 font-bold tracking-wider">{createdCredentials.password}</div>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(createdCredentials.password)}
+                    className="text-gray-400 hover:text-white text-sm"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8">
+              <button
+                onClick={() => setCreatedCredentials(null)}
+                className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl shadow-lg transition-transform hover:scale-[1.02]"
+              >
+                Done
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
+
   );
 }
 

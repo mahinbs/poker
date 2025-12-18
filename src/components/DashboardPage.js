@@ -3,19 +3,20 @@ import { useNavigate } from "react-router-dom";
 import CustomSelect from "./common/CustomSelect";
 import TableView from "./hologram/TableView";
 import TableManagementSection from "./TableManagementSection";
+import SessionControl from "./SessionControl";
 
 export default function DashboardPage() {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const navigate = useNavigate();
 
   // State for session control
-  const [selectedTable, setSelectedTable] = useState(null);
-  const [sessionParams, setSessionParams] = useState({
-    playWindow: 30,
-    callWindow: 5,
-    cashoutWindow: 10,
-    sessionTimeout: 120
-  });
+  // const [selectedTable, setSelectedTable] = useState(null);
+  // const [sessionParams, setSessionParams] = useState({
+  //   playWindow: 30,
+  //   callWindow: 5,
+  //   cashoutWindow: 10,
+  //   sessionTimeout: 120
+  // });
 
   // Mock table data - in real app, this would come from API
   const [tables, setTables] = useState([
@@ -49,29 +50,29 @@ export default function DashboardPage() {
 
   // State for waitlist and seating management
   const [waitlist, setWaitlist] = useState([
-    { 
-      id: 1, 
-      playerName: "Alex Johnson", 
+    {
+      id: 1,
+      playerName: "Alex Johnson",
       playerId: "P001",
-      position: 1, 
+      position: 1,
       gameType: "Texas Hold'em",
       preferredSeat: 3,
       preferredTable: 1
     },
-    { 
-      id: 2, 
-      playerName: "Maria Garcia", 
+    {
+      id: 2,
+      playerName: "Maria Garcia",
       playerId: "P002",
-      position: 2, 
+      position: 2,
       gameType: "Omaha",
       preferredSeat: 5,
       preferredTable: 2
     },
-    { 
-      id: 3, 
-      playerName: "David Wilson", 
+    {
+      id: 3,
+      playerName: "David Wilson",
       playerId: "P003",
-      position: 3, 
+      position: 3,
       gameType: "Texas Hold'em",
       preferredSeat: null, // No preference
       preferredTable: 1
@@ -90,26 +91,20 @@ export default function DashboardPage() {
   const [selectedPlayerForSeating, setSelectedPlayerForSeating] = useState(null);
   const [selectedTableForSeating, setSelectedTableForSeating] = useState(null);
 
-  // State for seat assignment form
-  const [seatAssignment, setSeatAssignment] = useState({
-    playerId: "",
-    playerName: "",
-    tableId: "",
-    seatNumber: ""
-  });
+
 
   // Player search states for Cash-in/Cash-out operations
   const [adjustmentPlayerSearch, setAdjustmentPlayerSearch] = useState("");
   const [selectedAdjustmentPlayer, setSelectedAdjustmentPlayer] = useState(null);
   const filteredAdjustmentPlayers = adjustmentPlayerSearch.length >= 3
     ? mockPlayers.filter(player => {
-        const searchLower = adjustmentPlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
+      const searchLower = adjustmentPlayerSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        player.email.toLowerCase().includes(searchLower)
+      );
+    })
     : [];
 
   // Load custom groups from localStorage (read-only access)
@@ -164,7 +159,7 @@ export default function DashboardPage() {
     registrationDate: "all",
     documentType: "all"
   });
-  
+
   // Mock players data with kycStatus: 'pending'
   const [allPlayers, setAllPlayers] = useState([
     {
@@ -227,52 +222,52 @@ export default function DashboardPage() {
   // Filter players for dropdown search
   const filteredPlayersForSearch = playersSearch.length >= 2
     ? allPlayers.filter(player => {
-        if (player.kycStatus !== "pending") return false;
-        const searchLower = playersSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.phone.includes(playersSearch)
-        );
-      })
+      if (player.kycStatus !== "pending") return false;
+      const searchLower = playersSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.email.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        player.phone.includes(playersSearch)
+      );
+    })
     : [];
 
   // Filter players based on search and filters (for display list)
   const filteredPlayers = allPlayers.filter(player => {
     // Filter by kycStatus (always 'pending' for this tab)
     if (player.kycStatus !== "pending") return false;
-    
+
     // If a player is selected, show only that player
     if (selectedPlayer && player.id !== selectedPlayer.id) return false;
-    
+
     // Otherwise, filter by search term
     if (!selectedPlayer && playersSearch) {
       const searchLower = playersSearch.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         player.name.toLowerCase().includes(searchLower) ||
         player.email.toLowerCase().includes(searchLower) ||
         player.id.toLowerCase().includes(searchLower) ||
         player.phone.includes(playersSearch);
       if (!matchesSearch) return false;
     }
-    
+
     // Filter by document type
     if (playersFilter.documentType !== "all" && player.documentType !== playersFilter.documentType) {
       return false;
     }
-    
+
     // Filter by registration date
     if (playersFilter.registrationDate !== "all") {
       const registrationDate = new Date(player.registrationDate);
       const now = new Date();
       const daysDiff = Math.floor((now - registrationDate) / (1000 * 60 * 60 * 24));
-      
+
       if (playersFilter.registrationDate === "today" && daysDiff !== 0) return false;
       if (playersFilter.registrationDate === "week" && daysDiff > 7) return false;
       if (playersFilter.registrationDate === "month" && daysDiff > 30) return false;
     }
-    
+
     return true;
   });
 
@@ -370,43 +365,43 @@ export default function DashboardPage() {
   // Filter registered players for dropdown search
   const filteredRegisteredPlayersForSearch = registeredPlayersSearch.length >= 2
     ? registeredPlayers.filter(player => {
-        if (player.kycStatus !== "approved") return false;
-        const searchLower = registeredPlayersSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.phone.includes(registeredPlayersSearch)
-        );
-      })
+      if (player.kycStatus !== "approved") return false;
+      const searchLower = registeredPlayersSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.email.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        player.phone.includes(registeredPlayersSearch)
+      );
+    })
     : [];
 
   // Filter registered players (for display list)
   const filteredRegisteredPlayers = registeredPlayers.filter(player => {
     if (player.kycStatus !== "approved") return false;
-    
+
     // If a player is selected, show only that player
     if (selectedRegisteredPlayer && player.id !== selectedRegisteredPlayer.id) return false;
-    
+
     // Otherwise, filter by search text
     if (!selectedRegisteredPlayer && registeredPlayersSearch) {
       const searchLower = registeredPlayersSearch.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         player.name.toLowerCase().includes(searchLower) ||
         player.email.toLowerCase().includes(searchLower) ||
         player.id.toLowerCase().includes(searchLower) ||
         player.phone.includes(registeredPlayersSearch);
       if (!matchesSearch) return false;
     }
-    
+
     if (registeredPlayersFilter.status !== "all" && player.accountStatus !== registeredPlayersFilter.status) {
       return false;
     }
-    
+
     if (registeredPlayersFilter.documentType !== "all" && player.documentType !== registeredPlayersFilter.documentType) {
       return false;
     }
-    
+
     if (registeredPlayersFilter.registrationDate !== "all") {
       const registrationDate = new Date(player.registrationDate);
       const now = new Date();
@@ -424,7 +419,7 @@ export default function DashboardPage() {
       if (registeredPlayersFilter.verifiedDate === "week" && daysDiff > 7) return false;
       if (registeredPlayersFilter.verifiedDate === "month" && daysDiff > 30) return false;
     }
-    
+
     return true;
   });
 
@@ -451,7 +446,7 @@ export default function DashboardPage() {
         p.documentType
       ])
     ].map(row => row.join(",")).join("\n");
-    
+
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -470,20 +465,20 @@ export default function DashboardPage() {
   const [tableBalance, setTableBalance] = useState("");
   const filteredCashoutPlayers = cashoutPlayerSearch.length >= 3
     ? allPlayersForSearch.filter(player => {
-        const searchLower = cashoutPlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
+      const searchLower = cashoutPlayerSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        player.email.toLowerCase().includes(searchLower)
+      );
+    })
     : [];
 
   // Validate image file
   const validateImageFile = (file) => {
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     const maxSize = 5 * 1024 * 1024; // 5MB
-    
+
     if (!validTypes.includes(file.type)) {
       return "Image must be JPG, PNG, GIF, or WebP format";
     }
@@ -496,9 +491,9 @@ export default function DashboardPage() {
   // Validate video URL
   const validateVideoUrl = (url) => {
     if (!url) return null; // Optional field
-    
+
     const videoUrlPattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|facebook\.com|instagram\.com)\/.+$/i;
-    
+
     if (!videoUrlPattern.test(url)) {
       return "Please enter a valid video URL (YouTube, Vimeo, DailyMotion, Facebook, Instagram)";
     }
@@ -511,10 +506,10 @@ export default function DashboardPage() {
     if (file) {
       const error = validateImageFile(file);
       if (error) {
-        setNotificationErrors({...notificationErrors, image: error});
+        setNotificationErrors({ ...notificationErrors, image: error });
         return;
       }
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -524,7 +519,7 @@ export default function DashboardPage() {
           imagePreview: reader.result,
           imageUrl: "" // Clear URL if file is uploaded
         });
-        setNotificationErrors({...notificationErrors, image: null});
+        setNotificationErrors({ ...notificationErrors, image: null });
       };
       reader.readAsDataURL(file);
     }
@@ -533,61 +528,61 @@ export default function DashboardPage() {
   // Handle image URL input
   const handleImageUrlChange = (url) => {
     if (!url) {
-      setNotificationForm({...notificationForm, imageUrl: "", imageFile: null, imagePreview: null});
-      setNotificationErrors({...notificationErrors, image: null});
+      setNotificationForm({ ...notificationForm, imageUrl: "", imageFile: null, imagePreview: null });
+      setNotificationErrors({ ...notificationErrors, image: null });
       return;
     }
-    
+
     // Basic URL validation
     const urlPattern = /^https?:\/\/.+/i;
     if (!urlPattern.test(url)) {
-      setNotificationErrors({...notificationErrors, image: "Please enter a valid URL starting with http:// or https://"});
+      setNotificationErrors({ ...notificationErrors, image: "Please enter a valid URL starting with http:// or https://" });
       return;
     }
-    
+
     setNotificationForm({
       ...notificationForm,
       imageUrl: url,
       imageFile: null,
       imagePreview: null
     });
-    setNotificationErrors({...notificationErrors, image: null});
+    setNotificationErrors({ ...notificationErrors, image: null });
   };
 
   // Handle video URL input
   const handleVideoUrlChange = (url) => {
-    setNotificationForm({...notificationForm, videoUrl: url});
+    setNotificationForm({ ...notificationForm, videoUrl: url });
     const error = validateVideoUrl(url);
-    setNotificationErrors({...notificationErrors, video: error});
+    setNotificationErrors({ ...notificationErrors, video: error });
   };
 
   // Handle send notification
   const handleSendNotification = () => {
     const errors = {};
-    
+
     if (!notificationForm.title.trim()) {
       errors.title = "Title is required";
     }
     if (!notificationForm.message.trim()) {
       errors.message = "Message is required";
     }
-    
+
     // Validate image (either file or URL, but not both)
     if (notificationForm.imageFile && notificationForm.imageUrl) {
       errors.image = "Please use either image upload OR image URL, not both";
     }
-    
+
     // Validate video URL if provided
     if (notificationForm.videoUrl) {
       const videoError = validateVideoUrl(notificationForm.videoUrl);
       if (videoError) errors.video = videoError;
     }
-    
+
     if (Object.keys(errors).length > 0) {
       setNotificationErrors(errors);
       return;
     }
-    
+
     // Prepare payload
     const payload = {
       title: notificationForm.title,
@@ -595,7 +590,7 @@ export default function DashboardPage() {
       audience: notificationForm.audience,
       media: {}
     };
-    
+
     // Add image to payload (URL from upload or direct URL)
     if (notificationForm.imageFile) {
       // In real app, upload file and get URL
@@ -604,15 +599,15 @@ export default function DashboardPage() {
     } else if (notificationForm.imageUrl) {
       payload.media.imageUrl = notificationForm.imageUrl;
     }
-    
+
     // Add video URL to payload
     if (notificationForm.videoUrl) {
       payload.media.videoUrl = notificationForm.videoUrl;
     }
-    
+
     console.log("Sending notification payload:", payload);
     alert(`Notification sent!\nPayload: ${JSON.stringify(payload, null, 2)}`);
-    
+
     // Reset form
     setNotificationForm({
       title: "",
@@ -664,25 +659,25 @@ export default function DashboardPage() {
   const handleSeatAssign = ({ playerId, playerName, tableId, seatNumber }) => {
     const tableIdNum = parseInt(tableId);
     const seatNum = parseInt(seatNumber);
-    
+
     if (!isSeatAvailable(tableIdNum, seatNum)) {
       alert(`Seat ${seatNum} at Table ${tableIdNum} is not available`);
       return;
     }
-    
+
     // Assign seat
     setOccupiedSeats(prev => ({
       ...prev,
       [tableIdNum]: [...(prev[tableIdNum] || []), seatNum]
     }));
-    
+
     // Remove from waitlist
-    setWaitlist(prev => prev.filter(item => 
+    setWaitlist(prev => prev.filter(item =>
       (item.id !== parseInt(playerId)) && (item.playerId !== playerId)
     ));
-    
+
     alert(`Assigned ${playerName} to Table ${tableIdNum}, Seat ${seatNum}`);
-    
+
     // Close table view
     setShowTableView(false);
     setSelectedPlayerForSeating(null);
@@ -900,13 +895,13 @@ export default function DashboardPage() {
     }
   ]);
 
-  const filteredChats = chatType === "player" 
+  const filteredChats = chatType === "player"
     ? playerChats.filter(chat => statusFilter === "all" || chat.status === statusFilter)
     : staffChats.filter(chat => statusFilter === "all" || chat.status === statusFilter);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedChat) return;
-    
+
     const message = {
       id: `M${Date.now()}`,
       sender: chatType === "player" ? "staff" : "manager",
@@ -916,27 +911,27 @@ export default function DashboardPage() {
     };
 
     if (chatType === "player") {
-      setPlayerChats(prev => prev.map(chat => 
+      setPlayerChats(prev => prev.map(chat =>
         chat.id === selectedChat.id
           ? {
-              ...chat,
-              messages: [...chat.messages, message],
-              lastMessage: message.text,
-              lastMessageTime: message.timestamp,
-              status: chat.status === "closed" ? "in_progress" : chat.status
-            }
+            ...chat,
+            messages: [...chat.messages, message],
+            lastMessage: message.text,
+            lastMessageTime: message.timestamp,
+            status: chat.status === "closed" ? "in_progress" : chat.status
+          }
           : chat
       ));
     } else {
-      setStaffChats(prev => prev.map(chat => 
+      setStaffChats(prev => prev.map(chat =>
         chat.id === selectedChat.id
           ? {
-              ...chat,
-              messages: [...chat.messages, message],
-              lastMessage: message.text,
-              lastMessageTime: message.timestamp,
-              status: chat.status === "closed" ? "in_progress" : chat.status
-            }
+            ...chat,
+            messages: [...chat.messages, message],
+            lastMessage: message.text,
+            lastMessageTime: message.timestamp,
+            status: chat.status === "closed" ? "in_progress" : chat.status
+          }
           : chat
       ));
     }
@@ -945,7 +940,7 @@ export default function DashboardPage() {
 
   const handleStatusChange = (chatId, newStatus) => {
     if (chatType === "player") {
-      setPlayerChats(prev => prev.map(chat => 
+      setPlayerChats(prev => prev.map(chat =>
         chat.id === chatId ? { ...chat, status: newStatus } : chat
       ));
       if (selectedChat && selectedChat.id === chatId) {
@@ -953,7 +948,7 @@ export default function DashboardPage() {
         if (updatedChat) setSelectedChat({ ...updatedChat, status: newStatus });
       }
     } else {
-      setStaffChats(prev => prev.map(chat => 
+      setStaffChats(prev => prev.map(chat =>
         chat.id === chatId ? { ...chat, status: newStatus } : chat
       ));
       if (selectedChat && selectedChat.id === chatId) {
@@ -981,8 +976,6 @@ export default function DashboardPage() {
     "Table Management",
     "Tournaments",
     "Player Flow",
-    "Seating Management",
-    "Waitlist & Seating Overrides",
     "Real-Time Chat",
     "Players",
     "Registered Players",
@@ -1014,11 +1007,10 @@ export default function DashboardPage() {
               <button
                 key={idx}
                 onClick={() => setActiveItem(item)}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-yellow-400/20 hover:to-green-500/20 text-white"
-                }`}
+                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${activeItem === item
+                  ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
+                  : "bg-white/5 hover:bg-gradient-to-r hover:from-yellow-400/20 hover:to-green-500/20 text-white"
+                  }`}
               >
                 {item}
               </button>
@@ -1153,195 +1145,10 @@ export default function DashboardPage() {
 
           {/* Session Control */}
           {activeItem === "Session Control" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-blue-600/30 via-purple-500/20 to-indigo-700/30 rounded-xl shadow-md border border-blue-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Table Session Control</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-3">Table Sessions</h3>
-                    <div className="space-y-2">
-                      {tables.map((table) => (
-                        <button
-                          key={table.id}
-                          onClick={() => setSelectedTable(table)}
-                          className={`w-full flex justify-between items-center p-2 rounded transition-all ${
-                            selectedTable?.id === table.id
-                              ? "bg-blue-500/30 border-2 border-blue-400"
-                              : table.status === "Active"
-                              ? "bg-green-500/20 hover:bg-green-500/30"
-                              : table.status === "Paused"
-                              ? "bg-yellow-500/20 hover:bg-yellow-500/30"
-                              : "bg-red-500/20 hover:bg-red-500/30"
-                          }`}
-                        >
-                          <span className="text-white text-sm">{table.name}</span>
-                          <span className={`text-sm ${
-                            table.status === "Active" ? "text-green-300" :
-                            table.status === "Paused" ? "text-yellow-300" :
-                            "text-red-300"
-                          }`}>
-                            {table.status}
-                          </span>
-                        </button>
-                      ))}
-                      </div>
-                    {selectedTable && (
-                      <div className="mt-4 p-3 bg-blue-500/20 rounded border border-blue-400/30">
-                        <div className="text-white text-sm font-semibold mb-1">Selected: {selectedTable.name}</div>
-                        <div className={`text-xs ${
-                          selectedTable.status === "Active" ? "text-green-300" : "text-gray-400"
-                        }`}>
-                          {selectedTable.status === "Active" 
-                            ? "✓ Session parameters can be edited" 
-                            : "⚠ Only active tables allow parameter editing"}
-                      </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-3">Session Controls</h3>
-                    <div className="space-y-3">
-                      <button 
-                        className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold"
-                        disabled={!selectedTable}
-                      >
-                        Start Session
-                      </button>
-                      <button 
-                        className="w-full bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold"
-                        disabled={!selectedTable}
-                      >
-                        Pause Session
-                      </button>
-                      <button 
-                        className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold"
-                        disabled={!selectedTable}
-                      >
-                        End Session
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-3">Timing & Window Controls</h3>
-                    {selectedTable && selectedTable.status === "Active" ? (
-                    <div className="space-y-3">
-                      <div>
-                          <label className="text-white text-sm">Min Play Time (minutes)</label>
-                          <input 
-                            type="number" 
-                            className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="30" 
-                            value={sessionParams.playWindow}
-                            onChange={(e) => setSessionParams({...sessionParams, playWindow: e.target.value})}
-                          />
-                        <div className="flex gap-2 mt-2">
-                            <button 
-                              className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                              onClick={() => {/* Handle set */}}
-                            >
-                            Set
-                          </button>
-                            <button 
-                              className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm"
-                              onClick={() => {/* Handle adjust */}}
-                            >
-                            Adjust
-                          </button>
-                        </div>
-                      </div>
-                      <div>
-                          <label className="text-white text-sm">Call Time (minutes)</label>
-                          <input 
-                            type="number" 
-                            className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="5" 
-                            value={sessionParams.callWindow}
-                            onChange={(e) => setSessionParams({...sessionParams, callWindow: e.target.value})}
-                          />
-                        <div className="flex gap-2 mt-2">
-                            <button 
-                              className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                              onClick={() => {/* Handle set */}}
-                            >
-                            Set
-                          </button>
-                            <button 
-                              className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm"
-                              onClick={() => {/* Handle adjust */}}
-                            >
-                            Adjust
-                          </button>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Cash-out Window (minutes)</label>
-                          <input 
-                            type="number" 
-                            className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="10" 
-                            value={sessionParams.cashoutWindow}
-                            onChange={(e) => setSessionParams({...sessionParams, cashoutWindow: e.target.value})}
-                          />
-                        <div className="flex gap-2 mt-2">
-                            <button 
-                              className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                              onClick={() => {/* Handle set */}}
-                            >
-                            Set
-                          </button>
-                            <button 
-                              className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm"
-                              onClick={() => {/* Handle adjust */}}
-                            >
-                            Adjust
-                          </button>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Session Timeout (minutes)</label>
-                          <input 
-                            type="number" 
-                            className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="120" 
-                            value={sessionParams.sessionTimeout}
-                            onChange={(e) => setSessionParams({...sessionParams, sessionTimeout: e.target.value})}
-                          />
-                        <div className="flex gap-2 mt-2">
-                            <button 
-                              className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                              onClick={() => {/* Handle set */}}
-                            >
-                            Set
-                          </button>
-                            <button 
-                              className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm"
-                              onClick={() => {/* Handle adjust */}}
-                            >
-                            Adjust
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <div className="text-gray-400 text-sm mb-2">
-                          {!selectedTable 
-                            ? "Please select a table to edit session parameters"
-                            : "Session parameters can only be edited for active tables"}
-                        </div>
-                        {!selectedTable && (
-                          <div className="text-gray-500 text-xs mt-2">
-                            Click on an active table from the list to enable editing
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            </div>
+            <SessionControl
+              tables={tables}
+              setTables={setTables}
+            />
           )}
 
           {/* Table Management */}
@@ -1423,10 +1230,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="relative">
                         <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Search by name, ID, or email..." 
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Search by name, ID, or email..."
                           value={adjustmentPlayerSearch}
                           onChange={(e) => {
                             setAdjustmentPlayerSearch(e.target.value);
@@ -1453,7 +1260,7 @@ export default function DashboardPage() {
                         {selectedAdjustmentPlayer && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
                             <span className="text-green-300">Selected: {selectedAdjustmentPlayer.name} ({selectedAdjustmentPlayer.id})</span>
-                            <button 
+                            <button
                               onClick={() => {
                                 setSelectedAdjustmentPlayer(null);
                                 setAdjustmentPlayerSearch("");
@@ -1469,20 +1276,20 @@ export default function DashboardPage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-white text-sm">Available Balance</label>
-                            <input 
-                              type="text" 
-                              className="w-full mt-1 px-3 py-2 bg-green-500/20 border border-green-400/30 rounded text-white font-semibold" 
-                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].availableBalance.toLocaleString('en-IN')}`} 
-                              readOnly 
+                            <input
+                              type="text"
+                              className="w-full mt-1 px-3 py-2 bg-green-500/20 border border-green-400/30 rounded text-white font-semibold"
+                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].availableBalance.toLocaleString('en-IN')}`}
+                              readOnly
                             />
                           </div>
                           <div>
                             <label className="text-white text-sm">Current Table Balance</label>
-                            <input 
-                              type="text" 
-                              className="w-full mt-1 px-3 py-2 bg-yellow-500/20 border border-yellow-400/30 rounded text-white font-semibold" 
-                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].tableBalance.toLocaleString('en-IN')}`} 
-                              readOnly 
+                            <input
+                              type="text"
+                              className="w-full mt-1 px-3 py-2 bg-yellow-500/20 border border-yellow-400/30 rounded text-white font-semibold"
+                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].tableBalance.toLocaleString('en-IN')}`}
+                              readOnly
                             />
                           </div>
                         </div>
@@ -1492,7 +1299,7 @@ export default function DashboardPage() {
                         <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
                         <p className="text-xs text-gray-400 mt-1">This will deduct from available balance and add to table balance</p>
                       </div>
-                      <button 
+                      <button
                         onClick={() => {
                           if (!selectedAdjustmentPlayer) {
                             alert("Please select a player first");
@@ -1520,10 +1327,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="relative">
                         <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Search by name, ID, or email..." 
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Search by name, ID, or email..."
                           value={adjustmentPlayerSearch}
                           onChange={(e) => {
                             setAdjustmentPlayerSearch(e.target.value);
@@ -1550,7 +1357,7 @@ export default function DashboardPage() {
                         {selectedAdjustmentPlayer && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
                             <span className="text-green-300">Selected: {selectedAdjustmentPlayer.name} ({selectedAdjustmentPlayer.id})</span>
-                            <button 
+                            <button
                               onClick={() => {
                                 setSelectedAdjustmentPlayer(null);
                                 setAdjustmentPlayerSearch("");
@@ -1566,20 +1373,20 @@ export default function DashboardPage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-white text-sm">Available Balance</label>
-                            <input 
-                              type="text" 
-                              className="w-full mt-1 px-3 py-2 bg-green-500/20 border border-green-400/30 rounded text-white font-semibold" 
-                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].availableBalance.toLocaleString('en-IN')}`} 
-                              readOnly 
+                            <input
+                              type="text"
+                              className="w-full mt-1 px-3 py-2 bg-green-500/20 border border-green-400/30 rounded text-white font-semibold"
+                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].availableBalance.toLocaleString('en-IN')}`}
+                              readOnly
                             />
                           </div>
                           <div>
                             <label className="text-white text-sm">Current Table Balance</label>
-                            <input 
-                              type="text" 
-                              className="w-full mt-1 px-3 py-2 bg-yellow-500/20 border border-yellow-400/30 rounded text-white font-semibold" 
-                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].tableBalance.toLocaleString('en-IN')}`} 
-                              readOnly 
+                            <input
+                              type="text"
+                              className="w-full mt-1 px-3 py-2 bg-yellow-500/20 border border-yellow-400/30 rounded text-white font-semibold"
+                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].tableBalance.toLocaleString('en-IN')}`}
+                              readOnly
                             />
                           </div>
                         </div>
@@ -1589,7 +1396,7 @@ export default function DashboardPage() {
                         <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter chip count from manager" />
                         <p className="text-xs text-gray-400 mt-1">Manager counts chips → Balance updated → Added to available balance</p>
                       </div>
-                      <button 
+                      <button
                         onClick={() => {
                           if (!selectedAdjustmentPlayer) {
                             alert("Please select a player first");
@@ -1657,10 +1464,10 @@ export default function DashboardPage() {
                     <div className="space-y-3">
                       <div className="relative">
                         <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Search by name, ID, or email..." 
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Search by name, ID, or email..."
                           value={cashoutPlayerSearch}
                           onChange={(e) => {
                             setCashoutPlayerSearch(e.target.value);
@@ -1687,7 +1494,7 @@ export default function DashboardPage() {
                         {selectedCashoutPlayer && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
                             <span className="text-green-300">Selected: {selectedCashoutPlayer.name} ({selectedCashoutPlayer.id})</span>
-                            <button 
+                            <button
                               onClick={() => {
                                 setSelectedCashoutPlayer(null);
                                 setCashoutPlayerSearch("");
@@ -1701,15 +1508,15 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <label className="text-white text-sm">Table Balance</label>
-                        <input 
-                          type="number" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Enter table balance" 
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter table balance"
                           value={tableBalance}
                           onChange={(e) => setTableBalance(e.target.value)}
                         />
                       </div>
-                      <button 
+                      <button
                         onClick={() => {
                           if (!selectedCashoutPlayer) {
                             alert("Please select a player first");
@@ -1721,7 +1528,7 @@ export default function DashboardPage() {
                           }
                           const formattedBalance = `₹${parseFloat(tableBalance).toLocaleString('en-IN')}`;
                           alert(`Notification sent to Cashier:\n\n${selectedCashoutPlayer.name} has left the table with a table balance of ${formattedBalance}`);
-                          
+
                           // Reset form
                           setSelectedCashoutPlayer(null);
                           setCashoutPlayerSearch("");
@@ -1762,36 +1569,36 @@ export default function DashboardPage() {
                         <h4 className="text-white font-semibold border-b border-white/20 pb-2">Basic Information</h4>
                         <div>
                           <label className="text-white text-sm mb-1 block">Tournament Name *</label>
-                          <input type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Monday Night Hold'em" value={tournamentForm.name} onChange={(e) => setTournamentForm({...tournamentForm, name: e.target.value})} />
+                          <input type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Monday Night Hold'em" value={tournamentForm.name} onChange={(e) => setTournamentForm({ ...tournamentForm, name: e.target.value })} />
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Tournament Type *</label>
-                          <CustomSelect className="w-full" value={tournamentForm.type} onChange={(e) => setTournamentForm({...tournamentForm, type: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.type} onChange={(e) => setTournamentForm({ ...tournamentForm, type: e.target.value })}>
                             {tournamentTypes.map(type => <option key={type} value={type}>{type}</option>)}
                           </CustomSelect>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-white text-sm mb-1 block">Buy-in (₹) *</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="1000" value={tournamentForm.buyIn} onChange={(e) => setTournamentForm({...tournamentForm, buyIn: e.target.value})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="1000" value={tournamentForm.buyIn} onChange={(e) => setTournamentForm({ ...tournamentForm, buyIn: e.target.value })} />
                           </div>
                           <div>
                             <label className="text-white text-sm mb-1 block">Entry Fee (₹)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="100" value={tournamentForm.entryFee} onChange={(e) => setTournamentForm({...tournamentForm, entryFee: e.target.value})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="100" value={tournamentForm.entryFee} onChange={(e) => setTournamentForm({ ...tournamentForm, entryFee: e.target.value })} />
                           </div>
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Starting Chips *</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10000" value={tournamentForm.startingChips} onChange={(e) => setTournamentForm({...tournamentForm, startingChips: e.target.value})} />
+                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10000" value={tournamentForm.startingChips} onChange={(e) => setTournamentForm({ ...tournamentForm, startingChips: e.target.value })} />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-white text-sm mb-1 block">Start Time</label>
-                            <input type="datetime-local" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={tournamentForm.startTime} onChange={(e) => setTournamentForm({...tournamentForm, startTime: e.target.value})} />
+                            <input type="datetime-local" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={tournamentForm.startTime} onChange={(e) => setTournamentForm({ ...tournamentForm, startTime: e.target.value })} />
                           </div>
                           <div>
                             <label className="text-white text-sm mb-1 block">Max Players (unlimited if blank)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Unlimited" value={tournamentForm.maxPlayers} onChange={(e) => setTournamentForm({...tournamentForm, maxPlayers: e.target.value})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Unlimited" value={tournamentForm.maxPlayers} onChange={(e) => setTournamentForm({ ...tournamentForm, maxPlayers: e.target.value })} />
                           </div>
                         </div>
                       </div>
@@ -1799,45 +1606,45 @@ export default function DashboardPage() {
                         <h4 className="text-white font-semibold border-b border-white/20 pb-2">Tournament Rules</h4>
                         <div>
                           <label className="text-white text-sm mb-1 block">Blind Structure *</label>
-                          <CustomSelect className="w-full" value={tournamentForm.blindStructure} onChange={(e) => setTournamentForm({...tournamentForm, blindStructure: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.blindStructure} onChange={(e) => setTournamentForm({ ...tournamentForm, blindStructure: e.target.value })}>
                             {blindStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
                           </CustomSelect>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-white text-sm mb-1 block">Number of Levels</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindLevels} onChange={(e) => setTournamentForm({...tournamentForm, blindLevels: parseInt(e.target.value) || 15})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindLevels} onChange={(e) => setTournamentForm({ ...tournamentForm, blindLevels: parseInt(e.target.value) || 15 })} />
                           </div>
                           <div>
                             <label className="text-white text-sm mb-1 block">Minutes per Level</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindInterval} onChange={(e) => setTournamentForm({...tournamentForm, blindInterval: parseInt(e.target.value) || 15})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindInterval} onChange={(e) => setTournamentForm({ ...tournamentForm, blindInterval: parseInt(e.target.value) || 15 })} />
                           </div>
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Break Structure</label>
-                          <CustomSelect className="w-full" value={tournamentForm.breakStructure} onChange={(e) => setTournamentForm({...tournamentForm, breakStructure: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.breakStructure} onChange={(e) => setTournamentForm({ ...tournamentForm, breakStructure: e.target.value })}>
                             {breakStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
                           </CustomSelect>
                         </div>
                         {tournamentForm.breakStructure !== "No breaks" && (
                           <div>
                             <label className="text-white text-sm mb-1 block">Break Duration (minutes)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10" value={tournamentForm.breakDuration} onChange={(e) => setTournamentForm({...tournamentForm, breakDuration: parseInt(e.target.value) || 10})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10" value={tournamentForm.breakDuration} onChange={(e) => setTournamentForm({ ...tournamentForm, breakDuration: parseInt(e.target.value) || 10 })} />
                           </div>
                         )}
                         <div>
                           <label className="text-white text-sm mb-1 block">Late Registration (minutes)</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="60" value={tournamentForm.lateRegistration} onChange={(e) => setTournamentForm({...tournamentForm, lateRegistration: parseInt(e.target.value) || 60})} />
+                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="60" value={tournamentForm.lateRegistration} onChange={(e) => setTournamentForm({ ...tournamentForm, lateRegistration: parseInt(e.target.value) || 60 })} />
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Payout Structure</label>
-                          <CustomSelect className="w-full" value={tournamentForm.payoutStructure} onChange={(e) => setTournamentForm({...tournamentForm, payoutStructure: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.payoutStructure} onChange={(e) => setTournamentForm({ ...tournamentForm, payoutStructure: e.target.value })}>
                             {payoutStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
                           </CustomSelect>
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Seat Draw Method</label>
-                          <CustomSelect className="w-full" value={tournamentForm.seatDrawMethod} onChange={(e) => setTournamentForm({...tournamentForm, seatDrawMethod: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.seatDrawMethod} onChange={(e) => setTournamentForm({ ...tournamentForm, seatDrawMethod: e.target.value })}>
                             <option value="Random">Random</option>
                             <option value="Table Balance">Table Balance</option>
                             <option value="Manual">Manual</option>
@@ -1845,7 +1652,7 @@ export default function DashboardPage() {
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Clock Pause Rules</label>
-                          <CustomSelect className="w-full" value={tournamentForm.clockPauseRules} onChange={(e) => setTournamentForm({...tournamentForm, clockPauseRules: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.clockPauseRules} onChange={(e) => setTournamentForm({ ...tournamentForm, clockPauseRules: e.target.value })}>
                             <option value="Standard">Standard (pause on breaks)</option>
                             <option value="No Pause">No Pause</option>
                             <option value="Pause on All-in">Pause on All-in</option>
@@ -1856,49 +1663,49 @@ export default function DashboardPage() {
                       <div className="space-y-4">
                         <h4 className="text-white font-semibold border-b border-white/20 pb-2">Rebuy, Add-on & Re-entry</h4>
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" id="rebuy-allowed" className="w-4 h-4" checked={tournamentForm.rebuyAllowed} onChange={(e) => setTournamentForm({...tournamentForm, rebuyAllowed: e.target.checked})} />
+                          <input type="checkbox" id="rebuy-allowed" className="w-4 h-4" checked={tournamentForm.rebuyAllowed} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyAllowed: e.target.checked })} />
                           <label htmlFor="rebuy-allowed" className="text-white text-sm">Allow Rebuys</label>
                         </div>
                         {tournamentForm.rebuyAllowed && (
                           <div className="grid grid-cols-3 gap-3 ml-7">
                             <div>
                               <label className="text-white text-xs mb-1 block">Rebuy Chips</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.rebuyChips} onChange={(e) => setTournamentForm({...tournamentForm, rebuyChips: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.rebuyChips} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyChips: e.target.value })} />
                             </div>
                             <div>
                               <label className="text-white text-xs mb-1 block">Rebuy Fee (₹)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="1000" value={tournamentForm.rebuyFee} onChange={(e) => setTournamentForm({...tournamentForm, rebuyFee: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="1000" value={tournamentForm.rebuyFee} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyFee: e.target.value })} />
                             </div>
                             <div>
                               <label className="text-white text-xs mb-1 block">Rebuy Period (levels)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="6" value={tournamentForm.rebuyPeriod} onChange={(e) => setTournamentForm({...tournamentForm, rebuyPeriod: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="6" value={tournamentForm.rebuyPeriod} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyPeriod: e.target.value })} />
                             </div>
                           </div>
                         )}
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" id="addon-allowed" className="w-4 h-4" checked={tournamentForm.addOnAllowed} onChange={(e) => setTournamentForm({...tournamentForm, addOnAllowed: e.target.checked})} />
+                          <input type="checkbox" id="addon-allowed" className="w-4 h-4" checked={tournamentForm.addOnAllowed} onChange={(e) => setTournamentForm({ ...tournamentForm, addOnAllowed: e.target.checked })} />
                           <label htmlFor="addon-allowed" className="text-white text-sm">Allow Add-on</label>
                         </div>
                         {tournamentForm.addOnAllowed && (
                           <div className="grid grid-cols-2 gap-3 ml-7">
                             <div>
                               <label className="text-white text-xs mb-1 block">Add-on Chips</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.addOnChips} onChange={(e) => setTournamentForm({...tournamentForm, addOnChips: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.addOnChips} onChange={(e) => setTournamentForm({ ...tournamentForm, addOnChips: e.target.value })} />
                             </div>
                             <div>
                               <label className="text-white text-xs mb-1 block">Add-on Fee (₹)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="500" value={tournamentForm.addOnFee} onChange={(e) => setTournamentForm({...tournamentForm, addOnFee: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="500" value={tournamentForm.addOnFee} onChange={(e) => setTournamentForm({ ...tournamentForm, addOnFee: e.target.value })} />
                             </div>
                           </div>
                         )}
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" id="reentry-allowed" className="w-4 h-4" checked={tournamentForm.reEntryAllowed} onChange={(e) => setTournamentForm({...tournamentForm, reEntryAllowed: e.target.checked})} />
+                          <input type="checkbox" id="reentry-allowed" className="w-4 h-4" checked={tournamentForm.reEntryAllowed} onChange={(e) => setTournamentForm({ ...tournamentForm, reEntryAllowed: e.target.checked })} />
                           <label htmlFor="reentry-allowed" className="text-white text-sm">Allow Re-entry</label>
                         </div>
                         {tournamentForm.reEntryAllowed && (
                           <div className="ml-7">
                             <label className="text-white text-xs mb-1 block">Re-entry Period (minutes)</label>
-                            <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="60" value={tournamentForm.reEntryPeriod} onChange={(e) => setTournamentForm({...tournamentForm, reEntryPeriod: e.target.value})} />
+                            <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="60" value={tournamentForm.reEntryPeriod} onChange={(e) => setTournamentForm({ ...tournamentForm, reEntryPeriod: e.target.value })} />
                           </div>
                         )}
                       </div>
@@ -1906,7 +1713,7 @@ export default function DashboardPage() {
                         <h4 className="text-white font-semibold border-b border-white/20 pb-2">Bounty Options</h4>
                         <div>
                           <label className="text-white text-sm mb-1 block">Bounty Amount (₹) - Leave blank for regular tournament</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" value={tournamentForm.bountyAmount} onChange={(e) => setTournamentForm({...tournamentForm, bountyAmount: e.target.value})} />
+                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" value={tournamentForm.bountyAmount} onChange={(e) => setTournamentForm({ ...tournamentForm, bountyAmount: e.target.value })} />
                           <p className="text-xs text-gray-400 mt-1">If set, this becomes a knockout/bounty tournament</p>
                         </div>
                       </div>
@@ -1953,9 +1760,9 @@ export default function DashboardPage() {
                               </div>
                             </div>
                             <div className="flex flex-col gap-2 ml-4">
-                              <button onClick={(e) => {e.stopPropagation(); setSelectedTournament(tournament);}} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-semibold">View Details</button>
-                              {tournament.status === "Scheduled" && <button onClick={(e) => {e.stopPropagation(); setTournaments(prev => prev.map(t => t.id === tournament.id ? {...t, status: "Active"} : t)); alert(`Tournament "${tournament.name}" started!`);}} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm font-semibold">Start</button>}
-                              <button onClick={(e) => {e.stopPropagation(); if (window.confirm(`Delete tournament "${tournament.name}"?`)) { setTournaments(prev => prev.filter(t => t.id !== tournament.id)); }}} className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold">Delete</button>
+                              <button onClick={(e) => { e.stopPropagation(); setSelectedTournament(tournament); }} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-semibold">View Details</button>
+                              {tournament.status === "Scheduled" && <button onClick={(e) => { e.stopPropagation(); setTournaments(prev => prev.map(t => t.id === tournament.id ? { ...t, status: "Active" } : t)); alert(`Tournament "${tournament.name}" started!`); }} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm font-semibold">Start</button>}
+                              <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete tournament "${tournament.name}"?`)) { setTournaments(prev => prev.filter(t => t.id !== tournament.id)); } }} className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold">Delete</button>
                             </div>
                           </div>
                         </div>
@@ -2030,7 +1837,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div className="flex gap-3 pt-4 border-t border-white/10">
-                        <button onClick={() => {setSelectedTournament(null); setShowTournamentForm(true);}} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold">Edit Tournament</button>
+                        <button onClick={() => { setSelectedTournament(null); setShowTournamentForm(true); }} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold">Edit Tournament</button>
                         <button onClick={() => setSelectedTournament(null)} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 rounded-lg font-semibold">Close</button>
                       </div>
                     </div>
@@ -2044,7 +1851,7 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-yellow-600/30 via-orange-500/20 to-red-700/30 rounded-xl shadow-md border border-yellow-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Player & Staff Support Chat</h2>
-                
+
                 {/* Chat Type Tabs */}
                 <div className="flex gap-2 mb-6">
                   <button
@@ -2053,11 +1860,10 @@ export default function DashboardPage() {
                       setSelectedChat(null);
                       setStatusFilter("all");
                     }}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                      chatType === "player"
-                        ? "bg-gradient-to-r from-yellow-400 to-orange-600 text-gray-900 shadow-lg"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
+                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${chatType === "player"
+                      ? "bg-gradient-to-r from-yellow-400 to-orange-600 text-gray-900 shadow-lg"
+                      : "bg-white/10 text-white/70 hover:bg-white/15"
+                      }`}
                   >
                     📱 Player Chat
                   </button>
@@ -2067,11 +1873,10 @@ export default function DashboardPage() {
                       setSelectedChat(null);
                       setStatusFilter("all");
                     }}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                      chatType === "staff"
-                        ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
+                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${chatType === "staff"
+                      ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg"
+                      : "bg-white/10 text-white/70 hover:bg-white/15"
+                      }`}
                   >
                     👥 Staff Chat
                   </button>
@@ -2093,30 +1898,28 @@ export default function DashboardPage() {
                         <option value="closed">Closed</option>
                       </CustomSelect>
                     </div>
-                    
+
                     <div className="space-y-2 max-h-[600px] overflow-y-auto">
                       {filteredChats.length > 0 ? (
                         filteredChats.map(chat => (
                           <div
                             key={chat.id}
                             onClick={() => setSelectedChat(chat)}
-                            className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                              selectedChat?.id === chat.id
-                                ? "bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-400/50"
-                                : "bg-white/5 border-white/10 hover:bg-white/10"
-                            }`}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedChat?.id === chat.id
+                              ? "bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border-yellow-400/50"
+                              : "bg-white/5 border-white/10 hover:bg-white/10"
+                              }`}
                           >
                             <div className="flex items-start justify-between mb-1">
                               <div className="font-semibold text-white text-sm">
                                 {chatType === "player" ? chat.playerName : chat.staffName}
                               </div>
-                              <span className={`px-2 py-1 rounded text-xs ${
-                                chat.status === "open"
-                                  ? "bg-yellow-500/30 text-yellow-300"
-                                  : chat.status === "in_progress"
+                              <span className={`px-2 py-1 rounded text-xs ${chat.status === "open"
+                                ? "bg-yellow-500/30 text-yellow-300"
+                                : chat.status === "in_progress"
                                   ? "bg-blue-500/30 text-blue-300"
                                   : "bg-gray-500/30 text-gray-300"
-                              }`}>
+                                }`}>
                                 {chat.status === "open" ? "Open" : chat.status === "in_progress" ? "In Progress" : "Closed"}
                               </span>
                             </div>
@@ -2174,11 +1977,10 @@ export default function DashboardPage() {
                               key={message.id}
                               className={`flex ${message.sender === "staff" || message.sender === "manager" ? "justify-end" : "justify-start"}`}
                             >
-                              <div className={`max-w-[70%] rounded-lg p-3 ${
-                                message.sender === "staff" || message.sender === "manager"
-                                  ? "bg-gradient-to-r from-yellow-500 to-orange-600 text-gray-900"
-                                  : "bg-white/20 text-white"
-                              }`}>
+                              <div className={`max-w-[70%] rounded-lg p-3 ${message.sender === "staff" || message.sender === "manager"
+                                ? "bg-gradient-to-r from-yellow-500 to-orange-600 text-gray-900"
+                                : "bg-white/20 text-white"
+                                }`}>
                                 <div className="text-xs font-semibold mb-1 opacity-90">{message.senderName}</div>
                                 <div className="text-sm">{message.text}</div>
                                 <div className="text-xs opacity-70 mt-1">
@@ -2233,17 +2035,17 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Players - KYC Pending Review</h2>
-                
+
                 {/* Search and Filters */}
                 <div className="bg-white/10 p-4 rounded-lg mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     <div className="md:col-span-2">
                       <label className="text-white text-sm mb-1 block">Search Player</label>
                       <div className="relative">
-                        <input 
-                          type="text" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Type at least 2 characters to search..." 
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Type at least 2 characters to search..."
                           value={playersSearch}
                           onChange={(e) => {
                             setPlayersSearch(e.target.value);
@@ -2270,7 +2072,7 @@ export default function DashboardPage() {
                         {selectedPlayer && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
                             <span className="text-green-300">Selected: {selectedPlayer.name} ({selectedPlayer.id})</span>
-                            <button 
+                            <button
                               onClick={() => {
                                 setSelectedPlayer(null);
                                 setPlayersSearch("");
@@ -2285,10 +2087,10 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Registration Date</label>
-                      <select 
+                      <select
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                         value={playersFilter.registrationDate}
-                        onChange={(e) => setPlayersFilter({...playersFilter, registrationDate: e.target.value})}
+                        onChange={(e) => setPlayersFilter({ ...playersFilter, registrationDate: e.target.value })}
                       >
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
@@ -2298,10 +2100,10 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Document Type</label>
-                      <select 
+                      <select
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                         value={playersFilter.documentType}
-                        onChange={(e) => setPlayersFilter({...playersFilter, documentType: e.target.value})}
+                        onChange={(e) => setPlayersFilter({ ...playersFilter, documentType: e.target.value })}
                       >
                         <option value="all">All Documents</option>
                         <option value="PAN Card">PAN Card</option>
@@ -2315,11 +2117,11 @@ export default function DashboardPage() {
                     <div className="text-white text-sm">
                       Showing <span className="font-semibold">{filteredPlayers.length}</span> of <span className="font-semibold">{allPlayers.filter(p => p.kycStatus === 'pending').length}</span> pending KYC verifications
                     </div>
-                    <button 
+                    <button
                       onClick={() => {
                         setPlayersSearch("");
                         setSelectedPlayer(null);
-                        setPlayersFilter({kycStatus: "pending", registrationDate: "all", documentType: "all"});
+                        setPlayersFilter({ kycStatus: "pending", registrationDate: "all", documentType: "all" });
                       }}
                       className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                     >
@@ -2367,13 +2169,13 @@ export default function DashboardPage() {
                             {/* Action Buttons */}
                             <div className="md:col-span-4 flex flex-col gap-2">
                               <div className="flex gap-2">
-                                <button 
+                                <button
                                   onClick={() => handleKYCVerification(player.id, "approve")}
                                   className="flex-1 bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                 >
                                   ✓ Approve
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => {
                                     const notes = prompt("Enter rejection reason (optional):");
                                     if (notes !== null) {
@@ -2386,13 +2188,13 @@ export default function DashboardPage() {
                                 </button>
                               </div>
                               <div className="flex gap-2">
-                                <button 
+                                <button
                                   className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                   onClick={() => alert(`View documents for ${player.name} (${player.id})\nDocument Type: ${player.documentType}`)}
                                 >
                                   View Docs
                                 </button>
-                                <button 
+                                <button
                                   className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                   onClick={() => alert(`Player Details:\n\nName: ${player.name}\nEmail: ${player.email}\nPhone: ${player.phone}\nDocument: ${player.documentType}\nRegistration: ${player.registrationDate}`)}
                                 >
@@ -2424,17 +2226,17 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Registered Players - Verified Users</h2>
-                
+
                 {/* Search and Filters */}
                 <div className="bg-white/10 p-4 rounded-lg mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                     <div className="md:col-span-2">
                       <label className="text-white text-sm mb-1 block">Search Player</label>
                       <div className="relative">
-                        <input 
-                          type="text" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Type at least 2 characters to search..." 
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Type at least 2 characters to search..."
                           value={registeredPlayersSearch}
                           onChange={(e) => {
                             setRegisteredPlayersSearch(e.target.value);
@@ -2461,7 +2263,7 @@ export default function DashboardPage() {
                         {selectedRegisteredPlayer && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
                             <span className="text-green-300">Selected: {selectedRegisteredPlayer.name} ({selectedRegisteredPlayer.id})</span>
-                            <button 
+                            <button
                               onClick={() => {
                                 setSelectedRegisteredPlayer(null);
                                 setRegisteredPlayersSearch("");
@@ -2476,10 +2278,10 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Account Status</label>
-                      <select 
+                      <select
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                         value={registeredPlayersFilter.status}
-                        onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, status: e.target.value})}
+                        onChange={(e) => setRegisteredPlayersFilter({ ...registeredPlayersFilter, status: e.target.value })}
                       >
                         <option value="all">All Status</option>
                         <option value="Active">Active</option>
@@ -2489,10 +2291,10 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Registration Date</label>
-                      <select 
+                      <select
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                         value={registeredPlayersFilter.registrationDate}
-                        onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, registrationDate: e.target.value})}
+                        onChange={(e) => setRegisteredPlayersFilter({ ...registeredPlayersFilter, registrationDate: e.target.value })}
                       >
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
@@ -2502,10 +2304,10 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Document Type</label>
-                      <select 
+                      <select
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                         value={registeredPlayersFilter.documentType}
-                        onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, documentType: e.target.value})}
+                        onChange={(e) => setRegisteredPlayersFilter({ ...registeredPlayersFilter, documentType: e.target.value })}
                       >
                         <option value="all">All Documents</option>
                         <option value="PAN Card">PAN Card</option>
@@ -2520,17 +2322,17 @@ export default function DashboardPage() {
                       Showing <span className="font-semibold">{filteredRegisteredPlayers.length}</span> of <span className="font-semibold">{registeredPlayers.length}</span> verified players
                     </div>
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         onClick={() => {
                           setRegisteredPlayersSearch("");
                           setSelectedRegisteredPlayer(null);
-                          setRegisteredPlayersFilter({status: "all", registrationDate: "all", documentType: "all", verifiedDate: "all"});
+                          setRegisteredPlayersFilter({ status: "all", registrationDate: "all", documentType: "all", verifiedDate: "all" });
                         }}
                         className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                       >
                         Clear Filters
                       </button>
-                      <button 
+                      <button
                         onClick={handleExportCSV}
                         className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                       >
@@ -2551,13 +2353,12 @@ export default function DashboardPage() {
                             <div className="md:col-span-8 space-y-2">
                               <div className="flex items-center gap-3">
                                 <div className="font-semibold text-white text-lg">{player.name}</div>
-                                <span className={`px-3 py-1 rounded-full text-xs border font-medium ${
-                                  player.accountStatus === "Active" 
-                                    ? "bg-green-500/30 text-green-300 border-green-400/50"
-                                    : player.accountStatus === "Suspended"
+                                <span className={`px-3 py-1 rounded-full text-xs border font-medium ${player.accountStatus === "Active"
+                                  ? "bg-green-500/30 text-green-300 border-green-400/50"
+                                  : player.accountStatus === "Suspended"
                                     ? "bg-red-500/30 text-red-300 border-red-400/50"
                                     : "bg-gray-500/30 text-gray-300 border-gray-400/50"
-                                }`}>
+                                  }`}>
                                   {player.accountStatus}
                                 </span>
                                 <span className="bg-blue-500/30 text-blue-300 font-medium px-3 py-1 rounded-full text-xs border border-blue-400/50">
@@ -2589,13 +2390,13 @@ export default function DashboardPage() {
                             {/* Action Buttons */}
                             <div className="md:col-span-4 flex flex-col gap-2">
                               <div className="flex gap-2">
-                                <button 
+                                <button
                                   onClick={() => setSelectedPlayerDetails(player)}
                                   className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                 >
                                   View Details
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => handleDownloadKYCDoc(player)}
                                   className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                 >
@@ -2603,19 +2404,19 @@ export default function DashboardPage() {
                                 </button>
                               </div>
                               <div className="flex gap-2">
-                                <button 
+                                <button
                                   className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                   onClick={() => {
                                     const newStatus = player.accountStatus === "Active" ? "Suspended" : "Active";
-                                    setRegisteredPlayers(prev => prev.map(p => 
-                                      p.id === player.id ? {...p, accountStatus: newStatus} : p
+                                    setRegisteredPlayers(prev => prev.map(p =>
+                                      p.id === player.id ? { ...p, accountStatus: newStatus } : p
                                     ));
                                     alert(`${player.name} account status changed to ${newStatus}`);
                                   }}
                                 >
                                   {player.accountStatus === "Active" ? "Suspend" : "Activate"}
                                 </button>
-                                <button 
+                                <button
                                   className="flex-1 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                   onClick={() => {
                                     if (window.confirm(`Are you sure you want to delete ${player.name}?`)) {
@@ -2687,11 +2488,10 @@ export default function DashboardPage() {
                           <div>
                             <label className="text-gray-400 text-sm">Account Status</label>
                             <div>
-                              <span className={`px-3 py-1 rounded-full text-xs border font-medium ${
-                                selectedPlayerDetails.accountStatus === "Active" 
-                                  ? "bg-green-500/30 text-green-300 border-green-400/50"
-                                  : "bg-red-500/30 text-red-300 border-red-400/50"
-                              }`}>
+                              <span className={`px-3 py-1 rounded-full text-xs border font-medium ${selectedPlayerDetails.accountStatus === "Active"
+                                ? "bg-green-500/30 text-green-300 border-green-400/50"
+                                : "bg-red-500/30 text-red-300 border-red-400/50"
+                                }`}>
                                 {selectedPlayerDetails.accountStatus}
                               </span>
                             </div>
@@ -2777,7 +2577,7 @@ export default function DashboardPage() {
                 <h2 className="text-xl font-bold text-white mb-6">KYC Review</h2>
                 <div className="bg-white/10 p-4 rounded-lg">
                   <div className="space-y-2">
-                    {[{name:'Test Player', id:'P010', status:'Pending'}, {name:'Anil Kumar', id:'P011', status:'Pending'}].map(k => (
+                    {[{ name: 'Test Player', id: 'P010', status: 'Pending' }, { name: 'Anil Kumar', id: 'P011', status: 'Pending' }].map(k => (
                       <div key={k.id} className="bg-white/5 p-3 rounded border border-white/10">
                         <div className="flex items-center justify-between">
                           <div className="text-white font-semibold">{k.name} <span className="text-white/60 text-sm">({k.id})</span></div>
@@ -2807,16 +2607,15 @@ export default function DashboardPage() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-white text-sm">Title</label>
-                        <input 
-                          type="text" 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${
-                            notificationErrors.title ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          placeholder="Enter title" 
+                        <input
+                          type="text"
+                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${notificationErrors.title ? 'border-red-500' : 'border-white/20'
+                            }`}
+                          placeholder="Enter title"
                           value={notificationForm.title}
                           onChange={(e) => {
-                            setNotificationForm({...notificationForm, title: e.target.value});
-                            setNotificationErrors({...notificationErrors, title: null});
+                            setNotificationForm({ ...notificationForm, title: e.target.value });
+                            setNotificationErrors({ ...notificationErrors, title: null });
                           }}
                         />
                         {notificationErrors.title && (
@@ -2825,16 +2624,15 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <label className="text-white text-sm">Message</label>
-                        <textarea 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${
-                            notificationErrors.message ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          rows="3" 
+                        <textarea
+                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${notificationErrors.message ? 'border-red-500' : 'border-white/20'
+                            }`}
+                          rows="3"
                           placeholder="Enter message..."
                           value={notificationForm.message}
                           onChange={(e) => {
-                            setNotificationForm({...notificationForm, message: e.target.value});
-                            setNotificationErrors({...notificationErrors, message: null});
+                            setNotificationForm({ ...notificationForm, message: e.target.value });
+                            setNotificationErrors({ ...notificationErrors, message: null });
                           }}
                         ></textarea>
                         {notificationErrors.message && (
@@ -2846,14 +2644,14 @@ export default function DashboardPage() {
                         <CustomSelect
                           className="w-full"
                           value={notificationForm.audience}
-                          onChange={(e) => setNotificationForm({...notificationForm, audience: e.target.value})}
+                          onChange={(e) => setNotificationForm({ ...notificationForm, audience: e.target.value })}
                         >
                           {getAudienceOptions().map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
                           ))}
                         </CustomSelect>
                       </div>
-                      
+
                       {/* Image Section */}
                       <div className="border-t border-white/20 pt-4">
                         <label className="text-white text-sm font-semibold mb-2 block">Image (Optional)</label>
@@ -2861,8 +2659,8 @@ export default function DashboardPage() {
                           <div>
                             <label className="text-white text-xs">Upload Image</label>
                             <div className="mt-1 border-2 border-dashed border-white/30 rounded-lg p-4 text-center">
-                              <input 
-                                type="file" 
+                              <input
+                                type="file"
                                 accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                                 className="hidden"
                                 id="image-upload"
@@ -2877,7 +2675,7 @@ export default function DashboardPage() {
                                   <img src={notificationForm.imagePreview} alt="Preview" className="max-h-32 mx-auto rounded" />
                                   <button
                                     type="button"
-                                    onClick={() => setNotificationForm({...notificationForm, imageFile: null, imagePreview: null})}
+                                    onClick={() => setNotificationForm({ ...notificationForm, imageFile: null, imagePreview: null })}
                                     className="mt-2 text-red-400 text-xs hover:text-red-300"
                                   >
                                     Remove
@@ -2889,11 +2687,10 @@ export default function DashboardPage() {
                           <div className="text-center text-white/60 text-xs">OR</div>
                           <div>
                             <label className="text-white text-xs">Image URL</label>
-                            <input 
-                              type="url" 
-                              className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${
-                                notificationErrors.image ? 'border-red-500' : 'border-white/20'
-                              }`}
+                            <input
+                              type="url"
+                              className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${notificationErrors.image ? 'border-red-500' : 'border-white/20'
+                                }`}
                               placeholder="https://example.com/image.jpg"
                               value={notificationForm.imageUrl}
                               onChange={(e) => handleImageUrlChange(e.target.value)}
@@ -2908,11 +2705,10 @@ export default function DashboardPage() {
                       {/* Video Section */}
                       <div className="border-t border-white/20 pt-4">
                         <label className="text-white text-sm font-semibold mb-2 block">Video Link (Optional)</label>
-                        <input 
-                          type="url" 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${
-                            notificationErrors.video ? 'border-red-500' : 'border-white/20'
-                          }`}
+                        <input
+                          type="url"
+                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${notificationErrors.video ? 'border-red-500' : 'border-white/20'
+                            }`}
                           placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
                           value={notificationForm.videoUrl}
                           onChange={(e) => handleVideoUrlChange(e.target.value)}
@@ -2925,7 +2721,7 @@ export default function DashboardPage() {
                         </p>
                       </div>
 
-                      <button 
+                      <button
                         onClick={handleSendNotification}
                         className="w-full bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg font-semibold mt-4"
                       >
@@ -2936,7 +2732,7 @@ export default function DashboardPage() {
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Recent Notifications</h3>
                     <div className="space-y-2">
-                      {[{title:'Welcome Offer', time:'2h ago'}, {title:'Table 2 starting soon', time:'10m ago'}].map(n => (
+                      {[{ title: 'Welcome Offer', time: '2h ago' }, { title: 'Table 2 starting soon', time: '10m ago' }].map(n => (
                         <div key={n.title} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
                           <div className="text-white">{n.title}</div>
                           <div className="text-white/60 text-sm">{n.time}</div>
@@ -2949,457 +2745,8 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Seating Management */}
-          {activeItem === "Seating Management" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Waitlist Management</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Current Waitlist</h3>
-                    <div className="space-y-2">
-                      {waitlist.map((entry) => {
-                        const preferredSeatAvailable = entry.preferredSeat 
-                          ? isSeatAvailable(entry.preferredTable, entry.preferredSeat)
-                          : false;
-                        
-                        return (
-                          <div key={entry.id} className="bg-blue-500/20 p-3 rounded-lg border border-blue-400/30">
-                            <div className="grid gap-5 sm:grid-cols-[60%,1fr] items-start">
-                              <div className="flex-1">
-                                <div className="font-semibold text-white">Player: {entry.playerName}</div>
-                                <div className="text-sm text-gray-300">Position: {entry.position} | Game: {entry.gameType}</div>
-                                {entry.preferredSeat ? (
-                                  <div className="mt-1 flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs text-yellow-300 font-medium flex items-center gap-1">
-                                      ⭐ Preferred: Table {entry.preferredTable}, Seat {entry.preferredSeat}
-                                    </span>
-                                    {preferredSeatAvailable ? (
-                                      <span className="text-xs bg-green-500/30 text-green-300 px-2 py-0.5 rounded-full border border-green-400/50">
-                                        ✓ Available
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs bg-red-500/30 text-red-300 px-2 py-0.5 rounded-full border border-red-400/50">
-                                        ✗ Occupied
-                                      </span>
-                                    )}
-                          </div>
-                                ) : (
-                                  <div className="mt-1 text-xs text-gray-400">No preferred seat selected</div>
-                                )}
-                          </div>
-                              <div className="flex flex-col gap-2 ml-3">
-                                <button 
-                                  onClick={() => handleOpenTableView(entry, entry.preferredTable)}
-                                  className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
-                                  title="View table hologram to assign seat"
-                                >
-                                  🎯 View Table
-                                </button>
-                                {entry.preferredSeat && preferredSeatAvailable && (
-                                  <button 
-                                    onClick={() => handleAssignPreferredSeat(entry)}
-                                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
-                                    title={`Assign to preferred seat ${entry.preferredSeat} at Table ${entry.preferredTable}`}
-                                  >
-                                    Assign Preferred
-                                  </button>
-                                )}
-                                <button 
-                                  className="bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded text-sm"
-                                  onClick={() => {
-                                    setSeatAssignment({
-                                      ...seatAssignment,
-                                      playerId: entry.id,
-                                      playerName: entry.playerName
-                                    });
-                                  }}
-                                >
-                              Seat
-                            </button>
-                                <button 
-                                  onClick={() => setWaitlist(prev => prev.filter(item => item.id !== entry.id))}
-                                  className="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-sm"
-                                >
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                        );
-                      })}
-                      {waitlist.length === 0 && (
-                        <div className="text-center py-8 text-gray-400 text-sm">
-                          No players in waitlist
-                        </div>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Seat Assignment</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-white text-sm">Select Player</label>
-                        <select 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          value={seatAssignment.playerId}
-                          onChange={(e) => {
-                            const selectedEntry = waitlist.find(w => w.id === parseInt(e.target.value));
-                            setSeatAssignment({
-                              ...seatAssignment,
-                              playerId: e.target.value,
-                              playerName: selectedEntry?.playerName || "",
-                              tableId: selectedEntry?.preferredTable?.toString() || ""
-                            });
-                          }}
-                        >
-                          <option value="">-- Select Player --</option>
-                          {waitlist.map((entry) => (
-                            <option key={entry.id} value={entry.id}>
-                              {entry.playerName} (Position {entry.position})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Select Table</label>
-                        <select 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          value={seatAssignment.tableId}
-                          onChange={(e) => setSeatAssignment({...seatAssignment, tableId: e.target.value, seatNumber: ""})}
-                        >
-                          <option value="">-- Select Table --</option>
-                          {tables.map((table) => (
-                            <option key={table.id} value={table.id}>
-                              {table.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Seat Number</label>
-                        <select 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          value={seatAssignment.seatNumber}
-                          onChange={(e) => setSeatAssignment({...seatAssignment, seatNumber: e.target.value})}
-                          disabled={!seatAssignment.tableId}
-                        >
-                          <option value="">-- Select Seat --</option>
-                          {seatAssignment.tableId && Array.from({length: 8}, (_, i) => i + 1).map((seatNum) => {
-                            const available = isSeatAvailable(parseInt(seatAssignment.tableId), seatNum);
-                            const selectedEntry = waitlist.find(w => w.id === parseInt(seatAssignment.playerId));
-                            const isPreferred = selectedEntry?.preferredSeat === seatNum && 
-                                                selectedEntry?.preferredTable === parseInt(seatAssignment.tableId);
-                            
-                            return (
-                              <option key={seatNum} value={seatNum}>
-                                Seat {seatNum} {!available ? "(Occupied)" : ""} {isPreferred ? "(Preferred)" : ""}
-                              </option>
-                            );
-                          })}
-                        </select>
-                      </div>
-                      {seatAssignment.playerId && seatAssignment.tableId && seatAssignment.seatNumber && (
-                        <div className="p-2 bg-blue-500/20 rounded border border-blue-400/30">
-                          <div className="text-xs text-blue-300">
-                            {(() => {
-                              const selectedEntry = waitlist.find(w => w.id === parseInt(seatAssignment.playerId));
-                              const isPreferred = selectedEntry?.preferredSeat === parseInt(seatAssignment.seatNumber) && 
-                                                  selectedEntry?.preferredTable === parseInt(seatAssignment.tableId);
-                              return isPreferred ? "✓ This is the player's preferred seat" : "";
-                            })()}
-                          </div>
-                        </div>
-                      )}
-                      <button 
-                        className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold disabled:bg-gray-600 disabled:cursor-not-allowed"
-                        disabled={!seatAssignment.playerId || !seatAssignment.tableId || !seatAssignment.seatNumber}
-                        onClick={() => {
-                          const tableId = parseInt(seatAssignment.tableId);
-                          const seatNum = parseInt(seatAssignment.seatNumber);
-                          
-                          if (!isSeatAvailable(tableId, seatNum)) {
-                            alert(`Seat ${seatNum} at Table ${tableId} is not available`);
-                            return;
-                          }
-                          
-                          // Assign seat
-                          setOccupiedSeats(prev => ({
-                            ...prev,
-                            [tableId]: [...(prev[tableId] || []), seatNum]
-                          }));
-                          
-                          // Remove from waitlist
-                          setWaitlist(prev => prev.filter(item => item.id !== parseInt(seatAssignment.playerId)));
-                          
-                          alert(`Assigned ${seatAssignment.playerName} to Table ${tableId}, Seat ${seatNum}`);
-                          
-                          // Reset form
-                          setSeatAssignment({
-                            playerId: "",
-                            tableId: "",
-                            seatNumber: ""
-                          });
-                        }}
-                      >
-                        Assign Seat
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
 
-              <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-blue-500/20 to-cyan-700/30 rounded-xl shadow-md border border-indigo-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Player Call & Reorder</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Call Players</h3>
-                    <div className="space-y-3">
-                      <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Call Next Player
-                      </button>
-                      <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Call All Players
-                      </button>
-                      <button className="w-full bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Send SMS Notification
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Reorder Waitlist</h3>
-                    <div className="space-y-2">
-                      {waitlist.map((entry, index) => (
-                        <div key={entry.id} className="bg-white/5 p-2 rounded flex justify-between items-center">
-                          <span className="text-white">
-                            {entry.position}. {entry.playerName}
-                            {entry.preferredSeat && (
-                              <span className="text-xs text-yellow-300 ml-2">
-                                (Pref: T{entry.preferredTable}-S{entry.preferredSeat})
-                              </span>
-                            )}
-                          </span>
-                        <div className="flex gap-1">
-                            <button 
-                              className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-xs disabled:bg-gray-600 disabled:cursor-not-allowed"
-                              disabled={index === 0}
-                              onClick={() => {
-                                if (index > 0) {
-                                  const newWaitlist = [...waitlist];
-                                  [newWaitlist[index], newWaitlist[index - 1]] = [newWaitlist[index - 1], newWaitlist[index]];
-                                  newWaitlist[index].position = index + 1;
-                                  newWaitlist[index - 1].position = index;
-                                  setWaitlist(newWaitlist);
-                                }
-                              }}
-                            >
-                              ↑
-                            </button>
-                            <button 
-                              className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-xs disabled:bg-gray-600 disabled:cursor-not-allowed"
-                              disabled={index === waitlist.length - 1}
-                              onClick={() => {
-                                if (index < waitlist.length - 1) {
-                                  const newWaitlist = [...waitlist];
-                                  [newWaitlist[index], newWaitlist[index + 1]] = [newWaitlist[index + 1], newWaitlist[index]];
-                                  newWaitlist[index].position = index + 1;
-                                  newWaitlist[index + 1].position = index + 2;
-                                  setWaitlist(newWaitlist);
-                                }
-                              }}
-                            >
-                              ↓
-                            </button>
-                        </div>
-                      </div>
-                      ))}
-                      {waitlist.length === 0 && (
-                        <div className="text-center py-4 text-gray-400 text-sm">
-                          No players to reorder
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
-          )}
-
-          {/* Waitlist & Seating Overrides */}
-          {activeItem === "Waitlist & Seating Overrides" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Waitlist & Seating Overrides</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Move Between Tables/Sessions</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-white text-sm">Select Player</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option value="">-- Select Player --</option>
-                          {waitlist.map((entry) => (
-                            <option key={entry.id} value={entry.id}>
-                              {entry.playerName} - Position {entry.position} ({entry.gameType})
-                            </option>
-                          ))}
-                          {/* Also show players currently seated */}
-                          <option value="seated-1">John Doe - Table 1, Seat 3</option>
-                          <option value="seated-2">Jane Smith - Table 2, Seat 5</option>
-                        </select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-white text-sm">From Table</label>
-                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                            <option value="">-- Select Table --</option>
-                            {tables.map((table) => (
-                              <option key={table.id} value={table.id}>{table.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-white text-sm">From Seat (Optional)</label>
-                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                            <option value="">Any Seat</option>
-                            {[1,2,3,4,5,6,7,8].map(seat => (
-                              <option key={seat} value={seat}>Seat {seat}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-white text-sm">To Table</label>
-                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                            <option value="">-- Select Table --</option>
-                            {tables.map((table) => (
-                              <option key={table.id} value={table.id}>{table.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-white text-sm">To Seat (Optional)</label>
-                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                            <option value="">Any Available Seat</option>
-                            {[1,2,3,4,5,6,7,8].map(seat => (
-                              <option key={seat} value={seat}>Seat {seat}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Move Player
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Force Seat Assignment (Override)</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-white text-sm">Select Player</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option value="">-- Select Player --</option>
-                          {waitlist.map((entry) => (
-                            <option key={entry.id} value={entry.id}>
-                              {entry.playerName} - Position {entry.position}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-white text-sm">Table</label>
-                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                            <option value="">-- Select Table --</option>
-                            {tables.map((table) => (
-                              <option key={table.id} value={table.id}>{table.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-white text-sm">Seat Number</label>
-                          <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                            <option value="">-- Select Seat --</option>
-                            {[1,2,3,4,5,6,7,8].map(seat => (
-                              <option key={seat} value={seat}>Seat {seat}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="bg-yellow-500/20 border border-yellow-400/30 p-2 rounded text-xs text-yellow-300">
-                        ⚠️ Force assignment will override seat availability and move existing player if needed
-                      </div>
-                      <button className="w-full bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Force Assign Seat (Override)
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Override Waitlist Priority</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-white text-sm">Select Player from Waitlist</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option value="">-- Select Player --</option>
-                          {waitlist.map((entry) => (
-                            <option key={entry.id} value={entry.id}>
-                              Position {entry.position}: {entry.playerName}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">New Priority Position</label>
-                        <input 
-                          type="number" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder={`Enter position (1-${waitlist.length || 1})`}
-                          min="1"
-                          max={waitlist.length || 1}
-                        />
-                      </div>
-                      <button className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Update Priority
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Waitlist Actions</h3>
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <label className="text-white text-sm">Select Player to Remove</label>
-                        <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option value="">-- Select Player --</option>
-                          {waitlist.map((entry) => (
-                            <option key={entry.id} value={entry.id}>
-                              {entry.playerName} - Position {entry.position}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <button className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Remove from Waitlist
-                      </button>
-                      <div className="border-t border-white/20 pt-3 mt-3">
-                        <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold mb-2">
-                          Call Next Player
-                        </button>
-                        <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
-                          Call All Waitlisted Players
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
-          )}
         </main>
       </div>
 

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import CustomSelect from './common/CustomSelect';
 import TableView from './hologram/TableView';
 import TableManagementSection from './TableManagementSection';
+import SessionControl from './SessionControl';
+import StaffManagement from './StaffManagement';
 
 export default function AdminDashboard() {
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -12,13 +14,13 @@ export default function AdminDashboard() {
     "Dashboard",
     "Players",
     "Registered Players",
+    "Staff Management",
     "Table Management",
     "Credit Management",
     "Staff Bonuses Approval",
-    "Core Management", 
+    "Core Management",
     "Player Registration",
     "Session Control",
-    "Waitlist & Seating Overrides",
     "Tournaments",
     "VIP Store",
     "Reports & Analytics",
@@ -36,7 +38,7 @@ export default function AdminDashboard() {
     registrationDate: "all",
     documentType: "all"
   });
-  
+
   // Mock players data with kycStatus: 'pending'
   const [allPlayers, setAllPlayers] = useState([
     {
@@ -109,15 +111,15 @@ export default function AdminDashboard() {
   // Filter players for dropdown search
   const filteredPlayersForSearch = playersSearch.length >= 2
     ? allPlayers.filter(player => {
-        if (player.kycStatus !== "pending") return false;
-        const searchLower = playersSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.phone.includes(playersSearch)
-        );
-      })
+      if (player.kycStatus !== "pending") return false;
+      const searchLower = playersSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.email.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        player.phone.includes(playersSearch)
+      );
+    })
     : [];
 
   // Filter players based on search and filters (for display list)
@@ -128,7 +130,7 @@ export default function AdminDashboard() {
     // Otherwise, filter by search text
     if (!selectedPlayer && playersSearch) {
       const searchLower = playersSearch.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         player.name.toLowerCase().includes(searchLower) ||
         player.email.toLowerCase().includes(searchLower) ||
         player.id.toLowerCase().includes(searchLower) ||
@@ -172,7 +174,7 @@ export default function AdminDashboard() {
   // Revenue and Rake data with date/time
   const currentDateTime = getCurrentDateTime();
   const previousDateTime = getPreviousDayDateTime();
-  
+
   const TIP_HOLD_PERCENT = 0.15;
 
   const formatCurrency = (value) => `₹${value.toLocaleString('en-IN')}`;
@@ -239,7 +241,7 @@ export default function AdminDashboard() {
   };
 
   const [customGroups, setCustomGroups] = useState(loadCustomGroups);
-  
+
   // Update groups in localStorage whenever they change
   useEffect(() => {
     saveCustomGroups(customGroups);
@@ -266,20 +268,20 @@ export default function AdminDashboard() {
   // Get available members based on group type
   const getAvailableMembers = () => {
     if (groupForm.type === "player") {
-      return registeredPlayers.filter(p => 
+      return registeredPlayers.filter(p =>
         !groupForm.memberIds.includes(p.id) &&
-        (!groupMemberSearch || 
-         p.name.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
-         p.id.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
-         p.email.toLowerCase().includes(groupMemberSearch.toLowerCase()))
+        (!groupMemberSearch ||
+          p.name.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
+          p.id.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
+          p.email.toLowerCase().includes(groupMemberSearch.toLowerCase()))
       );
     } else {
       return mockStaff.filter(s =>
         !groupForm.memberIds.includes(s.id) &&
         (!groupMemberSearch ||
-         s.name.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
-         s.id.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
-         s.email.toLowerCase().includes(groupMemberSearch.toLowerCase()))
+          s.name.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
+          s.id.toLowerCase().includes(groupMemberSearch.toLowerCase()) ||
+          s.email.toLowerCase().includes(groupMemberSearch.toLowerCase()))
       );
     }
   };
@@ -397,9 +399,9 @@ export default function AdminDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
     const error = validateImageFile(file);
-    if (error) { 
-      setNotificationErrors(prev => ({...prev, image: error})); 
-      return; 
+    if (error) {
+      setNotificationErrors(prev => ({ ...prev, image: error }));
+      return;
     }
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -409,7 +411,7 @@ export default function AdminDashboard() {
         imagePreview: reader.result,
         imageUrl: ""
       }));
-      setNotificationErrors(prev => ({...prev, image: null}));
+      setNotificationErrors(prev => ({ ...prev, image: null }));
     };
     reader.readAsDataURL(file);
   };
@@ -417,13 +419,13 @@ export default function AdminDashboard() {
   // Handle image URL input
   const handleImageUrlChange = (url) => {
     if (!url) {
-      setNotificationForm(prev => ({...prev, imageUrl: "", imageFile: null, imagePreview: null}));
-      setNotificationErrors(prev => ({...prev, image: null}));
+      setNotificationForm(prev => ({ ...prev, imageUrl: "", imageFile: null, imagePreview: null }));
+      setNotificationErrors(prev => ({ ...prev, image: null }));
       return;
     }
     const urlPattern = /^https?:\/\/.+/i;
     if (!urlPattern.test(url)) {
-      setNotificationErrors(prev => ({...prev, image: "Please enter a valid URL starting with http:// or https://"}));
+      setNotificationErrors(prev => ({ ...prev, image: "Please enter a valid URL starting with http:// or https://" }));
       return;
     }
     setNotificationForm(prev => ({
@@ -432,13 +434,13 @@ export default function AdminDashboard() {
       imageFile: null,
       imagePreview: null
     }));
-    setNotificationErrors(prev => ({...prev, image: null}));
+    setNotificationErrors(prev => ({ ...prev, image: null }));
   };
 
   // Handle video URL input
   const handleVideoUrlChange = (url) => {
-    setNotificationForm(prev => ({...prev, videoUrl: url}));
-    setNotificationErrors(prev => ({...prev, video: validateVideoUrl(url)}));
+    setNotificationForm(prev => ({ ...prev, videoUrl: url }));
+    setNotificationErrors(prev => ({ ...prev, video: validateVideoUrl(url) }));
   };
 
   // Handle send notification
@@ -451,9 +453,9 @@ export default function AdminDashboard() {
       const v = validateVideoUrl(notificationForm.videoUrl);
       if (v) errors.video = v;
     }
-    if (Object.keys(errors).length) { 
-      setNotificationErrors(errors); 
-      return; 
+    if (Object.keys(errors).length) {
+      setNotificationErrors(errors);
+      return;
     }
 
     const payload = {
@@ -495,29 +497,29 @@ export default function AdminDashboard() {
 
   // Waitlist management state
   const [waitlist, setWaitlist] = useState([
-    { 
-      id: 1, 
-      playerName: "Alex Johnson", 
+    {
+      id: 1,
+      playerName: "Alex Johnson",
       playerId: "P001",
-      position: 1, 
+      position: 1,
       gameType: "Texas Hold'em",
       preferredSeat: 3,
       preferredTable: 1
     },
-    { 
-      id: 2, 
-      playerName: "Maria Garcia", 
+    {
+      id: 2,
+      playerName: "Maria Garcia",
       playerId: "P002",
-      position: 2, 
+      position: 2,
       gameType: "Omaha",
       preferredSeat: 5,
       preferredTable: 2
     },
-    { 
-      id: 3, 
-      playerName: "David Wilson", 
+    {
+      id: 3,
+      playerName: "David Wilson",
       playerId: "P003",
-      position: 3, 
+      position: 3,
       gameType: "Texas Hold'em",
       preferredSeat: null,
       preferredTable: 1
@@ -553,25 +555,25 @@ export default function AdminDashboard() {
   const handleSeatAssign = ({ playerId, playerName, tableId, seatNumber }) => {
     const tableIdNum = parseInt(tableId);
     const seatNum = parseInt(seatNumber);
-    
+
     if (!isSeatAvailable(tableIdNum, seatNum)) {
       alert(`Seat ${seatNum} at Table ${tableIdNum} is not available`);
       return;
     }
-    
+
     // Assign seat
     setOccupiedSeats(prev => ({
       ...prev,
       [tableIdNum]: [...(prev[tableIdNum] || []), seatNum]
     }));
-    
+
     // Remove from waitlist
-    setWaitlist(prev => prev.filter(item => 
+    setWaitlist(prev => prev.filter(item =>
       (item.id !== parseInt(playerId)) && (item.playerId !== playerId)
     ));
-    
+
     alert(`Assigned ${playerName} to Table ${tableIdNum}, Seat ${seatNum}`);
-    
+
     // Close table view
     setShowTableView(false);
     setSelectedPlayerForSeating(null);
@@ -638,15 +640,15 @@ export default function AdminDashboard() {
   // Filter registered players for dropdown search
   const filteredRegisteredPlayersForSearch = registeredPlayersSearch.length >= 2
     ? registeredPlayers.filter(player => {
-        if (player.kycStatus !== "approved") return false;
-        const searchLower = registeredPlayersSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.phone.includes(registeredPlayersSearch)
-        );
-      })
+      if (player.kycStatus !== "approved") return false;
+      const searchLower = registeredPlayersSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.email.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        player.phone.includes(registeredPlayersSearch)
+      );
+    })
     : [];
 
   const filteredRegisteredPlayers = registeredPlayers.filter(player => {
@@ -656,7 +658,7 @@ export default function AdminDashboard() {
     // Otherwise, filter by search text
     if (!selectedRegisteredPlayer && registeredPlayersSearch) {
       const searchLower = registeredPlayersSearch.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         player.name.toLowerCase().includes(searchLower) ||
         player.email.toLowerCase().includes(searchLower) ||
         player.id.toLowerCase().includes(searchLower) ||
@@ -762,7 +764,7 @@ export default function AdminDashboard() {
       [],
       ...(data || []).map(row => Array.isArray(row) ? row : Object.values(row))
     ].map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(',')).join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -790,7 +792,7 @@ export default function AdminDashboard() {
 
     // Mock data generation based on report type
     let mockData = [];
-    switch(selectedReportType) {
+    switch (selectedReportType) {
       case "individual_player":
         if (!selectedPlayerForReport) {
           alert("Please select a player for individual report");
@@ -870,13 +872,13 @@ export default function AdminDashboard() {
   const [playerReportSearch, setPlayerReportSearch] = useState("");
   const filteredPlayersForReport = playerReportSearch.length >= 3
     ? allPlayersForCredit.filter(player => {
-        const searchLower = playerReportSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
+      const searchLower = playerReportSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        player.email.toLowerCase().includes(searchLower)
+      );
+    })
     : [];
 
   // Player search for Core Management and other sections
@@ -884,13 +886,13 @@ export default function AdminDashboard() {
   const [selectedPlayerForManagement, setSelectedPlayerForManagement] = useState(null);
   const filteredPlayersForManagement = playerManagementSearch.length >= 3
     ? allPlayersForCredit.filter(player => {
-        const searchLower = playerManagementSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
+      const searchLower = playerManagementSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        player.email.toLowerCase().includes(searchLower)
+      );
+    })
     : [];
 
   // Credit Management State
@@ -928,13 +930,13 @@ export default function AdminDashboard() {
   // Filter players for bonus creation
   const filteredPlayersForBonus = bonusPlayerSearch.length >= 2
     ? allPlayersForCredit.filter(player => {
-        const searchLower = bonusPlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          (player.email && player.email.toLowerCase().includes(searchLower))
-        );
-      })
+      const searchLower = bonusPlayerSearch.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        (player.email && player.email.toLowerCase().includes(searchLower))
+      );
+    })
     : [];
 
   // Handle bonus creation
@@ -977,13 +979,13 @@ export default function AdminDashboard() {
   // Filter all players for credit limit setting (searches all players, not just eligible)
   const filteredPlayersForLimit = creditPlayerSearchLimit.length >= 3
     ? allPlayersForCredit.filter(player => {
-        const searchLower = creditPlayerSearchLimit.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
+      const searchLower = creditPlayerSearchLimit.toLowerCase();
+      return (
+        player.name.toLowerCase().includes(searchLower) ||
+        player.id.toLowerCase().includes(searchLower) ||
+        player.email.toLowerCase().includes(searchLower)
+      );
+    })
     : [];
 
   // Handle setting credit limit (automatically makes player eligible)
@@ -997,14 +999,14 @@ export default function AdminDashboard() {
       alert("Please enter a valid credit limit amount");
       return;
     }
-    
+
     // Check if player is already in eligible list
     const existingPlayer = creditEligiblePlayers.find(p => p.id === selectedCreditPlayerLimit.id);
-    
+
     if (existingPlayer) {
       // Update existing player's limit
-      setCreditEligiblePlayers(prev => prev.map(p => 
-        p.id === selectedCreditPlayerLimit.id ? {...p, creditLimit: amount} : p
+      setCreditEligiblePlayers(prev => prev.map(p =>
+        p.id === selectedCreditPlayerLimit.id ? { ...p, creditLimit: amount } : p
       ));
       alert(`Credit limit updated for ${selectedCreditPlayerLimit.name} to ₹${amount.toLocaleString('en-IN')}`);
     } else {
@@ -1017,7 +1019,7 @@ export default function AdminDashboard() {
       }]);
       alert(`${selectedCreditPlayerLimit.name} has been added to credit-eligible players with limit ₹${amount.toLocaleString('en-IN')}`);
     }
-    
+
     // Reset form
     setCreditPlayerSearchLimit("");
     setSelectedCreditPlayerLimit(null);
@@ -1057,20 +1059,20 @@ export default function AdminDashboard() {
       alert("Please enter a valid amount");
       return;
     }
-    
+
     // Update player's current balance
     setCreditEligiblePlayers(prev => prev.map(p => {
       if (p.id === creditAdjustmentPlayer.id) {
-        const newBalance = type === "credit" 
-          ? p.currentBalance + amount 
+        const newBalance = type === "credit"
+          ? p.currentBalance + amount
           : Math.max(0, p.currentBalance - amount);
         return { ...p, currentBalance: newBalance };
       }
       return p;
     }));
-    
+
     alert(`Credit ${type === "credit" ? "added" : "deducted"} for ${creditAdjustmentPlayer.name}: ₹${amount.toLocaleString('en-IN')}`);
-    
+
     // Reset form
     setCreditAdjustmentPlayer(null);
     setCreditAdjustmentAmount("");
@@ -1354,14 +1356,14 @@ export default function AdminDashboard() {
   ]);
 
   // Filter chats by status
-  const filteredChats = chatType === "player" 
+  const filteredChats = chatType === "player"
     ? playerChats.filter(chat => statusFilter === "all" || chat.status === statusFilter)
     : staffChats.filter(chat => statusFilter === "all" || chat.status === statusFilter);
 
   // Handle sending message
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedChat) return;
-    
+
     const message = {
       id: `M${Date.now()}`,
       sender: chatType === "player" ? "staff" : "admin",
@@ -1371,27 +1373,27 @@ export default function AdminDashboard() {
     };
 
     if (chatType === "player") {
-      setPlayerChats(prev => prev.map(chat => 
+      setPlayerChats(prev => prev.map(chat =>
         chat.id === selectedChat.id
           ? {
-              ...chat,
-              messages: [...chat.messages, message],
-              lastMessage: message.text,
-              lastMessageTime: message.timestamp,
-              status: chat.status === "closed" ? "in_progress" : chat.status
-            }
+            ...chat,
+            messages: [...chat.messages, message],
+            lastMessage: message.text,
+            lastMessageTime: message.timestamp,
+            status: chat.status === "closed" ? "in_progress" : chat.status
+          }
           : chat
       ));
     } else {
-      setStaffChats(prev => prev.map(chat => 
+      setStaffChats(prev => prev.map(chat =>
         chat.id === selectedChat.id
           ? {
-              ...chat,
-              messages: [...chat.messages, message],
-              lastMessage: message.text,
-              lastMessageTime: message.timestamp,
-              status: chat.status === "closed" ? "in_progress" : chat.status
-            }
+            ...chat,
+            messages: [...chat.messages, message],
+            lastMessage: message.text,
+            lastMessageTime: message.timestamp,
+            status: chat.status === "closed" ? "in_progress" : chat.status
+          }
           : chat
       ));
     }
@@ -1401,7 +1403,7 @@ export default function AdminDashboard() {
   // Handle status change
   const handleStatusChange = (chatId, newStatus) => {
     if (chatType === "player") {
-      setPlayerChats(prev => prev.map(chat => 
+      setPlayerChats(prev => prev.map(chat =>
         chat.id === chatId ? { ...chat, status: newStatus } : chat
       ));
       // Update selected chat if it's the one being changed
@@ -1410,7 +1412,7 @@ export default function AdminDashboard() {
         if (updatedChat) setSelectedChat({ ...updatedChat, status: newStatus });
       }
     } else {
-      setStaffChats(prev => prev.map(chat => 
+      setStaffChats(prev => prev.map(chat =>
         chat.id === chatId ? { ...chat, status: newStatus } : chat
       ));
       // Update selected chat if it's the one being changed
@@ -1478,11 +1480,10 @@ export default function AdminDashboard() {
               <button
                 key={idx}
                 onClick={() => setActiveItem(item)}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-red-400 to-purple-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-red-400/20 hover:to-purple-500/20 text-white"
-                }`}
+                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${activeItem === item
+                  ? "bg-gradient-to-r from-red-400 to-purple-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
+                  : "bg-white/5 hover:bg-gradient-to-r hover:from-red-400/20 hover:to-purple-500/20 text-white"
+                  }`}
               >
                 {item}
               </button>
@@ -1499,43 +1500,43 @@ export default function AdminDashboard() {
               <p className="text-gray-200 mt-1">Complete system administration and management</p>
             </div>
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={() => navigate("/manager")}
                 className="bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
               >
                 Manager Portal
               </button>
-              <button 
+              <button
                 onClick={() => navigate("/gre/signin")}
                 className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
               >
                 GRE Portal
               </button>
-              <button 
+              <button
                 onClick={() => navigate("/hr/signin")}
                 className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
               >
                 HR Portal
               </button>
-              <button 
+              <button
                 onClick={() => navigate("/cashier/signin")}
                 className="bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
               >
                 Cashier Portal
               </button>
-              <button 
+              <button
                 onClick={() => navigate("/fnb/signin")}
                 className="bg-orange-600 hover:bg-orange-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
               >
                 FNB Portal
               </button>
-              <button 
+              <button
                 onClick={() => navigate("/master-admin")}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
               >
                 Master Admin
               </button>
-              <button 
+              <button
                 onClick={handleSignOut}
                 className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
               >
@@ -1860,17 +1861,17 @@ export default function AdminDashboard() {
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Players - KYC Pending Review</h2>
-                
+
                 {/* Search and Filters */}
                 <div className="bg-white/10 p-4 rounded-lg mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     <div className="md:col-span-2">
                       <label className="text-white text-sm mb-1 block">Search Player</label>
                       <div className="relative">
-                        <input 
-                          type="text" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Type at least 2 characters to search..." 
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Type at least 2 characters to search..."
                           value={playersSearch}
                           onChange={(e) => {
                             setPlayersSearch(e.target.value);
@@ -1897,7 +1898,7 @@ export default function AdminDashboard() {
                         {selectedPlayer && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
                             <span className="text-green-300">Selected: {selectedPlayer.name} ({selectedPlayer.id})</span>
-                            <button 
+                            <button
                               onClick={() => {
                                 setSelectedPlayer(null);
                                 setPlayersSearch("");
@@ -1912,10 +1913,10 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Registration Date</label>
-                      <select 
+                      <select
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                         value={playersFilter.registrationDate}
-                        onChange={(e) => setPlayersFilter({...playersFilter, registrationDate: e.target.value})}
+                        onChange={(e) => setPlayersFilter({ ...playersFilter, registrationDate: e.target.value })}
                       >
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
@@ -1925,10 +1926,10 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Document Type</label>
-                      <select 
+                      <select
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                         value={playersFilter.documentType}
-                        onChange={(e) => setPlayersFilter({...playersFilter, documentType: e.target.value})}
+                        onChange={(e) => setPlayersFilter({ ...playersFilter, documentType: e.target.value })}
                       >
                         <option value="all">All Documents</option>
                         <option value="PAN Card">PAN Card</option>
@@ -1942,11 +1943,11 @@ export default function AdminDashboard() {
                     <div className="text-white text-sm">
                       Showing <span className="font-semibold">{filteredPlayers.length}</span> of <span className="font-semibold">{allPlayers.filter(p => p.kycStatus === 'pending').length}</span> pending KYC verifications
                     </div>
-                    <button 
+                    <button
                       onClick={() => {
                         setPlayersSearch("");
                         setSelectedPlayer(null);
-                        setPlayersFilter({kycStatus: "pending", registrationDate: "all", documentType: "all"});
+                        setPlayersFilter({ kycStatus: "pending", registrationDate: "all", documentType: "all" });
                       }}
                       className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                     >
@@ -1956,7 +1957,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Players List */}
-                  <div className="bg-white/10 p-4 rounded-lg">
+                <div className="bg-white/10 p-4 rounded-lg">
                   {filteredPlayers.length > 0 ? (
                     <div className="space-y-3">
                       {filteredPlayers.map(player => (
@@ -1971,15 +1972,15 @@ export default function AdminDashboard() {
                                 </span>
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      <div>
+                                <div>
                                   <span className="text-gray-400">ID:</span> <span className="text-white">{player.id}</span>
-                      </div>
-                      <div>
+                                </div>
+                                <div>
                                   <span className="text-gray-400">Email:</span> <span className="text-white">{player.email}</span>
-                      </div>
-                      <div>
+                                </div>
+                                <div>
                                   <span className="text-gray-400">Phone:</span> <span className="text-white">{player.phone}</span>
-                      </div>
+                                </div>
                                 <div>
                                   <span className="text-gray-400">Doc Type:</span> <span className="text-white">{player.documentType}</span>
                                 </div>
@@ -1988,19 +1989,19 @@ export default function AdminDashboard() {
                                 <div>Registered: {new Date(player.registrationDate).toLocaleDateString()}</div>
                                 <div>Submitted: {new Date(player.submittedDate).toLocaleDateString()}</div>
                                 <div className="md:col-span-2">Days Pending: {Math.floor((new Date() - new Date(player.submittedDate)) / (1000 * 60 * 60 * 24))} days</div>
-                    </div>
-                  </div>
+                              </div>
+                            </div>
 
                             {/* Action Buttons */}
                             <div className="md:col-span-4 flex flex-col gap-2">
-                      <div className="flex gap-2">
-                                <button 
+                              <div className="flex gap-2">
+                                <button
                                   onClick={() => handleKYCVerification(player.id, "approve")}
                                   className="flex-1 bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                 >
                                   ✓ Approve
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => {
                                     const notes = prompt("Enter rejection reason (optional):");
                                     if (notes !== null) {
@@ -2011,23 +2012,23 @@ export default function AdminDashboard() {
                                 >
                                   ✗ Reject
                                 </button>
-                      </div>
-                      <div className="flex gap-2">
-                                <button 
+                              </div>
+                              <div className="flex gap-2">
+                                <button
                                   className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                   onClick={() => alert(`View documents for ${player.name} (${player.id})\nDocument Type: ${player.documentType}`)}
                                 >
                                   View Docs
                                 </button>
-                                <button 
+                                <button
                                   className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                   onClick={() => alert(`Player Details:\n\nName: ${player.name}\nEmail: ${player.email}\nPhone: ${player.phone}\nDocument: ${player.documentType}\nRegistration: ${player.registrationDate}`)}
                                 >
                                   Details
                                 </button>
-                      </div>
-                    </div>
-                  </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -2056,15 +2057,15 @@ export default function AdminDashboard() {
                     <div className="md:col-span-2">
                       <label className="text-white text-sm mb-1 block">Search Player</label>
                       <div className="relative">
-                        <input 
-                          type="text" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Type at least 2 characters to search..." 
-                          value={registeredPlayersSearch} 
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Type at least 2 characters to search..."
+                          value={registeredPlayersSearch}
                           onChange={(e) => {
                             setRegisteredPlayersSearch(e.target.value);
                             setSelectedRegisteredPlayer(null);
-                          }} 
+                          }}
                         />
                         {registeredPlayersSearch.length >= 2 && filteredRegisteredPlayersForSearch.length > 0 && !selectedRegisteredPlayer && (
                           <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -2086,7 +2087,7 @@ export default function AdminDashboard() {
                         {selectedRegisteredPlayer && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
                             <span className="text-green-300">Selected: {selectedRegisteredPlayer.name} ({selectedRegisteredPlayer.id})</span>
-                            <button 
+                            <button
                               onClick={() => {
                                 setSelectedRegisteredPlayer(null);
                                 setRegisteredPlayersSearch("");
@@ -2101,7 +2102,7 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Account Status</label>
-                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={registeredPlayersFilter.status} onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, status: e.target.value})}>
+                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={registeredPlayersFilter.status} onChange={(e) => setRegisteredPlayersFilter({ ...registeredPlayersFilter, status: e.target.value })}>
                         <option value="all">All Status</option>
                         <option value="Active">Active</option>
                         <option value="Suspended">Suspended</option>
@@ -2110,7 +2111,7 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Registration Date</label>
-                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={registeredPlayersFilter.registrationDate} onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, registrationDate: e.target.value})}>
+                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={registeredPlayersFilter.registrationDate} onChange={(e) => setRegisteredPlayersFilter({ ...registeredPlayersFilter, registrationDate: e.target.value })}>
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
                         <option value="week">Last 7 Days</option>
@@ -2119,7 +2120,7 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <label className="text-white text-sm mb-1 block">Document Type</label>
-                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={registeredPlayersFilter.documentType} onChange={(e) => setRegisteredPlayersFilter({...registeredPlayersFilter, documentType: e.target.value})}>
+                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={registeredPlayersFilter.documentType} onChange={(e) => setRegisteredPlayersFilter({ ...registeredPlayersFilter, documentType: e.target.value })}>
                         <option value="all">All Documents</option>
                         <option value="PAN Card">PAN Card</option>
                         <option value="Aadhaar Card">Aadhaar Card</option>
@@ -2131,7 +2132,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between">
                     <div className="text-white text-sm">Showing <span className="font-semibold">{filteredRegisteredPlayers.length}</span> of <span className="font-semibold">{registeredPlayers.length}</span> verified players</div>
                     <div className="flex gap-2">
-                      <button onClick={() => { setRegisteredPlayersSearch(""); setSelectedRegisteredPlayer(null); setRegisteredPlayersFilter({status: "all", registrationDate: "all", documentType: "all", verifiedDate: "all"}); }} className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">Clear Filters</button>
+                      <button onClick={() => { setRegisteredPlayersSearch(""); setSelectedRegisteredPlayer(null); setRegisteredPlayersFilter({ status: "all", registrationDate: "all", documentType: "all", verifiedDate: "all" }); }} className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">Clear Filters</button>
                       <button onClick={handleExportCSV} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">Export CSV</button>
                     </div>
                   </div>
@@ -2167,7 +2168,7 @@ export default function AdminDashboard() {
                                 <button onClick={() => handleDownloadKYCDoc(player)} className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg font-semibold text-sm">📥 Download KYC</button>
                               </div>
                               <div className="flex gap-2">
-                                <button className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-2 rounded-lg font-semibold text-sm" onClick={() => { const newStatus = player.accountStatus === "Active" ? "Suspended" : "Active"; setRegisteredPlayers(prev => prev.map(p => p.id === player.id ? {...p, accountStatus: newStatus} : p)); alert(`${player.name} account status changed to ${newStatus}`); }}>{player.accountStatus === "Active" ? "Suspend" : "Activate"}</button>
+                                <button className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-2 rounded-lg font-semibold text-sm" onClick={() => { const newStatus = player.accountStatus === "Active" ? "Suspended" : "Active"; setRegisteredPlayers(prev => prev.map(p => p.id === player.id ? { ...p, accountStatus: newStatus } : p)); alert(`${player.name} account status changed to ${newStatus}`); }}>{player.accountStatus === "Active" ? "Suspend" : "Activate"}</button>
                                 <button className="flex-1 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg font-semibold text-sm" onClick={() => { if (window.confirm(`Are you sure you want to delete ${player.name}?`)) { setRegisteredPlayers(prev => prev.filter(p => p.id !== player.id)); alert(`${player.name} removed from system`); } }}>Delete</button>
                               </div>
                             </div>
@@ -2194,23 +2195,23 @@ export default function AdminDashboard() {
                     </div>
                     <div className="p-6 space-y-6">
                       <div><h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">Basic Information</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div><label className="text-gray-400 text-sm">Player ID</label><div className="text-white font-medium">{selectedPlayerDetails.id}</div></div>
-                          <div><label className="text-gray-400 text-sm">Full Name</label><div className="text-white font-medium">{selectedPlayerDetails.name}</div></div>
-                          <div><label className="text-gray-400 text-sm">Email</label><div className="text-white font-medium">{selectedPlayerDetails.email}</div></div>
-                          <div><label className="text-gray-400 text-sm">Phone</label><div className="text-white font-medium">{selectedPlayerDetails.phone}</div></div>
-                          <div><label className="text-gray-400 text-sm">Account Status</label><div><span className={`px-3 py-1 rounded-full text-xs border font-medium ${selectedPlayerDetails.accountStatus === "Active" ? "bg-green-500/30 text-green-300 border-green-400/50" : "bg-red-500/30 text-red-300 border-red-400/50"}`}>{selectedPlayerDetails.accountStatus}</span></div></div>
-                        </div></div>
+                        <div><label className="text-gray-400 text-sm">Player ID</label><div className="text-white font-medium">{selectedPlayerDetails.id}</div></div>
+                        <div><label className="text-gray-400 text-sm">Full Name</label><div className="text-white font-medium">{selectedPlayerDetails.name}</div></div>
+                        <div><label className="text-gray-400 text-sm">Email</label><div className="text-white font-medium">{selectedPlayerDetails.email}</div></div>
+                        <div><label className="text-gray-400 text-sm">Phone</label><div className="text-white font-medium">{selectedPlayerDetails.phone}</div></div>
+                        <div><label className="text-gray-400 text-sm">Account Status</label><div><span className={`px-3 py-1 rounded-full text-xs border font-medium ${selectedPlayerDetails.accountStatus === "Active" ? "bg-green-500/30 text-green-300 border-green-400/50" : "bg-red-500/30 text-red-300 border-red-400/50"}`}>{selectedPlayerDetails.accountStatus}</span></div></div>
+                      </div></div>
                       <div><h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">KYC Information</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div><label className="text-gray-400 text-sm">KYC Status</label><div><span className="bg-green-500/30 text-green-300 font-medium px-3 py-1 rounded-full text-xs border border-green-400/50">✓ Approved</span></div></div>
-                          <div><label className="text-gray-400 text-sm">Document Type</label><div className="text-white font-medium">{selectedPlayerDetails.documentType}</div></div>
-                          <div><label className="text-gray-400 text-sm">Registration Date</label><div className="text-white font-medium">{new Date(selectedPlayerDetails.registrationDate).toLocaleDateString()}</div></div>
-                          <div><label className="text-gray-400 text-sm">Verified Date</label><div className="text-white font-medium">{new Date(selectedPlayerDetails.verifiedDate).toLocaleDateString()}</div></div>
-                          <div className="md:col-span-2"><label className="text-gray-400 text-sm">Verification Notes</label><div className="text-white font-medium bg-white/5 p-3 rounded">{selectedPlayerDetails.verificationNotes}</div></div>
-                        </div></div>
+                        <div><label className="text-gray-400 text-sm">KYC Status</label><div><span className="bg-green-500/30 text-green-300 font-medium px-3 py-1 rounded-full text-xs border border-green-400/50">✓ Approved</span></div></div>
+                        <div><label className="text-gray-400 text-sm">Document Type</label><div className="text-white font-medium">{selectedPlayerDetails.documentType}</div></div>
+                        <div><label className="text-gray-400 text-sm">Registration Date</label><div className="text-white font-medium">{new Date(selectedPlayerDetails.registrationDate).toLocaleDateString()}</div></div>
+                        <div><label className="text-gray-400 text-sm">Verified Date</label><div className="text-white font-medium">{new Date(selectedPlayerDetails.verifiedDate).toLocaleDateString()}</div></div>
+                        <div className="md:col-span-2"><label className="text-gray-400 text-sm">Verification Notes</label><div className="text-white font-medium bg-white/5 p-3 rounded">{selectedPlayerDetails.verificationNotes}</div></div>
+                      </div></div>
                       <div><h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">Activity Information</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div><label className="text-gray-400 text-sm">Total Games</label><div className="text-white font-medium text-xl">{selectedPlayerDetails.totalGames}</div></div>
-                          <div><label className="text-gray-400 text-sm">Last Active</label><div className="text-white font-medium">{selectedPlayerDetails.lastActive}</div></div>
-                        </div></div>
+                        <div><label className="text-gray-400 text-sm">Total Games</label><div className="text-white font-medium text-xl">{selectedPlayerDetails.totalGames}</div></div>
+                        <div><label className="text-gray-400 text-sm">Last Active</label><div className="text-white font-medium">{selectedPlayerDetails.lastActive}</div></div>
+                      </div></div>
                       <div className="flex gap-3 pt-4 border-t border-white/10">
                         <button onClick={() => handleDownloadKYCDoc(selectedPlayerDetails)} className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-4 py-3 rounded-lg font-semibold">📥 Download KYC Document</button>
                         <button onClick={() => { setSelectedPlayerDetails(null); handleExportCSV(); }} className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-3 rounded-lg font-semibold">Export Player Data</button>
@@ -2233,10 +2234,10 @@ export default function AdminDashboard() {
                     <div className="space-y-4">
                       <div className="relative">
                         <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Search by name, ID, or email..." 
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Search by name, ID, or email..."
                           value={creditPlayerSearchLimit}
                           onChange={(e) => {
                             setCreditPlayerSearchLimit(e.target.value);
@@ -2268,7 +2269,7 @@ export default function AdminDashboard() {
                         {selectedCreditPlayerLimit && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
                             <span className="text-green-300">Selected: {selectedCreditPlayerLimit.name} ({selectedCreditPlayerLimit.id})</span>
-                            <button 
+                            <button
                               onClick={() => {
                                 setSelectedCreditPlayerLimit(null);
                                 setCreditPlayerSearchLimit("");
@@ -2282,24 +2283,24 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <label className="text-white text-sm">Credit Limit (₹)</label>
-                        <input 
-                          type="number" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Enter credit limit amount" 
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter credit limit amount"
                           value={creditLimitAmount}
                           onChange={(e) => setCreditLimitAmount(e.target.value)}
                         />
                       </div>
                       <div>
                         <label className="text-white text-sm">Effective From (Optional)</label>
-                        <input 
-                          type="date" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                        <input
+                          type="date"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                           value={creditEffectiveDate}
                           onChange={(e) => setCreditEffectiveDate(e.target.value)}
                         />
                       </div>
-                      <button 
+                      <button
                         onClick={handleSetCreditLimit}
                         className="w-full bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg font-semibold"
                       >
@@ -2319,8 +2320,8 @@ export default function AdminDashboard() {
                                 <div className="font-semibold text-white">{player.name}</div>
                                 <div className="text-xs text-gray-400">ID: {player.id}</div>
                                 <div className="text-sm text-gray-300 mt-1">
-                                  Limit: ₹{player.creditLimit.toLocaleString('en-IN')} | 
-                                  Balance: ₹{player.currentBalance.toLocaleString('en-IN')} | 
+                                  Limit: ₹{player.creditLimit.toLocaleString('en-IN')} |
+                                  Balance: ₹{player.currentBalance.toLocaleString('en-IN')} |
                                   Available: ₹{(player.creditLimit - player.currentBalance).toLocaleString('en-IN')}
                                 </div>
                               </div>
@@ -2423,15 +2424,14 @@ export default function AdminDashboard() {
                       {creditRequests.filter(r => r.status !== "pending").map(request => (
                         <div key={request.id} className="bg-white/5 p-3 rounded border border-white/10">
                           <div className="flex justify-between items-center">
-                      <div>
+                            <div>
                               <span className="text-white font-medium">{request.playerName}</span>
                               <span className="text-gray-400 text-sm ml-2">- ₹{request.amount.toLocaleString('en-IN')}</span>
                             </div>
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              request.status === "approved" 
-                                ? "bg-green-500/30 text-green-300" 
-                                : "bg-red-500/30 text-red-300"
-                            }`}>
+                            <span className={`px-2 py-1 rounded text-xs ${request.status === "approved"
+                              ? "bg-green-500/30 text-green-300"
+                              : "bg-red-500/30 text-red-300"
+                              }`}>
                               {request.status === "approved" ? "✓ Approved" : "✗ Rejected"}
                             </span>
                           </div>
@@ -2451,10 +2451,10 @@ export default function AdminDashboard() {
                     <div className="space-y-4">
                       <div className="relative">
                         <label className="text-white text-sm">Search Credit-Eligible Player</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Type at least 3 characters to search..." 
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Type at least 3 characters to search..."
                           value={creditPlayerSearch}
                           onChange={(e) => {
                             setCreditPlayerSearch(e.target.value);
@@ -2463,7 +2463,7 @@ export default function AdminDashboard() {
                         />
                         {creditPlayerSearch.length >= 3 && creditPlayerSearch.length > 0 && !creditAdjustmentPlayer && (
                           <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {creditEligiblePlayers.filter(p => 
+                            {creditEligiblePlayers.filter(p =>
                               p.name.toLowerCase().includes(creditPlayerSearch.toLowerCase()) ||
                               p.id.toLowerCase().includes(creditPlayerSearch.toLowerCase())
                             ).map(player => (
@@ -2486,7 +2486,7 @@ export default function AdminDashboard() {
                         {creditAdjustmentPlayer && (
                           <div className="mt-2 p-2 bg-blue-500/20 border border-blue-400/30 rounded text-sm">
                             <span className="text-blue-300">Selected: {creditAdjustmentPlayer.name} - Balance: ₹{creditAdjustmentPlayer.currentBalance.toLocaleString('en-IN')} / ₹{creditAdjustmentPlayer.creditLimit.toLocaleString('en-IN')}</span>
-                            <button 
+                            <button
                               onClick={() => {
                                 setCreditAdjustmentPlayer(null);
                                 setCreditPlayerSearch("");
@@ -2500,32 +2500,32 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <label className="text-white text-sm">Amount (₹)</label>
-                        <input 
-                          type="number" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Enter amount" 
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter amount"
                           value={creditAdjustmentAmount}
                           onChange={(e) => setCreditAdjustmentAmount(e.target.value)}
                         />
                       </div>
                       <div>
                         <label className="text-white text-sm">Notes/Reason</label>
-                        <textarea 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          rows="3" 
+                        <textarea
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          rows="3"
                           placeholder="Enter reason for adjustment..."
                           value={creditAdjustmentNotes}
                           onChange={(e) => setCreditAdjustmentNotes(e.target.value)}
                         ></textarea>
                       </div>
                       <div className="flex gap-2">
-                        <button 
+                        <button
                           onClick={() => handleCreditAdjustment("credit")}
                           className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold"
                         >
                           Add Credit
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleCreditAdjustment("debit")}
                           className="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold"
                         >
@@ -2558,16 +2558,15 @@ export default function AdminDashboard() {
                               <td className="py-2 pr-4">{row.date}</td>
                               <td className="py-2 pr-4">{row.player}</td>
                               <td className="py-2 pr-4">
-                                <span className={`px-2 py-1 rounded text-xs ${
-                                  row.type.includes('Credit') ? 'bg-green-500/30 text-green-300' : 'bg-blue-500/30 text-blue-300'
-                                }`}>
+                                <span className={`px-2 py-1 rounded text-xs ${row.type.includes('Credit') ? 'bg-green-500/30 text-green-300' : 'bg-blue-500/30 text-blue-300'
+                                  }`}>
                                   {row.type}
                                 </span>
                               </td>
                               <td className="py-2 pr-4">₹{row.amount.toLocaleString('en-IN')}</td>
                               <td className="py-2 pr-4 text-xs">{row.notes}</td>
                             </tr>
-                      ))}
+                          ))}
                         </tbody>
                       </table>
                     </div>
@@ -2588,10 +2587,10 @@ export default function AdminDashboard() {
                     <div className="space-y-4">
                       <div className="relative">
                         <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Search by name, ID, or email..." 
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Search by name, ID, or email..."
                           value={playerManagementSearch}
                           onChange={(e) => {
                             setPlayerManagementSearch(e.target.value);
@@ -2618,7 +2617,7 @@ export default function AdminDashboard() {
                         {selectedPlayerForManagement && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
                             <span className="text-green-300">Selected: {selectedPlayerForManagement.name} ({selectedPlayerForManagement.id})</span>
-                            <button 
+                            <button
                               onClick={() => {
                                 setSelectedPlayerForManagement(null);
                                 setPlayerManagementSearch("");
@@ -2631,7 +2630,7 @@ export default function AdminDashboard() {
                         )}
                       </div>
                       <div className="flex gap-2">
-                        <button 
+                        <button
                           onClick={() => {
                             if (!selectedPlayerForManagement) {
                               alert("Please select a player first");
@@ -2643,7 +2642,7 @@ export default function AdminDashboard() {
                         >
                           Block Player
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             if (!selectedPlayerForManagement) {
                               alert("Please select a player first");
@@ -2655,7 +2654,7 @@ export default function AdminDashboard() {
                         >
                           Unblock Player
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             if (!selectedPlayerForManagement) {
                               alert("Please select a player first");
@@ -2777,116 +2776,116 @@ export default function AdminDashboard() {
               <section className="p-6 bg-gradient-to-r from-yellow-600/30 via-amber-500/20 to-orange-700/30 rounded-xl shadow-md border border-yellow-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Create Custom Bonus</h2>
                 <div className="bg-white/10 p-4 rounded-lg">
-                      <div className="space-y-4">
-                        {/* Player Search */}
-                        <div className="relative">
-                          <label className="text-white text-sm mb-1 block">Select Player</label>
-                          <input 
-                            type="text" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="Type at least 2 characters to search..." 
-                            value={bonusPlayerSearch}
-                            onChange={(e) => {
-                              setBonusPlayerSearch(e.target.value);
+                  <div className="space-y-4">
+                    {/* Player Search */}
+                    <div className="relative">
+                      <label className="text-white text-sm mb-1 block">Select Player</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        placeholder="Type at least 2 characters to search..."
+                        value={bonusPlayerSearch}
+                        onChange={(e) => {
+                          setBonusPlayerSearch(e.target.value);
+                          setSelectedBonusPlayer(null);
+                        }}
+                      />
+                      {bonusPlayerSearch.length >= 2 && filteredPlayersForBonus.length > 0 && !selectedBonusPlayer && (
+                        <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {filteredPlayersForBonus.map(player => (
+                            <div
+                              key={player.id}
+                              onClick={() => {
+                                setSelectedBonusPlayer(player);
+                                setBonusPlayerSearch(`${player.name} (${player.id})`);
+                              }}
+                              className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                            >
+                              <div className="text-white font-medium">{player.name}</div>
+                              <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email || 'N/A'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {selectedBonusPlayer && (
+                        <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
+                          <span className="text-green-300">Selected: {selectedBonusPlayer.name} ({selectedBonusPlayer.id})</span>
+                          <button
+                            onClick={() => {
                               setSelectedBonusPlayer(null);
+                              setBonusPlayerSearch("");
                             }}
-                          />
-                          {bonusPlayerSearch.length >= 2 && filteredPlayersForBonus.length > 0 && !selectedBonusPlayer && (
-                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                              {filteredPlayersForBonus.map(player => (
-                                <div
-                                  key={player.id}
-                                  onClick={() => {
-                                    setSelectedBonusPlayer(player);
-                                    setBonusPlayerSearch(`${player.name} (${player.id})`);
-                                  }}
-                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                                >
-                                  <div className="text-white font-medium">{player.name}</div>
-                                  <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email || 'N/A'}</div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {selectedBonusPlayer && (
-                            <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
-                              <span className="text-green-300">Selected: {selectedBonusPlayer.name} ({selectedBonusPlayer.id})</span>
-                              <button 
-                                onClick={() => {
-                                  setSelectedBonusPlayer(null);
-                                  setBonusPlayerSearch("");
-                                }}
-                                className="ml-2 text-red-400 hover:text-red-300 font-bold"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Bonus Type */}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Bonus Type</label>
-                          <CustomSelect
-                            className="w-full"
-                            value={bonusForm.type}
-                            onChange={(e) => setBonusForm({...bonusForm, type: e.target.value})}
+                            className="ml-2 text-red-400 hover:text-red-300 font-bold"
                           >
-                            <option value="Welcome Bonus">Welcome Bonus</option>
-                            <option value="Loyalty Bonus">Loyalty Bonus</option>
-                            <option value="Referral Bonus">Referral Bonus</option>
-                            <option value="Tournament Bonus">Tournament Bonus</option>
-                            <option value="Special Event Bonus">Special Event Bonus</option>
-                            <option value="Custom Bonus">Custom Bonus</option>
-                          </CustomSelect>
+                            ×
+                          </button>
                         </div>
-
-                        {/* Bonus Amount */}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Bonus Amount (₹)</label>
-                          <input 
-                            type="number" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="₹0.00" 
-                            value={bonusForm.amount}
-                            onChange={(e) => setBonusForm({...bonusForm, amount: e.target.value})}
-                          />
-                        </div>
-
-                        {/* Expiry Days */}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Expiry (Days)</label>
-                          <input 
-                            type="number" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="30" 
-                            value={bonusForm.expiryDays}
-                            onChange={(e) => setBonusForm({...bonusForm, expiryDays: parseInt(e.target.value) || 30})}
-                            min="1"
-                          />
-                        </div>
-
-                        {/* Reason */}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">Reason / Notes</label>
-                          <textarea 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            rows="3" 
-                            placeholder="Enter reason for this bonus..." 
-                            value={bonusForm.reason}
-                            onChange={(e) => setBonusForm({...bonusForm, reason: e.target.value})}
-                          ></textarea>
-                        </div>
-
-                        {/* Create Bonus Button */}
-                        <button 
-                          onClick={handleCreateBonus}
-                          className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-4 py-3 rounded-lg font-semibold shadow-lg transition-all"
-                        >
-                          ✨ Create Bonus
-                        </button>
-                      </div>
+                      )}
                     </div>
+
+                    {/* Bonus Type */}
+                    <div>
+                      <label className="text-white text-sm mb-1 block">Bonus Type</label>
+                      <CustomSelect
+                        className="w-full"
+                        value={bonusForm.type}
+                        onChange={(e) => setBonusForm({ ...bonusForm, type: e.target.value })}
+                      >
+                        <option value="Welcome Bonus">Welcome Bonus</option>
+                        <option value="Loyalty Bonus">Loyalty Bonus</option>
+                        <option value="Referral Bonus">Referral Bonus</option>
+                        <option value="Tournament Bonus">Tournament Bonus</option>
+                        <option value="Special Event Bonus">Special Event Bonus</option>
+                        <option value="Custom Bonus">Custom Bonus</option>
+                      </CustomSelect>
+                    </div>
+
+                    {/* Bonus Amount */}
+                    <div>
+                      <label className="text-white text-sm mb-1 block">Bonus Amount (₹)</label>
+                      <input
+                        type="number"
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        placeholder="₹0.00"
+                        value={bonusForm.amount}
+                        onChange={(e) => setBonusForm({ ...bonusForm, amount: e.target.value })}
+                      />
+                    </div>
+
+                    {/* Expiry Days */}
+                    <div>
+                      <label className="text-white text-sm mb-1 block">Expiry (Days)</label>
+                      <input
+                        type="number"
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        placeholder="30"
+                        value={bonusForm.expiryDays}
+                        onChange={(e) => setBonusForm({ ...bonusForm, expiryDays: parseInt(e.target.value) || 30 })}
+                        min="1"
+                      />
+                    </div>
+
+                    {/* Reason */}
+                    <div>
+                      <label className="text-white text-sm mb-1 block">Reason / Notes</label>
+                      <textarea
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        rows="3"
+                        placeholder="Enter reason for this bonus..."
+                        value={bonusForm.reason}
+                        onChange={(e) => setBonusForm({ ...bonusForm, reason: e.target.value })}
+                      ></textarea>
+                    </div>
+
+                    {/* Create Bonus Button */}
+                    <button
+                      onClick={handleCreateBonus}
+                      className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-4 py-3 rounded-lg font-semibold shadow-lg transition-all"
+                    >
+                      ✨ Create Bonus
+                    </button>
+                  </div>
+                </div>
               </section>
             </div>
           )}
@@ -2985,52 +2984,11 @@ export default function AdminDashboard() {
           )}
 
           {activeItem === "Session Control" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Session Management</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Start New Session</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Table Selection</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Table 1</option>
-                          <option>Table 2</option>
-                          <option>Table 3</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Session Type</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Cash Game</option>
-                          <option>Tournament</option>
-                          <option>Special Event</option>
-                        </select>
-                      </div>
-                      <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold shadow">
-                        Start Session
-                      </button>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Active Sessions</h3>
-                    <div className="space-y-2">
-                      <div className="bg-green-500/20 p-3 rounded border border-green-400/30">
-                        <div className="font-semibold text-white">Table 1 - Cash Game</div>
-                        <div className="text-sm text-gray-300">Players: 6/9</div>
-                        <div className="text-xs text-green-300">Status: Active</div>
-                      </div>
-                      <div className="bg-yellow-500/20 p-3 rounded border border-yellow-400/30">
-                        <div className="font-semibold text-white">Table 2 - Tournament</div>
-                        <div className="text-sm text-gray-300">Players: 8/8</div>
-                        <div className="text-xs text-yellow-300">Status: Starting</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
+            <SessionControl
+              tables={tables}
+              setTables={setTables}
+              userRole="admin"
+            />
           )}
 
           {activeItem === "Table Management" && (
@@ -3059,7 +3017,7 @@ export default function AdminDashboard() {
           )}
 
           {/* Waitlist & Seating Overrides */}
-          {activeItem === "Waitlist & Seating Overrides" && (
+          {/* {activeItem === "Waitlist & Seating Overrides" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Waitlist & Seating Overrides</h2>
@@ -3093,7 +3051,7 @@ export default function AdminDashboard() {
                           <label className="text-white text-sm">From Seat (Optional)</label>
                           <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
                             <option value="">Any Seat</option>
-                            {[1,2,3,4,5,6,7,8].map(seat => (
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(seat => (
                               <option key={seat} value={seat}>Seat {seat}</option>
                             ))}
                           </select>
@@ -3114,7 +3072,7 @@ export default function AdminDashboard() {
                           <label className="text-white text-sm">To Seat (Optional)</label>
                           <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
                             <option value="">Any Available Seat</option>
-                            {[1,2,3,4,5,6,7,8].map(seat => (
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(seat => (
                               <option key={seat} value={seat}>Seat {seat}</option>
                             ))}
                           </select>
@@ -3125,7 +3083,7 @@ export default function AdminDashboard() {
                       </button>
                     </div>
                   </div>
-                  
+
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Force Seat Assignment (Override)</h3>
                     <div className="space-y-3">
@@ -3152,7 +3110,7 @@ export default function AdminDashboard() {
                           <label className="text-white text-sm">Seat Number</label>
                           <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
                             <option value="">-- Select Seat --</option>
-                            {[1,2,3,4,5,6,7,8].map(seat => (
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(seat => (
                               <option key={seat} value={seat}>Seat {seat}</option>
                             ))}
                           </select>
@@ -3181,9 +3139,9 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <label className="text-white text-sm">New Priority Position</label>
-                        <input 
-                          type="number" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                           placeholder="Enter position (1-10)"
                           min="1"
                           max="10"
@@ -3223,7 +3181,7 @@ export default function AdminDashboard() {
                 </div>
               </section>
             </div>
-          )}
+          )} */}
 
           {/* Tournaments */}
           {activeItem === "Tournaments" && (
@@ -3248,36 +3206,36 @@ export default function AdminDashboard() {
                         <h4 className="text-white font-semibold border-b border-white/20 pb-2">Basic Information</h4>
                         <div>
                           <label className="text-white text-sm mb-1 block">Tournament Name *</label>
-                          <input type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Monday Night Hold'em" value={tournamentForm.name} onChange={(e) => setTournamentForm({...tournamentForm, name: e.target.value})} />
+                          <input type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Monday Night Hold'em" value={tournamentForm.name} onChange={(e) => setTournamentForm({ ...tournamentForm, name: e.target.value })} />
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Tournament Type *</label>
-                          <CustomSelect className="w-full" value={tournamentForm.type} onChange={(e) => setTournamentForm({...tournamentForm, type: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.type} onChange={(e) => setTournamentForm({ ...tournamentForm, type: e.target.value })}>
                             {tournamentTypes.map(type => <option key={type} value={type}>{type}</option>)}
                           </CustomSelect>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-white text-sm mb-1 block">Buy-in (₹) *</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="1000" value={tournamentForm.buyIn} onChange={(e) => setTournamentForm({...tournamentForm, buyIn: e.target.value})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="1000" value={tournamentForm.buyIn} onChange={(e) => setTournamentForm({ ...tournamentForm, buyIn: e.target.value })} />
                           </div>
                           <div>
                             <label className="text-white text-sm mb-1 block">Entry Fee (₹)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="100" value={tournamentForm.entryFee} onChange={(e) => setTournamentForm({...tournamentForm, entryFee: e.target.value})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="100" value={tournamentForm.entryFee} onChange={(e) => setTournamentForm({ ...tournamentForm, entryFee: e.target.value })} />
                           </div>
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Starting Chips *</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10000" value={tournamentForm.startingChips} onChange={(e) => setTournamentForm({...tournamentForm, startingChips: e.target.value})} />
+                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10000" value={tournamentForm.startingChips} onChange={(e) => setTournamentForm({ ...tournamentForm, startingChips: e.target.value })} />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-white text-sm mb-1 block">Start Time</label>
-                            <input type="datetime-local" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={tournamentForm.startTime} onChange={(e) => setTournamentForm({...tournamentForm, startTime: e.target.value})} />
+                            <input type="datetime-local" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={tournamentForm.startTime} onChange={(e) => setTournamentForm({ ...tournamentForm, startTime: e.target.value })} />
                           </div>
                           <div>
                             <label className="text-white text-sm mb-1 block">Max Players (unlimited if blank)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Unlimited" value={tournamentForm.maxPlayers} onChange={(e) => setTournamentForm({...tournamentForm, maxPlayers: e.target.value})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Unlimited" value={tournamentForm.maxPlayers} onChange={(e) => setTournamentForm({ ...tournamentForm, maxPlayers: e.target.value })} />
                           </div>
                         </div>
                       </div>
@@ -3285,45 +3243,45 @@ export default function AdminDashboard() {
                         <h4 className="text-white font-semibold border-b border-white/20 pb-2">Tournament Rules</h4>
                         <div>
                           <label className="text-white text-sm mb-1 block">Blind Structure *</label>
-                          <CustomSelect className="w-full" value={tournamentForm.blindStructure} onChange={(e) => setTournamentForm({...tournamentForm, blindStructure: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.blindStructure} onChange={(e) => setTournamentForm({ ...tournamentForm, blindStructure: e.target.value })}>
                             {blindStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
                           </CustomSelect>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-white text-sm mb-1 block">Number of Levels</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindLevels} onChange={(e) => setTournamentForm({...tournamentForm, blindLevels: parseInt(e.target.value) || 15})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindLevels} onChange={(e) => setTournamentForm({ ...tournamentForm, blindLevels: parseInt(e.target.value) || 15 })} />
                           </div>
                           <div>
                             <label className="text-white text-sm mb-1 block">Minutes per Level</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindInterval} onChange={(e) => setTournamentForm({...tournamentForm, blindInterval: parseInt(e.target.value) || 15})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindInterval} onChange={(e) => setTournamentForm({ ...tournamentForm, blindInterval: parseInt(e.target.value) || 15 })} />
                           </div>
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Break Structure</label>
-                          <CustomSelect className="w-full" value={tournamentForm.breakStructure} onChange={(e) => setTournamentForm({...tournamentForm, breakStructure: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.breakStructure} onChange={(e) => setTournamentForm({ ...tournamentForm, breakStructure: e.target.value })}>
                             {breakStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
                           </CustomSelect>
                         </div>
                         {tournamentForm.breakStructure !== "No breaks" && (
                           <div>
                             <label className="text-white text-sm mb-1 block">Break Duration (minutes)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10" value={tournamentForm.breakDuration} onChange={(e) => setTournamentForm({...tournamentForm, breakDuration: parseInt(e.target.value) || 10})} />
+                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10" value={tournamentForm.breakDuration} onChange={(e) => setTournamentForm({ ...tournamentForm, breakDuration: parseInt(e.target.value) || 10 })} />
                           </div>
                         )}
                         <div>
                           <label className="text-white text-sm mb-1 block">Late Registration (minutes)</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="60" value={tournamentForm.lateRegistration} onChange={(e) => setTournamentForm({...tournamentForm, lateRegistration: parseInt(e.target.value) || 60})} />
+                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="60" value={tournamentForm.lateRegistration} onChange={(e) => setTournamentForm({ ...tournamentForm, lateRegistration: parseInt(e.target.value) || 60 })} />
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Payout Structure</label>
-                          <CustomSelect className="w-full" value={tournamentForm.payoutStructure} onChange={(e) => setTournamentForm({...tournamentForm, payoutStructure: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.payoutStructure} onChange={(e) => setTournamentForm({ ...tournamentForm, payoutStructure: e.target.value })}>
                             {payoutStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
                           </CustomSelect>
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Seat Draw Method</label>
-                          <CustomSelect className="w-full" value={tournamentForm.seatDrawMethod} onChange={(e) => setTournamentForm({...tournamentForm, seatDrawMethod: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.seatDrawMethod} onChange={(e) => setTournamentForm({ ...tournamentForm, seatDrawMethod: e.target.value })}>
                             <option value="Random">Random</option>
                             <option value="Table Balance">Table Balance</option>
                             <option value="Manual">Manual</option>
@@ -3331,7 +3289,7 @@ export default function AdminDashboard() {
                         </div>
                         <div>
                           <label className="text-white text-sm mb-1 block">Clock Pause Rules</label>
-                          <CustomSelect className="w-full" value={tournamentForm.clockPauseRules} onChange={(e) => setTournamentForm({...tournamentForm, clockPauseRules: e.target.value})}>
+                          <CustomSelect className="w-full" value={tournamentForm.clockPauseRules} onChange={(e) => setTournamentForm({ ...tournamentForm, clockPauseRules: e.target.value })}>
                             <option value="Standard">Standard (pause on breaks)</option>
                             <option value="No Pause">No Pause</option>
                             <option value="Pause on All-in">Pause on All-in</option>
@@ -3342,49 +3300,49 @@ export default function AdminDashboard() {
                       <div className="space-y-4">
                         <h4 className="text-white font-semibold border-b border-white/20 pb-2">Rebuy, Add-on & Re-entry</h4>
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" id="rebuy-allowed" className="w-4 h-4" checked={tournamentForm.rebuyAllowed} onChange={(e) => setTournamentForm({...tournamentForm, rebuyAllowed: e.target.checked})} />
+                          <input type="checkbox" id="rebuy-allowed" className="w-4 h-4" checked={tournamentForm.rebuyAllowed} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyAllowed: e.target.checked })} />
                           <label htmlFor="rebuy-allowed" className="text-white text-sm">Allow Rebuys</label>
                         </div>
                         {tournamentForm.rebuyAllowed && (
                           <div className="grid grid-cols-3 gap-3 ml-7">
                             <div>
                               <label className="text-white text-xs mb-1 block">Rebuy Chips</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.rebuyChips} onChange={(e) => setTournamentForm({...tournamentForm, rebuyChips: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.rebuyChips} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyChips: e.target.value })} />
                             </div>
                             <div>
                               <label className="text-white text-xs mb-1 block">Rebuy Fee (₹)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="1000" value={tournamentForm.rebuyFee} onChange={(e) => setTournamentForm({...tournamentForm, rebuyFee: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="1000" value={tournamentForm.rebuyFee} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyFee: e.target.value })} />
                             </div>
                             <div>
                               <label className="text-white text-xs mb-1 block">Rebuy Period (levels)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="6" value={tournamentForm.rebuyPeriod} onChange={(e) => setTournamentForm({...tournamentForm, rebuyPeriod: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="6" value={tournamentForm.rebuyPeriod} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyPeriod: e.target.value })} />
                             </div>
                           </div>
                         )}
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" id="addon-allowed" className="w-4 h-4" checked={tournamentForm.addOnAllowed} onChange={(e) => setTournamentForm({...tournamentForm, addOnAllowed: e.target.checked})} />
+                          <input type="checkbox" id="addon-allowed" className="w-4 h-4" checked={tournamentForm.addOnAllowed} onChange={(e) => setTournamentForm({ ...tournamentForm, addOnAllowed: e.target.checked })} />
                           <label htmlFor="addon-allowed" className="text-white text-sm">Allow Add-on</label>
                         </div>
                         {tournamentForm.addOnAllowed && (
                           <div className="grid grid-cols-2 gap-3 ml-7">
                             <div>
                               <label className="text-white text-xs mb-1 block">Add-on Chips</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.addOnChips} onChange={(e) => setTournamentForm({...tournamentForm, addOnChips: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.addOnChips} onChange={(e) => setTournamentForm({ ...tournamentForm, addOnChips: e.target.value })} />
                             </div>
                             <div>
                               <label className="text-white text-xs mb-1 block">Add-on Fee (₹)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="500" value={tournamentForm.addOnFee} onChange={(e) => setTournamentForm({...tournamentForm, addOnFee: e.target.value})} />
+                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="500" value={tournamentForm.addOnFee} onChange={(e) => setTournamentForm({ ...tournamentForm, addOnFee: e.target.value })} />
                             </div>
                           </div>
                         )}
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" id="reentry-allowed" className="w-4 h-4" checked={tournamentForm.reEntryAllowed} onChange={(e) => setTournamentForm({...tournamentForm, reEntryAllowed: e.target.checked})} />
+                          <input type="checkbox" id="reentry-allowed" className="w-4 h-4" checked={tournamentForm.reEntryAllowed} onChange={(e) => setTournamentForm({ ...tournamentForm, reEntryAllowed: e.target.checked })} />
                           <label htmlFor="reentry-allowed" className="text-white text-sm">Allow Re-entry</label>
                         </div>
                         {tournamentForm.reEntryAllowed && (
                           <div className="ml-7">
                             <label className="text-white text-xs mb-1 block">Re-entry Period (minutes)</label>
-                            <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="60" value={tournamentForm.reEntryPeriod} onChange={(e) => setTournamentForm({...tournamentForm, reEntryPeriod: e.target.value})} />
+                            <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="60" value={tournamentForm.reEntryPeriod} onChange={(e) => setTournamentForm({ ...tournamentForm, reEntryPeriod: e.target.value })} />
                           </div>
                         )}
                       </div>
@@ -3392,7 +3350,7 @@ export default function AdminDashboard() {
                         <h4 className="text-white font-semibold border-b border-white/20 pb-2">Bounty Options</h4>
                         <div>
                           <label className="text-white text-sm mb-1 block">Bounty Amount (₹) - Leave blank for regular tournament</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" value={tournamentForm.bountyAmount} onChange={(e) => setTournamentForm({...tournamentForm, bountyAmount: e.target.value})} />
+                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" value={tournamentForm.bountyAmount} onChange={(e) => setTournamentForm({ ...tournamentForm, bountyAmount: e.target.value })} />
                           <p className="text-xs text-gray-400 mt-1">If set, this becomes a knockout/bounty tournament</p>
                         </div>
                       </div>
@@ -3439,9 +3397,9 @@ export default function AdminDashboard() {
                               </div>
                             </div>
                             <div className="flex flex-col gap-2 ml-4">
-                              <button onClick={(e) => {e.stopPropagation(); setSelectedTournament(tournament);}} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-semibold">View Details</button>
-                              {tournament.status === "Scheduled" && <button onClick={(e) => {e.stopPropagation(); setTournaments(prev => prev.map(t => t.id === tournament.id ? {...t, status: "Active"} : t)); alert(`Tournament "${tournament.name}" started!`);}} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm font-semibold">Start</button>}
-                              <button onClick={(e) => {e.stopPropagation(); if (window.confirm(`Delete tournament "${tournament.name}"?`)) { setTournaments(prev => prev.filter(t => t.id !== tournament.id)); }}} className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold">Delete</button>
+                              <button onClick={(e) => { e.stopPropagation(); setSelectedTournament(tournament); }} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-semibold">View Details</button>
+                              {tournament.status === "Scheduled" && <button onClick={(e) => { e.stopPropagation(); setTournaments(prev => prev.map(t => t.id === tournament.id ? { ...t, status: "Active" } : t)); alert(`Tournament "${tournament.name}" started!`); }} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm font-semibold">Start</button>}
+                              <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete tournament "${tournament.name}"?`)) { setTournaments(prev => prev.filter(t => t.id !== tournament.id)); } }} className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold">Delete</button>
                             </div>
                           </div>
                         </div>
@@ -3516,7 +3474,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-3 pt-4 border-t border-white/10">
-                        <button onClick={() => {setSelectedTournament(null); setShowTournamentForm(true);}} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold">Edit Tournament</button>
+                        <button onClick={() => { setSelectedTournament(null); setShowTournamentForm(true); }} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold">Edit Tournament</button>
                         <button onClick={() => setSelectedTournament(null)} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 rounded-lg font-semibold">Close</button>
                       </div>
                     </div>
@@ -3535,19 +3493,19 @@ export default function AdminDashboard() {
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">VIP Products</h3>
                     <div className="flex gap-2 mb-3">
-                      <input 
-                        id="vip-title" 
-                        className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                        placeholder="Product name" 
+                      <input
+                        id="vip-title"
+                        className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        placeholder="Product name"
                       />
-                      <input 
-                        id="vip-points" 
-                        type="number" 
-                        className="w-32 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                        placeholder="Points" 
+                      <input
+                        id="vip-points"
+                        type="number"
+                        className="w-32 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        placeholder="Points"
                       />
-                      <button 
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded" 
+                      <button
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded"
                         onClick={() => {
                           const t = document.getElementById('vip-title');
                           const p = document.getElementById('vip-points');
@@ -3569,7 +3527,7 @@ export default function AdminDashboard() {
                           <div className="text-white text-sm">{v.title}</div>
                           <div className="flex items-center gap-2">
                             <div className="text-white/80 text-xs">{v.points} pts</div>
-                            <button 
+                            <button
                               onClick={() => {
                                 if (window.confirm(`Delete "${v.title}"?`)) {
                                   setVipProducts(prev => prev.filter(p => p.id !== v.id));
@@ -3594,33 +3552,33 @@ export default function AdminDashboard() {
                     <div className="space-y-3">
                       <div>
                         <label className="text-white text-sm mb-1 block">Buy-in Total</label>
-                        <input 
-                          id="calc-buyin" 
-                          type="number" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Enter buy-in amount" 
+                        <input
+                          id="calc-buyin"
+                          type="number"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter buy-in amount"
                         />
                       </div>
                       <div>
                         <label className="text-white text-sm mb-1 block">Hours Played</label>
-                        <input 
-                          id="calc-hours" 
-                          type="number" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Enter hours played" 
+                        <input
+                          id="calc-hours"
+                          type="number"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter hours played"
                         />
                       </div>
                       <div>
                         <label className="text-white text-sm mb-1 block">Visit Frequency</label>
-                        <input 
-                          id="calc-visits" 
-                          type="number" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Enter visit frequency" 
+                        <input
+                          id="calc-visits"
+                          type="number"
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter visit frequency"
                         />
                       </div>
-                      <button 
-                        className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold" 
+                      <button
+                        className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold"
                         onClick={() => {
                           const b = document.getElementById('calc-buyin');
                           const h = document.getElementById('calc-hours');
@@ -3644,6 +3602,12 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {activeItem === "Staff Management" && (
+            <div className="space-y-6">
+              <StaffManagement />
+            </div>
+          )}
+
           {activeItem === "Reports & Analytics" && (
             <div className="space-y-6">
               {/* Report Type Selection */}
@@ -3655,7 +3619,7 @@ export default function AdminDashboard() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-white text-sm mb-2 block">Select Report Type</label>
-                        <select 
+                        <select
                           className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                           value={selectedReportType}
                           onChange={(e) => {
@@ -3676,10 +3640,10 @@ export default function AdminDashboard() {
                       {selectedReportType === "individual_player" && (
                         <div className="relative">
                           <label className="text-white text-sm mb-2 block">Search Player (Type at least 3 characters)</label>
-                          <input 
-                            type="text" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="Search by name, ID, or email..." 
+                          <input
+                            type="text"
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            placeholder="Search by name, ID, or email..."
                             value={playerReportSearch}
                             onChange={(e) => {
                               setPlayerReportSearch(e.target.value);
@@ -3699,14 +3663,14 @@ export default function AdminDashboard() {
                                 >
                                   <div className="text-white font-medium">{player.name}</div>
                                   <div className="text-gray-400 text-xs">ID: {player.id}</div>
-                    </div>
+                                </div>
                               ))}
-                  </div>
+                            </div>
                           )}
                           {selectedPlayerForReport && (
                             <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
                               <span className="text-green-300">Selected: {selectedPlayerForReport.name} ({selectedPlayerForReport.id})</span>
-                              <button 
+                              <button
                                 onClick={() => {
                                   setSelectedPlayerForReport(null);
                                   setPlayerReportSearch("");
@@ -3724,7 +3688,7 @@ export default function AdminDashboard() {
                       {selectedReportType === "per_table_transactions" && (
                         <div>
                           <label className="text-white text-sm mb-2 block">Select Table (Optional - leave blank for all tables)</label>
-                          <select 
+                          <select
                             className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                             value={selectedTableForReport}
                             onChange={(e) => setSelectedTableForReport(e.target.value)}
@@ -3774,26 +3738,26 @@ export default function AdminDashboard() {
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-gray-400 text-xs">Start Date</label>
-                            <input 
-                              type="date" 
-                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                            <input
+                              type="date"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                               value={reportDateRange.start}
-                              onChange={(e) => setReportDateRange({...reportDateRange, start: e.target.value})}
+                              onChange={(e) => setReportDateRange({ ...reportDateRange, start: e.target.value })}
                             />
                           </div>
                           <div>
                             <label className="text-gray-400 text-xs">End Date</label>
-                            <input 
-                              type="date" 
-                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                            <input
+                              type="date"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                               value={reportDateRange.end}
-                              onChange={(e) => setReportDateRange({...reportDateRange, end: e.target.value})}
+                              onChange={(e) => setReportDateRange({ ...reportDateRange, end: e.target.value })}
                             />
                           </div>
                         </div>
                       </div>
 
-                      <button 
+                      <button
                         onClick={generateReport}
                         className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold"
                       >
@@ -3825,21 +3789,21 @@ export default function AdminDashboard() {
                               ))}
                             </tbody>
                           </table>
-                      </div>
+                        </div>
                         <div className="flex gap-2">
-                          <button 
+                          <button
                             onClick={() => handleExportReportCSV(selectedReportType, reportData)}
                             className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                           >
                             📥 Export CSV
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleExportReportPDF(selectedReportType)}
                             className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                           >
                             📄 Export PDF
                           </button>
-                          <button 
+                          <button
                             onClick={() => {
                               const reportName = prompt("Enter report name to save:");
                               if (reportName) {
@@ -3858,13 +3822,13 @@ export default function AdminDashboard() {
                           >
                             💾 Save Report
                           </button>
-                    </div>
-                  </div>
+                        </div>
+                      </div>
                     ) : (
                       <div className="text-center py-12 text-gray-400">
                         <div className="text-lg mb-2">No report generated yet</div>
                         <div className="text-sm">Select a report type and generate to preview</div>
-                </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -3885,11 +3849,10 @@ export default function AdminDashboard() {
                         // Scroll to top
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
-                      className={`p-4 rounded-lg border transition-all ${
-                        selectedReportType === type.id
-                          ? "bg-white/20 border-white/40 shadow-lg scale-105"
-                          : "bg-white/10 border-white/20 hover:bg-white/15"
-                      }`}
+                      className={`p-4 rounded-lg border transition-all ${selectedReportType === type.id
+                        ? "bg-white/20 border-white/40 shadow-lg scale-105"
+                        : "bg-white/10 border-white/20 hover:bg-white/15"
+                        }`}
                     >
                       <div className="text-2xl mb-2">{type.icon}</div>
                       <div className="text-white font-semibold text-sm">{type.name}</div>
@@ -3948,8 +3911,8 @@ export default function AdminDashboard() {
                                 onClick={() => {
                                   const newName = prompt("Enter new report name:", report.name);
                                   if (newName) {
-                                    setSavedReports(prev => prev.map(r => 
-                                      r.id === report.id ? {...r, name: newName} : r
+                                    setSavedReports(prev => prev.map(r =>
+                                      r.id === report.id ? { ...r, name: newName } : r
                                     ));
                                     alert("Report updated successfully!");
                                   }
@@ -4177,11 +4140,10 @@ export default function AdminDashboard() {
                                   setSelectedReferralAgent(agent || "");
                                   setReferralAgentSearch("");
                                 }}
-                                className={`px-3 py-1 rounded-full text-xs font-semibold transition border ${
-                                  (selectedReferralAgent || "").toLowerCase() === (agent || "").toLowerCase()
-                                    ? "bg-green-500/40 border-green-400/50 text-green-100"
-                                    : "bg-white/10 border-white/20 text-white/80 hover:bg-white/15"
-                                }`}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold transition border ${(selectedReferralAgent || "").toLowerCase() === (agent || "").toLowerCase()
+                                  ? "bg-green-500/40 border-green-400/50 text-green-100"
+                                  : "bg-white/10 border-white/20 text-white/80 hover:bg-white/15"
+                                  }`}
                               >
                                 {agent || "Unknown"}
                               </button>
@@ -4245,13 +4207,12 @@ export default function AdminDashboard() {
                                 </div>
                               </div>
                               <div className="flex flex-col gap-2">
-                                <span className={`px-2 py-1 rounded text-xs text-center font-semibold ${
-                                  player.accountStatus === "Active"
-                                    ? "bg-green-500/30 text-green-200"
-                                    : player.accountStatus === "Suspended"
+                                <span className={`px-2 py-1 rounded text-xs text-center font-semibold ${player.accountStatus === "Active"
+                                  ? "bg-green-500/30 text-green-200"
+                                  : player.accountStatus === "Suspended"
                                     ? "bg-red-500/30 text-red-200"
                                     : "bg-gray-500/30 text-gray-200"
-                                }`}>
+                                  }`}>
                                   {player.accountStatus}
                                 </span>
                                 <button
@@ -4310,7 +4271,7 @@ export default function AdminDashboard() {
               <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
                 <h3 className="text-lg font-semibold text-white mb-4">Active Orders</h3>
                 <div className="space-y-2">
-                  {[{id:'#001', table:'Table 1', items:'2x Biryani, 1x Curry', status:'Preparing'}, {id:'#002', table:'Table 3', items:'1x Fish Fry, 2x Pulao', status:'Pending'}].map(o => (
+                  {[{ id: '#001', table: 'Table 1', items: '2x Biryani, 1x Curry', status: 'Preparing' }, { id: '#002', table: 'Table 3', items: '1x Fish Fry, 2x Pulao', status: 'Pending' }].map(o => (
                     <div key={o.id} className="bg-white/10 p-3 rounded border border-white/20 flex items-center justify-between">
                       <div className="text-white">
                         <div className="font-semibold">Order {o.id} • {o.table}</div>
@@ -4339,16 +4300,15 @@ export default function AdminDashboard() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-white text-sm">Title</label>
-                        <input 
-                          type="text" 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${
-                            notificationErrors.title ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          placeholder="Enter title" 
+                        <input
+                          type="text"
+                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${notificationErrors.title ? 'border-red-500' : 'border-white/20'
+                            }`}
+                          placeholder="Enter title"
                           value={notificationForm.title}
                           onChange={(e) => {
-                            setNotificationForm({...notificationForm, title: e.target.value});
-                            setNotificationErrors({...notificationErrors, title: null});
+                            setNotificationForm({ ...notificationForm, title: e.target.value });
+                            setNotificationErrors({ ...notificationErrors, title: null });
                           }}
                         />
                         {notificationErrors.title && (
@@ -4357,16 +4317,15 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <label className="text-white text-sm">Message</label>
-                        <textarea 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${
-                            notificationErrors.message ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          rows="3" 
+                        <textarea
+                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${notificationErrors.message ? 'border-red-500' : 'border-white/20'
+                            }`}
+                          rows="3"
                           placeholder="Enter message..."
                           value={notificationForm.message}
                           onChange={(e) => {
-                            setNotificationForm({...notificationForm, message: e.target.value});
-                            setNotificationErrors({...notificationErrors, message: null});
+                            setNotificationForm({ ...notificationForm, message: e.target.value });
+                            setNotificationErrors({ ...notificationErrors, message: null });
                           }}
                         ></textarea>
                         {notificationErrors.message && (
@@ -4378,14 +4337,14 @@ export default function AdminDashboard() {
                         <CustomSelect
                           className="w-full"
                           value={notificationForm.audience}
-                          onChange={(e) => setNotificationForm({...notificationForm, audience: e.target.value})}
+                          onChange={(e) => setNotificationForm({ ...notificationForm, audience: e.target.value })}
                         >
                           {getAudienceOptions().map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
                           ))}
                         </CustomSelect>
                       </div>
-                      
+
                       {/* Image Section */}
                       <div className="border-t border-white/20 pt-4">
                         <label className="text-white text-sm font-semibold mb-2 block">Image (Optional)</label>
@@ -4393,8 +4352,8 @@ export default function AdminDashboard() {
                           <div>
                             <label className="text-white text-xs">Upload Image</label>
                             <div className="mt-1 border-2 border-dashed border-white/30 rounded-lg p-4 text-center">
-                              <input 
-                                type="file" 
+                              <input
+                                type="file"
                                 accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                                 className="hidden"
                                 id="image-upload-admin-dashboard"
@@ -4409,7 +4368,7 @@ export default function AdminDashboard() {
                                   <img src={notificationForm.imagePreview} alt="Preview" className="max-h-32 mx-auto rounded" />
                                   <button
                                     type="button"
-                                    onClick={() => setNotificationForm({...notificationForm, imageFile: null, imagePreview: null})}
+                                    onClick={() => setNotificationForm({ ...notificationForm, imageFile: null, imagePreview: null })}
                                     className="mt-2 text-red-400 text-xs hover:text-red-300"
                                   >
                                     Remove
@@ -4421,11 +4380,10 @@ export default function AdminDashboard() {
                           <div className="text-center text-white/60 text-xs">OR</div>
                           <div>
                             <label className="text-white text-xs">Image URL</label>
-                            <input 
-                              type="url" 
-                              className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${
-                                notificationErrors.image ? 'border-red-500' : 'border-white/20'
-                              }`}
+                            <input
+                              type="url"
+                              className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${notificationErrors.image ? 'border-red-500' : 'border-white/20'
+                                }`}
                               placeholder="https://example.com/image.jpg"
                               value={notificationForm.imageUrl}
                               onChange={(e) => handleImageUrlChange(e.target.value)}
@@ -4440,11 +4398,10 @@ export default function AdminDashboard() {
                       {/* Video Section */}
                       <div className="border-t border-white/20 pt-4">
                         <label className="text-white text-sm font-semibold mb-2 block">Video Link (Optional)</label>
-                        <input 
-                          type="url" 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${
-                            notificationErrors.video ? 'border-red-500' : 'border-white/20'
-                          }`}
+                        <input
+                          type="url"
+                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${notificationErrors.video ? 'border-red-500' : 'border-white/20'
+                            }`}
                           placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
                           value={notificationForm.videoUrl}
                           onChange={(e) => handleVideoUrlChange(e.target.value)}
@@ -4457,7 +4414,7 @@ export default function AdminDashboard() {
                         </p>
                       </div>
 
-                      <button 
+                      <button
                         onClick={handleSendNotification}
                         className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-semibold mt-4"
                       >
@@ -4468,7 +4425,7 @@ export default function AdminDashboard() {
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Recent Notifications</h3>
                     <div className="space-y-2">
-                      {[{title:'Welcome Offer', time:'2h ago'}, {title:'Table 2 starting soon', time:'10m ago'}].map(n => (
+                      {[{ title: 'Welcome Offer', time: '2h ago' }, { title: 'Table 2 starting soon', time: '10m ago' }].map(n => (
                         <div key={n.title} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
                           <div className="text-white">{n.title}</div>
                           <div className="text-white/60 text-sm">{n.time}</div>
@@ -4510,7 +4467,7 @@ export default function AdminDashboard() {
                           className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                           placeholder="Enter group name"
                           value={groupForm.name}
-                          onChange={(e) => setGroupForm({...groupForm, name: e.target.value})}
+                          onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
                         />
                       </div>
                       <div>
@@ -4519,7 +4476,7 @@ export default function AdminDashboard() {
                           className="w-full"
                           value={groupForm.type}
                           onChange={(e) => {
-                            setGroupForm({...groupForm, type: e.target.value, memberIds: []});
+                            setGroupForm({ ...groupForm, type: e.target.value, memberIds: [] });
                             setGroupMemberSearch("");
                           }}
                         >
@@ -4629,11 +4586,10 @@ export default function AdminDashboard() {
                               <div>
                                 <div className="flex items-center gap-2 mb-1">
                                   <h4 className="text-white font-semibold text-lg">{group.name}</h4>
-                                  <span className={`px-2 py-1 rounded text-xs ${
-                                    group.type === "player"
-                                      ? "bg-blue-500/30 text-blue-300 border border-blue-400/50"
-                                      : "bg-purple-500/30 text-purple-300 border border-purple-400/50"
-                                  }`}>
+                                  <span className={`px-2 py-1 rounded text-xs ${group.type === "player"
+                                    ? "bg-blue-500/30 text-blue-300 border border-blue-400/50"
+                                    : "bg-purple-500/30 text-purple-300 border border-purple-400/50"
+                                    }`}>
                                     {group.type === "player" ? "Player Group" : "Staff Group"}
                                   </span>
                                 </div>
@@ -4704,7 +4660,7 @@ export default function AdminDashboard() {
                         <input
                           type="checkbox"
                           checked={bonusApprovalConfig.requireApproval}
-                          onChange={(e) => setBonusApprovalConfig({...bonusApprovalConfig, requireApproval: e.target.checked})}
+                          onChange={(e) => setBonusApprovalConfig({ ...bonusApprovalConfig, requireApproval: e.target.checked })}
                           className="sr-only peer"
                         />
                         <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
@@ -4713,39 +4669,39 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="text-white text-sm">Minimum Amount Requiring Approval (₹)</label>
-                        <input 
-                          type="number" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                           value={bonusApprovalConfig.minAmountRequiringApproval}
-                          onChange={(e) => setBonusApprovalConfig({...bonusApprovalConfig, minAmountRequiringApproval: parseFloat(e.target.value) || 0})}
+                          onChange={(e) => setBonusApprovalConfig({ ...bonusApprovalConfig, minAmountRequiringApproval: parseFloat(e.target.value) || 0 })}
                           placeholder="10000"
                         />
                         <p className="text-xs text-gray-400 mt-1">Bonuses above this amount require approval</p>
                       </div>
                       <div>
                         <label className="text-white text-sm">Auto-Approve Under (₹)</label>
-                        <input 
-                          type="number" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                           value={bonusApprovalConfig.autoApproveUnder}
-                          onChange={(e) => setBonusApprovalConfig({...bonusApprovalConfig, autoApproveUnder: parseFloat(e.target.value) || 0})}
+                          onChange={(e) => setBonusApprovalConfig({ ...bonusApprovalConfig, autoApproveUnder: parseFloat(e.target.value) || 0 })}
                           placeholder="2000"
                         />
                         <p className="text-xs text-gray-400 mt-1">Bonuses under this amount auto-approve</p>
                       </div>
                       <div>
                         <label className="text-white text-sm">Require Admin for Amount Over (₹)</label>
-                        <input 
-                          type="number" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                           value={bonusApprovalConfig.requireSuperAdminForAmountOver}
-                          onChange={(e) => setBonusApprovalConfig({...bonusApprovalConfig, requireSuperAdminForAmountOver: parseFloat(e.target.value) || 0})}
+                          onChange={(e) => setBonusApprovalConfig({ ...bonusApprovalConfig, requireSuperAdminForAmountOver: parseFloat(e.target.value) || 0 })}
                           placeholder="50000"
                         />
                         <p className="text-xs text-gray-400 mt-1">Bonuses above this require Admin approval</p>
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => {
                         alert("Staff bonus approval configuration saved successfully!");
                       }}
@@ -4836,11 +4792,10 @@ export default function AdminDashboard() {
                               <span className="text-white font-medium">{request.staffName}</span>
                               <span className="text-gray-400 text-sm ml-2">- {request.bonusType} - ₹{request.amount.toLocaleString('en-IN')}</span>
                             </div>
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              request.status === "approved" 
-                                ? "bg-green-500/30 text-green-300" 
-                                : "bg-red-500/30 text-red-300"
-                            }`}>
+                            <span className={`px-2 py-1 rounded text-xs ${request.status === "approved"
+                              ? "bg-green-500/30 text-green-300"
+                              : "bg-red-500/30 text-red-300"
+                              }`}>
                               {request.status === "approved" ? "✓ Approved" : "✗ Rejected"}
                             </span>
                           </div>
@@ -4863,7 +4818,7 @@ export default function AdminDashboard() {
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Player & Staff Support Chat</h2>
-                
+
                 {/* Chat Type Tabs */}
                 <div className="flex gap-2 mb-6">
                   <button
@@ -4872,11 +4827,10 @@ export default function AdminDashboard() {
                       setSelectedChat(null);
                       setStatusFilter("all");
                     }}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                      chatType === "player"
-                        ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
+                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${chatType === "player"
+                      ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg"
+                      : "bg-white/10 text-white/70 hover:bg-white/15"
+                      }`}
                   >
                     📱 Player Chat
                   </button>
@@ -4886,11 +4840,10 @@ export default function AdminDashboard() {
                       setSelectedChat(null);
                       setStatusFilter("all");
                     }}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                      chatType === "staff"
-                        ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
+                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${chatType === "staff"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg"
+                      : "bg-white/10 text-white/70 hover:bg-white/15"
+                      }`}
                   >
                     👥 Staff Chat
                   </button>
@@ -4912,30 +4865,28 @@ export default function AdminDashboard() {
                         <option value="closed">Closed</option>
                       </select>
                     </div>
-                    
+
                     <div className="space-y-2 max-h-[600px] overflow-y-auto">
                       {filteredChats.length > 0 ? (
                         filteredChats.map(chat => (
                           <div
                             key={chat.id}
                             onClick={() => setSelectedChat(chat)}
-                            className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                              selectedChat?.id === chat.id
-                                ? "bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50"
-                                : "bg-white/5 border-white/10 hover:bg-white/10"
-                            }`}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedChat?.id === chat.id
+                              ? "bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50"
+                              : "bg-white/5 border-white/10 hover:bg-white/10"
+                              }`}
                           >
                             <div className="flex items-start justify-between mb-1">
                               <div className="font-semibold text-white text-sm">
                                 {chatType === "player" ? chat.playerName : chat.staffName}
                               </div>
-                              <span className={`px-2 py-1 rounded text-xs ${
-                                chat.status === "open"
-                                  ? "bg-yellow-500/30 text-yellow-300"
-                                  : chat.status === "in_progress"
+                              <span className={`px-2 py-1 rounded text-xs ${chat.status === "open"
+                                ? "bg-yellow-500/30 text-yellow-300"
+                                : chat.status === "in_progress"
                                   ? "bg-blue-500/30 text-blue-300"
                                   : "bg-gray-500/30 text-gray-300"
-                              }`}>
+                                }`}>
                                 {chat.status === "open" ? "Open" : chat.status === "in_progress" ? "In Progress" : "Closed"}
                               </span>
                             </div>
@@ -4993,11 +4944,10 @@ export default function AdminDashboard() {
                               key={message.id}
                               className={`flex ${message.sender === "staff" || message.sender === "admin" ? "justify-end" : "justify-start"}`}
                             >
-                              <div className={`max-w-[70%] rounded-lg p-3 ${
-                                message.sender === "staff" || message.sender === "admin"
-                                  ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white"
-                                  : "bg-white/20 text-white"
-                              }`}>
+                              <div className={`max-w-[70%] rounded-lg p-3 ${message.sender === "staff" || message.sender === "admin"
+                                ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white"
+                                : "bg-white/20 text-white"
+                                }`}>
                                 <div className="text-xs font-semibold mb-1 opacity-90">{message.senderName}</div>
                                 <div className="text-sm">{message.text}</div>
                                 <div className="text-xs opacity-70 mt-1">
