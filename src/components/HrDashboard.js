@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "./common/CustomSelect";
+import StaffManagement from "./StaffManagement";
 
 export default function HrDashboard() {
   const [activeItem, setActiveItem] = useState("Staff Management");
@@ -8,7 +9,8 @@ export default function HrDashboard() {
 
   const menuItems = [
     "Staff Management",
-    "Attendance Management", 
+    "Player Management",
+    "Attendance Management",
     "Staff Directory",
     "Staff Requests",
     "Performance Reviews",
@@ -16,10 +18,10 @@ export default function HrDashboard() {
 
   // Staff members data with documents
   const staffMembers = [
-    { 
-      id: "S001", 
-      name: "Sarah Johnson", 
-      position: "Dealer", 
+    {
+      id: "S001",
+      name: "Sarah Johnson",
+      position: "Dealer",
       department: "Operations",
       email: "sarah.j@email.com",
       phone: "+91 98765 43210",
@@ -32,10 +34,10 @@ export default function HrDashboard() {
         { type: "Medical Certificate", status: "Verified", uploadedDate: "2024-01-12" }
       ]
     },
-    { 
-      id: "S002", 
-      name: "Mike Chen", 
-      position: "Floor Manager", 
+    {
+      id: "S002",
+      name: "Mike Chen",
+      position: "Floor Manager",
       department: "Operations",
       email: "mike.c@email.com",
       phone: "+91 98765 43211",
@@ -48,10 +50,10 @@ export default function HrDashboard() {
         { type: "ID Card", status: "Verified", uploadedDate: "2023-11-20" }
       ]
     },
-    { 
-      id: "S003", 
-      name: "Emma Davis", 
-      position: "Cashier", 
+    {
+      id: "S003",
+      name: "Emma Davis",
+      position: "Cashier",
       department: "Operations",
       email: "emma.d@email.com",
       phone: "+91 98765 43212",
@@ -64,10 +66,10 @@ export default function HrDashboard() {
         { type: "ID Card", status: "Verified", uploadedDate: "2024-02-01" }
       ]
     },
-    { 
-      id: "S004", 
-      name: "John Smith", 
-      position: "Security", 
+    {
+      id: "S004",
+      name: "John Smith",
+      position: "Security",
       department: "Security",
       email: "john.s@email.com",
       phone: "+91 98765 43213",
@@ -79,10 +81,10 @@ export default function HrDashboard() {
         { type: "ID Card", status: "Verified", uploadedDate: "2023-12-10" }
       ]
     },
-    { 
-      id: "S005", 
-      name: "David Wilson", 
-      position: "Dealer", 
+    {
+      id: "S005",
+      name: "David Wilson",
+      position: "Dealer",
       department: "Operations",
       email: "david.w@email.com",
       phone: "+91 98765 43214",
@@ -93,10 +95,10 @@ export default function HrDashboard() {
         { type: "ID Card", status: "Verified", uploadedDate: "2024-01-20" }
       ]
     },
-    { 
-      id: "S006", 
-      name: "Lisa Brown", 
-      position: "Kitchen Staff", 
+    {
+      id: "S006",
+      name: "Lisa Brown",
+      position: "Kitchen Staff",
       department: "Kitchen",
       email: "lisa.b@email.com",
       phone: "+91 98765 43215",
@@ -181,6 +183,27 @@ export default function HrDashboard() {
   const [documentFile, setDocumentFile] = useState(null);
   const [documentFileName, setDocumentFileName] = useState("");
 
+  // Player Management State
+  const [playerManagementTab, setPlayerManagementTab] = useState("kyc"); // 'kyc' or 'updates'
+  const [kycRequests, setKycRequests] = useState([
+    { id: 1, name: "Rahul Sharma", documentType: "PAN Card", docUrl: "#", status: "Pending", submittedDate: "2024-02-20" },
+    { id: 2, name: "Priya Patel", documentType: "Aadhaar", docUrl: "#", status: "Pending", submittedDate: "2024-02-21" },
+  ]);
+  const [profileUpdates, setProfileUpdates] = useState([
+    { id: 1, name: "Amit Kumar", field: "Phone Number", oldValue: "+91 9876543210", newValue: "+91 9123456780", status: "Pending", requestedDate: "2024-02-22" },
+    { id: 2, name: "Sneha Gupta", field: "Email", oldValue: "sneha.old@test.com", newValue: "sneha.new@test.com", status: "Pending", requestedDate: "2024-02-23" },
+  ]);
+
+  const handleKycAction = (id, action) => {
+    setKycRequests(prev => prev.map(req => req.id === id ? { ...req, status: action === 'approve' ? 'Approved' : 'Rejected' } : req));
+    alert(`KYC Request ${action === 'approve' ? 'Approved' : 'Rejected'}`);
+  };
+
+  const handleProfileUpdateAction = (id, action) => {
+    setProfileUpdates(prev => prev.map(req => req.id === id ? { ...req, status: action === 'approve' ? 'Approved' : 'Rejected' } : req));
+    alert(`Profile Update ${action === 'approve' ? 'Approved' : 'Rejected'}`);
+  };
+
   // Update attendance records when date changes
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -235,13 +258,13 @@ export default function HrDashboard() {
       alert("Please enter a response");
       return;
     }
-    setStaffRequests(prev => prev.map(req => 
+    setStaffRequests(prev => prev.map(req =>
       req.id === selectedRequest.id
-        ? { 
-            ...req, 
-            hrResponse: requestResponse.trim(),
-            status: requestStatus
-          }
+        ? {
+          ...req,
+          hrResponse: requestResponse.trim(),
+          status: requestStatus
+        }
         : req
     ));
     alert(`Request ${requestStatus === "approved" ? "approved" : requestStatus === "rejected" ? "rejected" : "updated"} successfully`);
@@ -251,7 +274,7 @@ export default function HrDashboard() {
   };
 
   // Filter staff requests
-  const filteredRequests = requestFilter === "all" 
+  const filteredRequests = requestFilter === "all"
     ? staffRequests
     : staffRequests.filter(req => req.status === requestFilter);
 
@@ -261,28 +284,28 @@ export default function HrDashboard() {
       alert("Please select document type and upload a file");
       return;
     }
-    
+
     const newDocument = {
       type: documentType,
       status: "Pending Review",
       uploadedDate: new Date().toISOString().split('T')[0]
     };
-    
+
     // Update the selected staff's documents
     setSelectedStaffDetails(prev => ({
       ...prev,
       documents: [...(prev.documents || []), newDocument]
     }));
-    
+
     // Also update in staffMembers array
-    const updatedStaffMembers = staffMembers.map(staff => 
+    const updatedStaffMembers = staffMembers.map(staff =>
       staff.id === selectedStaffDetails.id
         ? { ...staff, documents: [...(staff.documents || []), newDocument] }
         : staff
     );
-    
+
     alert(`Document "${documentType}" uploaded successfully for ${selectedStaffDetails.name}`);
-    
+
     // Reset form
     setDocumentType("");
     setDocumentFile(null);
@@ -303,7 +326,7 @@ export default function HrDashboard() {
         documents: updatedDocuments
       };
     });
-    
+
     // Also update in staffMembers array
     const updatedStaffMembers = staffMembers.map(staff => {
       if (staff.id === selectedStaffDetails.id) {
@@ -316,7 +339,7 @@ export default function HrDashboard() {
       }
       return staff;
     });
-    
+
     alert(`Document status updated to "${newStatus}"`);
   };
 
@@ -374,11 +397,10 @@ export default function HrDashboard() {
               <button
                 key={idx}
                 onClick={() => setActiveItem(item)}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-purple-400 to-pink-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-purple-400/20 hover:to-pink-500/20 text-white"
-                }`}
+                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${activeItem === item
+                  ? "bg-gradient-to-r from-purple-400 to-pink-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
+                  : "bg-white/5 hover:bg-gradient-to-r hover:from-purple-400/20 hover:to-pink-500/20 text-white"
+                  }`}
               >
                 {item}
               </button>
@@ -394,7 +416,7 @@ export default function HrDashboard() {
               <h1 className="text-2xl font-bold text-white">HR Portal - {activeItem}</h1>
               <p className="text-gray-200 mt-1">Staff management, attendance, and performance</p>
             </div>
-            <button 
+            <button
               onClick={handleSignOut}
               className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
             >
@@ -405,193 +427,114 @@ export default function HrDashboard() {
           {/* Dynamic Content Based on Active Item */}
           {activeItem === "Staff Management" && (
             <>
-              {/* Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                {[
-                  { title: "Total Staff", value: "45", color: "from-purple-400 via-pink-500 to-rose-500" },
-                  { title: "Active Staff", value: "42", color: "from-green-400 via-emerald-500 to-teal-500" },
-                  { title: "New Hires", value: "3", color: "from-blue-400 via-indigo-500 to-violet-500" },
-                  { title: "Pending Reviews", value: "8", color: "from-yellow-400 via-orange-500 to-red-500" },
-                ].map((card, i) => (
-                  <div
-                    key={i}
-                    className={`p-6 rounded-xl bg-gradient-to-br ${card.color} text-gray-900 shadow-lg transition-transform transform hover:scale-105`}
-                  >
-                    <div className="text-sm opacity-90 text-white/90">{card.title}</div>
-                    <div className="text-3xl font-bold mt-2 text-white">{card.value}</div>
-                    <div className="text-xs mt-1 text-white/70">Current status</div>
-                  </div>
-                ))}
+              <StaffManagement />
+            </>
+          )}
+
+          {/* Player Management */}
+          {activeItem === "Player Management" && (
+            <div className="space-y-6">
+              <div className="flex space-x-4 border-b border-gray-700 pb-2">
+                <button
+                  onClick={() => setPlayerManagementTab("kyc")}
+                  className={`px-4 py-2 font-semibold rounded-lg transition-colors ${playerManagementTab === "kyc" ? "bg-purple-600 text-white" : "text-gray-400 hover:text-white"}`}
+                >
+                  KYC Reviews
+                </button>
+                <button
+                  onClick={() => setPlayerManagementTab("updates")}
+                  className={`px-4 py-2 font-semibold rounded-lg transition-colors ${playerManagementTab === "updates" ? "bg-purple-600 text-white" : "text-gray-400 hover:text-white"}`}
+                >
+                  Profile Updates
+                </button>
               </div>
 
-              {/* Staff Onboarding */}
-              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Staff Onboarding</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Add New Staff</h3>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-white text-sm">First Name</label>
-                          <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter first name" />
-                        </div>
-                        <div>
-                          <label className="text-white text-sm">Last Name</label>
-                          <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter last name" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Email Address</label>
-                        <input type="email" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter email" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Phone Number</label>
-                        <input type="tel" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter phone number" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Position</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Dealer</option>
-                          <option>Floor Manager</option>
-                          <option>Cashier</option>
-                          <option>Security</option>
-                          <option>Maintenance</option>
-                          <option>Kitchen Staff</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Department</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Operations</option>
-                          <option>Security</option>
-                          <option>Maintenance</option>
-                          <option>Kitchen</option>
-                          <option>Management</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Start Date</label>
-                        <input type="date" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" />
-                      </div>
-                      <button className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Add Staff Member
-                      </button>
-                    </div>
-                  </div>
+              {playerManagementTab === "kyc" && (
+                <section className="p-6 bg-gray-800/50 rounded-xl border border-gray-700">
+                  <h2 className="text-xl font-bold text-white mb-4">Player KYC Requests</h2>
+                  <table className="w-full text-left bg-gray-900/50 rounded-lg overflow-hidden">
+                    <thead className="bg-gray-800 text-gray-400 uppercase text-sm">
+                      <tr>
+                        <th className="py-3 px-4">Player Name</th>
+                        <th className="py-3 px-4">Document</th>
+                        <th className="py-3 px-4">Submitted</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700 text-gray-300">
+                      {kycRequests.map(req => (
+                        <tr key={req.id}>
+                          <td className="py-3 px-4 font-medium text-white">{req.name}</td>
+                          <td className="py-3 px-4">{req.documentType}</td>
+                          <td className="py-3 px-4">{req.submittedDate}</td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 text-xs rounded ${req.status === 'Approved' ? 'bg-green-900 text-green-400' :
+                              req.status === 'Rejected' ? 'bg-red-900 text-red-400' :
+                                'bg-yellow-900 text-yellow-400'
+                              }`}>
+                              {req.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right space-x-2">
+                            {req.status === 'Pending' && (
+                              <>
+                                <button onClick={() => handleKycAction(req.id, 'approve')} className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-xs font-bold text-white">Approve</button>
+                                <button onClick={() => handleKycAction(req.id, 'reject')} className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-xs font-bold text-white">Reject</button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              )}
 
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Additions</h3>
-                    <div className="space-y-2">
-                      <div className="bg-purple-500/20 p-3 rounded-lg border border-purple-400/30">
-                        <div className="font-semibold text-white">Sarah Johnson</div>
-                        <div className="text-sm text-gray-300">Position: Dealer | Department: Operations</div>
-                        <div className="text-xs text-purple-300">Added 2 days ago</div>
-                      </div>
-                      <div className="bg-purple-500/20 p-3 rounded-lg border border-purple-400/30">
-                        <div className="font-semibold text-white">Mike Chen</div>
-                        <div className="text-sm text-gray-300">Position: Floor Manager | Department: Operations</div>
-                        <div className="text-xs text-purple-300">Added 1 week ago</div>
-                      </div>
-                      <div className="bg-purple-500/20 p-3 rounded-lg border border-purple-400/30">
-                        <div className="font-semibold text-white">Emma Davis</div>
-                        <div className="text-sm text-gray-300">Position: Cashier | Department: Operations</div>
-                        <div className="text-xs text-purple-300">Added 2 weeks ago</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Document Upload */}
-              <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-blue-500/20 to-cyan-700/30 rounded-xl shadow-md border border-indigo-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Document Upload</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Upload Staff Documents</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Select Staff Member</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Sarah Johnson</option>
-                          <option>Mike Chen</option>
-                          <option>Emma Davis</option>
-                          <option>John Smith</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Document Type</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>ID Card</option>
-                          <option>PAN Card</option>
-                          <option>Aadhaar Card</option>
-                          <option>Passport</option>
-                          <option>Driving License</option>
-                          <option>Educational Certificate</option>
-                          <option>Experience Certificate</option>
-                          <option>Medical Certificate</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Upload Document</label>
-                        <div className="mt-1 border-2 border-dashed border-white/30 rounded-lg p-6 text-center">
-                          <div className="text-white mb-2">Click to upload or drag and drop</div>
-                          <div className="text-gray-400 text-sm">PNG, JPG, PDF up to 10MB</div>
-                          <input type="file" className="hidden" />
-                        </div>
-                      </div>
-                      <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Upload Document
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Contract Assignment</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Staff Member</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Sarah Johnson</option>
-                          <option>Mike Chen</option>
-                          <option>Emma Davis</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Contract Type</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Full-time</option>
-                          <option>Part-time</option>
-                          <option>Contract</option>
-                          <option>Internship</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Role Assignment</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Dealer</option>
-                          <option>Senior Dealer</option>
-                          <option>Floor Manager</option>
-                          <option>Assistant Manager</option>
-                          <option>Manager</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Contract Start Date</label>
-                        <input type="date" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Contract End Date</label>
-                        <input type="date" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" />
-                      </div>
-                      <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Assign Contract
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </>
+              {playerManagementTab === "updates" && (
+                <section className="p-6 bg-gray-800/50 rounded-xl border border-gray-700">
+                  <h2 className="text-xl font-bold text-white mb-4">Player Profile Update Requests</h2>
+                  <table className="w-full text-left bg-gray-900/50 rounded-lg overflow-hidden">
+                    <thead className="bg-gray-800 text-gray-400 uppercase text-sm">
+                      <tr>
+                        <th className="py-3 px-4">Player Name</th>
+                        <th className="py-3 px-4">Field</th>
+                        <th className="py-3 px-4">Old Value</th>
+                        <th className="py-3 px-4">New Value</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700 text-gray-300">
+                      {profileUpdates.map(req => (
+                        <tr key={req.id}>
+                          <td className="py-3 px-4 font-medium text-white">{req.name}</td>
+                          <td className="py-3 px-4">{req.field}</td>
+                          <td className="py-3 px-4 text-red-300">{req.oldValue}</td>
+                          <td className="py-3 px-4 text-green-300">{req.newValue}</td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 text-xs rounded ${req.status === 'Approved' ? 'bg-green-900 text-green-400' :
+                              req.status === 'Rejected' ? 'bg-red-900 text-red-400' :
+                                'bg-yellow-900 text-yellow-400'
+                              }`}>
+                              {req.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right space-x-2">
+                            {req.status === 'Pending' && (
+                              <>
+                                <button onClick={() => handleProfileUpdateAction(req.id, 'approve')} className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-xs font-bold text-white">Approve</button>
+                                <button onClick={() => handleProfileUpdateAction(req.id, 'reject')} className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-xs font-bold text-white">Reject</button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              )}
+            </div>
           )}
 
           {/* Attendance Management */}
@@ -604,7 +547,7 @@ export default function HrDashboard() {
                     <div className="text-white text-sm">
                       <span className="text-gray-400">Date:</span> {new Date(currentDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}
                     </div>
-                    <button 
+                    <button
                       onClick={handleSaveAttendance}
                       className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-semibold"
                     >
@@ -612,7 +555,7 @@ export default function HrDashboard() {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="bg-white/10 p-4 rounded-lg overflow-x-auto">
                   <table className="w-full min-w-[800px]">
                     <thead>
@@ -655,13 +598,12 @@ export default function HrDashboard() {
                             />
                           </td>
                           <td className="py-3 px-4">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              record.status === "completed"
-                                ? "bg-green-500/30 text-green-300"
-                                : record.status === "active"
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${record.status === "completed"
+                              ? "bg-green-500/30 text-green-300"
+                              : record.status === "active"
                                 ? "bg-blue-500/30 text-blue-300"
                                 : "bg-yellow-500/30 text-yellow-300"
-                            }`}>
+                              }`}>
                               {record.status === "completed" ? "Completed" : record.status === "active" ? "Active" : "Pending"}
                             </span>
                           </td>
@@ -670,7 +612,7 @@ export default function HrDashboard() {
                     </tbody>
                   </table>
                 </div>
-                
+
                 <div className="mt-4 text-xs text-gray-400">
                   <p>💡 Fill in the real-time log in and log out times for each staff member based on their actual attendance at the club.</p>
                   <p>Date is automatically set to today. Log out time can only be entered after log in time is filled.</p>
@@ -760,11 +702,10 @@ export default function HrDashboard() {
                     <div key={staff.id} className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
                       <div className="flex justify-between items-center mb-3">
                         <h3 className="text-lg font-semibold text-white">{staff.name}</h3>
-                        <span className={`px-2 py-1 rounded text-sm ${
-                          staff.status === "Active" 
-                            ? "bg-green-500/30 text-green-300" 
-                            : "bg-yellow-500/30 text-yellow-300"
-                        }`}>
+                        <span className={`px-2 py-1 rounded text-sm ${staff.status === "Active"
+                          ? "bg-green-500/30 text-green-300"
+                          : "bg-yellow-500/30 text-yellow-300"
+                          }`}>
                           {staff.status}
                         </span>
                       </div>
@@ -779,7 +720,7 @@ export default function HrDashboard() {
                         <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
                           Edit
                         </button>
-                        <button 
+                        <button
                           onClick={() => setSelectedStaffDetails(staff)}
                           className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-sm"
                         >
@@ -801,8 +742,8 @@ export default function HrDashboard() {
                           <h2 className="text-2xl font-bold text-white mb-2">Staff Details</h2>
                           <p className="text-gray-400 text-sm">Complete information for {selectedStaffDetails.name}</p>
                         </div>
-                        <button 
-                          onClick={() => setSelectedStaffDetails(null)} 
+                        <button
+                          onClick={() => setSelectedStaffDetails(null)}
                           className="text-white/70 hover:text-white text-2xl font-bold"
                         >
                           ×
@@ -845,11 +786,10 @@ export default function HrDashboard() {
                           <div>
                             <label className="text-gray-400 text-sm">Status</label>
                             <div>
-                              <span className={`px-3 py-1 rounded-full text-xs border font-medium ${
-                                selectedStaffDetails.status === "Active" 
-                                  ? "bg-green-500/30 text-green-300 border-green-400/50" 
-                                  : "bg-yellow-500/30 text-yellow-300 border-yellow-400/50"
-                              }`}>
+                              <span className={`px-3 py-1 rounded-full text-xs border font-medium ${selectedStaffDetails.status === "Active"
+                                ? "bg-green-500/30 text-green-300 border-green-400/50"
+                                : "bg-yellow-500/30 text-yellow-300 border-yellow-400/50"
+                                }`}>
                                 {selectedStaffDetails.status}
                               </span>
                             </div>
@@ -926,7 +866,7 @@ export default function HrDashboard() {
                         {selectedStaffDetails.documents && selectedStaffDetails.documents.length > 0 ? (
                           <div className="space-y-3">
                             {selectedStaffDetails.documents.map((doc, index) => (
-                              <div 
+                              <div
                                 key={index}
                                 className="bg-white/5 p-4 rounded-lg border border-white/10"
                               >
@@ -934,13 +874,12 @@ export default function HrDashboard() {
                                   <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
                                       <div className="text-white font-medium">{doc.type}</div>
-                                      <span className={`px-3 py-1 rounded-full text-xs border font-medium ${
-                                        doc.status === "Verified" 
-                                          ? "bg-green-500/30 text-green-300 border-green-400/50" 
-                                          : doc.status === "Pending Review"
+                                      <span className={`px-3 py-1 rounded-full text-xs border font-medium ${doc.status === "Verified"
+                                        ? "bg-green-500/30 text-green-300 border-green-400/50"
+                                        : doc.status === "Pending Review"
                                           ? "bg-yellow-500/30 text-yellow-300 border-yellow-400/50"
                                           : "bg-red-500/30 text-red-300 border-red-400/50"
-                                      }`}>
+                                        }`}>
                                         {doc.status}
                                       </span>
                                     </div>
@@ -949,13 +888,13 @@ export default function HrDashboard() {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <button 
+                                    <button
                                       onClick={() => alert(`Viewing document: ${doc.type}`)}
                                       className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm"
                                     >
                                       👁️ View
                                     </button>
-                                    <button 
+                                    <button
                                       onClick={() => alert(`Downloading document: ${doc.type}`)}
                                       className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-sm"
                                     >
@@ -1000,7 +939,7 @@ export default function HrDashboard() {
                       </div>
 
                       <div className="flex gap-3 pt-4 border-t border-white/10">
-                        <button 
+                        <button
                           onClick={() => setSelectedStaffDetails(null)}
                           className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 rounded-lg font-semibold"
                         >
@@ -1019,7 +958,7 @@ export default function HrDashboard() {
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Staff Requests & Applications</h2>
-                
+
                 {/* Filter */}
                 <div className="mb-4">
                   <label className="text-white text-sm mb-2 block">Filter by Status</label>
@@ -1050,26 +989,24 @@ export default function HrDashboard() {
                               setRequestResponse(request.hrResponse || "");
                               setRequestStatus(request.status);
                             }}
-                            className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                              selectedRequest?.id === request.id
-                                ? "bg-gradient-to-r from-blue-500/30 to-purple-500/30 border-blue-400/50"
-                                : "bg-white/5 border-white/10 hover:bg-white/10"
-                            }`}
+                            className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedRequest?.id === request.id
+                              ? "bg-gradient-to-r from-blue-500/30 to-purple-500/30 border-blue-400/50"
+                              : "bg-white/5 border-white/10 hover:bg-white/10"
+                              }`}
                           >
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex-1">
                                 <div className="font-semibold text-white">{request.staffName}</div>
                                 <div className="text-xs text-gray-400 mt-1">ID: {request.staffId}</div>
                               </div>
-                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                                request.status === "approved"
-                                  ? "bg-green-500/30 text-green-300"
-                                  : request.status === "rejected"
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${request.status === "approved"
+                                ? "bg-green-500/30 text-green-300"
+                                : request.status === "rejected"
                                   ? "bg-red-500/30 text-red-300"
                                   : request.status === "in_progress"
-                                  ? "bg-blue-500/30 text-blue-300"
-                                  : "bg-yellow-500/30 text-yellow-300"
-                              }`}>
+                                    ? "bg-blue-500/30 text-blue-300"
+                                    : "bg-yellow-500/30 text-yellow-300"
+                                }`}>
                                 {request.status === "approved" ? "Approved" : request.status === "rejected" ? "Rejected" : request.status === "in_progress" ? "In Progress" : "Pending"}
                               </span>
                             </div>

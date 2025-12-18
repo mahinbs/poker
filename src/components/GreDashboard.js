@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import CustomSelect from "./common/CustomSelect";
 import { useNavigate } from "react-router-dom";
+import TableManagementSection from "./TableManagementSection";
 
 export default function GreDashboard() {
   const [activeItem, setActiveItem] = useState("Monitoring");
@@ -9,13 +10,104 @@ export default function GreDashboard() {
   const menuItems = [
     "Monitoring",
     "Players",
+    "Live Tables",
     "Registered Players",
     "Push Notifications",
     "Player Registration", 
-    "Table View",
     "Player Support",
     "Offers",
   ];
+
+  // --- Live Tables (GRE: view-only) ---
+  const [playerBalances] = useState({
+    P101: {
+      id: "P101",
+      name: "Alex Johnson",
+      email: "alex.johnson@example.com",
+      availableBalance: 25000,
+      tableBalance: 5000,
+      tableId: 1,
+      seatNumber: 3,
+    },
+    P102: {
+      id: "P102",
+      name: "Maria Garcia",
+      email: "maria.garcia@example.com",
+      availableBalance: 15000,
+      tableBalance: 0,
+      tableId: null,
+      seatNumber: null,
+    },
+    P103: {
+      id: "P103",
+      name: "Rajesh Kumar",
+      email: "rajesh.kumar@example.com",
+      availableBalance: 45000,
+      tableBalance: 10000,
+      tableId: 1,
+      seatNumber: 5,
+    },
+  });
+
+  const mockPlayers = Object.values(playerBalances).map(
+    ({ availableBalance, tableBalance, tableId, seatNumber, ...player }) =>
+      player
+  );
+
+  const [tableBalances] = useState({
+    1: {
+      id: 1,
+      name: "Table 1 - Texas Hold'em",
+      totalBalance: 15000,
+      players: ["P101", "P103"],
+    },
+    2: { id: 2, name: "Table 2 - Omaha", totalBalance: 0, players: [] },
+    3: { id: 3, name: "Table 3 - Stud", totalBalance: 0, players: [] },
+  });
+
+  const [tables] = useState([
+    {
+      id: 1,
+      name: "Table 1 - Texas Hold'em",
+      status: "Active",
+      gameType: "Texas Hold'em",
+      stakes: "₹1000.00/10000.00",
+      maxPlayers: 6,
+      minPlayTime: 30,
+    },
+    {
+      id: 2,
+      name: "Table 2 - Omaha",
+      status: "Active",
+      gameType: "Omaha",
+      stakes: "₹5000.00/50000.00",
+      maxPlayers: 9,
+      minPlayTime: 30,
+    },
+    {
+      id: 3,
+      name: "Table 3 - Stud",
+      status: "Active",
+      gameType: "Seven Card Stud",
+      stakes: "₹10000.00/100000.00",
+      maxPlayers: 6,
+      minPlayTime: 30,
+    },
+  ]);
+
+  const [occupiedSeats] = useState({
+    1: [3, 5],
+    2: [],
+    3: [],
+  });
+
+  const [showTableView, setShowTableView] = useState(false);
+  const [selectedPlayerForSeating, setSelectedPlayerForSeating] =
+    useState(null);
+  const [selectedTableForSeating, setSelectedTableForSeating] = useState(null);
+  const [liveTablePlayerSearch, setLiveTablePlayerSearch] = useState("");
+  const [selectedLiveTablePlayer, setSelectedLiveTablePlayer] = useState(null);
+  const [buyInAmount, setBuyInAmount] = useState("");
 
   // State for Players (KYC Pending) management
   const [playersSearch, setPlayersSearch] = useState("");
@@ -1496,104 +1588,31 @@ export default function GreDashboard() {
           )}
 
           {/* Table View */}
-          {activeItem === "Table View" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-indigo-500/20 to-blue-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Poker Tables Overview</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg border border-green-400/30">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold text-white">Table 1</h3>
-                      <span className="bg-green-500/30 text-green-300 px-2 py-1 rounded text-sm">Active</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-sm text-gray-300">Game: Texas Hold'em</div>
-                      <div className="text-sm text-gray-300">Players: 6/8</div>
-                      <div className="text-sm text-gray-300">Blinds: ₹25/₹50</div>
-                      <div className="text-sm text-gray-300">Dealer: John</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg border border-yellow-400/30">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold text-white">Table 2</h3>
-                      <span className="bg-yellow-500/30 text-yellow-300 px-2 py-1 rounded text-sm">Waiting</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-sm text-gray-300">Game: Omaha</div>
-                      <div className="text-sm text-gray-300">Players: 4/8</div>
-                      <div className="text-sm text-gray-300">Blinds: ₹50/₹100</div>
-                      <div className="text-sm text-gray-300">Dealer: Sarah</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg border border-red-400/30">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold text-white">Table 3</h3>
-                      <span className="bg-red-500/30 text-red-300 px-2 py-1 rounded text-sm">Inactive</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-sm text-gray-300">Game: Stud</div>
-                      <div className="text-sm text-gray-300">Players: 0/8</div>
-                      <div className="text-sm text-gray-300">Blinds: ₹100/₹200</div>
-                      <div className="text-sm text-gray-300">Dealer: Mike</div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Table Details (Read-Only)</h2>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-4">Table 1 - Texas Hold'em</h3>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Status:</span>
-                          <span className="text-green-300">Active</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Current Players:</span>
-                          <span className="text-white">6</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Max Players:</span>
-                          <span className="text-white">8</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Small Blind:</span>
-                          <span className="text-white">₹25</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Big Blind:</span>
-                          <span className="text-white">₹50</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Dealer:</span>
-                          <span className="text-white">John</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-4">Seat Occupancy</h3>
-                      <div className="grid grid-cols-4 gap-2">
-                        {[1,2,3,4,5,6,7,8].map(seat => (
-                          <div key={seat} className={`p-2 rounded text-center text-sm ${
-                            seat <= 6 ? 'bg-green-500/20 text-green-300 border border-green-400/30' : 'bg-gray-500/20 text-gray-400 border border-gray-400/30'
-                          }`}>
-                            Seat {seat}
-                            {seat <= 6 && <div className="text-xs">Occupied</div>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
+          {activeItem === "Live Tables" && (
+            <TableManagementSection
+              userRole="gre"
+              tables={tables}
+              playerBalances={playerBalances}
+              tableBalances={tableBalances}
+              occupiedSeats={occupiedSeats}
+              mockPlayers={mockPlayers}
+              onSeatAssign={() => {}}
+              showTableView={showTableView}
+              setShowTableView={setShowTableView}
+              selectedPlayerForSeating={selectedPlayerForSeating}
+              setSelectedPlayerForSeating={setSelectedPlayerForSeating}
+              selectedTableForSeating={selectedTableForSeating}
+              setSelectedTableForSeating={setSelectedTableForSeating}
+              liveTablePlayerSearch={liveTablePlayerSearch}
+              setLiveTablePlayerSearch={setLiveTablePlayerSearch}
+              selectedLiveTablePlayer={selectedLiveTablePlayer}
+              setSelectedLiveTablePlayer={setSelectedLiveTablePlayer}
+              buyInAmount={buyInAmount}
+              setBuyInAmount={setBuyInAmount}
+              forceTab="live-tables"
+            />
           )}
+
 
           {/* Player Support - Chat System */}
           {activeItem === "Player Support" && (
