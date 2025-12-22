@@ -1,22 +1,22 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import DashboardPage from './components/DashboardPage';
-import GreSignIn from './components/GreSignIn';
-import GreDashboard from './components/GreDashboard';
-import HrSignIn from './components/HrSignIn';
-import HrDashboard from './components/HrDashboard';
-import CashierSignIn from './components/CashierSignIn';
-import CashierDashboard from './components/CashierDashboard';
-import FnbSignIn from './components/FnbSignIn';
-import FnbDashboard from './components/FnbDashboard';
-import AdminSignIn from './components/AdminSignIn';
-import AdminDashboard from './components/AdminDashboard';
-import MasterAdminSignIn from './components/MasterAdminSignIn';
-import MasterAdminDashboard from './components/MasterAdminDashboard';
-import SuperAdminSignIn from './components/SuperAdminSignIn';
-import SuperAdminPortal from './components/SuperAdminPortal';
-import AffiliateDashboard from './components/AffiliateDashboard';
-import StaffDashboard from './components/StaffDashboard';
+import DashboardPage from './pages/dashboards/ManagerDashboardPage';
+import GreSignIn from './pages/auth/GreSignIn';
+import GreDashboard from './pages/dashboards/GreDashboard';
+import HrSignIn from './pages/auth/HrSignIn';
+import HrDashboard from './pages/dashboards/HrDashboard';
+import CashierSignIn from './pages/auth/CashierSignIn';
+import CashierDashboard from './pages/dashboards/CashierDashboard';
+import FnbSignIn from './pages/auth/FnbSignIn';
+import FnbDashboard from './pages/dashboards/FnbDashboard';
+import AdminSignIn from './pages/auth/AdminSignIn';
+import AdminDashboard from './pages/dashboards/AdminDashboard';
+import MasterAdminSignIn from './pages/auth/MasterAdminSignIn';
+import MasterAdminDashboard from './pages/dashboards/MasterAdminDashboard';
+import SuperAdminSignIn from './pages/auth/SuperAdminSignIn';
+import SuperAdminPortal from './pages/dashboards/SuperAdminPortal';
+import AffiliateDashboard from './pages/dashboards/AffiliateDashboard';
+import StaffDashboard from './pages/dashboards/StaffDashboard';
 
 function App() {
   return (

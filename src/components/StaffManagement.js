@@ -16,7 +16,14 @@ const CustomSelect = ({ children, className, ...props }) => {
     )
 }
 
-const StaffManagement = () => {
+const StaffManagement = ({ 
+    userRole = "",
+    affiliates = null, 
+    setAffiliates = null, 
+    createdCredentials = null, 
+    setCreatedCredentials = null,
+    registeredPlayers = []
+}) => {
     const [selectedStaffRole, setSelectedStaffRole] = useState("GRE");
     const [customStaffRole, setCustomStaffRole] = useState("");
     const [activeTab, setActiveTab] = useState("onboarding"); // 'onboarding' or 'documents'
@@ -33,13 +40,22 @@ const StaffManagement = () => {
         phone: "",
         position: "Dealer",
         department: "Operations",
-        startDate: ""
+        startDate: "",
+        referralCode: ""
     });
 
     const handleAddStaff = () => {
         const name = `${newStaff.firstName} ${newStaff.lastName}`.trim();
         if (!newStaff.firstName || !newStaff.email) {
             alert("Please fill in required fields");
+            return;
+        }
+
+        const isAffiliate = newStaff.position === "Affiliate";
+        
+        // Validate referral code if affiliate
+        if (isAffiliate && (!newStaff.referralCode || newStaff.referralCode.trim() === "")) {
+            alert("Please enter a referral code for the affiliate");
             return;
         }
 
@@ -53,6 +69,39 @@ const StaffManagement = () => {
         };
 
         setStaffList([...staffList, newStaffMember]);
+
+        const staffEmail = newStaff.email;
+
+        // If position is "Affiliate", create affiliate entry
+        if (isAffiliate && setAffiliates) {
+            // Use manually entered referral code
+            const referralCode = newStaff.referralCode.trim().toUpperCase();
+            // Generate password
+            const tempPassword = Math.random().toString(36).slice(-8).toUpperCase();
+
+            const newAffiliate = {
+                id: `AFF${Date.now()}`,
+                name: name,
+                email: staffEmail,
+                referralCode: referralCode,
+                status: "Active",
+                kycStatus: "Pending",
+                totalReferrals: 0,
+                earnings: 0
+            };
+
+            setAffiliates(prev => [...(prev || []), newAffiliate]);
+
+            // Show credentials popup
+            if (setCreatedCredentials) {
+                setCreatedCredentials({
+                    name: name,
+                    referralCode: referralCode,
+                    password: tempPassword
+                });
+            }
+        }
+
         setNewStaff({
             firstName: "",
             lastName: "",
@@ -60,9 +109,15 @@ const StaffManagement = () => {
             phone: "",
             position: "Dealer",
             department: "Operations",
-            startDate: ""
+            startDate: "",
+            referralCode: ""
         });
-        alert("Staff Member Added Successfully");
+
+        if (isAffiliate) {
+            alert("Affiliate Staff Member Added Successfully! Credentials will be shown below.");
+        } else {
+            alert("Staff Member Added Successfully");
+        }
     };
 
     return (
@@ -160,7 +215,7 @@ const StaffManagement = () => {
                                         <CustomSelect
                                             className="w-full mt-1"
                                             value={newStaff.position}
-                                            onChange={(e) => setNewStaff({ ...newStaff, position: e.target.value })}
+                                            onChange={(e) => setNewStaff({ ...newStaff, position: e.target.value, referralCode: e.target.value === "Affiliate" ? newStaff.referralCode : "" })}
                                         >
                                             <option>Dealer</option>
                                             <option>Floor Manager</option>
@@ -171,8 +226,22 @@ const StaffManagement = () => {
                                             <option>GRE</option>
                                             <option>HR</option>
                                             <option>Manager</option>
+                                            {userRole === "superadmin" && <option>Affiliate</option>}
                                         </CustomSelect>
                                     </div>
+                                    {newStaff.position === "Affiliate" && (
+                                        <div>
+                                            <label className="text-white text-sm">Referral Code *</label>
+                                            <input
+                                                type="text"
+                                                value={newStaff.referralCode}
+                                                onChange={(e) => setNewStaff({ ...newStaff, referralCode: e.target.value.toUpperCase() })}
+                                                className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white font-mono"
+                                                placeholder="Enter referral code (e.g., AGENT-123)"
+                                            />
+                                            <p className="text-xs text-gray-400 mt-1">This code will be used for player referrals</p>
+                                        </div>
+                                    )}
                                     <div>
                                         <label className="text-white text-sm">Department</label>
                                         <CustomSelect
@@ -313,6 +382,58 @@ const StaffManagement = () => {
                 </section>
             )
             }
+
+            {/* Affiliate Credentials Modal */}
+            {createdCredentials && setCreatedCredentials && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <div className="bg-gray-900 border border-green-500/50 rounded-2xl p-8 w-full max-w-md relative shadow-2xl bg-gradient-to-b from-gray-900 to-gray-800">
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/30">
+                                <span className="text-3xl">✅</span>
+                            </div>
+                            <h3 className="text-2xl font-bold text-white">Affiliate Created!</h3>
+                            <p className="text-gray-400 mt-2">Share these credentials with {createdCredentials.name}</p>
+                        </div>
+
+                        <div className="space-y-4 bg-black/40 p-6 rounded-xl border border-gray-700">
+                            <div>
+                                <label className="text-xs text-gray-500 uppercase font-semibold">Referral Code</label>
+                                <div className="flex justify-between items-center mt-1">
+                                    <div className="font-mono text-xl text-yellow-400 font-bold tracking-wider">{createdCredentials.referralCode}</div>
+                                    <button
+                                        onClick={() => navigator.clipboard.writeText(createdCredentials.referralCode)}
+                                        className="text-gray-400 hover:text-white text-sm"
+                                    >
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-gray-700/50 pt-4">
+                                <label className="text-xs text-gray-500 uppercase font-semibold">Temporary Password</label>
+                                <div className="flex justify-between items-center mt-1">
+                                    <div className="font-mono text-xl text-green-400 font-bold tracking-wider">{createdCredentials.password}</div>
+                                    <button
+                                        onClick={() => navigator.clipboard.writeText(createdCredentials.password)}
+                                        className="text-gray-400 hover:text-white text-sm"
+                                    >
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8">
+                            <button
+                                onClick={() => setCreatedCredentials(null)}
+                                className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl shadow-lg transition-transform hover:scale-[1.02]"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

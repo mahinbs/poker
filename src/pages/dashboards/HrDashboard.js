@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import CustomSelect from "./common/CustomSelect";
-import StaffManagement from "./StaffManagement";
-import PlayerManagementSection from "./PlayerManagementSection";
-import ChatSection from "./ChatSection";
+import CustomSelect from "../../components/common/CustomSelect";
+import StaffManagement from "../../components/StaffManagement";
+import PlayerManagementSection from "../../components/PlayerManagementSection";
+import ChatSection from "../../components/ChatSection";
 
 export default function HrDashboard() {
   const [activeItem, setActiveItem] = useState("Staff Management");
@@ -12,7 +12,7 @@ export default function HrDashboard() {
   const menuItems = [
     "Staff Management",
     "Player Management",
-    "Attendance Management",
+    "Attendance Management", 
     "Staff Directory",
     "Staff Requests",
     "Performance Reviews",
@@ -447,9 +447,9 @@ export default function HrDashboard() {
                 key={idx}
                 onClick={() => setActiveItem(item)}
                 className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${activeItem === item
-                  ? "bg-gradient-to-r from-purple-400 to-pink-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                  : "bg-white/5 hover:bg-gradient-to-r hover:from-purple-400/20 hover:to-pink-500/20 text-white"
-                  }`}
+                    ? "bg-gradient-to-r from-purple-400 to-pink-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
+                    : "bg-white/5 hover:bg-gradient-to-r hover:from-purple-400/20 hover:to-pink-500/20 text-white"
+                }`}
               >
                 {item}
               </button>
@@ -465,7 +465,7 @@ export default function HrDashboard() {
               <h1 className="text-2xl font-bold text-white">HR Portal - {activeItem}</h1>
               <p className="text-gray-200 mt-1">Staff management, attendance, and performance</p>
             </div>
-            <button
+            <button 
               onClick={handleSignOut}
               className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
             >
@@ -506,15 +506,15 @@ export default function HrDashboard() {
                   <div className="flex items-center gap-4">
                     <div className="text-white text-sm">
                       <span className="text-gray-400">Date:</span> {new Date(currentDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}
-                    </div>
+                      </div>
                     <button
                       onClick={handleSaveAttendance}
                       className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-semibold"
                     >
                       Save All Attendance
-                    </button>
+                      </button>
+                    </div>
                   </div>
-                </div>
 
                 <div className="bg-white/10 p-4 rounded-lg overflow-x-auto">
                   <table className="w-full min-w-[800px]">
@@ -571,7 +571,7 @@ export default function HrDashboard() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                      </div>
 
                 <div className="mt-4 text-xs text-gray-400">
                   <p>💡 Fill in the real-time log in and log out times for each staff member based on their actual attendance at the club.</p>
@@ -660,7 +660,7 @@ export default function HrDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {staffMembers.map(staff => (
                     <div key={staff.id} className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
-                      <div className="flex justify-between items-center mb-3">
+                    <div className="flex justify-between items-center mb-3">
                         <h3 className="text-lg font-semibold text-white">{staff.name}</h3>
                         <span className={`px-2 py-1 rounded text-sm ${staff.status === "Active"
                           ? "bg-green-500/30 text-green-300"
@@ -668,26 +668,26 @@ export default function HrDashboard() {
                           }`}>
                           {staff.status}
                         </span>
-                      </div>
-                      <div className="space-y-1">
+                    </div>
+                    <div className="space-y-1">
                         <div className="text-sm text-gray-300">Position: {staff.position}</div>
                         <div className="text-sm text-gray-300">Department: {staff.department}</div>
                         <div className="text-sm text-gray-300">Email: {staff.email}</div>
                         <div className="text-sm text-gray-300">Phone: {staff.phone}</div>
                         <div className="text-sm text-gray-300">Start Date: {staff.startDate}</div>
-                      </div>
-                      <div className="mt-3 flex gap-2">
-                        <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
-                          Edit
-                        </button>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
+                        Edit
+                      </button>
                         <button
                           onClick={() => setSelectedStaffDetails(staff)}
                           className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-sm"
                         >
-                          View Details
-                        </button>
-                      </div>
+                        View Details
+                      </button>
                     </div>
+                  </div>
                   ))}
                 </div>
               </section>
@@ -701,14 +701,14 @@ export default function HrDashboard() {
                         <div>
                           <h2 className="text-2xl font-bold text-white mb-2">Staff Details</h2>
                           <p className="text-gray-400 text-sm">Complete information for {selectedStaffDetails.name}</p>
-                        </div>
+                    </div>
                         <button
                           onClick={() => setSelectedStaffDetails(null)}
                           className="text-white/70 hover:text-white text-2xl font-bold"
                         >
                           ×
                         </button>
-                      </div>
+                    </div>
                     </div>
                     <div className="p-6 space-y-6">
                       {/* Basic Information */}
@@ -766,7 +766,7 @@ export default function HrDashboard() {
                             className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-semibold"
                           >
                             {showUploadForm ? "Cancel Upload" : "➕ Upload Document"}
-                          </button>
+                      </button>
                         </div>
 
                         {/* Upload Document Form */}
@@ -817,9 +817,9 @@ export default function HrDashboard() {
                                 className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-semibold"
                               >
                                 Upload Document
-                              </button>
-                            </div>
-                          </div>
+                      </button>
+                    </div>
+                  </div>
                         )}
 
                         {/* Documents List */}
@@ -842,10 +842,10 @@ export default function HrDashboard() {
                                         }`}>
                                         {doc.status}
                                       </span>
-                                    </div>
+                    </div>
                                     <div className="text-sm text-gray-400">
                                       Uploaded: {doc.uploadedDate}
-                                    </div>
+                    </div>
                                   </div>
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <button
@@ -853,13 +853,13 @@ export default function HrDashboard() {
                                       className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm"
                                     >
                                       👁️ View
-                                    </button>
+                      </button>
                                     <button
                                       onClick={() => alert(`Downloading document: ${doc.type}`)}
                                       className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-sm"
                                     >
                                       ⬇️ Download
-                                    </button>
+                      </button>
                                     {doc.status !== "Verified" && (
                                       <button
                                         onClick={() => handleDocumentStatusUpdate(index, "Verified")}
@@ -884,7 +884,7 @@ export default function HrDashboard() {
                                         ↻ Reset
                                       </button>
                                     )}
-                                  </div>
+                    </div>
                                 </div>
                               </div>
                             ))}

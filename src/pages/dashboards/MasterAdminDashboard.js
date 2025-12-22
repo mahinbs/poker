@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BrandingHeader from "./BrandingHeader";
-import CustomSelect from "./common/CustomSelect";
+import BrandingHeader from "../../components/BrandingHeader";
+import CustomSelect from "../../components/common/CustomSelect";
 
 export default function MasterAdminDashboard() {
   const [activeItem, setActiveItem] = useState("Dashboard");

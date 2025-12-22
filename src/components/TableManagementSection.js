@@ -32,8 +32,12 @@ export default function TableManagementSection({
   // Table Management props
   setTables = null, // Function to update tables list
   dealers = [], // List of dealers for assignment
+  // Buy-out props
+  setPlayerBalances = null, // Function to update player balances
+  setTableBalances = null, // Function to update table balances
+  setOccupiedSeats = null, // Function to update occupied seats
   // Option to force a specific tab and hide tab navigation
-  forceTab = null, // "table-management", "seating-management", "live-tables"
+  forceTab = null, // "table-management", "seating-management", "live-tables", "table-buyout", "cash-out"
 }) {
   const [activeTab, setActiveTab] = useState(forceTab || "live-tables");
 
@@ -62,12 +66,37 @@ export default function TableManagementSection({
     playerId: "",
     tableId: "",
     seatNumber: "",
-    playerName: ""
+    playerName: "",
   });
+
+  // Table Buy-Out state
+  const [buyOutForm, setBuyOutForm] = useState({
+    playerId: "",
+    playerName: "",
+    tableId: "",
+    tableName: "",
+    reason: "",
+  });
+
+  // Cash Out state
+  const [cashOutForm, setCashOutForm] = useState({
+    playerId: "",
+    playerName: "",
+    chipAmount: "",
+    conversionRate: 1, // 1 chip = 1 rupee (default)
+    reason: "",
+  });
+  const [cashOutPlayerSearch, setCashOutPlayerSearch] = useState("");
 
   // Table Management permissions
   const canCreateTable = ["admin", "superadmin", "manager"].includes(userRole);
-  const canViewTable = ["admin", "superadmin", "manager", "cashier", "gre"].includes(userRole);
+  const canViewTable = [
+    "admin",
+    "superadmin",
+    "manager",
+    "cashier",
+    "gre",
+  ].includes(userRole);
   const canEditTable = ["admin", "superadmin", "manager"].includes(userRole);
 
   // Determine which tabs are accessible based on role
@@ -80,18 +109,24 @@ export default function TableManagementSection({
     "superadmin",
     "manager",
   ].includes(userRole);
+  const canAccessTableBuyOut = [
+    "admin",
+    "superadmin",
+    "manager",
+  ].includes(userRole);
+  const canAccessCashOut = ["superadmin", "cashier"].includes(userRole);
   const canAccessLiveTables = true; // All roles can access live tables
 
   const filteredLiveTablePlayers =
     liveTablePlayerSearch.length >= 3
       ? mockPlayers.filter((player) => {
-        const searchLower = liveTablePlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
+          const searchLower = liveTablePlayerSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower)
+          );
+        })
       : [];
 
   // Table Management functions
@@ -104,7 +139,7 @@ export default function TableManagementSection({
         : Math.max(30, parseInt(minPlayTimePreset) || 30);
 
     const newTable = {
-      id: tables.length > 0 ? Math.max(...tables.map(t => t.id)) + 1 : 1,
+      id: tables.length > 0 ? Math.max(...tables.map((t) => t.id)) + 1 : 1,
       name: tableForm.name,
       gameType: tableForm.gameType,
       maxPlayers: parseInt(tableForm.maxPlayers),
@@ -163,19 +198,19 @@ export default function TableManagementSection({
         ? Math.max(30, parseInt(tableForm.minPlayTime) || 30)
         : Math.max(30, parseInt(minPlayTimePreset) || 30);
 
-    const updatedTables = tables.map(table =>
+    const updatedTables = tables.map((table) =>
       table.id === editingTable.id
         ? {
-          ...table,
-          name: tableForm.name,
-          gameType: tableForm.gameType,
-          maxPlayers: parseInt(tableForm.maxPlayers),
-          stakes: tableForm.stakes,
-          minPlayTime: normalizedMinPlayTime,
-          callTime: parseInt(tableForm.callTime),
-          cashOutWindow: parseInt(tableForm.cashOutWindow),
-          sessionTimeout: parseInt(tableForm.sessionTimeout),
-        }
+            ...table,
+            name: tableForm.name,
+            gameType: tableForm.gameType,
+            maxPlayers: parseInt(tableForm.maxPlayers),
+            stakes: tableForm.stakes,
+            minPlayTime: normalizedMinPlayTime,
+            callTime: parseInt(tableForm.callTime),
+            cashOutWindow: parseInt(tableForm.cashOutWindow),
+            sessionTimeout: parseInt(tableForm.sessionTimeout),
+          }
         : table
     );
 
@@ -200,28 +235,38 @@ export default function TableManagementSection({
   const handleToggleTableStatus = (tableId) => {
     if (!setTables || !canEditTable) return;
 
-    const table = tables.find(t => t.id === tableId || t.id === parseInt(tableId));
+    const table = tables.find(
+      (t) => t.id === tableId || t.id === parseInt(tableId)
+    );
     if (!table) return;
 
     const newStatus = table.status === "Active" ? "Inactive" : "Active";
-    const updatedTables = tables.map(t =>
-      (t.id === tableId || t.id === parseInt(tableId))
+    const updatedTables = tables.map((t) =>
+      t.id === tableId || t.id === parseInt(tableId)
         ? { ...t, status: newStatus }
         : t
     );
 
     setTables(updatedTables);
-    alert(`Table "${table.name}" ${newStatus === "Active" ? "activated" : "deactivated"}!`);
+    alert(
+      `Table "${table.name}" ${
+        newStatus === "Active" ? "activated" : "deactivated"
+      }!`
+    );
   };
 
   const handleDeleteTable = (tableId) => {
     if (!setTables || !canEditTable) return;
 
-    const table = tables.find(t => t.id === tableId || t.id === parseInt(tableId));
+    const table = tables.find(
+      (t) => t.id === tableId || t.id === parseInt(tableId)
+    );
     if (!table) return;
 
     if (window.confirm(`Are you sure you want to delete "${table.name}"?`)) {
-      setTables(tables.filter(t => t.id !== tableId && t.id !== parseInt(tableId)));
+      setTables(
+        tables.filter((t) => t.id !== tableId && t.id !== parseInt(tableId))
+      );
       alert(`Table "${table.name}" deleted successfully!`);
     }
   };
@@ -234,6 +279,219 @@ export default function TableManagementSection({
     alert(`Dealer assigned to table successfully!`);
     setSelectedTableForDealer("");
     setSelectedDealer("");
+  };
+
+  // Get players who are currently seated at tables (have tableBalance > 0)
+  const getSeatedPlayers = () => {
+    return Object.values(playerBalances).filter(
+      (player) => player.tableBalance > 0 && player.tableId && player.seatNumber
+    );
+  };
+
+  // Get players with available balance for cash out
+  const getCashOutPlayers = () => {
+    return Object.values(playerBalances).filter(
+      (player) => player.availableBalance > 0
+    );
+  };
+
+  // Filter players for cash out search
+  const filteredCashOutPlayers =
+    cashOutPlayerSearch.length >= 3
+      ? getCashOutPlayers().filter((player) => {
+          const searchLower = cashOutPlayerSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            (player.email && player.email.toLowerCase().includes(searchLower))
+          );
+        })
+      : [];
+
+  // Validate balance consistency across sources
+  const validateBalanceConsistency = (playerId) => {
+    const player = playerBalances[playerId];
+    if (!player) return { isValid: false, message: "Player not found" };
+
+    // Get player's available balance (chips) - this is what we see in cashier/superadmin side
+    const cashierSideBalance = player.availableBalance || 0;
+
+    // In a real system, we would fetch:
+    // 1. Player portal balance (from player's account/API)
+    // 2. Table buy-out balance (from buy-out transaction records)
+    // For now, we'll use availableBalance as the source of truth
+    // and flag if there are inconsistencies
+
+    // For demonstration, we'll check if player has any pending transactions
+    // that might cause discrepancy
+    const hasPendingTransactions = false; // Would check from transaction log
+    const playerPortalBalance = cashierSideBalance; // Would fetch from player portal API
+    const buyOutBalance = cashierSideBalance; // Would calculate from buy-out records
+
+    const balancesMatch =
+      cashierSideBalance === playerPortalBalance &&
+      playerPortalBalance === buyOutBalance;
+
+    return {
+      isValid: balancesMatch,
+      cashierSideBalance,
+      playerPortalBalance,
+      buyOutBalance,
+      message: balancesMatch
+        ? "All balances match ✓"
+        : "⚠️ Balance mismatch detected! Please verify before processing.",
+      hasPendingTransactions,
+    };
+  };
+
+  // Handle cash out conversion
+  const handleCashOut = () => {
+    if (!cashOutForm.playerId || !cashOutForm.chipAmount) {
+      alert("Please select a player and enter chip amount to convert.");
+      return;
+    }
+
+    const player = playerBalances[cashOutForm.playerId];
+    if (!player) {
+      alert("Player not found.");
+      return;
+    }
+
+    const chipAmount = parseFloat(cashOutForm.chipAmount);
+    if (isNaN(chipAmount) || chipAmount <= 0) {
+      alert("Please enter a valid chip amount.");
+      return;
+    }
+
+    if (chipAmount > (player.availableBalance || 0)) {
+      alert(
+        `Insufficient balance. Player has only ${player.availableBalance.toLocaleString(
+          "en-IN"
+        )} chips available.`
+      );
+      return;
+    }
+
+    // Validate balance consistency
+    const validation = validateBalanceConsistency(cashOutForm.playerId);
+    if (!validation.isValid) {
+      const proceed = window.confirm(
+        `${validation.message}\n\nDo you still want to proceed with cash out?`
+      );
+      if (!proceed) return;
+    }
+
+    if (!setPlayerBalances) {
+      alert("Cash out functionality not fully configured.");
+      return;
+    }
+
+    // Calculate real money amount
+    const realMoneyAmount = chipAmount * cashOutForm.conversionRate;
+
+    // Deduct chips from player's available balance
+    setPlayerBalances((prev) => ({
+      ...prev,
+      [cashOutForm.playerId]: {
+        ...prev[cashOutForm.playerId],
+        availableBalance:
+          (prev[cashOutForm.playerId].availableBalance || 0) - chipAmount,
+      },
+    }));
+
+    alert(
+      `Cash out processed successfully!\n${chipAmount.toLocaleString(
+        "en-IN"
+      )} chips converted to ₹${realMoneyAmount.toLocaleString("en-IN")} for ${cashOutForm.playerName}.`
+    );
+
+    // Reset form
+    setCashOutForm({
+      playerId: "",
+      playerName: "",
+      chipAmount: "",
+      conversionRate: 1,
+      reason: "",
+    });
+    setCashOutPlayerSearch("");
+  };
+
+  // Handle table buy-out approval
+  const handleBuyOut = () => {
+    if (!buyOutForm.playerId || !buyOutForm.tableId) {
+      alert("Please select a player to process buy-out.");
+      return;
+    }
+
+    const player = playerBalances[buyOutForm.playerId];
+    if (!player || player.tableBalance <= 0) {
+      alert("Selected player has no table balance to buy out.");
+      return;
+    }
+
+    if (!setPlayerBalances || !setTableBalances || !setOccupiedSeats) {
+      alert("Buy-out functionality not fully configured.");
+      return;
+    }
+
+    // Move table balance to available balance
+    const buyOutAmount = player.tableBalance;
+    setPlayerBalances((prev) => ({
+      ...prev,
+      [buyOutForm.playerId]: {
+        ...prev[buyOutForm.playerId],
+        availableBalance:
+          (prev[buyOutForm.playerId].availableBalance || 0) + buyOutAmount,
+        tableBalance: 0,
+        tableId: null,
+        seatNumber: null,
+      },
+    }));
+
+    // Update table balance
+    setTableBalances((prev) => {
+      const tableBalance = prev[buyOutForm.tableId] || {
+        id: buyOutForm.tableId,
+        totalBalance: 0,
+        players: [],
+      };
+      return {
+        ...prev,
+        [buyOutForm.tableId]: {
+          ...tableBalance,
+          totalBalance: Math.max(0, tableBalance.totalBalance - buyOutAmount),
+          players: tableBalance.players.filter(
+            (p) => p !== buyOutForm.playerId
+          ),
+        },
+      };
+    });
+
+    // Remove player from occupied seats
+    setOccupiedSeats((prev) => {
+      const tableOccupiedSeats = prev[buyOutForm.tableId] || [];
+      return {
+        ...prev,
+        [buyOutForm.tableId]: tableOccupiedSeats.filter(
+          (seat) => seat !== player.seatNumber
+        ),
+      };
+    });
+
+    alert(
+      `Buy-out approved for ${buyOutForm.playerName}. ${buyOutAmount.toLocaleString(
+        "en-IN"
+      )} chips moved to player's available balance.`
+    );
+
+    // Reset form
+    setBuyOutForm({
+      playerId: "",
+      playerName: "",
+      tableId: "",
+      tableName: "",
+      reason: "",
+    });
   };
 
   // Handle opening table view for seat assignment
@@ -262,15 +520,18 @@ export default function TableManagementSection({
       {!forceTab &&
         (canAccessTableManagement ||
           canAccessSeatingManagement ||
+          canAccessTableBuyOut ||
+          canAccessCashOut ||
           canAccessLiveTables) && (
           <div className="flex gap-2 border-b border-white/20 pb-4">
             {canAccessLiveTables && (
               <button
                 onClick={() => setActiveTab("live-tables")}
-                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${activeTab === "live-tables"
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
-                  : "bg-white/10 text-white/70 hover:bg-white/15"
-                  }`}
+                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
+                  activeTab === "live-tables"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
+                    : "bg-white/10 text-white/70 hover:bg-white/15"
+                }`}
               >
                 Live Tables
               </button>
@@ -278,10 +539,11 @@ export default function TableManagementSection({
             {canAccessTableManagement && (
               <button
                 onClick={() => setActiveTab("table-management")}
-                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${activeTab === "table-management"
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
-                  : "bg-white/10 text-white/70 hover:bg-white/15"
-                  }`}
+                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
+                  activeTab === "table-management"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
+                    : "bg-white/10 text-white/70 hover:bg-white/15"
+                }`}
               >
                 Table Management
               </button>
@@ -289,12 +551,37 @@ export default function TableManagementSection({
             {canAccessSeatingManagement && (
               <button
                 onClick={() => setActiveTab("seating-management")}
-                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${activeTab === "seating-management"
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
-                  : "bg-white/10 text-white/70 hover:bg-white/15"
-                  }`}
+                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
+                  activeTab === "seating-management"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
+                    : "bg-white/10 text-white/70 hover:bg-white/15"
+                }`}
               >
-                Seating Management
+                Table Buy-In
+              </button>
+            )}
+            {canAccessTableBuyOut && (
+              <button
+                onClick={() => setActiveTab("table-buyout")}
+                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
+                  activeTab === "table-buyout"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
+                    : "bg-white/10 text-white/70 hover:bg-white/15"
+                }`}
+              >
+                Table Buy-Out
+              </button>
+            )}
+            {canAccessCashOut && (
+              <button
+                onClick={() => setActiveTab("cash-out")}
+                className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
+                  activeTab === "cash-out"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
+                    : "bg-white/10 text-white/70 hover:bg-white/15"
+                }`}
+              >
+                Cash Out
               </button>
             )}
           </div>
@@ -304,26 +591,30 @@ export default function TableManagementSection({
       {activeTab === "table-management" && canViewTable && (
         <div className="space-y-6">
           <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
-            <h2 className="text-xl font-bold text-white mb-6">Table Management</h2>
+            <h2 className="text-xl font-bold text-white mb-6">
+              Table Management
+            </h2>
 
             {/* Sub Tabs: Add New Table / All Tables */}
             <div className="flex gap-2 border-b border-white/20 pb-4 mb-6">
               <button
                 onClick={() => setTableMgmtSubTab("list")}
-                className={`px-5 py-2 rounded-t-lg font-semibold transition-all ${tableMgmtSubTab === "list"
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg"
-                  : "bg-white/10 text-white/70 hover:bg-white/15"
-                  }`}
+                className={`px-5 py-2 rounded-t-lg font-semibold transition-all ${
+                  tableMgmtSubTab === "list"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg"
+                    : "bg-white/10 text-white/70 hover:bg-white/15"
+                }`}
               >
                 All Tables
               </button>
               {canCreateTable && (
                 <button
                   onClick={() => setTableMgmtSubTab("add")}
-                  className={`px-5 py-2 rounded-t-lg font-semibold transition-all ${tableMgmtSubTab === "add"
-                    ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg"
-                    : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
+                  className={`px-5 py-2 rounded-t-lg font-semibold transition-all ${
+                    tableMgmtSubTab === "add"
+                      ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg"
+                      : "bg-white/10 text-white/70 hover:bg-white/15"
+                  }`}
                 >
                   Add New Table
                 </button>
@@ -345,7 +636,9 @@ export default function TableManagementSection({
                         className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                         placeholder="Table 1"
                         value={tableForm.name}
-                        onChange={(e) => setTableForm({ ...tableForm, name: e.target.value })}
+                        onChange={(e) =>
+                          setTableForm({ ...tableForm, name: e.target.value })
+                        }
                       />
                     </div>
                     <div>
@@ -354,7 +647,10 @@ export default function TableManagementSection({
                         options={[
                           { value: "Texas Hold'em", label: "Texas Hold'em" },
                           { value: "Omaha", label: "Omaha" },
-                          { value: "Seven Card Stud", label: "Seven Card Stud" },
+                          {
+                            value: "Seven Card Stud",
+                            label: "Seven Card Stud",
+                          },
                           { value: "Razz", label: "Razz" },
                         ]}
                         value={tableForm.gameType}
@@ -374,24 +670,37 @@ export default function TableManagementSection({
                         className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                         placeholder="8"
                         value={tableForm.maxPlayers}
-                        onChange={(e) => setTableForm({ ...tableForm, maxPlayers: e.target.value })}
+                        onChange={(e) =>
+                          setTableForm({
+                            ...tableForm,
+                            maxPlayers: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div>
-                      <label className="text-white text-sm">Blind Levels / Stakes</label>
+                      <label className="text-white text-sm">
+                        Blind Levels / Stakes
+                      </label>
                       <input
                         type="text"
                         className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                         placeholder="₹25/₹50"
                         value={tableForm.stakes}
-                        onChange={(e) => setTableForm({ ...tableForm, stakes: e.target.value })}
+                        onChange={(e) =>
+                          setTableForm({ ...tableForm, stakes: e.target.value })
+                        }
                       />
                     </div>
                     <div className="border-t border-white/20 pt-3 mt-3">
-                      <h4 className="text-white text-sm font-semibold mb-2">Session Parameters</h4>
+                      <h4 className="text-white text-sm font-semibold mb-2">
+                        Session Parameters
+                      </h4>
                       <div className="space-y-2">
                         <div>
-                          <label className="text-white text-xs">Min Play Time (minutes)</label>
+                          <label className="text-white text-xs">
+                            Min Play Time (minutes)
+                          </label>
                           <div className="mt-1 space-y-2">
                             <CustomSelect
                               options={[
@@ -418,7 +727,10 @@ export default function TableManagementSection({
                                   !tableForm.minPlayTime ||
                                   parseInt(tableForm.minPlayTime) < 30
                                 ) {
-                                  setTableForm({ ...tableForm, minPlayTime: 30 });
+                                  setTableForm({
+                                    ...tableForm,
+                                    minPlayTime: 30,
+                                  });
                                 }
                               }}
                               className="w-full"
@@ -441,40 +753,63 @@ export default function TableManagementSection({
                           </div>
                         </div>
                         <div>
-                          <label className="text-white text-xs">Call Time (minutes)</label>
+                          <label className="text-white text-xs">
+                            Call Time (minutes)
+                          </label>
                           <input
                             type="number"
                             className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
                             placeholder="5"
                             value={tableForm.callTime}
-                            onChange={(e) => setTableForm({ ...tableForm, callTime: e.target.value })}
+                            onChange={(e) =>
+                              setTableForm({
+                                ...tableForm,
+                                callTime: e.target.value,
+                              })
+                            }
                           />
                         </div>
                         <div>
-                          <label className="text-white text-xs">Cash-out Window (minutes)</label>
+                          <label className="text-white text-xs">
+                            Cash-out Window (minutes)
+                          </label>
                           <input
                             type="number"
                             className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
                             placeholder="10"
                             value={tableForm.cashOutWindow}
-                            onChange={(e) => setTableForm({ ...tableForm, cashOutWindow: e.target.value })}
+                            onChange={(e) =>
+                              setTableForm({
+                                ...tableForm,
+                                cashOutWindow: e.target.value,
+                              })
+                            }
                           />
                         </div>
                         <div>
-                          <label className="text-white text-xs">Session Timeout (minutes)</label>
+                          <label className="text-white text-xs">
+                            Session Timeout (minutes)
+                          </label>
                           <input
                             type="number"
                             className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
                             placeholder="120"
                             value={tableForm.sessionTimeout}
-                            onChange={(e) => setTableForm({ ...tableForm, sessionTimeout: e.target.value })}
+                            onChange={(e) =>
+                              setTableForm({
+                                ...tableForm,
+                                sessionTimeout: e.target.value,
+                              })
+                            }
                           />
                         </div>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={editingTable ? handleUpdateTable : handleCreateTable}
+                        onClick={
+                          editingTable ? handleUpdateTable : handleCreateTable
+                        }
                         className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold mt-4"
                       >
                         {editingTable ? "Update Table" : "Create Table"}
@@ -509,10 +844,14 @@ export default function TableManagementSection({
               {/* Table Actions */}
               {canEditTable && (
                 <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">Table Actions</h3>
+                  <h3 className="text-lg font-semibold text-white mb-4">
+                    Table Actions
+                  </h3>
                   <div className="space-y-3">
                     <div>
-                      <label className="text-white text-sm mb-2 block">Select Table</label>
+                      <label className="text-white text-sm mb-2 block">
+                        Select Table
+                      </label>
                       <CustomSelect
                         options={[
                           { value: "", label: "-- Select Table --" },
@@ -532,9 +871,10 @@ export default function TableManagementSection({
                       <>
                         <button
                           onClick={() => {
-                            const tableToEdit = tables.find(t =>
-                              t.id.toString() === selectedTableForActions ||
-                              t.id === parseInt(selectedTableForActions)
+                            const tableToEdit = tables.find(
+                              (t) =>
+                                t.id.toString() === selectedTableForActions ||
+                                t.id === parseInt(selectedTableForActions)
                             );
                             if (tableToEdit) {
                               handleEditTable(tableToEdit);
@@ -545,15 +885,23 @@ export default function TableManagementSection({
                           Edit Table Settings
                         </button>
                         <button
-                          onClick={() => handleToggleTableStatus(parseInt(selectedTableForActions))}
+                          onClick={() =>
+                            handleToggleTableStatus(
+                              parseInt(selectedTableForActions)
+                            )
+                          }
                           className="w-full bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold"
                         >
-                          {tables.find(t => t.id.toString() === selectedTableForActions)?.status === "Active"
+                          {tables.find(
+                            (t) => t.id.toString() === selectedTableForActions
+                          )?.status === "Active"
                             ? "Deactivate Table"
                             : "Activate Table"}
                         </button>
                         <button
-                          onClick={() => handleDeleteTable(parseInt(selectedTableForActions))}
+                          onClick={() =>
+                            handleDeleteTable(parseInt(selectedTableForActions))
+                          }
                           className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold"
                         >
                           Delete Table
@@ -567,7 +915,9 @@ export default function TableManagementSection({
               {/* Dealer Assignment */}
               {canEditTable && (
                 <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">Dealer Assignment</h3>
+                  <h3 className="text-lg font-semibold text-white mb-4">
+                    Dealer Assignment
+                  </h3>
                   <div className="space-y-3">
                     <div>
                       <label className="text-white text-sm">Select Table</label>
@@ -587,7 +937,9 @@ export default function TableManagementSection({
                       />
                     </div>
                     <div>
-                      <label className="text-white text-sm">Assign Dealer</label>
+                      <label className="text-white text-sm">
+                        Assign Dealer
+                      </label>
                       <CustomSelect
                         options={[
                           { value: "", label: "-- Select Dealer --" },
@@ -615,10 +967,13 @@ export default function TableManagementSection({
 
               {/* View Tables List */}
               <div
-                className={`bg-white/10 p-4 rounded-lg ${tableMgmtSubTab === "list" ? "lg:col-span-2" : ""
-                  }`}
+                className={`bg-white/10 p-4 rounded-lg ${
+                  tableMgmtSubTab === "list" ? "lg:col-span-2" : ""
+                }`}
               >
-                <h3 className="text-lg font-semibold text-white mb-4">All Tables</h3>
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  All Tables
+                </h3>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {tables.length === 0 ? (
                     <div className="text-center py-8 text-gray-400 text-sm">
@@ -632,23 +987,30 @@ export default function TableManagementSection({
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="font-semibold text-white">{table.name}</div>
+                            <div className="font-semibold text-white">
+                              {table.name}
+                            </div>
                             <div className="text-sm text-gray-300">
                               {table.gameType} | Max Players: {table.maxPlayers}
                             </div>
                             <div className="text-xs text-gray-400 mt-1">
                               Stakes: {table.stakes || "N/A"} | Status:{" "}
                               <span
-                                className={`font-semibold ${table.status === "Active"
-                                  ? "text-green-400"
-                                  : "text-red-400"
-                                  }`}
+                                className={`font-semibold ${
+                                  table.status === "Active"
+                                    ? "text-green-400"
+                                    : "text-red-400"
+                                }`}
                               >
                                 {table.status}
-                              </span>
-                              {" "} | Timer:{" "}
+                              </span>{" "}
+                              | Timer:{" "}
                               <span className="text-white/90 font-semibold">
-                                {Math.max(30, parseInt(table.minPlayTime) || 30)}m
+                                {Math.max(
+                                  30,
+                                  parseInt(table.minPlayTime) || 30
+                                )}
+                                m
                               </span>
                             </div>
                           </div>
@@ -688,10 +1050,16 @@ export default function TableManagementSection({
                     const preferredSeatAvailable =
                       entry.preferredSeat && isSeatAvailable
                         ? isSeatAvailable(
-                          entry.preferredTable,
-                          entry.preferredSeat
-                        )
+                            entry.preferredTable,
+                            entry.preferredSeat
+                          )
                         : false;
+
+                    // Get player's club buy-in chip balance
+                    const playerBalance =
+                      entry.playerId && playerBalances[entry.playerId]
+                        ? playerBalances[entry.playerId].availableBalance || 0
+                        : 0;
 
                     return (
                       <div
@@ -706,6 +1074,10 @@ export default function TableManagementSection({
                             <div className="text-sm text-gray-300">
                               Position: {entry.position} | Game:{" "}
                               {entry.gameType}
+                            </div>
+                            <div className="text-sm text-emerald-300 font-medium mt-1">
+                              💰 Club Buy-In Balance:{" "}
+                              {playerBalance.toLocaleString("en-IN")}
                             </div>
                             {entry.preferredSeat ? (
                               <div className="mt-1 flex items-center gap-2 flex-wrap">
@@ -798,12 +1170,15 @@ export default function TableManagementSection({
                       ]}
                       value={seatAssignment.playerId}
                       onChange={(e) => {
-                        const selectedEntry = waitlist.find(w => w.id.toString() === e.target.value.toString());
+                        const selectedEntry = waitlist.find(
+                          (w) => w.id.toString() === e.target.value.toString()
+                        );
                         setSeatAssignment({
                           ...seatAssignment,
                           playerId: e.target.value,
                           playerName: selectedEntry?.playerName || "",
-                          tableId: selectedEntry?.preferredTable?.toString() || ""
+                          tableId:
+                            selectedEntry?.preferredTable?.toString() || "",
                         });
                       }}
                       className="w-full mt-1"
@@ -820,7 +1195,13 @@ export default function TableManagementSection({
                         })),
                       ]}
                       value={seatAssignment.tableId}
-                      onChange={(e) => setSeatAssignment({ ...seatAssignment, tableId: e.target.value, seatNumber: "" })}
+                      onChange={(e) =>
+                        setSeatAssignment({
+                          ...seatAssignment,
+                          tableId: e.target.value,
+                          seatNumber: "",
+                        })
+                      }
                       className="w-full mt-1"
                     />
                   </div>
@@ -829,52 +1210,89 @@ export default function TableManagementSection({
                     <CustomSelect
                       options={[
                         { value: "", label: "-- Select Seat --" },
-                        ...(seatAssignment.tableId ? Array.from({ length: 8 }, (_, i) => i + 1).map((seatNum) => {
-                          const available = isSeatAvailable ? isSeatAvailable(parseInt(seatAssignment.tableId), seatNum) : true;
-                          const selectedEntry = waitlist.find(w => w.id.toString() === seatAssignment.playerId.toString());
-                          const isPreferred = selectedEntry?.preferredSeat === seatNum &&
-                            selectedEntry?.preferredTable === parseInt(seatAssignment.tableId);
-                          return {
-                            value: seatNum.toString(),
-                            label: `Seat ${seatNum} ${!available ? "(Occupied)" : ""} ${isPreferred ? "(Preferred)" : ""}`
-                          };
-                        }) : [])
+                        ...(seatAssignment.tableId
+                          ? Array.from({ length: 8 }, (_, i) => i + 1).map(
+                              (seatNum) => {
+                                const available = isSeatAvailable
+                                  ? isSeatAvailable(
+                                      parseInt(seatAssignment.tableId),
+                                      seatNum
+                                    )
+                                  : true;
+                                const selectedEntry = waitlist.find(
+                                  (w) =>
+                                    w.id.toString() ===
+                                    seatAssignment.playerId.toString()
+                                );
+                                const isPreferred =
+                                  selectedEntry?.preferredSeat === seatNum &&
+                                  selectedEntry?.preferredTable ===
+                                    parseInt(seatAssignment.tableId);
+                                return {
+                                  value: seatNum.toString(),
+                                  label: `Seat ${seatNum} ${
+                                    !available ? "(Occupied)" : ""
+                                  } ${isPreferred ? "(Preferred)" : ""}`,
+                                };
+                              }
+                            )
+                          : []),
                       ]}
                       value={seatAssignment.seatNumber}
-                      onChange={(e) => setSeatAssignment({ ...seatAssignment, seatNumber: e.target.value })}
+                      onChange={(e) =>
+                        setSeatAssignment({
+                          ...seatAssignment,
+                          seatNumber: e.target.value,
+                        })
+                      }
                       disabled={!seatAssignment.tableId}
                       className="w-full mt-1"
                     />
                   </div>
-                  {seatAssignment.playerId && seatAssignment.tableId && seatAssignment.seatNumber && (
-                    <div className="p-2 bg-blue-500/20 rounded border border-blue-400/30">
-                      <div className="text-xs text-blue-300">
-                        {(() => {
-                          const selectedEntry = waitlist.find(w => w.id.toString() === seatAssignment.playerId.toString());
-                          const isPreferred = selectedEntry?.preferredSeat === parseInt(seatAssignment.seatNumber) &&
-                            selectedEntry?.preferredTable === parseInt(seatAssignment.tableId);
-                          return isPreferred ? "✓ This is the player's preferred seat" : "";
-                        })()}
+                  {seatAssignment.playerId &&
+                    seatAssignment.tableId &&
+                    seatAssignment.seatNumber && (
+                      <div className="p-2 bg-blue-500/20 rounded border border-blue-400/30">
+                        <div className="text-xs text-blue-300">
+                          {(() => {
+                            const selectedEntry = waitlist.find(
+                              (w) =>
+                                w.id.toString() ===
+                                seatAssignment.playerId.toString()
+                            );
+                            const isPreferred =
+                              selectedEntry?.preferredSeat ===
+                                parseInt(seatAssignment.seatNumber) &&
+                              selectedEntry?.preferredTable ===
+                                parseInt(seatAssignment.tableId);
+                            return isPreferred
+                              ? "✓ This is the player's preferred seat"
+                              : "";
+                          })()}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                   <button
                     className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold disabled:bg-gray-600 disabled:cursor-not-allowed"
-                    disabled={!seatAssignment.playerId || !seatAssignment.tableId || !seatAssignment.seatNumber}
+                    disabled={
+                      !seatAssignment.playerId ||
+                      !seatAssignment.tableId ||
+                      !seatAssignment.seatNumber
+                    }
                     onClick={() => {
                       if (onSeatAssign) {
                         onSeatAssign({
                           playerId: seatAssignment.playerId,
                           playerName: seatAssignment.playerName,
                           tableId: seatAssignment.tableId,
-                          seatNumber: seatAssignment.seatNumber
+                          seatNumber: seatAssignment.seatNumber,
                         });
                         // Reset form
                         setSeatAssignment({
                           playerId: "",
                           tableId: "",
                           seatNumber: "",
-                          playerName: ""
+                          playerName: "",
                         });
                       }
                     }}
@@ -887,10 +1305,14 @@ export default function TableManagementSection({
             </div>
 
             <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-blue-500/20 to-cyan-700/30 rounded-xl shadow-md border border-indigo-800/40">
-              <h2 className="text-xl font-bold text-white mb-6">Player Call & Reorder</h2>
+              <h2 className="text-xl font-bold text-white mb-6">
+                Player Call & Reorder
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">Call Players</h3>
+                  <h3 className="text-lg font-semibold text-white mb-4">
+                    Call Players
+                  </h3>
                   <div className="space-y-3">
                     <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
                       Call Next Player
@@ -905,15 +1327,21 @@ export default function TableManagementSection({
                 </div>
 
                 <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">Reorder Waitlist</h3>
+                  <h3 className="text-lg font-semibold text-white mb-4">
+                    Reorder Waitlist
+                  </h3>
                   <div className="space-y-2">
                     {waitlist.map((entry, index) => (
-                      <div key={entry.id} className="bg-white/5 p-2 rounded flex justify-between items-center">
+                      <div
+                        key={entry.id}
+                        className="bg-white/5 p-2 rounded flex justify-between items-center"
+                      >
                         <span className="text-white">
                           {entry.position}. {entry.playerName}
                           {entry.preferredSeat && (
                             <span className="text-xs text-yellow-300 ml-2">
-                              (Pref: T{entry.preferredTable}-S{entry.preferredSeat})
+                              (Pref: T{entry.preferredTable}-S
+                              {entry.preferredSeat})
                             </span>
                           )}
                         </span>
@@ -924,7 +1352,10 @@ export default function TableManagementSection({
                             onClick={() => {
                               if (index > 0 && setWaitlist) {
                                 const newWaitlist = [...waitlist];
-                                [newWaitlist[index], newWaitlist[index - 1]] = [newWaitlist[index - 1], newWaitlist[index]];
+                                [newWaitlist[index], newWaitlist[index - 1]] = [
+                                  newWaitlist[index - 1],
+                                  newWaitlist[index],
+                                ];
                                 newWaitlist[index].position = index + 1;
                                 newWaitlist[index - 1].position = index;
                                 setWaitlist(newWaitlist);
@@ -939,7 +1370,10 @@ export default function TableManagementSection({
                             onClick={() => {
                               if (index < waitlist.length - 1 && setWaitlist) {
                                 const newWaitlist = [...waitlist];
-                                [newWaitlist[index], newWaitlist[index + 1]] = [newWaitlist[index + 1], newWaitlist[index]];
+                                [newWaitlist[index], newWaitlist[index + 1]] = [
+                                  newWaitlist[index + 1],
+                                  newWaitlist[index],
+                                ];
                                 newWaitlist[index].position = index + 1;
                                 newWaitlist[index + 1].position = index + 2;
                                 setWaitlist(newWaitlist);
@@ -960,7 +1394,6 @@ export default function TableManagementSection({
                 </div>
               </div>
             </section>
-
           </section>
         </div>
       )}
@@ -1184,11 +1617,583 @@ export default function TableManagementSection({
 
             {tables.filter((table) => table.status === "Active").length ===
               0 && (
-                <div className="bg-white/5 border border-white/10 rounded-xl p-10 text-center text-gray-400">
-                  No active tables available. Tables will appear here when they
-                  are activated.
+              <div className="bg-white/5 border border-white/10 rounded-xl p-10 text-center text-gray-400">
+                No active tables available. Tables will appear here when they
+                are activated.
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      {/* Table Buy-Out Tab */}
+      {activeTab === "table-buyout" && canAccessTableBuyOut && (
+        <div className="space-y-6">
+          <section className="p-6 bg-gradient-to-r from-orange-600/30 via-red-500/20 to-rose-700/30 rounded-xl shadow-md border border-orange-800/40">
+            <h2 className="text-xl font-bold text-white mb-6">
+              Table Buy-Out Approval
+            </h2>
+            <p className="text-gray-300 text-sm mb-6">
+              Approve players leaving tables and move their table chip balance
+              to their available balance for cash conversion.
+            </p>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Buy-Out Form */}
+              <div className="bg-white/10 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  Process Buy-Out
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-white text-sm">
+                      Select Seated Player
+                    </label>
+                    <CustomSelect
+                      options={[
+                        { value: "", label: "-- Select Player --" },
+                        ...getSeatedPlayers().map((player) => ({
+                          value: player.id,
+                          label: `${player.name} (${player.id}) - Table ${player.tableId}, Seat ${player.seatNumber}`,
+                        })),
+                      ]}
+                      value={buyOutForm.playerId}
+                      onChange={(e) => {
+                        const selectedPlayer = getSeatedPlayers().find(
+                          (p) => p.id === e.target.value
+                        );
+                        if (selectedPlayer) {
+                          const table = tables.find(
+                            (t) =>
+                              t.id === selectedPlayer.tableId ||
+                              t.id === parseInt(selectedPlayer.tableId)
+                          );
+                          setBuyOutForm({
+                            playerId: selectedPlayer.id,
+                            playerName: selectedPlayer.name,
+                            tableId: selectedPlayer.tableId,
+                            tableName: table?.name || `Table ${selectedPlayer.tableId}`,
+                            reason: buyOutForm.reason,
+                          });
+                        } else {
+                          setBuyOutForm({
+                            playerId: "",
+                            playerName: "",
+                            tableId: "",
+                            tableName: "",
+                            reason: "",
+                          });
+                        }
+                      }}
+                      className="w-full mt-1"
+                    />
+                  </div>
+
+                  {buyOutForm.playerId && (
+                    <>
+                      <div className="p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
+                        <div className="text-sm text-white space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Player:</span>
+                            <span className="font-semibold">
+                              {buyOutForm.playerName}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Table:</span>
+                            <span className="font-semibold">
+                              {buyOutForm.tableName}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Current Table Balance:</span>
+                            <span className="font-semibold text-emerald-300">
+                              {playerBalances[buyOutForm.playerId]?.tableBalance.toLocaleString(
+                                "en-IN"
+                              ) || 0}{" "}
+                              chips
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Available Balance (After Buy-Out):</span>
+                            <span className="font-semibold text-blue-300">
+                              {(
+                                (playerBalances[buyOutForm.playerId]
+                                  ?.availableBalance || 0) +
+                                (playerBalances[buyOutForm.playerId]
+                                  ?.tableBalance || 0)
+                              ).toLocaleString("en-IN")}{" "}
+                              chips
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-white text-sm">
+                          Reason (Optional)
+                        </label>
+                        <textarea
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          rows="3"
+                          placeholder="Enter reason for buy-out (optional)..."
+                          value={buyOutForm.reason}
+                          onChange={(e) =>
+                            setBuyOutForm({
+                              ...buyOutForm,
+                              reason: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <button
+                        onClick={handleBuyOut}
+                        className="w-full bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold"
+                      >
+                        Approve Buy-Out
+                      </button>
+                    </>
+                  )}
+
+                  {getSeatedPlayers().length === 0 && (
+                    <div className="text-center py-8 text-gray-400 text-sm">
+                      No players currently seated at tables
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* Recent Buy-Outs / Information */}
+              <div className="bg-white/10 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  Buy-Out Information
+                </h3>
+                <div className="space-y-4">
+                  <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                    <h4 className="text-white font-semibold mb-2">
+                      How Buy-Out Works:
+                    </h4>
+                    <ul className="text-sm text-gray-300 space-y-2 list-disc list-inside">
+                      <li>
+                        Select a player who is currently seated at a table
+                      </li>
+                      <li>
+                        Their table chip balance will be moved to their
+                        available balance
+                      </li>
+                      <li>
+                        Player will be removed from the table (seat becomes
+                        available)
+                      </li>
+                      <li>
+                        Player can then convert chips to real money at the
+                        cashier counter
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="p-4 bg-yellow-500/20 rounded-lg border border-yellow-400/30">
+                    <h4 className="text-yellow-300 font-semibold mb-2">
+                      ⚠️ Important Notes:
+                    </h4>
+                    <ul className="text-sm text-yellow-200 space-y-1 list-disc list-inside">
+                      <li>
+                        Buy-out approval is permanent and cannot be undone
+                      </li>
+                      <li>
+                        Table balance will be immediately transferred to player's
+                        available balance
+                      </li>
+                      <li>
+                        Player must go to cashier to convert chips to real money
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="p-4 bg-green-500/20 rounded-lg border border-green-400/30">
+                    <div className="text-sm text-green-300">
+                      <div className="font-semibold mb-1">
+                        Currently Seated Players:
+                      </div>
+                      <div className="text-green-200">
+                        {getSeatedPlayers().length} player(s) at tables
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* Cash Out Tab */}
+      {activeTab === "cash-out" && canAccessCashOut && (
+        <div className="space-y-6">
+          <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
+            <h2 className="text-xl font-bold text-white mb-6">
+              Cash Out - Chip to Real Money Conversion
+            </h2>
+            <p className="text-gray-300 text-sm mb-6">
+              Convert player's chip balance to real money. System validates
+              balance consistency across player portal, table buy-out records,
+              and cashier view.
+            </p>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Cash Out Form */}
+              <div className="bg-white/10 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  Process Cash Out
+                </h3>
+                <div className="space-y-4">
+                  <div className="relative">
+                    <label className="text-white text-sm">
+                      Search Player (Type at least 3 characters) eg: Alex Johnson, Maria Garcia
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                      placeholder="Search by name, ID, or email..."
+                      value={cashOutPlayerSearch}
+                      onChange={(e) => {
+                        setCashOutPlayerSearch(e.target.value);
+                        setCashOutForm({
+                          ...cashOutForm,
+                          playerId: "",
+                          playerName: "",
+                        });
+                      }}
+                    />
+                    {cashOutPlayerSearch.length >= 3 &&
+                      filteredCashOutPlayers.length > 0 &&
+                      !cashOutForm.playerId && (
+                        <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {filteredCashOutPlayers.map((player) => (
+                            <div
+                              key={player.id}
+                              onClick={() => {
+                                setCashOutForm({
+                                  ...cashOutForm,
+                                  playerId: player.id,
+                                  playerName: player.name,
+                                });
+                                setCashOutPlayerSearch(
+                                  `${player.name} (${player.id})`
+                                );
+                              }}
+                              className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                            >
+                              <div className="text-white font-medium">
+                                {player.name}
+                              </div>
+                              <div className="text-gray-400 text-xs">
+                                ID: {player.id} | Balance:{" "}
+                                {(player.availableBalance || 0).toLocaleString(
+                                  "en-IN"
+                                )}{" "}
+                                chips
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    {cashOutForm.playerId && (
+                      <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
+                        <span className="text-green-300">
+                          Selected: {cashOutForm.playerName} (
+                          {cashOutForm.playerId})
+                        </span>
+                        <button
+                          onClick={() => {
+                            setCashOutForm({
+                              ...cashOutForm,
+                              playerId: "",
+                              playerName: "",
+                            });
+                            setCashOutPlayerSearch("");
+                          }}
+                          className="ml-2 text-red-400 hover:text-red-300"
+                        >
+                          X
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {cashOutForm.playerId && (
+                    <>
+                      {/* Balance Validation */}
+                      {(() => {
+                        const validation = validateBalanceConsistency(
+                          cashOutForm.playerId
+                        );
+                        const player = playerBalances[cashOutForm.playerId];
+                        return (
+                          <div
+                            className={`p-3 rounded-lg border ${
+                              validation.isValid
+                                ? "bg-green-500/20 border-green-400/30"
+                                : "bg-red-500/20 border-red-400/30"
+                            }`}
+                          >
+                            <div
+                              className={`text-sm font-semibold mb-2 ${
+                                validation.isValid
+                                  ? "text-green-300"
+                                  : "text-red-300"
+                              }`}
+                            >
+                              {validation.message}
+                            </div>
+                            <div className="text-xs text-gray-300 space-y-1">
+                              <div>
+                                Cashier/SuperAdmin View:{" "}
+                                {validation.cashierSideBalance.toLocaleString(
+                                  "en-IN"
+                                )}{" "}
+                                chips
+                              </div>
+                              <div>
+                                Player Portal Balance:{" "}
+                                {validation.playerPortalBalance.toLocaleString(
+                                  "en-IN"
+                                )}{" "}
+                                chips
+                              </div>
+                              <div>
+                                Table Buy-Out Balance:{" "}
+                                {validation.buyOutBalance.toLocaleString(
+                                  "en-IN"
+                                )}{" "}
+                                chips
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      <div className="p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
+                        <div className="text-sm text-white space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Available Chips:</span>
+                            <span className="font-semibold text-blue-300">
+                              {(
+                                playerBalances[cashOutForm.playerId]
+                                  ?.availableBalance || 0
+                              ).toLocaleString("en-IN")}{" "}
+                              chips
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-white text-sm">
+                          Chips to Convert
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Enter amount in chips"
+                          value={cashOutForm.chipAmount}
+                          onChange={(e) =>
+                            setCashOutForm({
+                              ...cashOutForm,
+                              chipAmount: e.target.value,
+                            })
+                          }
+                          max={
+                            playerBalances[cashOutForm.playerId]
+                              ?.availableBalance || 0
+                          }
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          Max:{" "}
+                          {(
+                            playerBalances[cashOutForm.playerId]
+                              ?.availableBalance || 0
+                          ).toLocaleString("en-IN")}{" "}
+                          chips
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-white text-sm">
+                          Conversion Rate (1 chip = ₹X)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="1.00"
+                          value={cashOutForm.conversionRate}
+                          onChange={(e) =>
+                            setCashOutForm({
+                              ...cashOutForm,
+                              conversionRate: parseFloat(e.target.value) || 1,
+                            })
+                          }
+                        />
+                      </div>
+
+                      {cashOutForm.chipAmount &&
+                        parseFloat(cashOutForm.chipAmount) > 0 && (
+                          <div className="p-3 bg-purple-500/20 rounded-lg border border-purple-400/30">
+                            <div className="text-sm text-white">
+                              <div className="flex justify-between mb-1">
+                                <span className="text-gray-300">Chips:</span>
+                                <span className="font-semibold">
+                                  {parseFloat(cashOutForm.chipAmount).toLocaleString(
+                                    "en-IN"
+                                  )}{" "}
+                                  chips
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-300">
+                                  Real Money Amount:
+                                </span>
+                                <span className="font-semibold text-purple-300">
+                                  ₹
+                                  {(
+                                    parseFloat(cashOutForm.chipAmount) *
+                                    cashOutForm.conversionRate
+                                  ).toLocaleString("en-IN")}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                      <div>
+                        <label className="text-white text-sm">
+                          Reason/Notes (Optional)
+                        </label>
+                        <textarea
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          rows="3"
+                          placeholder="Enter reason or notes for cash out (optional)..."
+                          value={cashOutForm.reason}
+                          onChange={(e) =>
+                            setCashOutForm({
+                              ...cashOutForm,
+                              reason: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <button
+                        onClick={handleCashOut}
+                        className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold"
+                      >
+                        Process Cash Out
+                      </button>
+                    </>
+                  )}
+
+                  {getCashOutPlayers().length === 0 && (
+                    <div className="text-center py-8 text-gray-400 text-sm">
+                      No players with available chip balance
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Information Panel */}
+              <div className="bg-white/10 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  Cash Out Information
+                </h3>
+                <div className="space-y-4">
+                  <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                    <h4 className="text-white font-semibold mb-2">
+                      How Cash Out Works:
+                    </h4>
+                    <ul className="text-sm text-gray-300 space-y-2 list-disc list-inside">
+                      <li>
+                        Select a player who has chips in their available balance
+                      </li>
+                      <li>
+                        System validates balance consistency across three
+                        sources:
+                        <ul className="ml-4 mt-1 space-y-1 list-disc">
+                          <li>Player Portal Balance</li>
+                          <li>Table Buy-Out Balance Records</li>
+                          <li>Cashier/SuperAdmin View Balance</li>
+                        </ul>
+                      </li>
+                      <li>
+                        Enter the amount of chips to convert to real money
+                      </li>
+                      <li>
+                        Set conversion rate (default: 1 chip = ₹1)
+                      </li>
+                      <li>
+                        Chips are deducted from player's balance, real money is
+                        paid out
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="p-4 bg-yellow-500/20 rounded-lg border border-yellow-400/30">
+                    <h4 className="text-yellow-300 font-semibold mb-2">
+                      ⚠️ Balance Validation:
+                    </h4>
+                    <ul className="text-sm text-yellow-200 space-y-1 list-disc list-inside">
+                      <li>
+                        System automatically checks if balances match across all
+                        sources
+                      </li>
+                      <li>
+                        If mismatch detected, transaction is flagged with warning
+                      </li>
+                      <li>
+                        Review flagged transactions carefully before processing
+                      </li>
+                      <li>
+                        Contact system administrator if balance discrepancies
+                        persist
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="p-4 bg-blue-500/20 rounded-lg border border-blue-400/30">
+                    <h4 className="text-blue-300 font-semibold mb-2">
+                      💡 Important Notes:
+                    </h4>
+                    <ul className="text-sm text-blue-200 space-y-1 list-disc list-inside">
+                      <li>
+                        Cash out is permanent - chips cannot be recovered
+                      </li>
+                      <li>
+                        Conversion rate can be adjusted based on club policy
+                      </li>
+                      <li>
+                        Always verify player identity before processing cash out
+                      </li>
+                      <li>
+                        Keep transaction records for audit purposes
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="p-4 bg-green-500/20 rounded-lg border border-green-400/30">
+                    <div className="text-sm text-green-300">
+                      <div className="font-semibold mb-1">
+                        Players with Available Balance:
+                      </div>
+                      <div className="text-green-200">
+                        {getCashOutPlayers().length} player(s) have chips
+                        available for cash out
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
       )}
@@ -1200,12 +2205,16 @@ export default function TableManagementSection({
             tableId={selectedTableForSeating}
             onClose={() => {
               if (setShowTableView) setShowTableView(false);
-              if (setSelectedPlayerForSeating) setSelectedPlayerForSeating(null);
+              if (setSelectedPlayerForSeating)
+                setSelectedPlayerForSeating(null);
               if (setSelectedTableForSeating) setSelectedTableForSeating(null);
             }}
-            isManagerMode={["admin", "superadmin", "manager", "cashier"].includes(
-              userRole
-            )}
+            isManagerMode={[
+              "admin",
+              "superadmin",
+              "manager",
+              "cashier",
+            ].includes(userRole)}
             isViewOnly={activeTab === "live-tables"} // View-only mode when opened from Live Tables tab
             selectedPlayerForSeating={selectedPlayerForSeating}
             occupiedSeats={occupiedSeats}

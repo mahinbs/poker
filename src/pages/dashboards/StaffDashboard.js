@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ChatSection from "./ChatSection";
+import ChatSection from "../../components/ChatSection";
 
 export default function StaffDashboard() {
   const [activeItem, setActiveItem] = useState("Chat");
@@ -11,7 +11,7 @@ export default function StaffDashboard() {
   ];
 
   // Default player chats (staff can access staff chat only based on permissions)
-  // Staff role doesn't have player chat access, so passing null
+  // Staff role doesn"t have player chat access, so passing null
 
   // Default staff chats
   const [staffChats, setStaffChats] = useState([

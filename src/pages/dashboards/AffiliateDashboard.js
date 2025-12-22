@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 const AffiliateDashboard = () => {
     const [copied, setCopied] = useState(false);
