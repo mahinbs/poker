@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "./common/CustomSelect";
 import StaffManagement from "./StaffManagement";
+import PlayerManagementSection from "./PlayerManagementSection";
+import ChatSection from "./ChatSection";
 
 export default function HrDashboard() {
   const [activeItem, setActiveItem] = useState("Staff Management");
@@ -14,6 +16,7 @@ export default function HrDashboard() {
     "Staff Directory",
     "Staff Requests",
     "Performance Reviews",
+    "Chat",
   ];
 
   // Staff members data with documents
@@ -184,25 +187,71 @@ export default function HrDashboard() {
   const [documentFileName, setDocumentFileName] = useState("");
 
   // Player Management State
-  const [playerManagementTab, setPlayerManagementTab] = useState("kyc"); // 'kyc' or 'updates'
   const [kycRequests, setKycRequests] = useState([
-    { id: 1, name: "Rahul Sharma", documentType: "PAN Card", docUrl: "#", status: "Pending", submittedDate: "2024-02-20" },
-    { id: 2, name: "Priya Patel", documentType: "Aadhaar", docUrl: "#", status: "Pending", submittedDate: "2024-02-21" },
+    { id: 1, name: "Rahul Sharma", documentType: "PAN Card", docUrl: "#", status: "Pending", submittedDate: "2024-02-20", playerId: "P001", documentNumber: "ABCDE1234F", email: "rahul@example.com", phone: "+91 9876543210" },
+    { id: 2, name: "Priya Patel", documentType: "Aadhaar", docUrl: "#", status: "Pending", submittedDate: "2024-02-21", playerId: "P002", documentNumber: "1234 5678 9012", email: "priya@example.com", phone: "+91 9876543211" },
   ]);
   const [profileUpdates, setProfileUpdates] = useState([
-    { id: 1, name: "Amit Kumar", field: "Phone Number", oldValue: "+91 9876543210", newValue: "+91 9123456780", status: "Pending", requestedDate: "2024-02-22" },
-    { id: 2, name: "Sneha Gupta", field: "Email", oldValue: "sneha.old@test.com", newValue: "sneha.new@test.com", status: "Pending", requestedDate: "2024-02-23" },
+    { id: 1, name: "Amit Kumar", playerId: "P003", fields: [{ field: "Phone Number", oldValue: "+91 9876543210", newValue: "+91 9123456780" }, { field: "Address", oldValue: "Old Address", newValue: "New Address" }], status: "Pending", requestedDate: "2024-02-22" },
+    { id: 2, name: "Sneha Gupta", playerId: "P004", fields: [{ field: "Email", oldValue: "sneha.old@test.com", newValue: "sneha.new@test.com" }], status: "Pending", requestedDate: "2024-02-23" },
+  ]);
+  const [allPlayers, setAllPlayers] = useState([
+    { id: "P001", name: "John Doe", email: "john.doe@example.com", phone: "+91 9876543210", status: "Active", kycStatus: "Verified", registrationDate: "2024-01-15", referredBy: "Agent X", balance: 5000 },
+    { id: "P002", name: "Jane Smith", email: "jane.smith@example.com", phone: "+91 9876543211", status: "Active", kycStatus: "Pending", registrationDate: "2024-01-10", referredBy: "Agent Y", balance: 2500 },
+    { id: "P003", name: "Rajesh Kumar", email: "rajesh@example.com", phone: "+91 9876543212", status: "Suspended", kycStatus: "Verified", registrationDate: "2024-01-08", referredBy: "Agent Z", balance: 0 },
+    { id: "P004", name: "Priya Sharma", email: "priya@example.com", phone: "+91 9876543213", status: "Pending Approval", kycStatus: "Pending", registrationDate: "2024-01-20", referredBy: "Agent A", balance: 0 },
+  ]);
+  const [pendingApprovals, setPendingApprovals] = useState([
+    { id: 1, name: "Rajesh Kumar", email: "rajesh@example.com", phone: "+91 9876543212", registrationDate: "2024-02-18", status: "Pending", referredBy: "Agent X" },
+    { id: 2, name: "Meera Singh", email: "meera@example.com", phone: "+91 9876543213", registrationDate: "2024-02-19", status: "Pending", referredBy: "Agent Y" },
+  ]);
+  const [suspendedPlayers, setSuspendedPlayers] = useState([
+    { id: 1, name: "Vikram Patel", email: "vikram@example.com", reason: "Suspicious Activity", suspensionDate: "2024-02-15", status: "Suspended", duration: "temporary", suspensionDays: 7 },
   ]);
 
-  const handleKycAction = (id, action) => {
-    setKycRequests(prev => prev.map(req => req.id === id ? { ...req, status: action === 'approve' ? 'Approved' : 'Rejected' } : req));
-    alert(`KYC Request ${action === 'approve' ? 'Approved' : 'Rejected'}`);
-  };
+  // Chat/Support System State
+  const [playerChats, setPlayerChats] = useState([
+    {
+      id: "PC001",
+      playerId: "P001",
+      playerName: "Alex Johnson",
+      status: "open",
+      lastMessage: "Need assistance with account",
+      lastMessageTime: new Date(Date.now() - 180000).toISOString(),
+      messages: [
+        {
+          id: "M1",
+          sender: "player",
+          senderName: "Alex Johnson",
+          text: "Need assistance with account",
+          timestamp: new Date(Date.now() - 180000).toISOString(),
+        },
+      ],
+      createdAt: new Date(Date.now() - 600000).toISOString(),
+    },
+  ]);
 
-  const handleProfileUpdateAction = (id, action) => {
-    setProfileUpdates(prev => prev.map(req => req.id === id ? { ...req, status: action === 'approve' ? 'Approved' : 'Rejected' } : req));
-    alert(`Profile Update ${action === 'approve' ? 'Approved' : 'Rejected'}`);
-  };
+  const [staffChats, setStaffChats] = useState([
+    {
+      id: "SC001",
+      staffId: "ST001",
+      staffName: "Sarah Johnson",
+      staffRole: "Dealer",
+      status: "open",
+      lastMessage: "Need assistance with schedule",
+      lastMessageTime: new Date(Date.now() - 300000).toISOString(),
+      messages: [
+        {
+          id: "M3",
+          sender: "staff",
+          senderName: "Sarah Johnson",
+          text: "Need assistance with schedule",
+          timestamp: new Date(Date.now() - 300000).toISOString(),
+        },
+      ],
+      createdAt: new Date(Date.now() - 300000).toISOString(),
+    },
+  ]);
 
   // Update attendance records when date changes
   useEffect(() => {
@@ -433,108 +482,19 @@ export default function HrDashboard() {
 
           {/* Player Management */}
           {activeItem === "Player Management" && (
-            <div className="space-y-6">
-              <div className="flex space-x-4 border-b border-gray-700 pb-2">
-                <button
-                  onClick={() => setPlayerManagementTab("kyc")}
-                  className={`px-4 py-2 font-semibold rounded-lg transition-colors ${playerManagementTab === "kyc" ? "bg-purple-600 text-white" : "text-gray-400 hover:text-white"}`}
-                >
-                  KYC Reviews
-                </button>
-                <button
-                  onClick={() => setPlayerManagementTab("updates")}
-                  className={`px-4 py-2 font-semibold rounded-lg transition-colors ${playerManagementTab === "updates" ? "bg-purple-600 text-white" : "text-gray-400 hover:text-white"}`}
-                >
-                  Profile Updates
-                </button>
-              </div>
-
-              {playerManagementTab === "kyc" && (
-                <section className="p-6 bg-gray-800/50 rounded-xl border border-gray-700">
-                  <h2 className="text-xl font-bold text-white mb-4">Player KYC Requests</h2>
-                  <table className="w-full text-left bg-gray-900/50 rounded-lg overflow-hidden">
-                    <thead className="bg-gray-800 text-gray-400 uppercase text-sm">
-                      <tr>
-                        <th className="py-3 px-4">Player Name</th>
-                        <th className="py-3 px-4">Document</th>
-                        <th className="py-3 px-4">Submitted</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-700 text-gray-300">
-                      {kycRequests.map(req => (
-                        <tr key={req.id}>
-                          <td className="py-3 px-4 font-medium text-white">{req.name}</td>
-                          <td className="py-3 px-4">{req.documentType}</td>
-                          <td className="py-3 px-4">{req.submittedDate}</td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 text-xs rounded ${req.status === 'Approved' ? 'bg-green-900 text-green-400' :
-                              req.status === 'Rejected' ? 'bg-red-900 text-red-400' :
-                                'bg-yellow-900 text-yellow-400'
-                              }`}>
-                              {req.status}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right space-x-2">
-                            {req.status === 'Pending' && (
-                              <>
-                                <button onClick={() => handleKycAction(req.id, 'approve')} className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-xs font-bold text-white">Approve</button>
-                                <button onClick={() => handleKycAction(req.id, 'reject')} className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-xs font-bold text-white">Reject</button>
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </section>
-              )}
-
-              {playerManagementTab === "updates" && (
-                <section className="p-6 bg-gray-800/50 rounded-xl border border-gray-700">
-                  <h2 className="text-xl font-bold text-white mb-4">Player Profile Update Requests</h2>
-                  <table className="w-full text-left bg-gray-900/50 rounded-lg overflow-hidden">
-                    <thead className="bg-gray-800 text-gray-400 uppercase text-sm">
-                      <tr>
-                        <th className="py-3 px-4">Player Name</th>
-                        <th className="py-3 px-4">Field</th>
-                        <th className="py-3 px-4">Old Value</th>
-                        <th className="py-3 px-4">New Value</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-700 text-gray-300">
-                      {profileUpdates.map(req => (
-                        <tr key={req.id}>
-                          <td className="py-3 px-4 font-medium text-white">{req.name}</td>
-                          <td className="py-3 px-4">{req.field}</td>
-                          <td className="py-3 px-4 text-red-300">{req.oldValue}</td>
-                          <td className="py-3 px-4 text-green-300">{req.newValue}</td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 text-xs rounded ${req.status === 'Approved' ? 'bg-green-900 text-green-400' :
-                              req.status === 'Rejected' ? 'bg-red-900 text-red-400' :
-                                'bg-yellow-900 text-yellow-400'
-                              }`}>
-                              {req.status}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right space-x-2">
-                            {req.status === 'Pending' && (
-                              <>
-                                <button onClick={() => handleProfileUpdateAction(req.id, 'approve')} className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-xs font-bold text-white">Approve</button>
-                                <button onClick={() => handleProfileUpdateAction(req.id, 'reject')} className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-xs font-bold text-white">Reject</button>
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </section>
-              )}
-            </div>
+            <PlayerManagementSection
+              userRole="hr"
+              kycRequests={kycRequests}
+              setKycRequests={setKycRequests}
+              profileUpdates={profileUpdates}
+              setProfileUpdates={setProfileUpdates}
+              pendingApprovals={pendingApprovals}
+              setPendingApprovals={setPendingApprovals}
+              suspendedPlayers={suspendedPlayers}
+              setSuspendedPlayers={setSuspendedPlayers}
+              allPlayers={allPlayers}
+              setAllPlayers={setAllPlayers}
+            />
           )}
 
           {/* Attendance Management */}
@@ -1229,6 +1189,17 @@ export default function HrDashboard() {
                 </div>
               </section>
             </div>
+          )}
+
+          {/* Chat */}
+          {activeItem === "Chat" && (
+            <ChatSection
+              userRole="hr"
+              playerChats={playerChats}
+              setPlayerChats={setPlayerChats}
+              staffChats={staffChats}
+              setStaffChats={setStaffChats}
+            />
           )}
 
         </main>

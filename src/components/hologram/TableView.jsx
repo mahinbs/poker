@@ -46,6 +46,7 @@ export default function TableView({
   onNavigate,
   onClose,
   isManagerMode = false,
+  isViewOnly = false, // View-only mode: disable adding players and hide plus icons
   selectedPlayerForSeating = null,
   occupiedSeats = {},
   onSeatAssign = null,
@@ -131,7 +132,7 @@ export default function TableView({
 
   // Manager mode: Handle seat assignment
   const handleManagerSeatClick = (seatNumber) => {
-    if (!isManagerMode || !selectedPlayerForSeating) return;
+    if (isViewOnly || !isManagerMode || !selectedPlayerForSeating) return;
 
     const isOccupied = managerOccupiedSeats.includes(seatNumber);
     if (isOccupied) {
@@ -149,6 +150,7 @@ export default function TableView({
 
   // DUMMY: Mock mutation
   const handleJoinWaitlist = (seatNumber) => {
+    if (isViewOnly) return; // Prevent any seat assignment in view-only mode
     if (isManagerMode && onSeatAssign && selectedPlayerForSeating) {
       // Manager mode: Assign seat
       onSeatAssign({
@@ -313,6 +315,8 @@ export default function TableView({
                           className={`w-10 h-10 rounded-full border-2 flex items-center justify-center shadow-lg transition-all duration-300 select-none ${
                             isOccupied
                               ? "bg-gradient-to-br from-blue-600 to-blue-700 border-blue-500 cursor-not-allowed"
+                              : isViewOnly
+                              ? "bg-gradient-to-br from-slate-700 to-slate-800 border-slate-600 cursor-default"
                               : isSelected || isPreferredSeat
                               ? "border-emerald-400 shadow-emerald-500/50 scale-110 bg-gradient-to-br from-emerald-600 to-emerald-700 animate-pulse cursor-pointer"
                               : isManagerMode
@@ -322,21 +326,22 @@ export default function TableView({
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            if (!isOccupied) {
-                              if (isManagerMode) {
-                                handleManagerSeatClick(seatNumber);
-                              } else {
-                                setSelectedSeat(seatNumber);
-                                setShowJoinDialog(true);
-                              }
+                            if (isViewOnly || isOccupied) return;
+                            if (isManagerMode) {
+                              handleManagerSeatClick(seatNumber);
+                            } else {
+                              setSelectedSeat(seatNumber);
+                              setShowJoinDialog(true);
                             }
                           }}
                           style={{
-                            pointerEvents: "auto",
+                            pointerEvents: isViewOnly ? "none" : "auto",
                             touchAction: "manipulation",
                           }}
                           title={
-                            isManagerMode && isPreferredSeat
+                            isViewOnly
+                              ? `Seat ${seatNumber} (View Only)`
+                              : isManagerMode && isPreferredSeat
                               ? `Preferred seat for ${
                                   selectedPlayerForSeating.playerName ||
                                   selectedPlayerForSeating.name
@@ -349,6 +354,8 @@ export default function TableView({
                               {seatedPlayer.player.firstName.charAt(0)}
                               {seatedPlayer.player.lastName.charAt(0)}
                             </span>
+                          ) : isViewOnly ? (
+                            <span className="text-slate-400 text-xs">○</span>
                           ) : (
                             <Plus
                               className={`w-3 h-3 text-emerald-400 font-bold transition-transform duration-300 ${

@@ -16,6 +16,7 @@ import MasterAdminDashboard from './components/MasterAdminDashboard';
 import SuperAdminSignIn from './components/SuperAdminSignIn';
 import SuperAdminPortal from './components/SuperAdminPortal';
 import AffiliateDashboard from './components/AffiliateDashboard';
+import StaffDashboard from './components/StaffDashboard';
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
           <Route path="/super-admin/signin" element={<SuperAdminSignIn />} />
           <Route path="/super-admin" element={<SuperAdminPortal />} />
           <Route path="/affiliate-dashboard" element={<AffiliateDashboard />} />
+          <Route path="/staff" element={<StaffDashboard />} />
           <Route path="*" element={<Navigate to="/manager" replace />} />
         </Routes>
       </div>
