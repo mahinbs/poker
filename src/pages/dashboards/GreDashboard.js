@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import CustomSelect from "./common/CustomSelect";
+import CustomSelect from "../../components/common/CustomSelect";
 import { useNavigate } from "react-router-dom";
-import TableManagementSection from "./TableManagementSection";
-import PlayerManagementSection from "./PlayerManagementSection";
-import TournamentManagementSection from "./TournamentManagementSection";
-import ChatSection from "./ChatSection";
+import TableManagementSection from "../../components/TableManagementSection";
+import PlayerManagementSection from "../../components/PlayerManagementSection";
+import TournamentManagementSection from "../../components/TournamentManagementSection";
+import ChatSection from "../../components/ChatSection";
+import PushNotificationsSection from "../../components/PushNotificationsSection";
+import EmployeeSalaryProcessingSection from "../../components/EmployeeSalaryProcessingSection";
 
 export default function GreDashboard() {
   const [activeItem, setActiveItem] = useState("Monitoring");
@@ -15,10 +17,11 @@ export default function GreDashboard() {
     "Player Management",
     "Live Tables",
     "Tournaments",
+    "Payroll Management",
     "Push Notifications",
     "Player Registration", 
     "Chat",
-    "Offers",
+    // "Offers",
   ];
 
   // --- Live Tables (GRE: view-only) ---
@@ -573,126 +576,6 @@ export default function GreDashboard() {
     resetOfferForm();
   };
 
-  // Load custom groups from localStorage (read-only access)
-  const loadCustomGroups = () => {
-    try {
-      const stored = localStorage.getItem('notification_custom_groups');
-      return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      return [];
-    }
-  };
-
-  const [customGroups, setCustomGroups] = useState(loadCustomGroups);
-
-  // Reload custom groups when Push Notifications tab is active
-  useEffect(() => {
-    if (activeItem === "Push Notifications") {
-      setCustomGroups(loadCustomGroups());
-    }
-  }, [activeItem]);
-
-  // Get available audience options (including custom groups - read-only)
-  const getAudienceOptions = () => {
-    const standardOptions = [
-      "All Players",
-      "Tables in Play",
-      "Waitlist",
-      "VIP"
-    ];
-    const playerGroups = customGroups.filter(g => g.type === "player").map(g => `[Player Group] ${g.name}`);
-    const staffGroups = customGroups.filter(g => g.type === "staff").map(g => `[Staff Group] ${g.name}`);
-    return [...standardOptions, ...playerGroups, ...staffGroups];
-  };
-
-  // Push Notifications state and helpers
-  const [notificationForm, setNotificationForm] = useState({
-    title: "",
-    message: "",
-    audience: "All Players",
-    imageFile: null,
-    imageUrl: "",
-    videoUrl: "",
-    imagePreview: null
-  });
-  const [notificationErrors, setNotificationErrors] = useState({});
-
-  const validateImageFile = (file) => {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const maxSize = 5 * 1024 * 1024;
-    if (!validTypes.includes(file.type)) return "Image must be JPG, PNG, GIF, or WebP format";
-    if (file.size > maxSize) return "Image size must be less than 5MB";
-    return null;
-  };
-
-  const validateVideoUrl = (url) => {
-    if (!url) return null;
-    const videoUrlPattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|facebook\.com|instagram\.com)\/.+$/i;
-    return videoUrlPattern.test(url) ? null : "Please enter a valid video URL (YouTube, Vimeo, DailyMotion, Facebook, Instagram)";
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const error = validateImageFile(file);
-    if (error) { setNotificationErrors(prev => ({...prev, image: error})); return; }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setNotificationForm(prev => ({...prev, imageFile: file, imagePreview: reader.result, imageUrl: ""}));
-      setNotificationErrors(prev => ({...prev, image: null}));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleImageUrlChange = (url) => {
-    if (!url) {
-      setNotificationForm(prev => ({...prev, imageUrl: "", imageFile: null, imagePreview: null}));
-      setNotificationErrors(prev => ({...prev, image: null}));
-      return;
-    }
-    const urlPattern = /^https?:\/\/.+/i;
-    if (!urlPattern.test(url)) {
-      setNotificationErrors(prev => ({...prev, image: "Please enter a valid URL starting with http:// or https://"}));
-      return;
-    }
-    setNotificationForm(prev => ({...prev, imageUrl: url, imageFile: null, imagePreview: null}));
-    setNotificationErrors(prev => ({...prev, image: null}));
-  };
-
-  const handleVideoUrlChange = (url) => {
-    setNotificationForm(prev => ({...prev, videoUrl: url}));
-    setNotificationErrors(prev => ({...prev, video: validateVideoUrl(url)}));
-  };
-
-  const handleSendNotification = () => {
-    const errors = {};
-    if (!notificationForm.title.trim()) errors.title = "Title is required";
-    if (!notificationForm.message.trim()) errors.message = "Message is required";
-    if (notificationForm.imageFile && notificationForm.imageUrl) errors.image = "Use either image upload OR image URL, not both";
-    if (notificationForm.videoUrl) {
-      const v = validateVideoUrl(notificationForm.videoUrl);
-      if (v) errors.video = v;
-    }
-    if (Object.keys(errors).length) { setNotificationErrors(errors); return; }
-
-    const payload = {
-      title: notificationForm.title,
-      message: notificationForm.message,
-      audience: notificationForm.audience,
-      media: {}
-    };
-    if (notificationForm.imageFile) {
-      payload.media.imageUrl = "https://api.example.com/uploads/" + notificationForm.imageFile.name;
-    } else if (notificationForm.imageUrl) {
-      payload.media.imageUrl = notificationForm.imageUrl;
-    }
-    if (notificationForm.videoUrl) payload.media.videoUrl = notificationForm.videoUrl;
-
-    console.log("Sending notification payload:", payload);
-    alert(`Notification sent!\nPayload: ${JSON.stringify(payload, null, 2)}`);
-    setNotificationForm({ title: "", message: "", audience: "All Players", imageFile: null, imageUrl: "", videoUrl: "", imagePreview: null });
-    setNotificationErrors({});
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
@@ -1408,155 +1291,7 @@ export default function GreDashboard() {
 
           {/* Push Notifications */}
           {activeItem === "Push Notifications" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Push Notifications</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Compose Notification</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Title</label>
-                        <input 
-                          type="text" 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${
-                            notificationErrors.title ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          placeholder="Enter title" 
-                          value={notificationForm.title}
-                          onChange={(e) => {
-                            setNotificationForm({...notificationForm, title: e.target.value});
-                            setNotificationErrors({...notificationErrors, title: null});
-                          }}
-                        />
-                        {notificationErrors.title && (
-                          <p className="text-red-400 text-xs mt-1">{notificationErrors.title}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Message</label>
-                        <textarea 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${
-                            notificationErrors.message ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          rows="3" 
-                          placeholder="Enter message..."
-                          value={notificationForm.message}
-                          onChange={(e) => {
-                            setNotificationForm({...notificationForm, message: e.target.value});
-                            setNotificationErrors({...notificationErrors, message: null});
-                          }}
-                        ></textarea>
-                        {notificationErrors.message && (
-                          <p className="text-red-400 text-xs mt-1">{notificationErrors.message}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Audience</label>
-                        <CustomSelect
-                          className="w-full"
-                          value={notificationForm.audience}
-                          onChange={(e) => setNotificationForm({...notificationForm, audience: e.target.value})}
-                        >
-                          {getAudienceOptions().map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </CustomSelect>
-                      </div>
-                      
-                      {/* Image Section */}
-                      <div className="border-t border-white/20 pt-4">
-                        <label className="text-white text-sm font-semibold mb-2 block">Image (Optional)</label>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-white text-xs">Upload Image</label>
-                            <div className="mt-1 border-2 border-dashed border-white/30 rounded-lg p-4 text-center">
-                              <input 
-                                type="file" 
-                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                                className="hidden"
-                                id="image-upload-gre"
-                                onChange={handleImageUpload}
-                              />
-                              <label htmlFor="image-upload-gre" className="cursor-pointer">
-                                <div className="text-white text-sm mb-1">Click to upload or drag and drop</div>
-                                <div className="text-gray-400 text-xs">JPG, PNG, GIF, WebP (max 5MB)</div>
-                              </label>
-                              {notificationForm.imagePreview && (
-                                <div className="mt-3">
-                                  <img src={notificationForm.imagePreview} alt="Preview" className="max-h-32 mx-auto rounded" />
-                                  <button
-                                    type="button"
-                                    onClick={() => setNotificationForm({...notificationForm, imageFile: null, imagePreview: null})}
-                                    className="mt-2 text-red-400 text-xs hover:text-red-300"
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-center text-white/60 text-xs">OR</div>
-                          <div>
-                            <label className="text-white text-xs">Image URL</label>
-                            <input 
-                              type="url" 
-                              className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${
-                                notificationErrors.image ? 'border-red-500' : 'border-white/20'
-                              }`}
-                              placeholder="https://example.com/image.jpg"
-                              value={notificationForm.imageUrl}
-                              onChange={(e) => handleImageUrlChange(e.target.value)}
-                            />
-                          </div>
-                          {notificationErrors.image && (
-                            <p className="text-red-400 text-xs">{notificationErrors.image}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Video Section */}
-                      <div className="border-t border-white/20 pt-4">
-                        <label className="text-white text-sm font-semibold mb-2 block">Video Link (Optional)</label>
-                        <input 
-                          type="url" 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${
-                            notificationErrors.video ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
-                          value={notificationForm.videoUrl}
-                          onChange={(e) => handleVideoUrlChange(e.target.value)}
-                        />
-                        {notificationErrors.video && (
-                          <p className="text-red-400 text-xs mt-1">{notificationErrors.video}</p>
-                        )}
-                        <p className="text-gray-400 text-xs mt-1">
-                          Supported: YouTube, Vimeo, DailyMotion, Facebook, Instagram
-                        </p>
-                      </div>
-
-                      <button 
-                        onClick={handleSendNotification}
-                        className="w-full bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg font-semibold mt-4"
-                      >
-                        Send Notification
-                      </button>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Notifications</h3>
-                    <div className="space-y-2">
-                      {[{title:'Welcome Offer', time:'2h ago'}, {title:'Table 2 starting soon', time:'10m ago'}].map(n => (
-                        <div key={n.title} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
-                          <div className="text-white">{n.title}</div>
-                          <div className="text-white/60 text-sm">{n.time}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
+            <PushNotificationsSection registeredPlayers={registeredPlayers} />
           )}
 
           {/* Player Registration */}
@@ -1726,6 +1461,13 @@ export default function GreDashboard() {
           {/* Tournaments - View Only */}
           {activeItem === "Tournaments" && (
             <TournamentManagementSection userRole="gre" />
+          )}
+
+          {/* Payroll Management */}
+          {activeItem === "Payroll Management" && (
+            <div className="space-y-6">
+              <EmployeeSalaryProcessingSection />
+            </div>
           )}
 
           {/* Chat - Chat System */}
@@ -1929,7 +1671,7 @@ export default function GreDashboard() {
           )}
 
           {/* Offers */}
-          {activeItem === "Offers" && (
+          {/* {activeItem === "Offers" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-orange-600/30 via-red-500/20 to-pink-700/30 rounded-xl shadow-md border border-orange-800/40">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
@@ -2141,7 +1883,7 @@ export default function GreDashboard() {
                 </div>
               </section>
             </div>
-          )}
+          )} */}
         </main>
       </div>
     </div>

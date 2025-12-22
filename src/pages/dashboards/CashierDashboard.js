@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import CustomSelect from "./common/CustomSelect";
-import TableView from "./hologram/TableView";
-import TableManagementSection from "./TableManagementSection";
-import TournamentManagementSection from "./TournamentManagementSection";
-import ChatSection from "./ChatSection";
+import CustomSelect from "../../components/common/CustomSelect";
+import TableView from "../../components/hologram/TableView";
+import TableManagementSection from "../../components/TableManagementSection";
+import TournamentManagementSection from "../../components/TournamentManagementSection";
+import ChatSection from "../../components/ChatSection";
+import PushNotificationsSection from "../../components/PushNotificationsSection";
+import EmployeeSalaryProcessingSection from "../../components/EmployeeSalaryProcessingSection";
+import BonusProcessingSection from "../../components/BonusProcessingSection";
+import ClubBuyInSection from "../../components/ClubBuyInSection";
 
 export default function CashierDashboard() {
   const [activeItem, setActiveItem] = useState("Transactions Dashboard");
@@ -14,12 +18,14 @@ export default function CashierDashboard() {
   const menuItems = [
     "Transactions Dashboard",
     "Balance Management",
-    "Live Tables",
+    "Table Management",
+    "Club Buy-In",
     "Payroll Management", 
     "Transaction History & Reports",
     "Shift Reconciliation",
     "Bonus Processing",
     "Tournaments",
+    "Push Notifications",
     "Chat",
   ];
 
@@ -35,11 +41,28 @@ export default function CashierDashboard() {
     "P104": { id: "P104", name: "Priya Sharma", email: "priya.sharma@example.com", availableBalance: 32000, tableBalance: 0, tableId: null, seatNumber: null },
     "P105": { id: "P105", name: "Amit Patel", email: "amit.patel@example.com", availableBalance: 18000, tableBalance: 7500, tableId: 2, seatNumber: 2 },
     "P106": { id: "P106", name: "John Doe", email: "john.doe@example.com", availableBalance: 28000, tableBalance: 0, tableId: null, seatNumber: null },
-    "P107": { id: "P107", name: "Jane Smith", email: "jane.smith@example.com", availableBalance: 35000, tableBalance: 0, tableId: null, seatNumber: null }
+    "P107": { id: "P107", name: "Jane Smith", email: "jane.smith@example.com", availableBalance: 35000, tableBalance: 0, tableId: null, seatNumber: null },
+    "P108": { id: "P108", name: "Sarah Connor", email: "sarah.connor@example.com", availableBalance: 55000, tableBalance: 0, tableId: null, seatNumber: null },
+    "P109": { id: "P109", name: "Michael Chen", email: "michael.chen@example.com", availableBalance: 42000, tableBalance: 0, tableId: null, seatNumber: null },
+    "P110": { id: "P110", name: "Emma Wilson", email: "emma.wilson@example.com", availableBalance: 38000, tableBalance: 0, tableId: null, seatNumber: null },
+    "P111": { id: "P111", name: "David Brown", email: "david.brown@example.com", availableBalance: 62000, tableBalance: 0, tableId: null, seatNumber: null },
+    "P112": { id: "P112", name: "Lisa Anderson", email: "lisa.anderson@example.com", availableBalance: 29000, tableBalance: 0, tableId: null, seatNumber: null },
+    "P113": { id: "P113", name: "Robert Taylor", email: "robert.taylor@example.com", availableBalance: 48000, tableBalance: 0, tableId: null, seatNumber: null }
   });
 
   // Mock players data for search (for backward compatibility)
   const mockPlayers = Object.values(playerBalances).map(({ availableBalance, tableBalance, tableId, seatNumber, ...player }) => player);
+
+  // Registered players for Push Notifications (mapped from playerBalances)
+  const registeredPlayers = Object.values(playerBalances).map(({ availableBalance, tableBalance, tableId, seatNumber, ...player }) => ({
+    ...player,
+    kycStatus: "approved",
+    accountStatus: "Active",
+    phone: player.email ? player.email.replace("@example.com", "") : "",
+    registrationDate: "2024-01-01",
+    documentType: "PAN Card",
+    verifiedDate: "2024-01-01"
+  }));
 
   // Table balances tracking
   const [tableBalances, setTableBalances] = useState({
@@ -1477,8 +1500,8 @@ export default function CashierDashboard() {
             </div>
           )}
 
-          {/* Live Tables */}
-          {activeItem === "Live Tables" && (
+          {/* Table Management */}
+          {activeItem === "Table Management" && (
             <TableManagementSection
               userRole="cashier"
               tables={tables}
@@ -1499,86 +1522,18 @@ export default function CashierDashboard() {
               setSelectedLiveTablePlayer={setSelectedLiveTablePlayer}
               buyInAmount={buyInAmount}
               setBuyInAmount={setBuyInAmount}
-              forceTab='live-tables'
             />
           )}
 
-          
+          {/* Club Buy-In */}
+          {activeItem === "Club Buy-In" && (
+            <ClubBuyInSection players={mockPlayers} />
+          )}
 
           {/* Payroll Management */}
           {activeItem === "Payroll Management" && (
             <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Salary & Payroll Processing</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Staff Salary Processing</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Select Staff Member</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option>Sarah Johnson - Dealer</option>
-                          <option>Mike Chen - Floor Manager</option>
-                          <option>Emma Davis - Cashier</option>
-                          <option>John Smith - Security</option>
-                        </CustomSelect>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Pay Period</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option>Weekly</option>
-                          <option>Bi-weekly</option>
-                          <option>Monthly</option>
-                        </CustomSelect>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Base Salary</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Overtime Hours</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Deductions</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
-                      </div>
-                      <button className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Process Salary
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Tips Processing</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Staff Member</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option>Sarah Johnson - Dealer</option>
-                          <option>Mike Chen - Floor Manager</option>
-                          <option>Emma Davis - Cashier</option>
-                        </CustomSelect>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Total Tips Earned</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Club Percentage</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15%" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Staff Share</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" readOnly />
-                      </div>
-                      <button className="w-full bg-pink-600 hover:bg-pink-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Process Tips
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
+              <EmployeeSalaryProcessingSection />
 
               <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Dealer Tips Processing</h2>
@@ -1628,164 +1583,7 @@ export default function CashierDashboard() {
 
           {/* Bonus Processing */}
           {activeItem === "Bonus Processing" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-yellow-600/30 via-orange-500/20 to-red-700/30 rounded-xl shadow-md border border-yellow-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Player Bonuses</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Process Player Bonus</h3>
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Search by name, ID, or email..." 
-                          value={bonusPlayerSearch}
-                          onChange={(e) => {
-                            setBonusPlayerSearch(e.target.value);
-                            setSelectedBonusPlayer(null);
-                          }}
-                        />
-                        {bonusPlayerSearch.length >= 3 && filteredBonusPlayers.length > 0 && !selectedBonusPlayer && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredBonusPlayers.map(player => (
-                              <div
-                                key={player.id}
-                                onClick={() => {
-                                  setSelectedBonusPlayer(player);
-                                  setBonusPlayerSearch(`${player.name} (${player.id})`);
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                              >
-                                <div className="text-white font-medium">{player.name}</div>
-                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {selectedBonusPlayer && (
-                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                            <span className="text-green-300">Selected: {selectedBonusPlayer.name} ({selectedBonusPlayer.id})</span>
-                            <button 
-                              onClick={() => {
-                                setSelectedBonusPlayer(null);
-                                setBonusPlayerSearch("");
-                              }}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                            >
-                              X
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Bonus Type</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option>Welcome Bonus</option>
-                          <option>Loyalty Bonus</option>
-                          <option>Referral Bonus</option>
-                          <option>Tournament Bonus</option>
-                          <option>Special Event Bonus</option>
-                        </CustomSelect>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Bonus Amount</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Reason</label>
-                        <textarea className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" rows="3" placeholder="Bonus reason..."></textarea>
-                      </div>
-                      <button className="w-full bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Process Player Bonus
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Player Bonuses</h3>
-                    <div className="space-y-2">
-                      <div className="bg-yellow-500/20 p-3 rounded-lg border border-yellow-400/30">
-                        <div className="font-semibold text-white">Player: John Smith</div>
-                        <div className="text-sm text-gray-300">Welcome Bonus: ₹1,000</div>
-                        <div className="text-xs text-yellow-300">Processed 2 hours ago</div>
-                      </div>
-                      <div className="bg-yellow-500/20 p-3 rounded-lg border border-yellow-400/30">
-                        <div className="font-semibold text-white">Player: Maria Garcia</div>
-                        <div className="text-sm text-gray-300">Loyalty Bonus: ₹500</div>
-                        <div className="text-xs text-yellow-300">Processed 1 day ago</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section className="p-6 bg-gradient-to-r from-pink-600/30 via-rose-500/20 to-red-700/30 rounded-xl shadow-md border border-pink-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Staff Bonuses</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Process Staff Bonus</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Staff Member</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option>Sarah Johnson - Dealer</option>
-                          <option>Mike Chen - Floor Manager</option>
-                          <option>Emma Davis - Cashier</option>
-                          <option>John Smith - Security</option>
-                        </CustomSelect>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Bonus Type</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option>Performance Bonus</option>
-                          <option>Attendance Bonus</option>
-                          <option>Special Achievement</option>
-                          <option>Holiday Bonus</option>
-                          <option>Year-end Bonus</option>
-                        </CustomSelect>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Bonus Amount</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Approval Required</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option>Manager Approved</option>
-                          <option>HR Approved</option>
-                          <option>Pending Approval</option>
-                        </CustomSelect>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Reason</label>
-                        <textarea className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" rows="3" placeholder="Bonus reason..."></textarea>
-                      </div>
-                      <button className="w-full bg-pink-600 hover:bg-pink-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Process Staff Bonus
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Staff Bonuses</h3>
-                    <div className="space-y-2">
-                      <div className="bg-pink-500/20 p-3 rounded-lg border border-pink-400/30">
-                        <div className="font-semibold text-white">Sarah Johnson</div>
-                        <div className="text-sm text-gray-300">Performance Bonus: ₹2,000</div>
-                        <div className="text-xs text-pink-300">Processed 1 day ago</div>
-                      </div>
-                      <div className="bg-pink-500/20 p-3 rounded-lg border border-pink-400/30">
-                        <div className="font-semibold text-white">Mike Chen</div>
-                        <div className="text-sm text-gray-300">Attendance Bonus: ₹1,500</div>
-                        <div className="text-xs text-pink-300">Processed 3 days ago</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
+            <BonusProcessingSection players={mockPlayers} />
           )}
 
           {/* Transaction History & Reports */}
@@ -2382,6 +2180,11 @@ export default function CashierDashboard() {
           {/* Tournaments - View Only */}
           {activeItem === "Tournaments" && (
             <TournamentManagementSection userRole="cashier" />
+          )}
+
+          {/* Push Notifications */}
+          {activeItem === "Push Notifications" && (
+            <PushNotificationsSection registeredPlayers={registeredPlayers} />
           )}
 
           {/* Chat - Chat System */}
