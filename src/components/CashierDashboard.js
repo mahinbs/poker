@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import CustomSelect from "./common/CustomSelect";
 import TableView from "./hologram/TableView";
 import TableManagementSection from "./TableManagementSection";
+import TournamentManagementSection from "./TournamentManagementSection";
+import ChatSection from "./ChatSection";
 
 export default function CashierDashboard() {
   const [activeItem, setActiveItem] = useState("Transactions Dashboard");
@@ -17,7 +19,8 @@ export default function CashierDashboard() {
     "Transaction History & Reports",
     "Shift Reconciliation",
     "Bonus Processing",
-    "Player Support",
+    "Tournaments",
+    "Chat",
   ];
 
   const handleSignOut = () => {
@@ -2376,193 +2379,20 @@ export default function CashierDashboard() {
             </div>
           )}
 
-          {/* Player Support - Chat System */}
-          {activeItem === "Player Support" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Player & Staff Support Chat</h2>
-                
-                {/* Chat Type Tabs */}
-                <div className="flex gap-2 mb-6">
-                  <button
-                    onClick={() => {
-                      setChatType("player");
-                      setSelectedChat(null);
-                      setStatusFilter("all");
-                    }}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                      chatType === "player"
-                        ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
-                  >
-                    📱 Player Chat
-                  </button>
-                  <button
-                    onClick={() => {
-                      setChatType("staff");
-                      setSelectedChat(null);
-                      setStatusFilter("all");
-                    }}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                      chatType === "staff"
-                        ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg"
-                        : "bg-white/10 text-white/70 hover:bg-white/15"
-                    }`}
-                  >
-                    👥 Staff Chat
-                  </button>
-                </div>
+          {/* Tournaments - View Only */}
+          {activeItem === "Tournaments" && (
+            <TournamentManagementSection userRole="cashier" />
+          )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Chat List Sidebar */}
-                  <div className="lg:col-span-1 bg-white/10 p-4 rounded-lg">
-                    <div className="mb-4">
-                      <label className="text-white text-sm mb-2 block">Filter by Status</label>
-                      <select
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                      >
-                        <option value="all">All Status</option>
-                        <option value="open">Open</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="closed">Closed</option>
-                      </select>
-                    </div>
-                    
-                    <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                      {filteredChats.length > 0 ? (
-                        filteredChats.map(chat => (
-                          <div
-                            key={chat.id}
-                            onClick={() => setSelectedChat(chat)}
-                            className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                              selectedChat?.id === chat.id
-                                ? "bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50"
-                                : "bg-white/5 border-white/10 hover:bg-white/10"
-                            }`}
-                          >
-                            <div className="flex items-start justify-between mb-1">
-                              <div className="font-semibold text-white text-sm">
-                                {chatType === "player" ? chat.playerName : chat.staffName}
-                              </div>
-                              <span className={`px-2 py-1 rounded text-xs ${
-                                chat.status === "open"
-                                  ? "bg-yellow-500/30 text-yellow-300"
-                                  : chat.status === "in_progress"
-                                  ? "bg-blue-500/30 text-blue-300"
-                                  : "bg-gray-500/30 text-gray-300"
-                              }`}>
-                                {chat.status === "open" ? "Open" : chat.status === "in_progress" ? "In Progress" : "Closed"}
-                              </span>
-                            </div>
-                            {chatType === "staff" && (
-                              <div className="text-xs text-gray-400 mb-1">{chat.staffRole}</div>
-                            )}
-                            <div className="text-xs text-gray-300 truncate">{chat.lastMessage}</div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {new Date(chat.lastMessageTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-gray-400 text-sm">
-                          No {statusFilter !== "all" ? statusFilter : ""} chats found
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Chat Window */}
-                  <div className="lg:col-span-2 bg-white/10 p-4 rounded-lg">
-                    {selectedChat ? (
-                      <div className="flex flex-col h-[600px]">
-                        {/* Chat Header */}
-                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/20">
-                          <div>
-                            <div className="font-semibold text-white text-lg">
-                              {chatType === "player" ? selectedChat.playerName : selectedChat.staffName}
-                            </div>
-                            {chatType === "staff" && (
-                              <div className="text-sm text-gray-400">{selectedChat.staffRole}</div>
-                            )}
-                            {chatType === "player" && (
-                              <div className="text-sm text-gray-400">ID: {selectedChat.playerId}</div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <select
-                              className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                              value={selectedChat.status}
-                              onChange={(e) => handleStatusChange(selectedChat.id, e.target.value)}
-                            >
-                              <option value="open">Open</option>
-                              <option value="in_progress">In Progress</option>
-                              <option value="closed">Closed</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* Messages */}
-                        <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-                          {selectedChat.messages.map(message => (
-                            <div
-                              key={message.id}
-                              className={`flex ${message.sender === "staff" || message.sender === "cashier" ? "justify-end" : "justify-start"}`}
-                            >
-                              <div className={`max-w-[70%] rounded-lg p-3 ${
-                                message.sender === "staff" || message.sender === "cashier"
-                                  ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white"
-                                  : "bg-white/20 text-white"
-                              }`}>
-                                <div className="text-xs font-semibold mb-1 opacity-90">{message.senderName}</div>
-                                <div className="text-sm">{message.text}</div>
-                                <div className="text-xs opacity-70 mt-1">
-                                  {new Date(message.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Message Input */}
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400"
-                            placeholder="Type your message..."
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                            disabled={selectedChat.status === "closed"}
-                          />
-                          <button
-                            onClick={handleSendMessage}
-                            disabled={selectedChat.status === "closed" || !newMessage.trim()}
-                            className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-400 hover:to-cyan-500 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Send
-                          </button>
-                        </div>
-                        {selectedChat.status === "closed" && (
-                          <div className="text-xs text-gray-400 mt-2 text-center">
-                            This chat is closed. Change status to reopen.
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center h-[600px] text-gray-400">
-                        <div className="text-center">
-                          <div className="text-4xl mb-4">💬</div>
-                          <div className="text-lg">Select a {chatType === "player" ? "player" : "staff"} chat to start messaging</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            </div>
+          {/* Chat - Chat System */}
+          {activeItem === "Chat" && (
+            <ChatSection
+              userRole="cashier"
+              playerChats={playerChats}
+              setPlayerChats={setPlayerChats}
+              staffChats={staffChats}
+              setStaffChats={setStaffChats}
+            />
           )}
         </main>
       </div>

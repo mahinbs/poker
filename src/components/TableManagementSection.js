@@ -1206,6 +1206,7 @@ export default function TableManagementSection({
             isManagerMode={["admin", "superadmin", "manager", "cashier"].includes(
               userRole
             )}
+            isViewOnly={activeTab === "live-tables"} // View-only mode when opened from Live Tables tab
             selectedPlayerForSeating={selectedPlayerForSeating}
             occupiedSeats={occupiedSeats}
             onSeatAssign={onSeatAssign}

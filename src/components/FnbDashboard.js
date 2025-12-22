@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ChatSection from "./ChatSection";
 
 export default function FnbDashboard() {
   const [activeItem, setActiveItem] = useState("Menu & Inventory");
@@ -11,6 +12,7 @@ export default function FnbDashboard() {
     "Reports & Analytics",
     "Supplier Management",
     "Kitchen Operations",
+    "Chat",
   ];
 
   const handleSignOut = () => {
@@ -110,6 +112,50 @@ export default function FnbDashboard() {
         { status: "delivered", timestamp: new Date(Date.now() - 15 * 60 * 1000), updatedBy: "FNB Manager" }
       ]
     }
+  ]);
+
+  // Chat/Support System State
+  const [playerChats, setPlayerChats] = useState([
+    {
+      id: "PC001",
+      playerId: "P001",
+      playerName: "Alex Johnson",
+      status: "open",
+      lastMessage: "Need assistance with food order",
+      lastMessageTime: new Date(Date.now() - 180000).toISOString(),
+      messages: [
+        {
+          id: "M1",
+          sender: "player",
+          senderName: "Alex Johnson",
+          text: "Need assistance with food order",
+          timestamp: new Date(Date.now() - 180000).toISOString(),
+        },
+      ],
+      createdAt: new Date(Date.now() - 600000).toISOString(),
+    },
+  ]);
+
+  const [staffChats, setStaffChats] = useState([
+    {
+      id: "SC001",
+      staffId: "ST001",
+      staffName: "Sarah Johnson",
+      staffRole: "Dealer",
+      status: "open",
+      lastMessage: "Need assistance with kitchen order",
+      lastMessageTime: new Date(Date.now() - 300000).toISOString(),
+      messages: [
+        {
+          id: "M3",
+          sender: "staff",
+          senderName: "Sarah Johnson",
+          text: "Need assistance with kitchen order",
+          timestamp: new Date(Date.now() - 300000).toISOString(),
+        },
+      ],
+      createdAt: new Date(Date.now() - 300000).toISOString(),
+    },
   ]);
 
   // Status update handler
@@ -953,6 +999,17 @@ export default function FnbDashboard() {
                 </div>
               </section>
             </div>
+          )}
+
+          {/* Chat */}
+          {activeItem === "Chat" && (
+            <ChatSection
+              userRole="fnb"
+              playerChats={playerChats}
+              setPlayerChats={setPlayerChats}
+              staffChats={staffChats}
+              setStaffChats={setStaffChats}
+            />
           )}
         </main>
       </div>
