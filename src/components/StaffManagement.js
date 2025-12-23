@@ -226,7 +226,7 @@ const StaffManagement = ({
                                             <option>GRE</option>
                                             <option>HR</option>
                                             <option>Manager</option>
-                                            {userRole === "superadmin" && <option>Affiliate</option>}
+                                            {(userRole === "superadmin" || userRole === "admin") && <option>Affiliate</option>}
                                         </CustomSelect>
                                     </div>
                                     {newStaff.position === "Affiliate" && (
@@ -284,7 +284,7 @@ const StaffManagement = ({
                                                 <div className="text-sm text-gray-300">{staff.role} | {staff.department}</div>
                                                 <div className="text-xs text-purple-300 capitalize">{staff.status}</div>
                                             </div>
-                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                            <div className="flex gap-2">
                                                 <button className="text-blue-400 hover:text-blue-300 text-xs bg-black/30 p-1.5 rounded">Edit</button>
                                                 <button className="text-red-400 hover:text-red-300 text-xs bg-black/30 p-1.5 rounded">Remove</button>
                                             </div>

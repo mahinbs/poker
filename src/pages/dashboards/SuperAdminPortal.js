@@ -12,6 +12,12 @@ import EmployeeSalaryProcessingSection from "../../components/EmployeeSalaryProc
 import BonusProcessingSection from "../../components/BonusProcessingSection";
 import ClubBuyInSection from "../../components/ClubBuyInSection";
 import FNBSections from "../../components/FNBSections";
+import CreditFeatureSection from "../../components/CreditFeatureSection";
+import ReportsAnalyticsSection from "../../components/ReportsAnalyticsSection";
+import AffiliatesTable from "../../components/AffiliatesTable";
+import FinancialOverrides from "../../components/FinancialOverrides";
+import DealerTips from "../../components/DealerTips";
+import SuperAdminSidebar from "../../components/sidebars/SuperAdminSidebar";
 
 export default function SuperAdminPortal() {
   const navigate = useNavigate();
@@ -835,7 +841,7 @@ export default function SuperAdminPortal() {
       "Bonus Processing",
       "Club Buy-In",
     "Affiliates",
-    "Credit Approvals",
+    "Credit Feature",
     "Financial Overrides",
     "Tournaments",
     "VIP Store",
@@ -896,6 +902,58 @@ export default function SuperAdminPortal() {
       status: "Pending",
       visibleToPlayer: false,
       limit: 0,
+    },
+  ]);
+
+  // Credit Feature Approval (First Time) state
+  const [creditFeatureRequests, setCreditFeatureRequests] = useState([
+    {
+      id: "CFR-001",
+      playerId: "P005",
+      player: "Sarah Connor",
+      email: "sarah.connor@example.com",
+      phone: "+91 9876543214",
+      requestedDate: "2024-01-20",
+      status: "Pending",
+      kycStatus: "Approved",
+      accountStatus: "Active",
+    },
+    {
+      id: "CFR-002",
+      playerId: "P006",
+      player: "Michael Chen",
+      email: "michael.chen@example.com",
+      phone: "+91 9876543215",
+      requestedDate: "2024-01-21",
+      status: "Pending",
+      kycStatus: "Approved",
+      accountStatus: "Active",
+    },
+  ]);
+
+  // Credit Disbursement state
+  const [creditDisbursements, setCreditDisbursements] = useState([
+    {
+      id: "CD-001",
+      playerId: "P001",
+      player: "John Doe",
+      approvedLimit: 50000,
+      currentBalance: 0,
+      requestedAmount: 10000,
+      status: "Pending",
+      requestedDate: "2024-01-22",
+      notes: "",
+    },
+    {
+      id: "CD-002",
+      playerId: "P003",
+      player: "Mike Johnson",
+      approvedLimit: 25000,
+      currentBalance: 5000,
+      requestedAmount: 15000,
+      status: "Pending",
+      requestedDate: "2024-01-22",
+      notes: "",
     },
   ]);
 
@@ -1763,95 +1821,21 @@ export default function SuperAdminPortal() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
-      <div className="mx-auto max-w-[1600px] px-6 py-10 grid grid-cols-12 gap-8">
-        <aside className="col-span-12 lg:col-span-3 xl:col-span-3 rounded-2xl bg-gradient-to-b from-red-500/20 via-purple-600/30 to-indigo-700/30 p-5 shadow-lg border border-gray-800">
-          <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-indigo-400 drop-shadow-lg mb-6">
-            Super Admin
-          </div>
-          <div className="bg-white/10 rounded-xl p-4 mb-6 text-white shadow-inner">
-            <div className="text-lg font-semibold">Root Administrator</div>
-            <div className="text-sm opacity-80">super@admin.com</div>
-          </div>
+      <div className="flex">
+        {/* Sidebar */}
+        <SuperAdminSidebar
+          activeItem={activeItem}
+          setActiveItem={setActiveItem}
+          menuItems={menuItems}
+          clubs={clubs}
+          selectedClubId={selectedClubId}
+          setSelectedClubId={setSelectedClubId}
+        />
 
-          {/* Club Selection Dropdown */}
-          <div className="mb-6 relative">
-            <label className="text-white text-sm mb-2 block">Select Club</label>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsClubDropdownOpen(!isClubDropdownOpen)}
-                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-left flex items-center justify-between hover:bg-white/15 transition-colors"
-              >
-                <span className="truncate">
-                  {selectedClub?.name || "Select Club"}
-                </span>
-                <svg
-                  className={`w-4 h-4 ml-2 transition-transform ${
-                    isClubDropdownOpen ? "rotate-180" : ""
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-
-              {isClubDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setIsClubDropdownOpen(false)}
-                  ></div>
-                  <div className="absolute z-20 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {clubs.map((club) => (
-                      <button
-                        key={club.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedClubId(club.id);
-                          setIsClubDropdownOpen(false);
-                        }}
-                        className={`w-full px-3 py-2 text-left text-white hover:bg-white/10 transition-colors ${
-                          selectedClubId === club.id ? "bg-blue-600/30" : ""
-                          }`}
-                      >
-                        {club.name}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Managing: {selectedClub?.name}
-            </p>
-          </div>
-
-          <nav className="space-y-3">
-            {menuItems.map((item) => (
-              <button
-                key={item}
-                onClick={() => setActiveItem(item)}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${
-                  activeItem === item
-                  ? "bg-gradient-to-r from-red-400 to-purple-600 text-white font-bold shadow-lg scale-[1.02]"
-                  : "bg-white/5 hover:bg-gradient-to-r hover:from-red-400/20 hover:to-purple-500/20 text-white"
-                  }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        <main className="col-span-12 lg:col-span-9 xl:col-span-9 space-y-8">
-          <header className="bg-gradient-to-r from-red-600 via-purple-500 to-indigo-400 p-6 rounded-xl shadow-md flex justify-between items-center">
+        {/* Main Section */}
+        <main className="flex-1 lg:ml-0 min-w-0">
+          <div className="mx-auto max-w-[1600px] px-4 sm:px-6 py-6 sm:py-10 space-y-8">
+          <header className="bg-gradient-to-r from-red-600 via-purple-500 to-indigo-400 p-6 rounded-xl shadow-md flex justify-between items-center mt-16 lg:mt-0">
             <div>
               <h1 className="text-2xl font-bold text-white">
                 Super Admin - {activeItem}
@@ -2974,6 +2958,7 @@ export default function SuperAdminPortal() {
           {activeItem === "Payroll Management" && (
             <div className="space-y-6">
               <EmployeeSalaryProcessingSection />
+              <DealerTips userRole="superadmin" />
             </div>
           )}
 
@@ -2988,366 +2973,34 @@ export default function SuperAdminPortal() {
 
           {activeItem === "Club Buy-In" && (
             <div className="space-y-6">
-              <ClubBuyInSection players={registeredPlayers || []} />
+              <ClubBuyInSection 
+                players={registeredPlayers || []}
+                playerBalances={playerBalances}
+                setPlayerBalances={setPlayerBalances}
+              />
             </div>
           )}
 
-          {activeItem === "Credit Approvals" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-amber-600/30 via-yellow-500/20 to-orange-700/30 rounded-xl shadow-md border border-amber-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">
-                  Exclusive Player Credit System
-                </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      Pending Requests
-                    </h3>
-                    <div className="space-y-2">
-                      {creditRequests.map((r) => (
-                        <div
-                          key={r.id}
-                          className="bg-white/5 p-3 rounded border border-white/10"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="text-white font-semibold">
-                              {r.player} • ₹{r.amount.toLocaleString("en-IN")}
-                            </div>
-                            <span
-                              className={`text-xs px-2 py-1 rounded ${
-                                r.status === "Approved"
-                                  ? "bg-green-500/30 text-green-300"
-                                  : r.status === "Denied"
-                                  ? "bg-red-500/30 text-red-300"
-                                  : "bg-yellow-500/30 text-yellow-300"
-                              }`}
-                            >
-                              {r.status}
-                            </span>
-                          </div>
-                          <div className="mt-2 flex gap-2">
-                            <button
-                              className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm"
-                              onClick={() => approveCredit(r.id)}
-                            >
-                              Approve
-                            </button>
-                            <button
-                              className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm"
-                              onClick={() => denyCredit(r.id)}
-                            >
-                              Deny
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      Dynamic Visibility & Limits
-                    </h3>
-                    <div className="space-y-3">
-                      {creditRequests.map((r) => (
-                        <div
-                          key={`${r.id}-ctl`}
-                          className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between"
-                        >
-                          <div className="text-white text-sm">
-                            <div className="font-semibold">{r.player}</div>
-                            <div className="text-white/70">
-                              Visible: {r.visibleToPlayer ? "Yes" : "No"} •
-                              Limit: ₹{r.limit.toLocaleString("en-IN")}
-                            </div>
-                          </div>
-                          <div className="flex gap-2 items-center">
-                            <button
-                              className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                              onClick={() =>
-                                setCreditRequests((prev) =>
-                                  prev.map((x) =>
-                                    x.id === r.id
-                                      ? {
-                                          ...x,
-                                          visibleToPlayer: !x.visibleToPlayer,
-                                        }
-                                      : x
-                                  )
-                                )
-                              }
-                            >
-                              {r.visibleToPlayer ? "Hide" : "Show"}
-                            </button>
-                            <input
-                              type="number"
-                              className="w-28 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                              placeholder="Set limit"
-                              onChange={(e) =>
-                                setCreditRequests((prev) =>
-                                  prev.map((x) =>
-                                    x.id === r.id
-                                      ? {
-                                          ...x,
-                                          limit: Number(e.target.value) || 0,
-                                        }
-                                      : x
-                                  )
-                                )
-                              }
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
+          {activeItem === "Credit Feature" && (
+            <CreditFeatureSection
+              userRole="superadmin"
+              creditRequests={creditRequests}
+              setCreditRequests={setCreditRequests}
+              creditFeatureRequests={creditFeatureRequests}
+              setCreditFeatureRequests={setCreditFeatureRequests}
+              creditDisbursements={creditDisbursements}
+              setCreditDisbursements={setCreditDisbursements}
+              approveCredit={approveCredit}
+              denyCredit={denyCredit}
+            />
           )}
 
           {activeItem === "Financial Overrides" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">
-                  Financial Overrides
-                </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      Edit / Cancel Transactions
-                    </h3>
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {transactions.map((t) => (
-                        <div
-                          key={t.id}
-                          className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between"
-                        >
-                          <div className="text-white">
-                            <div className="font-semibold">
-                              {t.type} • {t.player}
-                            </div>
-                            <div className="text-sm text-white/70">
-                              {t.id} • ₹{t.amount.toLocaleString("en-IN")} •{" "}
-                              {t.status}
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
-                              Edit
-                            </button>
-                            <button
-                              className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm"
-                              onClick={() =>
-                                setTransactions((prev) =>
-                                  prev.filter((x) => x.id !== t.id)
-                                )
-                              }
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      Cashouts & Bonuses
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="Player ID"
-                        />
-                        <input
-                          type="number"
-                          className="w-32 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="Amount"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <button className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
-                          Process Cashout
-                        </button>
-                        <button className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold">
-                          Approve Bonus
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Custom Bonus Creation Section */}
-                <div className="mt-6">
-                  <div className="p-6 bg-gradient-to-r from-yellow-600/30 via-amber-500/20 to-orange-700/30 rounded-xl shadow-md border border-yellow-800/40">
-                    <h2 className="text-xl font-bold text-white mb-6">
-                      Create Custom Bonus
-                    </h2>
-                    <div className="bg-white/10 p-4 rounded-lg">
-                      <div className="space-y-4">
-                        {/* Player Search */}
-                        <div className="relative">
-                          <label className="text-white text-sm mb-1 block">
-                            Select Player
-                          </label>
-                          <input
-                            type="text"
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                            placeholder="Type at least 2 characters to search..."
-                            value={bonusPlayerSearch}
-                            onChange={(e) => {
-                              setBonusPlayerSearch(e.target.value);
-                              setSelectedBonusPlayer(null);
-                            }}
-                          />
-                          {bonusPlayerSearch.length >= 2 &&
-                            filteredPlayersForBonus.length > 0 &&
-                            !selectedBonusPlayer && (
-                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                                {filteredPlayersForBonus.map((player) => (
-                                <div
-                                  key={player.id}
-                                  onClick={() => {
-                                    setSelectedBonusPlayer(player);
-                                      setBonusPlayerSearch(
-                                        `${player.name} (${player.id})`
-                                      );
-                                  }}
-                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                                >
-                                    <div className="text-white font-medium">
-                                      {player.name}
-                                    </div>
-                                    <div className="text-gray-400 text-xs">
-                                      ID: {player.id} | Email:{" "}
-                                      {player.email || "N/A"}
-                                    </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {selectedBonusPlayer && (
-                            <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
-                              <span className="text-green-300">
-                                Selected: {selectedBonusPlayer.name} (
-                                {selectedBonusPlayer.id})
-                              </span>
-                              <button
-                                onClick={() => {
-                                  setSelectedBonusPlayer(null);
-                                  setBonusPlayerSearch("");
-                                }}
-                                className="ml-2 text-red-400 hover:text-red-300 font-bold"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Bonus Type */}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">
-                            Bonus Type
-                          </label>
-                          <CustomSelect
-                            className="w-full"
-                            value={bonusForm.type}
-                            onChange={(e) =>
-                              setBonusForm({
-                                ...bonusForm,
-                                type: e.target.value,
-                              })
-                            }
-                          >
-                            <option value="Welcome Bonus">Welcome Bonus</option>
-                            <option value="Loyalty Bonus">Loyalty Bonus</option>
-                            <option value="Referral Bonus">
-                              Referral Bonus
-                            </option>
-                            <option value="Tournament Bonus">
-                              Tournament Bonus
-                            </option>
-                            <option value="Special Event Bonus">
-                              Special Event Bonus
-                            </option>
-                            <option value="Custom Bonus">Custom Bonus</option>
-                          </CustomSelect>
-                        </div>
-
-                        {/* Bonus Amount */}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">
-                            Bonus Amount (₹)
-                          </label>
-                          <input
-                            type="number"
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                            placeholder="₹0.00"
-                            value={bonusForm.amount}
-                            onChange={(e) =>
-                              setBonusForm({
-                                ...bonusForm,
-                                amount: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-
-                        {/* Expiry Days */}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">
-                            Expiry (Days)
-                          </label>
-                          <input
-                            type="number"
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                            placeholder="30"
-                            value={bonusForm.expiryDays}
-                            onChange={(e) =>
-                              setBonusForm({
-                                ...bonusForm,
-                                expiryDays: parseInt(e.target.value) || 30,
-                              })
-                            }
-                            min="1"
-                          />
-                        </div>
-
-                        {/* Reason */}
-                        <div>
-                          <label className="text-white text-sm mb-1 block">
-                            Reason / Notes
-                          </label>
-                          <textarea
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                            rows="3"
-                            placeholder="Enter reason for this bonus..."
-                            value={bonusForm.reason}
-                            onChange={(e) =>
-                              setBonusForm({
-                                ...bonusForm,
-                                reason: e.target.value,
-                              })
-                            }
-                          ></textarea>
-                        </div>
-
-                        {/* Create Bonus Button */}
-                        <button
-                          onClick={handleCreateBonus}
-                          className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-4 py-3 rounded-lg font-semibold shadow-lg transition-all"
-                        >
-                          ✨ Create Bonus
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
+            <FinancialOverrides
+              transactions={transactions}
+              setTransactions={setTransactions}
+              userRole="superadmin"
+            />
           )}
 
           {activeItem === "Table Management" && (
@@ -4672,6 +4325,14 @@ export default function SuperAdminPortal() {
           )}
 
           {activeItem === "Analytics & Reports" && (
+            <ReportsAnalyticsSection
+              allPlayersForReport={allPlayersForReport}
+              registeredPlayers={registeredPlayers}
+            />
+          )}
+
+          {/* Legacy Analytics & Reports Section - Replaced by ReportsAnalyticsSection component */}
+          {false && activeItem === "Analytics & Reports" && (
             <div className="space-y-6">
               {/* Report Type Selection */}
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
@@ -5634,7 +5295,7 @@ export default function SuperAdminPortal() {
                 <h2 className="text-xl font-bold text-white mb-6">
                   Audit Logs & Backups
                 </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">
                       Audit Log
@@ -5655,7 +5316,7 @@ export default function SuperAdminPortal() {
                       ))}
                     </div>
                   </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
+                  {/* <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">
                       Backup & Error Logs
                     </h3>
@@ -5675,7 +5336,7 @@ export default function SuperAdminPortal() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </section>
             </div>
@@ -5706,78 +5367,19 @@ export default function SuperAdminPortal() {
           )}
 
           {activeItem === "Affiliates" && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">Affiliate Management</h2>
-              </div>
-
-              {/* Affiliates Table */}
-              <div className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700 overflow-hidden">
-                <table className="w-full text-left">
-                  <thead className="text-gray-400 border-b border-gray-700 text-sm uppercase">
-                    <tr>
-                      <th className="py-3 px-4">Name</th>
-                      <th className="py-3 px-4">Email</th>
-                      <th className="py-3 px-4">Code</th>
-                      <th className="py-3 px-4">KYC Status</th>
-                      <th className="py-3 px-4">Referrals</th>
-                      <th className="py-3 px-4">Earnings</th>
-                      <th className="py-3 px-4">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {affiliates.map((aff) => (
-                      <tr
-                        key={aff.id}
-                        className="hover:bg-gray-700/50 transition-colors cursor-pointer"
-                        onClick={() => setViewingAffiliate(aff)}
-                      >
-                        <td className="py-4 px-4 font-medium">{aff.name}</td>
-                        <td className="py-4 px-4 text-gray-400">{aff.email}</td>
-                        <td className="py-4 px-4 font-mono text-yellow-500">
-                          {aff.referralCode}
-                        </td>
-                        <td className="py-4 px-4">
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-bold ${
-                              aff.kycStatus === "Verified"
-                                ? "bg-green-900/50 text-green-400"
-                                : aff.kycStatus === "Pending"
-                                ? "bg-yellow-900/50 text-yellow-400"
-                                : "bg-red-900/50 text-red-400"
-                            }`}
-                          >
-                            {aff.kycStatus}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-blue-400">
-                          {aff.totalReferrals}
-                        </td>
-                        <td className="py-4 px-4 text-green-400">
-                          ₹{aff.earnings.toLocaleString()}
-                        </td>
-                        <td className="py-4 px-4">
-                          <span
-                            className={`w-2 h-2 inline-block rounded-full mr-2 ${
-                              aff.status === "Active"
-                                ? "bg-green-500"
-                                : "bg-gray-500"
-                            }`}
-                          ></span>
-                          {aff.status}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <AffiliatesTable 
+              affiliates={affiliates}
+              onAffiliateClick={setViewingAffiliate}
+              viewingAffiliate={viewingAffiliate}
+              userRole="superadmin"
+            />
           )}
+          </div>
         </main>
       </div>
 
-      {/* Affiliate Details Overlay */}
-      {viewingAffiliate && (
+      {/* Affiliate Details Overlay - Now handled by AffiliatesTable component */}
+      {false && viewingAffiliate && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 overflow-y-auto">
           <div className="min-h-screen p-8 max-w-5xl mx-auto">
             <button
@@ -5911,6 +5513,6 @@ export default function SuperAdminPortal() {
           </div>
         </div>
       )}
-              </div>
+    </div>
   );
 }

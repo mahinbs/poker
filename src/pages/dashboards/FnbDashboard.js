@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import ChatSection from "../../components/ChatSection";
 import FNBSections from "../../components/FNBSections";
+import AllOrdersView from "../../components/AllOrdersView";
+import FnbSidebar from "../../components/sidebars/FnbSidebar";
 
 export default function FnbDashboard() {
   const [activeItem, setActiveItem] = useState("Menu & Inventory");
@@ -19,6 +21,303 @@ export default function FnbDashboard() {
   const handleSignOut = () => {
     navigate("/fnb/signin");
   };
+
+  // Orders state - Today's orders
+  const [orders, setOrders] = useState([
+    {
+      id: "ORD001",
+      orderNumber: "#001",
+      playerName: "Alex Johnson",
+      playerId: "P101",
+      tableNumber: "Table 1",
+      items: [
+        { name: "Chicken Biryani", quantity: 2, price: 250 },
+        { name: "Mutton Curry", quantity: 1, price: 300 },
+      ],
+      totalAmount: 800,
+      status: "processing",
+      specialInstructions: "Less spicy please",
+      orderDate: new Date().toISOString(),
+      processedBy: "FNB Manager",
+      sentToChef: true,
+      chefAssigned: "Chef Raj",
+      statusHistory: [
+        {
+          status: "pending",
+          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+          updatedBy: "Player",
+        },
+        {
+          status: "processing",
+          timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+          updatedBy: "FNB Manager",
+        },
+      ],
+    },
+    {
+      id: "ORD002",
+      orderNumber: "#002",
+      playerName: "Maria Garcia",
+      playerId: "P102",
+      tableNumber: "Table 3",
+      items: [
+        { name: "Fish Fry", quantity: 1, price: 200 },
+        { name: "Vegetable Pulao", quantity: 2, price: 180 },
+      ],
+      totalAmount: 560,
+      status: "ready",
+      specialInstructions: "",
+      orderDate: new Date().toISOString(),
+      processedBy: "FNB Manager",
+      sentToChef: true,
+      chefAssigned: "Chef Priya",
+      statusHistory: [
+        {
+          status: "pending",
+          timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+          updatedBy: "Player",
+        },
+        {
+          status: "processing",
+          timestamp: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
+          updatedBy: "FNB Manager",
+        },
+        {
+          status: "ready",
+          timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          updatedBy: "Chef Priya",
+        },
+      ],
+    },
+    {
+      id: "ORD003",
+      orderNumber: "#003",
+      playerName: "Rajesh Kumar",
+      playerId: "P103",
+      tableNumber: "Table 2",
+      items: [
+        { name: "Samosa", quantity: 5, price: 50 },
+        { name: "Tea", quantity: 2, price: 30 },
+      ],
+      totalAmount: 310,
+      status: "pending",
+      specialInstructions: "",
+      orderDate: new Date().toISOString(),
+      processedBy: null,
+      sentToChef: false,
+      chefAssigned: null,
+      statusHistory: [
+        {
+          status: "pending",
+          timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+          updatedBy: "Player",
+        },
+      ],
+    },
+    {
+      id: "ORD004",
+      orderNumber: "#004",
+      playerName: "Priya Sharma",
+      playerId: "P104",
+      tableNumber: "Table 1",
+      items: [
+        { name: "Chicken Biryani", quantity: 1, price: 250 },
+        { name: "Fresh Juice", quantity: 1, price: 80 },
+      ],
+      totalAmount: 330,
+      status: "delivered",
+      specialInstructions: "Extra raita",
+      orderDate: new Date().toISOString(),
+      processedBy: "FNB Manager",
+      sentToChef: true,
+      chefAssigned: "Chef Raj",
+      deliveredAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+      statusHistory: [
+        {
+          status: "pending",
+          timestamp: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+          updatedBy: "Player",
+        },
+        {
+          status: "processing",
+          timestamp: new Date(Date.now() - 85 * 60 * 1000).toISOString(),
+          updatedBy: "FNB Manager",
+        },
+        {
+          status: "ready",
+          timestamp: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+          updatedBy: "Chef Raj",
+        },
+        {
+          status: "delivered",
+          timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+          updatedBy: "FNB Manager",
+        },
+      ],
+    },
+    {
+      id: "ORD005",
+      orderNumber: "#005",
+      playerName: "Amit Patel",
+      playerId: "P105",
+      tableNumber: "Table 4",
+      items: [
+        { name: "Chicken Biryani", quantity: 3, price: 250 },
+        { name: "Mutton Curry", quantity: 2, price: 300 },
+      ],
+      totalAmount: 1350,
+      status: "delivered",
+      specialInstructions: "",
+      orderDate: new Date().toISOString(),
+      processedBy: "FNB Manager",
+      sentToChef: true,
+      chefAssigned: "Chef Raj",
+      deliveredAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+      statusHistory: [
+        {
+          status: "pending",
+          timestamp: new Date(Date.now() - 120 * 60 * 1000).toISOString(),
+          updatedBy: "Player",
+        },
+        {
+          status: "processing",
+          timestamp: new Date(Date.now() - 115 * 60 * 1000).toISOString(),
+          updatedBy: "FNB Manager",
+        },
+        {
+          status: "ready",
+          timestamp: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
+          updatedBy: "Chef Raj",
+        },
+        {
+          status: "delivered",
+          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+          updatedBy: "FNB Manager",
+        },
+      ],
+    },
+    {
+      id: "ORD006",
+      orderNumber: "#006",
+      playerName: "John Doe",
+      playerId: "P106",
+      tableNumber: "Table 2",
+      items: [
+        { name: "Fish Fry", quantity: 2, price: 200 },
+        { name: "Tea", quantity: 3, price: 30 },
+      ],
+      totalAmount: 490,
+      status: "processing",
+      specialInstructions: "Extra spicy",
+      orderDate: new Date().toISOString(),
+      processedBy: "FNB Manager",
+      sentToChef: true,
+      chefAssigned: "Chef Priya",
+      statusHistory: [
+        {
+          status: "pending",
+          timestamp: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+          updatedBy: "Player",
+        },
+        {
+          status: "processing",
+          timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+          updatedBy: "FNB Manager",
+        },
+      ],
+    },
+  ]);
+
+  // Status update handler
+  const handleStatusUpdate = (orderId, newStatus) => {
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id === orderId) {
+          const updatedOrder = { ...order };
+
+          // Handle status transitions
+          if (newStatus === "processing" && order.status === "pending") {
+            updatedOrder.processedBy = "FNB Manager";
+            updatedOrder.sentToChef = true;
+            updatedOrder.chefAssigned = order.chefAssigned || "Chef Kitchen";
+          } else if (newStatus === "ready") {
+            // Chef marks as ready
+          } else if (newStatus === "delivered") {
+            updatedOrder.deliveredAt = new Date().toISOString();
+          }
+
+          updatedOrder.status = newStatus;
+          updatedOrder.statusHistory = [
+            ...order.statusHistory,
+            {
+              status: newStatus,
+              timestamp: new Date().toISOString(),
+              updatedBy:
+                newStatus === "processing"
+                  ? "FNB Manager"
+                  : newStatus === "ready"
+                    ? order.chefAssigned || "Chef"
+                    : "FNB Manager",
+            },
+          ];
+
+          return updatedOrder;
+        }
+        return order;
+      })
+    );
+
+    const order = orders.find((o) => o.id === orderId);
+    alert(
+      `Order ${orderId} status updated to: ${newStatus.toUpperCase()}\n\nThis status will be visible to ${order.playerName} in the Player Portal.`
+    );
+  };
+
+  // Calculate today's statistics
+  const todayStats = useMemo(() => {
+    const today = new Date().toDateString();
+    const todayOrders = orders.filter((order) => {
+      const orderDate = new Date(order.orderDate).toDateString();
+      return orderDate === today;
+    });
+
+    const totalRevenue = todayOrders.reduce(
+      (sum, order) => sum + order.totalAmount,
+      0
+    );
+    const totalOrders = todayOrders.length;
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    // Count items
+    const itemCounts = {};
+    todayOrders.forEach((order) => {
+      order.items.forEach((item) => {
+        itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
+      });
+    });
+
+    const topItem = Object.entries(itemCounts).sort(
+      (a, b) => b[1] - a[1]
+    )[0];
+
+    // Status counts
+    const statusCounts = {
+      pending: todayOrders.filter((o) => o.status === "pending").length,
+      processing: todayOrders.filter((o) => o.status === "processing").length,
+      ready: todayOrders.filter((o) => o.status === "ready").length,
+      delivered: todayOrders.filter((o) => o.status === "delivered").length,
+      cancelled: todayOrders.filter((o) => o.status === "cancelled").length,
+    };
+
+    return {
+      totalOrders,
+      totalRevenue,
+      avgOrderValue,
+      topItem: topItem ? topItem[0] : "N/A",
+      topItemCount: topItem ? topItem[1] : 0,
+      statusCounts,
+    };
+  }, [orders]);
 
   // Chat/Support System State
   const [playerChats, setPlayerChats] = useState([
@@ -66,44 +365,20 @@ export default function FnbDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
-      <div className="mx-auto max-w-[1400px] px-6 py-10 grid grid-cols-12 gap-8">
+      <div className="flex">
         {/* Sidebar */}
-        <aside className="col-span-12 lg:col-span-3 xl:col-span-3 rounded-2xl bg-gradient-to-b from-orange-500/20 via-red-600/30 to-pink-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
-          <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-300 to-pink-400 drop-shadow-lg mb-6">
-            FNB Portal
-          </div>
-          <div className="flex items-center mb-6 text-white min-w-0">
-            <div className="w-10 h-10 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-              <span className="text-gray-900 font-bold text-sm">F</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-semibold truncate">FNB Manager</div>
-              <div className="text-sm opacity-80 truncate">fnb@pokerroom.com</div>
-            </div>
-          </div>
-
-          {/* Sidebar Menu */}
-          <nav className="space-y-3">
-            {menuItems.map((item, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveItem(item)}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-orange-400 to-red-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-orange-400/20 hover:to-red-500/20 text-white"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-        </aside>
+        <FnbSidebar
+          activeItem={activeItem}
+          setActiveItem={setActiveItem}
+          menuItems={menuItems}
+          onSignOut={handleSignOut}
+        />
 
         {/* Main Section */}
-        <main className="col-span-12 lg:col-span-9 xl:col-span-9 space-y-8">
+        <main className="flex-1 lg:ml-0 min-w-0">
+          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 sm:py-10 space-y-8">
           {/* Header */}
-          <header className="bg-gradient-to-r from-orange-600 via-red-500 to-pink-400 p-6 rounded-xl shadow-md flex justify-between items-center">
+          <header className="bg-gradient-to-r from-orange-600 via-red-500 to-pink-400 p-6 rounded-xl shadow-md flex justify-between items-center mt-16 lg:mt-0">
             <div>
               <h1 className="text-2xl font-bold text-white">FNB Portal - {activeItem}</h1>
               <p className="text-gray-200 mt-1">Manage poker club F&B service, menu, and player orders</p>
@@ -129,75 +404,140 @@ export default function FnbDashboard() {
           {/* Reports & Analytics */}
           {activeItem === "Reports & Analytics" && (
             <div className="space-y-6">
+              {/* Today's Analytics Dashboard */}
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-indigo-500/20 to-blue-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Analytics Dashboard</h2>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-white">
+                    Today's Analytics Dashboard
+                  </h2>
+                  <div className="text-sm text-gray-300">
+                    {new Date().toLocaleDateString("en-IN", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Daily Report</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Today's Summary
+                    </h3>
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-300">Total Orders:</span>
-                        <span className="text-white font-bold">45</span>
+                        <span className="text-white font-bold">
+                          {todayStats.totalOrders}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-300">Revenue:</span>
-                        <span className="text-green-300 font-bold">₹15,250</span>
+                        <span className="text-green-300 font-bold">
+                          ₹{todayStats.totalRevenue.toLocaleString("en-IN")}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-300">Avg. Order Value:</span>
-                        <span className="text-white font-bold">₹339</span>
+                        <span className="text-white font-bold">
+                          ₹{Math.round(todayStats.avgOrderValue).toLocaleString("en-IN")}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-300">Top Item:</span>
-                        <span className="text-yellow-300 font-bold">Chicken Biryani</span>
+                        <span className="text-yellow-300 font-bold">
+                          {todayStats.topItem} ({todayStats.topItemCount}x)
+                        </span>
                       </div>
                     </div>
                   </div>
 
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Weekly Report</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Order Status Breakdown
+                    </h3>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-gray-300">Total Orders:</span>
-                        <span className="text-white font-bold">312</span>
+                        <span className="text-gray-300">Pending:</span>
+                        <span className="text-yellow-300 font-bold">
+                          {todayStats.statusCounts.pending}
+                        </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-300">Revenue:</span>
-                        <span className="text-green-300 font-bold">₹98,500</span>
+                        <span className="text-gray-300">Processing:</span>
+                        <span className="text-blue-300 font-bold">
+                          {todayStats.statusCounts.processing}
+                        </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-300">Growth:</span>
-                        <span className="text-green-300 font-bold">+12%</span>
+                        <span className="text-gray-300">Ready:</span>
+                        <span className="text-green-300 font-bold">
+                          {todayStats.statusCounts.ready}
+                        </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-300">Peak Day:</span>
-                        <span className="text-yellow-300 font-bold">Saturday</span>
+                        <span className="text-gray-300">Delivered:</span>
+                        <span className="text-emerald-300 font-bold">
+                          {todayStats.statusCounts.delivered}
+                        </span>
                       </div>
                     </div>
                   </div>
 
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Monthly Report</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Performance Metrics
+                    </h3>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-gray-300">Total Orders:</span>
-                        <span className="text-white font-bold">1,245</span>
+                        <span className="text-gray-300">Completion Rate:</span>
+                        <span className="text-green-300 font-bold">
+                          {todayStats.totalOrders > 0
+                            ? Math.round(
+                                (todayStats.statusCounts.delivered /
+                                  todayStats.totalOrders) *
+                                  100
+                              )
+                            : 0}
+                          %
+                        </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-300">Revenue:</span>
-                        <span className="text-green-300 font-bold">₹425,000</span>
+                        <span className="text-gray-300">Active Orders:</span>
+                        <span className="text-white font-bold">
+                          {todayStats.statusCounts.pending +
+                            todayStats.statusCounts.processing +
+                            todayStats.statusCounts.ready}
+                        </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-300">Growth:</span>
-                        <span className="text-green-300 font-bold">+18%</span>
+                        <span className="text-gray-300">Completed:</span>
+                        <span className="text-emerald-300 font-bold">
+                          {todayStats.statusCounts.delivered}
+                        </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-300">Best Category:</span>
-                        <span className="text-yellow-300 font-bold">Main Course</span>
+                        <span className="text-gray-300">Cancelled:</span>
+                        <span className="text-red-300 font-bold">
+                          {todayStats.statusCounts.cancelled}
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
+              </section>
+
+              {/* Today's Orders with Pagination */}
+              <section className="p-6 bg-gradient-to-r from-orange-600/30 via-red-500/20 to-pink-700/30 rounded-xl shadow-md border border-orange-800/40">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-white">
+                    Today's Orders
+                  </h2>
+                  <div className="text-sm text-gray-300">
+                    {orders.length} order{orders.length !== 1 ? "s" : ""} today
+                  </div>
+                </div>
+                <AllOrdersView orders={orders} onStatusUpdate={handleStatusUpdate} />
               </section>
 
               <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
@@ -279,6 +619,7 @@ export default function FnbDashboard() {
               setStaffChats={setStaffChats}
             />
           )}
+          </div>
         </main>
       </div>
     </div>

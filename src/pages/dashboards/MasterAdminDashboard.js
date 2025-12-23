@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BrandingHeader from "../../components/BrandingHeader";
 import CustomSelect from "../../components/common/CustomSelect";
+import AffiliatesTable from "../../components/AffiliatesTable";
+import MasterAdminSidebar from "../../components/sidebars/MasterAdminSidebar";
 
 export default function MasterAdminDashboard() {
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -57,6 +59,7 @@ export default function MasterAdminDashboard() {
     "Branding & Media",
     "Clients Management",
     "Reports",
+    "Affiliates",
   ];
 
   // Helper function to get date/time strings
@@ -132,49 +135,23 @@ export default function MasterAdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
-      <div className="mx-auto max-w-[1400px] px-6 py-10 grid grid-cols-12 gap-8">
-        <aside className="col-span-12 lg:col-span-3 xl:col-span-3 rounded-2xl bg-gradient-to-b from-emerald-500/20 via-teal-600/30 to-cyan-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
-          <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 drop-shadow-lg mb-6">
-            Master Admin
-          </div>
-          <div className="flex items-center mb-6 text-white min-w-0">
-            <div className="w-10 h-10 bg-gradient-to-r from-emerald-400 to-cyan-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-              <span className="text-gray-900 font-bold text-sm">MA</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-semibold truncate">
-                Client Super Admin
-              </div>
-              <div className="text-sm opacity-80 truncate">
-                master@client.com
-              </div>
-            </div>
-          </div>
+      <div className="flex">
+        {/* Sidebar */}
+        <MasterAdminSidebar
+          activeItem={activeItem}
+          setActiveItem={setActiveItem}
+          menuItems={menuItems}
+        />
 
-          <nav className="space-y-3">
-            {menuItems.map((item) => (
-              <button
-                key={item}
-                onClick={() => {
-                  setActiveItem(item);
-                }}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-emerald-400 to-cyan-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-emerald-400/20 hover:to-cyan-500/20 text-white"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        <main className="col-span-12 lg:col-span-9 xl:col-span-9 space-y-8">
-          <BrandingHeader
-            title={`Master Admin - ${activeItem}`}
-            subtitle="White-label control center"
-          />
+        {/* Main Section */}
+        <main className="flex-1 lg:ml-0 min-w-0">
+          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 sm:py-10 space-y-8">
+            <div className="mt-16 lg:mt-0">
+              <BrandingHeader
+                title={`Master Admin - ${activeItem}`}
+                subtitle="White-label control center"
+              />
+            </div>
 
           {activeItem === "Dashboard" && (
             <>
@@ -599,34 +576,37 @@ export default function MasterAdminDashboard() {
                       >
                         Kill
                       </button>
-                      <button
-                        className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm"
-                        onClick={() =>
-                          setClubs((prev) =>
-                            prev.map((x) =>
-                              x.id === c.id
-                                ? { ...x, subscription: "active" }
-                                : x
+                      {c.subscription === "active" ? (
+                        <button
+                          className="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-sm"
+                          onClick={() =>
+                            setClubs((prev) =>
+                              prev.map((x) =>
+                                x.id === c.id
+                                  ? { ...x, subscription: "paused" }
+                                  : x
+                              )
                             )
-                          )
-                        }
-                      >
-                        Activate
-                      </button>
-                      <button
-                        className="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-sm"
-                        onClick={() =>
-                          setClubs((prev) =>
-                            prev.map((x) =>
-                              x.id === c.id
-                                ? { ...x, subscription: "paused" }
-                                : x
+                          }
+                        >
+                          Pause
+                        </button>
+                      ) : (
+                        <button
+                          className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm"
+                          onClick={() =>
+                            setClubs((prev) =>
+                              prev.map((x) =>
+                                x.id === c.id
+                                  ? { ...x, subscription: "active" }
+                                  : x
+                              )
                             )
-                          )
-                        }
-                      >
-                        Pause
-                      </button>
+                          }
+                        >
+                          Activate
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1013,6 +993,46 @@ export default function MasterAdminDashboard() {
             </section>
           )}
 
+          {activeItem === "Affiliates" && (
+            <div className="space-y-6">
+              <AffiliatesTable 
+                affiliates={[
+                  {
+                    id: "AFF001",
+                    name: "Agent X",
+                    email: "agent.x@example.com",
+                    referralCode: "AGTX-ALPHA",
+                    status: "Active",
+                    kycStatus: "Verified",
+                    totalReferrals: 12,
+                    earnings: 45000,
+                  },
+                  {
+                    id: "AFF002",
+                    name: "Agent Y",
+                    email: "agent.y@example.com",
+                    referralCode: "AGTY-BETA",
+                    status: "Active",
+                    kycStatus: "Pending",
+                    totalReferrals: 8,
+                    earnings: 28000,
+                  },
+                  {
+                    id: "AFF003",
+                    name: "Agent Z",
+                    email: "agent.z@example.com",
+                    referralCode: "AGTZ-GAMMA",
+                    status: "Inactive",
+                    kycStatus: "Rejected",
+                    totalReferrals: 3,
+                    earnings: 5000,
+                  },
+                ]}
+                userRole="masteradmin"
+              />
+            </div>
+          )}
+
           {activeItem === "Reports" && (
             <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
               <h2 className="text-xl font-bold text-white mb-6">Reports</h2>
@@ -1070,19 +1090,20 @@ export default function MasterAdminDashboard() {
             </section>
           )}
 
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate("/manager")}
-              className="bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
-            >
-              Manager Portal
-            </button>
-            <button
-              onClick={() => navigate("/admin/signin")}
-              className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
-            >
-              System Admin
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => navigate("/manager")}
+                className="bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
+              >
+                Manager Portal
+              </button>
+              <button
+                onClick={() => navigate("/admin/signin")}
+                className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
+              >
+                System Admin
+              </button>
+            </div>
           </div>
         </main>
       </div>

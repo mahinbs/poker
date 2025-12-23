@@ -12,6 +12,10 @@ import PushNotificationsSection from "../../components/PushNotificationsSection"
 import EmployeeSalaryProcessingSection from "../../components/EmployeeSalaryProcessingSection";
 import BonusProcessingSection from "../../components/BonusProcessingSection";
 import FNBSections from "../../components/FNBSections";
+import ReportsAnalyticsSection from "../../components/ReportsAnalyticsSection";
+import AffiliatesTable from "../../components/AffiliatesTable";
+import DealerTips from "../../components/DealerTips";
+import AdminSidebar from "../../components/sidebars/AdminSidebar";
 
 export default function AdminDashboard() {
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -24,17 +28,17 @@ export default function AdminDashboard() {
     "Payroll Management",
     "Bonus Processing",
     "Table Management",
-    "Credit Management",
-    "Staff Bonuses Approval",
     "Core Management",
     "Player Registration",
     "Session Control",
     "Tournaments",
     "VIP Store",
     "Reports & Analytics",
+    "Affiliates",
     "Push Notifications",
     "Chat",
-    "FNB"
+    "FNB",
+    "System Control",
   ];
 
   // State for Players (KYC Pending) management
@@ -43,7 +47,7 @@ export default function AdminDashboard() {
   const [playersFilter, setPlayersFilter] = useState({
     kycStatus: "pending",
     registrationDate: "all",
-    documentType: "all"
+    documentType: "all",
   });
 
   // Mock players data with kycStatus: 'pending'
@@ -59,7 +63,7 @@ export default function AdminDashboard() {
       submittedDate: "2024-01-16",
       verificationNotes: "",
       referredBy: "Agent X",
-      referralCode: "AGTX-ALPHA"
+      referralCode: "AGTX-ALPHA",
     },
     {
       id: "P002",
@@ -72,7 +76,7 @@ export default function AdminDashboard() {
       submittedDate: "2024-01-12",
       verificationNotes: "",
       referredBy: "Agent X",
-      referralCode: "AGTX-BETA"
+      referralCode: "AGTX-BETA",
     },
     {
       id: "P003",
@@ -85,7 +89,7 @@ export default function AdminDashboard() {
       submittedDate: "2024-01-09",
       verificationNotes: "",
       referredBy: "Agent Y",
-      referralCode: "AGTY-GAMMA"
+      referralCode: "AGTY-GAMMA",
     },
     {
       id: "P004",
@@ -98,7 +102,7 @@ export default function AdminDashboard() {
       submittedDate: "2024-01-21",
       verificationNotes: "",
       referredBy: "Agent A",
-      referralCode: "AGTA-DELTA"
+      referralCode: "AGTA-DELTA",
     },
     {
       id: "P005",
@@ -111,26 +115,27 @@ export default function AdminDashboard() {
       submittedDate: "2024-01-19",
       verificationNotes: "",
       referredBy: "Agent B",
-      referralCode: "AGTB-EPSILON"
-    }
+      referralCode: "AGTB-EPSILON",
+    },
   ]);
 
   // Filter players for dropdown search
-  const filteredPlayersForSearch = playersSearch.length >= 2
-    ? allPlayers.filter(player => {
-      if (player.kycStatus !== "pending") return false;
-      const searchLower = playersSearch.toLowerCase();
-      return (
-        player.name.toLowerCase().includes(searchLower) ||
-        player.email.toLowerCase().includes(searchLower) ||
-        player.id.toLowerCase().includes(searchLower) ||
-        player.phone.includes(playersSearch)
-      );
-    })
-    : [];
+  const filteredPlayersForSearch =
+    playersSearch.length >= 2
+      ? allPlayers.filter((player) => {
+          if (player.kycStatus !== "pending") return false;
+          const searchLower = playersSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.phone.includes(playersSearch)
+          );
+        })
+      : [];
 
   // Filter players based on search and filters (for display list)
-  const filteredPlayers = allPlayers.filter(player => {
+  const filteredPlayers = allPlayers.filter((player) => {
     if (player.kycStatus !== "pending") return false;
     // If a player is selected, show only that player
     if (selectedPlayer && player.id !== selectedPlayer.id) return false;
@@ -144,16 +149,24 @@ export default function AdminDashboard() {
         player.phone.includes(playersSearch);
       if (!matchesSearch) return false;
     }
-    if (playersFilter.documentType !== "all" && player.documentType !== playersFilter.documentType) {
+    if (
+      playersFilter.documentType !== "all" &&
+      player.documentType !== playersFilter.documentType
+    ) {
       return false;
     }
     if (playersFilter.registrationDate !== "all") {
       const registrationDate = new Date(player.registrationDate);
       const now = new Date();
-      const daysDiff = Math.floor((now - registrationDate) / (1000 * 60 * 60 * 24));
-      if (playersFilter.registrationDate === "today" && daysDiff !== 0) return false;
-      if (playersFilter.registrationDate === "week" && daysDiff > 7) return false;
-      if (playersFilter.registrationDate === "month" && daysDiff > 30) return false;
+      const daysDiff = Math.floor(
+        (now - registrationDate) / (1000 * 60 * 60 * 24)
+      );
+      if (playersFilter.registrationDate === "today" && daysDiff !== 0)
+        return false;
+      if (playersFilter.registrationDate === "week" && daysDiff > 7)
+        return false;
+      if (playersFilter.registrationDate === "month" && daysDiff > 30)
+        return false;
     }
     return true;
   });
@@ -162,9 +175,23 @@ export default function AdminDashboard() {
   const getCurrentDateTime = () => {
     const now = new Date();
     return {
-      date: now.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }),
-      time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      full: now.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      date: now.toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      time: now.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }),
+      full: now.toLocaleString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
   };
 
@@ -172,9 +199,23 @@ export default function AdminDashboard() {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     return {
-      date: yesterday.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }),
-      time: yesterday.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      full: yesterday.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      date: yesterday.toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      time: yesterday.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }),
+      full: yesterday.toLocaleString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
   };
 
@@ -184,11 +225,11 @@ export default function AdminDashboard() {
 
   const TIP_HOLD_PERCENT = 0.15;
 
-  const formatCurrency = (value) => `₹${value.toLocaleString('en-IN')}`;
+  const formatCurrency = (value) => `₹${value.toLocaleString("en-IN")}`;
 
   const calculateTipShares = (amount) => ({
     club: Math.round(amount * TIP_HOLD_PERCENT),
-    staff: Math.round(amount * (1 - TIP_HOLD_PERCENT))
+    staff: Math.round(amount * (1 - TIP_HOLD_PERCENT)),
   });
 
   const revenueData = {
@@ -198,7 +239,7 @@ export default function AdminDashboard() {
       tips: 3750,
       date: previousDateTime.date,
       time: previousDateTime.time,
-      lastUpdated: previousDateTime.full
+      lastUpdated: previousDateTime.full,
     },
     currentDay: {
       revenue: 45230,
@@ -206,8 +247,8 @@ export default function AdminDashboard() {
       tips: 1357,
       date: currentDateTime.date,
       time: currentDateTime.time,
-      lastUpdated: currentDateTime.full
-    }
+      lastUpdated: currentDateTime.full,
+    },
   };
 
   const previousDayTipShares = calculateTipShares(revenueData.previousDay.tips);
@@ -215,37 +256,73 @@ export default function AdminDashboard() {
 
   // Handle KYC verification actions
   const handleKYCVerification = (playerId, action, notes = "") => {
-    setAllPlayers(prev => prev.map(player => {
-      if (player.id === playerId) {
-        return {
-          ...player,
-          kycStatus: action === "approve" ? "approved" : action === "reject" ? "rejected" : player.kycStatus,
-          verificationNotes: notes,
-          verifiedDate: new Date().toISOString().split('T')[0]
-        };
-      }
-      return player;
-    }));
-    alert(`KYC ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "updated"} for ${playerId}`);
+    setAllPlayers((prev) =>
+      prev.map((player) => {
+        if (player.id === playerId) {
+          return {
+            ...player,
+            kycStatus:
+              action === "approve"
+                ? "approved"
+                : action === "reject"
+                ? "rejected"
+                : player.kycStatus,
+            verificationNotes: notes,
+            verifiedDate: new Date().toISOString().split("T")[0],
+          };
+        }
+        return player;
+      })
+    );
+    alert(
+      `KYC ${
+        action === "approve"
+          ? "approved"
+          : action === "reject"
+          ? "rejected"
+          : "updated"
+      } for ${playerId}`
+    );
   };
-
 
   // State for Registered Players (Verified/Approved users)
   const [registeredPlayersSearch, setRegisteredPlayersSearch] = useState("");
-  const [selectedRegisteredPlayer, setSelectedRegisteredPlayer] = useState(null);
+  const [selectedRegisteredPlayer, setSelectedRegisteredPlayer] =
+    useState(null);
   const [registeredPlayersFilter, setRegisteredPlayersFilter] = useState({
     status: "all",
     registrationDate: "all",
     documentType: "all",
-    verifiedDate: "all"
+    verifiedDate: "all",
   });
   const [selectedPlayerDetails, setSelectedPlayerDetails] = useState(null);
 
   // Mock table data
   const [tables, setTables] = useState([
-    { id: 1, name: "Table 1 - Texas Hold'em", status: "Active", gameType: "Texas Hold'em", stakes: "₹1000.00/10000.00", maxPlayers: 6 },
-    { id: 2, name: "Table 2 - Omaha", status: "Active", gameType: "Omaha", stakes: "₹5000.00/50000.00", maxPlayers: 9 },
-    { id: 3, name: "Table 3 - Stud", status: "Paused", gameType: "Seven Card Stud", stakes: "₹10000.00/100000.00", maxPlayers: 6 },
+    {
+      id: 1,
+      name: "Table 1 - Texas Hold'em",
+      status: "Active",
+      gameType: "Texas Hold'em",
+      stakes: "₹1000.00/10000.00",
+      maxPlayers: 6,
+    },
+    {
+      id: 2,
+      name: "Table 2 - Omaha",
+      status: "Active",
+      gameType: "Omaha",
+      stakes: "₹5000.00/50000.00",
+      maxPlayers: 9,
+    },
+    {
+      id: 3,
+      name: "Table 3 - Stud",
+      status: "Paused",
+      gameType: "Seven Card Stud",
+      stakes: "₹10000.00/100000.00",
+      maxPlayers: 6,
+    },
   ]);
 
   // Player balances for waitlist players (club buy-in chip balances)
@@ -297,7 +374,7 @@ export default function AdminDashboard() {
       position: 1,
       gameType: "Texas Hold'em",
       preferredSeat: 3,
-      preferredTable: 1
+      preferredTable: 1,
     },
     {
       id: 2,
@@ -306,7 +383,7 @@ export default function AdminDashboard() {
       position: 2,
       gameType: "Omaha",
       preferredSeat: 5,
-      preferredTable: 2
+      preferredTable: 2,
     },
     {
       id: 3,
@@ -315,26 +392,37 @@ export default function AdminDashboard() {
       position: 3,
       gameType: "Texas Hold'em",
       preferredSeat: null,
-      preferredTable: 1
-    }
+      preferredTable: 1,
+    },
   ]);
 
   // Track occupied seats by table
   const [tableBalances, setTableBalances] = useState({
-    1: { id: 1, name: "Table 1 - Texas Hold'em", totalBalance: 15000, players: ["P001", "P003"] },
-    2: { id: 2, name: "Table 2 - Omaha", totalBalance: 7500, players: ["P002"] },
-    3: { id: 3, name: "Table 3 - Stud", totalBalance: 0, players: [] }
+    1: {
+      id: 1,
+      name: "Table 1 - Texas Hold'em",
+      totalBalance: 15000,
+      players: ["P001", "P003"],
+    },
+    2: {
+      id: 2,
+      name: "Table 2 - Omaha",
+      totalBalance: 7500,
+      players: ["P002"],
+    },
+    3: { id: 3, name: "Table 3 - Stud", totalBalance: 0, players: [] },
   });
 
   const [occupiedSeats, setOccupiedSeats] = useState({
     1: [3, 5], // P001 at seat 3, P003 at seat 5
     2: [5], // P002 at seat 5
-    3: []
+    3: [],
   });
 
   // State for table view modal (manager mode)
   const [showTableView, setShowTableView] = useState(false);
-  const [selectedPlayerForSeating, setSelectedPlayerForSeating] = useState(null);
+  const [selectedPlayerForSeating, setSelectedPlayerForSeating] =
+    useState(null);
   const [selectedTableForSeating, setSelectedTableForSeating] = useState(null);
 
   // Check if a seat is available
@@ -346,7 +434,9 @@ export default function AdminDashboard() {
   // Handle opening table view for seat assignment
   const handleOpenTableView = (waitlistEntry, tableId = null) => {
     setSelectedPlayerForSeating(waitlistEntry);
-    setSelectedTableForSeating(tableId || waitlistEntry.preferredTable || tables[0]?.id || 1);
+    setSelectedTableForSeating(
+      tableId || waitlistEntry.preferredTable || tables[0]?.id || 1
+    );
     setShowTableView(true);
   };
 
@@ -361,15 +451,17 @@ export default function AdminDashboard() {
     }
 
     // Assign seat
-    setOccupiedSeats(prev => ({
+    setOccupiedSeats((prev) => ({
       ...prev,
-      [tableIdNum]: [...(prev[tableIdNum] || []), seatNum]
+      [tableIdNum]: [...(prev[tableIdNum] || []), seatNum],
     }));
 
     // Remove from waitlist
-    setWaitlist(prev => prev.filter(item =>
-      (item.id !== parseInt(playerId)) && (item.playerId !== playerId)
-    ));
+    setWaitlist((prev) =>
+      prev.filter(
+        (item) => item.id !== parseInt(playerId) && item.playerId !== playerId
+      )
+    );
 
     alert(`Assigned ${playerName} to Table ${tableIdNum}, Seat ${seatNum}`);
 
@@ -386,49 +478,84 @@ export default function AdminDashboard() {
       return;
     }
 
-    if (isSeatAvailable(waitlistEntry.preferredTable, waitlistEntry.preferredSeat)) {
+    if (
+      isSeatAvailable(waitlistEntry.preferredTable, waitlistEntry.preferredSeat)
+    ) {
       // Assign to preferred seat
-      setOccupiedSeats(prev => ({
+      setOccupiedSeats((prev) => ({
         ...prev,
-        [waitlistEntry.preferredTable]: [...(prev[waitlistEntry.preferredTable] || []), waitlistEntry.preferredSeat]
+        [waitlistEntry.preferredTable]: [
+          ...(prev[waitlistEntry.preferredTable] || []),
+          waitlistEntry.preferredSeat,
+        ],
       }));
       // Remove from waitlist
-      setWaitlist(prev => prev.filter(item => item.id !== waitlistEntry.id));
-      alert(`Assigned ${waitlistEntry.playerName} to Table ${waitlistEntry.preferredTable}, Seat ${waitlistEntry.preferredSeat}`);
+      setWaitlist((prev) =>
+        prev.filter((item) => item.id !== waitlistEntry.id)
+      );
+      alert(
+        `Assigned ${waitlistEntry.playerName} to Table ${waitlistEntry.preferredTable}, Seat ${waitlistEntry.preferredSeat}`
+      );
     } else {
-      alert(`Preferred seat ${waitlistEntry.preferredSeat} at Table ${waitlistEntry.preferredTable} is not available`);
+      alert(
+        `Preferred seat ${waitlistEntry.preferredSeat} at Table ${waitlistEntry.preferredTable} is not available`
+      );
     }
   };
 
   // Mock registered/verified players data
   const [registeredPlayers, setRegisteredPlayers] = useState([
     {
-      id: "P101", name: "Alex Johnson", email: "alex.johnson@example.com", phone: "+91 9876543215",
-      kycStatus: "approved", registrationDate: "2024-01-05", documentType: "PAN Card",
-      verifiedDate: "2024-01-06", verificationNotes: "All documents verified",
-      accountStatus: "Active", totalGames: 45, lastActive: "2 hours ago",
+      id: "P101",
+      name: "Alex Johnson",
+      email: "alex.johnson@example.com",
+      phone: "+91 9876543215",
+      kycStatus: "approved",
+      registrationDate: "2024-01-05",
+      documentType: "PAN Card",
+      verifiedDate: "2024-01-06",
+      verificationNotes: "All documents verified",
+      accountStatus: "Active",
+      totalGames: 45,
+      lastActive: "2 hours ago",
       kycDocUrl: "/documents/pan_alex_johnson.pdf",
       referredBy: "Agent X",
-      referralCode: "AGTX-ALPHA"
+      referralCode: "AGTX-ALPHA",
     },
     {
-      id: "P102", name: "Maria Garcia", email: "maria.garcia@example.com", phone: "+91 9876543216",
-      kycStatus: "approved", registrationDate: "2024-01-08", documentType: "Aadhaar Card",
-      verifiedDate: "2024-01-09", verificationNotes: "Documents verified successfully",
-      accountStatus: "Active", totalGames: 123, lastActive: "5 minutes ago",
+      id: "P102",
+      name: "Maria Garcia",
+      email: "maria.garcia@example.com",
+      phone: "+91 9876543216",
+      kycStatus: "approved",
+      registrationDate: "2024-01-08",
+      documentType: "Aadhaar Card",
+      verifiedDate: "2024-01-09",
+      verificationNotes: "Documents verified successfully",
+      accountStatus: "Active",
+      totalGames: 123,
+      lastActive: "5 minutes ago",
       kycDocUrl: "/documents/aadhaar_maria_garcia.pdf",
       referredBy: "Agent X",
-      referralCode: "AGTX-BETA"
+      referralCode: "AGTX-BETA",
     },
     {
-      id: "P103", name: "Rajesh Kumar", email: "rajesh.kumar@example.com", phone: "+91 9876543217",
-      kycStatus: "approved", registrationDate: "2024-01-10", documentType: "Passport",
-      verifiedDate: "2024-01-11", verificationNotes: "Passport verified",
-      accountStatus: "Suspended", totalGames: 67, lastActive: "3 days ago",
+      id: "P103",
+      name: "Rajesh Kumar",
+      email: "rajesh.kumar@example.com",
+      phone: "+91 9876543217",
+      kycStatus: "approved",
+      registrationDate: "2024-01-10",
+      documentType: "Passport",
+      verifiedDate: "2024-01-11",
+      verificationNotes: "Passport verified",
+      accountStatus: "Suspended",
+      totalGames: 67,
+      lastActive: "3 days ago",
       kycDocUrl: "/documents/passport_rajesh_kumar.pdf",
       referredBy: "Agent Y",
-      referralCode: "AGTY-GAMMA"
-    }
+      referralCode: "AGTY-GAMMA",
+    },
   ]);
 
   const [referralAgentSearch, setReferralAgentSearch] = useState("");
@@ -437,23 +564,25 @@ export default function AdminDashboard() {
   const [selectedReferralCode, setSelectedReferralCode] = useState(null);
 
   // Filter registered players for dropdown search
-  const filteredRegisteredPlayersForSearch = registeredPlayersSearch.length >= 2
-    ? registeredPlayers.filter(player => {
-      if (player.kycStatus !== "approved") return false;
-      const searchLower = registeredPlayersSearch.toLowerCase();
-      return (
-        player.name.toLowerCase().includes(searchLower) ||
-        player.email.toLowerCase().includes(searchLower) ||
-        player.id.toLowerCase().includes(searchLower) ||
-        player.phone.includes(registeredPlayersSearch)
-      );
-    })
-    : [];
+  const filteredRegisteredPlayersForSearch =
+    registeredPlayersSearch.length >= 2
+      ? registeredPlayers.filter((player) => {
+          if (player.kycStatus !== "approved") return false;
+          const searchLower = registeredPlayersSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.phone.includes(registeredPlayersSearch)
+          );
+        })
+      : [];
 
-  const filteredRegisteredPlayers = registeredPlayers.filter(player => {
+  const filteredRegisteredPlayers = registeredPlayers.filter((player) => {
     if (player.kycStatus !== "approved") return false;
     // If a player is selected, show only that player
-    if (selectedRegisteredPlayer && player.id !== selectedRegisteredPlayer.id) return false;
+    if (selectedRegisteredPlayer && player.id !== selectedRegisteredPlayer.id)
+      return false;
     // Otherwise, filter by search text
     if (!selectedRegisteredPlayer && registeredPlayersSearch) {
       const searchLower = registeredPlayersSearch.toLowerCase();
@@ -464,82 +593,155 @@ export default function AdminDashboard() {
         player.phone.includes(registeredPlayersSearch);
       if (!matchesSearch) return false;
     }
-    if (registeredPlayersFilter.status !== "all" && player.accountStatus !== registeredPlayersFilter.status) return false;
-    if (registeredPlayersFilter.documentType !== "all" && player.documentType !== registeredPlayersFilter.documentType) return false;
+    if (
+      registeredPlayersFilter.status !== "all" &&
+      player.accountStatus !== registeredPlayersFilter.status
+    )
+      return false;
+    if (
+      registeredPlayersFilter.documentType !== "all" &&
+      player.documentType !== registeredPlayersFilter.documentType
+    )
+      return false;
     if (registeredPlayersFilter.registrationDate !== "all") {
       const registrationDate = new Date(player.registrationDate);
       const now = new Date();
-      const daysDiff = Math.floor((now - registrationDate) / (1000 * 60 * 60 * 24));
-      if (registeredPlayersFilter.registrationDate === "today" && daysDiff !== 0) return false;
-      if (registeredPlayersFilter.registrationDate === "week" && daysDiff > 7) return false;
-      if (registeredPlayersFilter.registrationDate === "month" && daysDiff > 30) return false;
+      const daysDiff = Math.floor(
+        (now - registrationDate) / (1000 * 60 * 60 * 24)
+      );
+      if (
+        registeredPlayersFilter.registrationDate === "today" &&
+        daysDiff !== 0
+      )
+        return false;
+      if (registeredPlayersFilter.registrationDate === "week" && daysDiff > 7)
+        return false;
+      if (registeredPlayersFilter.registrationDate === "month" && daysDiff > 30)
+        return false;
     }
     return true;
   });
 
-  const allReferredPlayers = registeredPlayers.filter(player => player.referredBy || player.referralCode);
-  const uniqueReferrers = Array.from(new Set(allReferredPlayers.map(player => player.referredBy).filter(Boolean)));
-  const uniqueReferralCodes = Array.from(new Set(allReferredPlayers.map(player => player.referralCode).filter(Boolean)));
+  const allReferredPlayers = registeredPlayers.filter(
+    (player) => player.referredBy || player.referralCode
+  );
+  const uniqueReferrers = Array.from(
+    new Set(
+      allReferredPlayers.map((player) => player.referredBy).filter(Boolean)
+    )
+  );
+  const uniqueReferralCodes = Array.from(
+    new Set(
+      allReferredPlayers.map((player) => player.referralCode).filter(Boolean)
+    )
+  );
 
-  const filteredReferrersForSearch = referralAgentSearch.length >= 2 && !selectedReferralAgent
-    ? uniqueReferrers.filter(agent => (agent || "").toLowerCase().includes(referralAgentSearch.toLowerCase()))
-    : [];
+  const filteredReferrersForSearch =
+    referralAgentSearch.length >= 2 && !selectedReferralAgent
+      ? uniqueReferrers.filter((agent) =>
+          (agent || "")
+            .toLowerCase()
+            .includes(referralAgentSearch.toLowerCase())
+        )
+      : [];
 
-  const filteredReferralCodesForSearch = referralCodeSearch.length >= 2 && !selectedReferralCode
-    ? uniqueReferralCodes.filter(code => (code || "").toLowerCase().includes(referralCodeSearch.toLowerCase()))
-    : [];
+  const filteredReferralCodesForSearch =
+    referralCodeSearch.length >= 2 && !selectedReferralCode
+      ? uniqueReferralCodes.filter((code) =>
+          (code || "").toLowerCase().includes(referralCodeSearch.toLowerCase())
+        )
+      : [];
 
-  const filteredReferralPlayers = allReferredPlayers.filter(player => {
+  const filteredReferralPlayers = allReferredPlayers.filter((player) => {
     const playerAgent = (player.referredBy || "").toLowerCase();
     const playerCode = (player.referralCode || "").toLowerCase();
 
     const agentMatch = selectedReferralAgent
       ? playerAgent === selectedReferralAgent.toLowerCase()
       : referralAgentSearch
-        ? playerAgent.includes(referralAgentSearch.toLowerCase())
-        : true;
+      ? playerAgent.includes(referralAgentSearch.toLowerCase())
+      : true;
 
     const codeMatch = selectedReferralCode
       ? playerCode === selectedReferralCode.toLowerCase()
       : referralCodeSearch
-        ? playerCode.includes(referralCodeSearch.toLowerCase())
-        : true;
+      ? playerCode.includes(referralCodeSearch.toLowerCase())
+      : true;
 
     return agentMatch && codeMatch;
   });
 
   const handleDownloadKYCDoc = (player) => {
-    alert(`Downloading KYC document for ${player.name}\nDocument: ${player.kycDocUrl}\nDocument Type: ${player.documentType}`);
+    alert(
+      `Downloading KYC document for ${player.name}\nDocument: ${player.kycDocUrl}\nDocument Type: ${player.documentType}`
+    );
   };
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["Player ID", "Name", "Email", "Phone", "Status", "Registration Date", "Verified Date", "Document Type"],
-      ...filteredRegisteredPlayers.map(p => [p.id, p.name, p.email, p.phone, p.accountStatus, p.registrationDate, p.verifiedDate, p.documentType])
-    ].map(row => row.join(",")).join("\n");
+      [
+        "Player ID",
+        "Name",
+        "Email",
+        "Phone",
+        "Status",
+        "Registration Date",
+        "Verified Date",
+        "Document Type",
+      ],
+      ...filteredRegisteredPlayers.map((p) => [
+        p.id,
+        p.name,
+        p.email,
+        p.phone,
+        p.accountStatus,
+        p.registrationDate,
+        p.verifiedDate,
+        p.documentType,
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `registered_players_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `registered_players_${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
 
   const handleSignOut = () => {
-    navigate('/admin/signin');
+    navigate("/admin/signin");
   };
 
   // Reports & Analytics State
   const [selectedReportType, setSelectedReportType] = useState("");
-  const [reportDateRange, setReportDateRange] = useState({ start: "", end: "" });
+  const [reportDateRange, setReportDateRange] = useState({
+    start: "",
+    end: "",
+  });
   const [selectedPlayerForReport, setSelectedPlayerForReport] = useState(null);
   const [selectedTableForReport, setSelectedTableForReport] = useState("");
   const [customReportSelection, setCustomReportSelection] = useState([]);
   const [reportData, setReportData] = useState(null);
   const [savedReports, setSavedReports] = useState([
-    { id: 1, name: "Daily Revenue - Jan 2024", type: "daily_transactions", dateRange: "2024-01-01 to 2024-01-31", created: "2024-01-15" },
-    { id: 2, name: "Player Report - Alex Johnson", type: "individual_player", player: "P101", created: "2024-01-20" }
+    {
+      id: 1,
+      name: "Daily Revenue - Jan 2024",
+      type: "daily_transactions",
+      dateRange: "2024-01-01 to 2024-01-31",
+      created: "2024-01-15",
+    },
+    {
+      id: 2,
+      name: "Player Report - Alex Johnson",
+      type: "individual_player",
+      player: "P101",
+      created: "2024-01-20",
+    },
   ]);
 
   // Available report types
@@ -548,34 +750,56 @@ export default function AdminDashboard() {
     { id: "cumulative_player", name: "Cumulative Player Report", icon: "📊" },
     { id: "daily_transactions", name: "Daily Transactions Report", icon: "💰" },
     { id: "daily_rake", name: "Daily Rake Report", icon: "🎰" },
-    { id: "per_table_transactions", name: "Per Table Transactions Report", icon: "🃏" },
-    { id: "credit_transactions", name: "Credit Transactions Report", icon: "💳" },
+    {
+      id: "per_table_transactions",
+      name: "Per Table Transactions Report",
+      icon: "🃏",
+    },
+    {
+      id: "credit_transactions",
+      name: "Credit Transactions Report",
+      icon: "💳",
+    },
     { id: "expenses", name: "Expenses Report", icon: "📉" },
     { id: "bonus", name: "Bonus Report", icon: "🎁" },
-    { id: "custom", name: "Custom Report", icon: "🔧" }
+    { id: "custom", name: "Custom Report", icon: "🔧" },
   ];
 
   // Handle export CSV for reports
   const handleExportReportCSV = (reportType, data) => {
     const csvContent = [
       ["Report Type", "Date Range", "Generated Date"],
-      [reportType, `${reportDateRange.start} to ${reportDateRange.end}`, new Date().toLocaleString('en-IN')],
+      [
+        reportType,
+        `${reportDateRange.start} to ${reportDateRange.end}`,
+        new Date().toLocaleString("en-IN"),
+      ],
       [],
-      ...(data || []).map(row => Array.isArray(row) ? row : Object.values(row))
-    ].map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+      ...(data || []).map((row) =>
+        Array.isArray(row) ? row : Object.values(row)
+      ),
+    ]
+      .map((row) =>
+        row
+          .map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `${reportType}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `${reportType}_${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   // Handle export PDF for reports (mock implementation)
   const handleExportReportPDF = (reportType) => {
-    alert(`PDF Export for ${reportType} would be generated here.\n\nIn production, this would use a PDF library like jsPDF or pdfmake to generate the report.`);
+    alert(
+      `PDF Export for ${reportType} would be generated here.\n\nIn production, this would use a PDF library like jsPDF or pdfmake to generate the report.`
+    );
   };
 
   // Generate report data (mock)
@@ -598,57 +822,105 @@ export default function AdminDashboard() {
           return;
         }
         mockData = [
-          ["Player ID", "Name", "Total Games", "Total Revenue", "Total Rake", "Win/Loss"],
-          [selectedPlayerForReport.id, selectedPlayerForReport.name, "45", "₹12,500", "₹1,250", "₹-5,000"]
+          [
+            "Player ID",
+            "Name",
+            "Total Games",
+            "Total Revenue",
+            "Total Rake",
+            "Win/Loss",
+          ],
+          [
+            selectedPlayerForReport.id,
+            selectedPlayerForReport.name,
+            "45",
+            "₹12,500",
+            "₹1,250",
+            "₹-5,000",
+          ],
         ];
         break;
       case "cumulative_player":
         mockData = [
-          ["Player ID", "Name", "Total Games", "Total Revenue", "Average Session", "Total Rake"],
+          [
+            "Player ID",
+            "Name",
+            "Total Games",
+            "Total Revenue",
+            "Average Session",
+            "Total Rake",
+          ],
           ["P101", "Alex Johnson", "125", "₹45,000", "₹360", "₹4,500"],
-          ["P102", "Maria Garcia", "89", "₹32,500", "₹365", "₹3,250"]
+          ["P102", "Maria Garcia", "89", "₹32,500", "₹365", "₹3,250"],
         ];
         break;
       case "daily_transactions":
         mockData = [
           ["Date", "Total Transactions", "Revenue", "Deposits", "Withdrawals"],
           ["2024-01-20", "45", "₹12,450", "₹25,000", "₹10,000"],
-          ["2024-01-19", "38", "₹11,200", "₹22,500", "₹8,500"]
+          ["2024-01-19", "38", "₹11,200", "₹22,500", "₹8,500"],
         ];
         break;
       case "daily_rake":
         mockData = [
-          ["Date", "Total Rake", "Tables", "Average Rake per Table", "Top Table"],
+          [
+            "Date",
+            "Total Rake",
+            "Tables",
+            "Average Rake per Table",
+            "Top Table",
+          ],
           ["2024-01-20", "₹1,245", "8", "₹155.63", "Table 1"],
-          ["2024-01-19", "₹1,120", "8", "₹140.00", "Table 2"]
+          ["2024-01-19", "₹1,120", "8", "₹140.00", "Table 2"],
         ];
         break;
       case "per_table_transactions":
         mockData = [
           ["Table", "Date", "Transactions", "Revenue", "Rake", "Players"],
           ["Table 1", "2024-01-20", "12", "₹5,200", "₹520", "8"],
-          ["Table 2", "2024-01-20", "10", "₹4,100", "₹410", "6"]
+          ["Table 2", "2024-01-20", "10", "₹4,100", "₹410", "6"],
         ];
         break;
       case "credit_transactions":
         mockData = [
-          ["Date", "Player", "Type", "Amount", "Balance Before", "Balance After"],
+          [
+            "Date",
+            "Player",
+            "Type",
+            "Amount",
+            "Balance Before",
+            "Balance After",
+          ],
           ["2024-01-20", "P101", "Credit Granted", "₹50,000", "₹0", "₹50,000"],
-          ["2024-01-20", "P102", "Credit Adjustment", "₹25,000", "₹25,000", "₹50,000"]
+          [
+            "2024-01-20",
+            "P102",
+            "Credit Adjustment",
+            "₹25,000",
+            "₹25,000",
+            "₹50,000",
+          ],
         ];
         break;
       case "expenses":
         mockData = [
           ["Date", "Category", "Description", "Amount", "Approved By"],
           ["2024-01-20", "Operations", "Staff Payment", "₹15,000", "Admin"],
-          ["2024-01-19", "Maintenance", "Equipment Repair", "₹8,500", "Admin"]
+          ["2024-01-19", "Maintenance", "Equipment Repair", "₹8,500", "Admin"],
         ];
         break;
       case "bonus":
         mockData = [
           ["Date", "Player", "Bonus Type", "Amount", "Status", "Expiry"],
-          ["2024-01-20", "P101", "Welcome Bonus", "₹1,000", "Active", "2024-02-20"],
-          ["2024-01-19", "P102", "Referral Bonus", "₹500", "Used", "N/A"]
+          [
+            "2024-01-20",
+            "P101",
+            "Welcome Bonus",
+            "₹1,000",
+            "Active",
+            "2024-02-20",
+          ],
+          ["2024-01-19", "P102", "Referral Bonus", "₹500", "Used", "N/A"],
         ];
         break;
       case "custom":
@@ -659,7 +931,7 @@ export default function AdminDashboard() {
         mockData = [
           ["Custom Report", "Compiled from multiple reports"],
           ["Report Types", customReportSelection.join(", ")],
-          ["Generated", new Date().toLocaleString('en-IN')]
+          ["Generated", new Date().toLocaleString("en-IN")],
         ];
         break;
     }
@@ -669,44 +941,71 @@ export default function AdminDashboard() {
 
   // Player search for reports
   const [playerReportSearch, setPlayerReportSearch] = useState("");
-  const filteredPlayersForReport = playerReportSearch.length >= 3
-    ? allPlayersForCredit.filter(player => {
-      const searchLower = playerReportSearch.toLowerCase();
-      return (
-        player.name.toLowerCase().includes(searchLower) ||
-        player.id.toLowerCase().includes(searchLower) ||
-        player.email.toLowerCase().includes(searchLower)
-      );
-    })
-    : [];
+  const filteredPlayersForReport =
+    playerReportSearch.length >= 3
+      ? allPlayersForCredit.filter((player) => {
+          const searchLower = playerReportSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower)
+          );
+        })
+      : [];
 
   // Player search for Core Management and other sections
   const [playerManagementSearch, setPlayerManagementSearch] = useState("");
-  const [selectedPlayerForManagement, setSelectedPlayerForManagement] = useState(null);
-  const filteredPlayersForManagement = playerManagementSearch.length >= 3
-    ? allPlayersForCredit.filter(player => {
-      const searchLower = playerManagementSearch.toLowerCase();
-      return (
-        player.name.toLowerCase().includes(searchLower) ||
-        player.id.toLowerCase().includes(searchLower) ||
-        player.email.toLowerCase().includes(searchLower)
-      );
-    })
-    : [];
+  const [selectedPlayerForManagement, setSelectedPlayerForManagement] =
+    useState(null);
+  const filteredPlayersForManagement =
+    playerManagementSearch.length >= 3
+      ? allPlayersForCredit.filter((player) => {
+          const searchLower = playerManagementSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower)
+          );
+        })
+      : [];
 
   // Credit Management State
   const [creditEligiblePlayers, setCreditEligiblePlayers] = useState([
-    { id: "P101", name: "Alex Johnson", creditLimit: 100000, currentBalance: 0 },
-    { id: "P102", name: "Maria Garcia", creditLimit: 50000, currentBalance: 0 }
+    {
+      id: "P101",
+      name: "Alex Johnson",
+      creditLimit: 100000,
+      currentBalance: 0,
+    },
+    { id: "P102", name: "Maria Garcia", creditLimit: 50000, currentBalance: 0 },
   ]);
   const [creditRequests, setCreditRequests] = useState([
-    { id: "CR001", playerId: "P101", playerName: "Alex Johnson", amount: 50000, requestedLimit: 100000, status: "pending", requestedDate: "2024-01-20T10:30:00", reason: "Need credit for ongoing session" },
-    { id: "CR002", playerId: "P102", playerName: "Maria Garcia", amount: 25000, requestedLimit: 50000, status: "pending", requestedDate: "2024-01-20T11:15:00", reason: "Lost ₹10 lakh, requesting credit" }
+    {
+      id: "CR001",
+      playerId: "P101",
+      playerName: "Alex Johnson",
+      amount: 50000,
+      requestedLimit: 100000,
+      status: "pending",
+      requestedDate: "2024-01-20T10:30:00",
+      reason: "Need credit for ongoing session",
+    },
+    {
+      id: "CR002",
+      playerId: "P102",
+      playerName: "Maria Garcia",
+      amount: 25000,
+      requestedLimit: 50000,
+      status: "pending",
+      requestedDate: "2024-01-20T11:15:00",
+      reason: "Lost ₹10 lakh, requesting credit",
+    },
   ]);
   const [creditPlayerSearch, setCreditPlayerSearch] = useState("");
   const [creditPlayerSearchLimit, setCreditPlayerSearchLimit] = useState("");
   const [selectedCreditPlayer, setSelectedCreditPlayer] = useState(null);
-  const [selectedCreditPlayerLimit, setSelectedCreditPlayerLimit] = useState(null);
+  const [selectedCreditPlayerLimit, setSelectedCreditPlayerLimit] =
+    useState(null);
   const [creditLimitAmount, setCreditLimitAmount] = useState("");
   const [creditEffectiveDate, setCreditEffectiveDate] = useState("");
   const [creditAdjustmentPlayer, setCreditAdjustmentPlayer] = useState(null);
@@ -714,7 +1013,12 @@ export default function AdminDashboard() {
   const [creditAdjustmentNotes, setCreditAdjustmentNotes] = useState("");
 
   // Get all players for search (combine registered and pending)
-  const allPlayersForCredit = [...registeredPlayers, ...allPlayers.filter(p => !registeredPlayers.find(rp => rp.id === p.id))];
+  const allPlayersForCredit = [
+    ...registeredPlayers,
+    ...allPlayers.filter(
+      (p) => !registeredPlayers.find((rp) => rp.id === p.id)
+    ),
+  ];
 
   // Bonus creation state
   const [bonusPlayerSearch, setBonusPlayerSearch] = useState("");
@@ -723,20 +1027,21 @@ export default function AdminDashboard() {
     type: "Welcome Bonus",
     amount: "",
     reason: "",
-    expiryDays: 30
+    expiryDays: 30,
   });
 
   // Filter players for bonus creation
-  const filteredPlayersForBonus = bonusPlayerSearch.length >= 2
-    ? allPlayersForCredit.filter(player => {
-      const searchLower = bonusPlayerSearch.toLowerCase();
-      return (
-        player.name.toLowerCase().includes(searchLower) ||
-        player.id.toLowerCase().includes(searchLower) ||
-        (player.email && player.email.toLowerCase().includes(searchLower))
-      );
-    })
-    : [];
+  const filteredPlayersForBonus =
+    bonusPlayerSearch.length >= 2
+      ? allPlayersForCredit.filter((player) => {
+          const searchLower = bonusPlayerSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            (player.email && player.email.toLowerCase().includes(searchLower))
+          );
+        })
+      : [];
 
   // Handle bonus creation
   const handleCreateBonus = () => {
@@ -759,11 +1064,21 @@ export default function AdminDashboard() {
       expiryDays: bonusForm.expiryDays,
       status: "Active",
       createdAt: new Date().toISOString(),
-      expiryDate: new Date(Date.now() + bonusForm.expiryDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      expiryDate: new Date(
+        Date.now() + bonusForm.expiryDays * 24 * 60 * 60 * 1000
+      )
+        .toISOString()
+        .split("T")[0],
     };
     // In a real app, this would be sent to the backend
     console.log("Bonus created:", newBonus);
-    alert(`Bonus created successfully!\n\nPlayer: ${selectedBonusPlayer.name}\nType: ${bonusForm.type}\nAmount: ₹${parseFloat(bonusForm.amount).toLocaleString('en-IN')}\nReason: ${bonusForm.reason || 'N/A'}`);
+    alert(
+      `Bonus created successfully!\n\nPlayer: ${
+        selectedBonusPlayer.name
+      }\nType: ${bonusForm.type}\nAmount: ₹${parseFloat(
+        bonusForm.amount
+      ).toLocaleString("en-IN")}\nReason: ${bonusForm.reason || "N/A"}`
+    );
     // Reset form
     setSelectedBonusPlayer(null);
     setBonusPlayerSearch("");
@@ -771,21 +1086,22 @@ export default function AdminDashboard() {
       type: "Welcome Bonus",
       amount: "",
       reason: "",
-      expiryDays: 30
+      expiryDays: 30,
     });
   };
 
   // Filter all players for credit limit setting (searches all players, not just eligible)
-  const filteredPlayersForLimit = creditPlayerSearchLimit.length >= 3
-    ? allPlayersForCredit.filter(player => {
-      const searchLower = creditPlayerSearchLimit.toLowerCase();
-      return (
-        player.name.toLowerCase().includes(searchLower) ||
-        player.id.toLowerCase().includes(searchLower) ||
-        player.email.toLowerCase().includes(searchLower)
-      );
-    })
-    : [];
+  const filteredPlayersForLimit =
+    creditPlayerSearchLimit.length >= 3
+      ? allPlayersForCredit.filter((player) => {
+          const searchLower = creditPlayerSearchLimit.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower)
+          );
+        })
+      : [];
 
   // Handle setting credit limit (automatically makes player eligible)
   const handleSetCreditLimit = () => {
@@ -800,23 +1116,42 @@ export default function AdminDashboard() {
     }
 
     // Check if player is already in eligible list
-    const existingPlayer = creditEligiblePlayers.find(p => p.id === selectedCreditPlayerLimit.id);
+    const existingPlayer = creditEligiblePlayers.find(
+      (p) => p.id === selectedCreditPlayerLimit.id
+    );
 
     if (existingPlayer) {
       // Update existing player's limit
-      setCreditEligiblePlayers(prev => prev.map(p =>
-        p.id === selectedCreditPlayerLimit.id ? { ...p, creditLimit: amount } : p
-      ));
-      alert(`Credit limit updated for ${selectedCreditPlayerLimit.name} to ₹${amount.toLocaleString('en-IN')}`);
+      setCreditEligiblePlayers((prev) =>
+        prev.map((p) =>
+          p.id === selectedCreditPlayerLimit.id
+            ? { ...p, creditLimit: amount }
+            : p
+        )
+      );
+      alert(
+        `Credit limit updated for ${
+          selectedCreditPlayerLimit.name
+        } to ₹${amount.toLocaleString("en-IN")}`
+      );
     } else {
       // Add new player to eligible list
-      setCreditEligiblePlayers(prev => [...prev, {
-        id: selectedCreditPlayerLimit.id,
-        name: selectedCreditPlayerLimit.name,
-        creditLimit: amount,
-        currentBalance: 0
-      }]);
-      alert(`${selectedCreditPlayerLimit.name} has been added to credit-eligible players with limit ₹${amount.toLocaleString('en-IN')}`);
+      setCreditEligiblePlayers((prev) => [
+        ...prev,
+        {
+          id: selectedCreditPlayerLimit.id,
+          name: selectedCreditPlayerLimit.name,
+          creditLimit: amount,
+          currentBalance: 0,
+        },
+      ]);
+      alert(
+        `${
+          selectedCreditPlayerLimit.name
+        } has been added to credit-eligible players with limit ₹${amount.toLocaleString(
+          "en-IN"
+        )}`
+      );
     }
 
     // Reset form
@@ -828,20 +1163,32 @@ export default function AdminDashboard() {
 
   // Handle credit request approval/rejection
   const handleCreditRequestAction = (requestId, action) => {
-    setCreditRequests(prev => prev.map(req => {
-      if (req.id === requestId) {
-        if (action === "approve") {
-          // Update request status and send to cashier
-          return { ...req, status: "approved", approvedDate: new Date().toISOString() };
-        } else {
-          return { ...req, status: "rejected", rejectedDate: new Date().toISOString() };
+    setCreditRequests((prev) =>
+      prev.map((req) => {
+        if (req.id === requestId) {
+          if (action === "approve") {
+            // Update request status and send to cashier
+            return {
+              ...req,
+              status: "approved",
+              approvedDate: new Date().toISOString(),
+            };
+          } else {
+            return {
+              ...req,
+              status: "rejected",
+              rejectedDate: new Date().toISOString(),
+            };
+          }
         }
-      }
-      return req;
-    }));
-    const request = creditRequests.find(r => r.id === requestId);
+        return req;
+      })
+    );
+    const request = creditRequests.find((r) => r.id === requestId);
     if (action === "approve") {
-      alert(`Credit request approved for ${request.playerName}. Request sent to cashier for processing.`);
+      alert(
+        `Credit request approved for ${request.playerName}. Request sent to cashier for processing.`
+      );
     } else {
       alert(`Credit request rejected for ${request.playerName}.`);
     }
@@ -860,17 +1207,24 @@ export default function AdminDashboard() {
     }
 
     // Update player's current balance
-    setCreditEligiblePlayers(prev => prev.map(p => {
-      if (p.id === creditAdjustmentPlayer.id) {
-        const newBalance = type === "credit"
-          ? p.currentBalance + amount
-          : Math.max(0, p.currentBalance - amount);
-        return { ...p, currentBalance: newBalance };
-      }
-      return p;
-    }));
+    setCreditEligiblePlayers((prev) =>
+      prev.map((p) => {
+        if (p.id === creditAdjustmentPlayer.id) {
+          const newBalance =
+            type === "credit"
+              ? p.currentBalance + amount
+              : Math.max(0, p.currentBalance - amount);
+          return { ...p, currentBalance: newBalance };
+        }
+        return p;
+      })
+    );
 
-    alert(`Credit ${type === "credit" ? "added" : "deducted"} for ${creditAdjustmentPlayer.name}: ₹${amount.toLocaleString('en-IN')}`);
+    alert(
+      `Credit ${type === "credit" ? "added" : "deducted"} for ${
+        creditAdjustmentPlayer.name
+      }: ₹${amount.toLocaleString("en-IN")}`
+    );
 
     // Reset form
     setCreditAdjustmentPlayer(null);
@@ -880,24 +1234,83 @@ export default function AdminDashboard() {
 
   // State for Staff Bonuses Approval
   const [staffBonusRequests, setStaffBonusRequests] = useState([
-    { id: "SB001", staffId: "ST001", staffName: "Sarah Johnson", staffRole: "Dealer", bonusType: "Performance Bonus", amount: 5000, reason: "Excellent performance this month", requestedBy: "Manager", requestedDate: "2024-01-20T10:30:00", status: "pending" },
-    { id: "SB002", staffId: "ST002", staffName: "Mike Chen", staffRole: "Floor Manager", bonusType: "Attendance Bonus", amount: 3000, reason: "Perfect attendance for 3 months", requestedBy: "HR", requestedDate: "2024-01-20T11:15:00", status: "pending" },
-    { id: "SB003", staffId: "ST003", staffName: "Emma Davis", staffRole: "Cashier", bonusType: "Special Achievement", amount: 7500, reason: "Outstanding customer service feedback", requestedBy: "Manager", requestedDate: "2024-01-19T14:20:00", status: "pending" }
+    {
+      id: "SB001",
+      staffId: "ST001",
+      staffName: "Sarah Johnson",
+      staffRole: "Dealer",
+      bonusType: "Performance Bonus",
+      amount: 5000,
+      reason: "Excellent performance this month",
+      requestedBy: "Manager",
+      requestedDate: "2024-01-20T10:30:00",
+      status: "pending",
+    },
+    {
+      id: "SB002",
+      staffId: "ST002",
+      staffName: "Mike Chen",
+      staffRole: "Floor Manager",
+      bonusType: "Attendance Bonus",
+      amount: 3000,
+      reason: "Perfect attendance for 3 months",
+      requestedBy: "HR",
+      requestedDate: "2024-01-20T11:15:00",
+      status: "pending",
+    },
+    {
+      id: "SB003",
+      staffId: "ST003",
+      staffName: "Emma Davis",
+      staffRole: "Cashier",
+      bonusType: "Special Achievement",
+      amount: 7500,
+      reason: "Outstanding customer service feedback",
+      requestedBy: "Manager",
+      requestedDate: "2024-01-19T14:20:00",
+      status: "pending",
+    },
   ]);
 
   const [bonusApprovalConfig, setBonusApprovalConfig] = useState({
     requireApproval: true,
     minAmountRequiringApproval: 10000,
     autoApproveUnder: 2000,
-    requireSuperAdminForAmountOver: 50000
+    requireSuperAdminForAmountOver: 50000,
   });
 
-  // VIP Store state
+  // VIP Store state - Admin has access to one club only
+  const adminClubId = "club-01"; // Admin is assigned to a single club
+  const adminClubName = "Emerald Poker Mumbai"; // Admin's club name
   const [vipProducts, setVipProducts] = useState([
-    { id: 'vip-1', title: 'VIP Hoodie', points: 1500 },
-    { id: 'vip-2', title: 'Free Dinner', points: 800 },
-    { id: 'vip-3', title: 'VIP Poker Set', points: 2500 },
-    { id: 'vip-4', title: 'Premium Tournament Entry', points: 3000 }
+    {
+      id: "vip-1",
+      clubId: adminClubId,
+      title: "VIP Hoodie",
+      points: 1500,
+      image: "https://placehold.co/100x100/333/FFF?text=VIP+Hoodie",
+    },
+    {
+      id: "vip-2",
+      clubId: adminClubId,
+      title: "Free Dinner",
+      points: 800,
+      image: "https://placehold.co/100x100/333/FFF?text=Free+Dinner",
+    },
+    {
+      id: "vip-3",
+      clubId: adminClubId,
+      title: "VIP Poker Set",
+      points: 2500,
+      image: "https://placehold.co/100x100/333/FFF?text=VIP+Poker+Set",
+    },
+    {
+      id: "vip-4",
+      clubId: adminClubId,
+      title: "Premium Tournament Entry",
+      points: 3000,
+      image: "https://placehold.co/100x100/333/FFF?text=Tournament",
+    },
   ]);
 
   // Tournament Management State
@@ -923,8 +1336,8 @@ export default function AdminDashboard() {
       breakStructure: "Every 4 levels",
       payoutStructure: "Top 15%",
       createdBy: "Admin",
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-    }
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    },
   ]);
 
   const [tournamentForm, setTournamentForm] = useState({
@@ -953,7 +1366,7 @@ export default function AdminDashboard() {
     breakDuration: 10,
     payoutStructure: "Top 15%",
     seatDrawMethod: "Random",
-    clockPauseRules: "Standard"
+    clockPauseRules: "Standard",
   });
 
   const [selectedTournament, setSelectedTournament] = useState(null);
@@ -971,7 +1384,7 @@ export default function AdminDashboard() {
     "8-Game Mix",
     "Triple Draw Lowball",
     "Razz",
-    "Badugi"
+    "Badugi",
   ];
 
   // Blind structures
@@ -981,7 +1394,7 @@ export default function AdminDashboard() {
     "Super Turbo",
     "Deep Stack",
     "Hyper Turbo",
-    "Custom"
+    "Custom",
   ];
 
   // Break structures
@@ -991,7 +1404,7 @@ export default function AdminDashboard() {
     "Every 8 levels",
     "Every 10 levels",
     "No breaks",
-    "Custom"
+    "Custom",
   ];
 
   // Payout structures
@@ -1004,12 +1417,16 @@ export default function AdminDashboard() {
     "Top 3",
     "Top 5",
     "Top 9",
-    "Custom"
+    "Custom",
   ];
 
   // Handle tournament creation
   const handleCreateTournament = () => {
-    if (!tournamentForm.name || !tournamentForm.buyIn || !tournamentForm.startingChips) {
+    if (
+      !tournamentForm.name ||
+      !tournamentForm.buyIn ||
+      !tournamentForm.startingChips
+    ) {
       alert("Please fill in all required fields");
       return;
     }
@@ -1021,23 +1438,29 @@ export default function AdminDashboard() {
       buyIn: parseFloat(tournamentForm.buyIn),
       entryFee: parseFloat(tournamentForm.entryFee) || 0,
       startingChips: parseFloat(tournamentForm.startingChips),
-      startTime: tournamentForm.startTime || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      startTime:
+        tournamentForm.startTime ||
+        new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       registeredPlayers: 0,
-      maxPlayers: tournamentForm.maxPlayers ? parseInt(tournamentForm.maxPlayers) : null,
+      maxPlayers: tournamentForm.maxPlayers
+        ? parseInt(tournamentForm.maxPlayers)
+        : null,
       blindStructure: tournamentForm.blindStructure,
       blindLevels: tournamentForm.blindLevels,
       rebuyAllowed: tournamentForm.rebuyAllowed,
       addOnAllowed: tournamentForm.addOnAllowed,
       reEntryAllowed: tournamentForm.reEntryAllowed,
-      bountyAmount: tournamentForm.bountyAmount ? parseFloat(tournamentForm.bountyAmount) : 0,
+      bountyAmount: tournamentForm.bountyAmount
+        ? parseFloat(tournamentForm.bountyAmount)
+        : 0,
       lateRegistration: tournamentForm.lateRegistration,
       breakStructure: tournamentForm.breakStructure,
       payoutStructure: tournamentForm.payoutStructure,
       createdBy: "Admin",
       createdAt: new Date().toISOString(),
-      ...tournamentForm
+      ...tournamentForm,
     };
-    setTournaments(prev => [newTournament, ...prev]);
+    setTournaments((prev) => [newTournament, ...prev]);
     alert(`Tournament "${tournamentForm.name}" created successfully!`);
     setTournamentForm({
       name: "",
@@ -1065,7 +1488,7 @@ export default function AdminDashboard() {
       breakDuration: 10,
       payoutStructure: "Top 15%",
       seatDrawMethod: "Random",
-      clockPauseRules: "Standard"
+      clockPauseRules: "Standard",
     });
     setShowTournamentForm(false);
   };
@@ -1086,10 +1509,22 @@ export default function AdminDashboard() {
       lastMessage: "I'm having trouble with my account login.",
       lastMessageTime: new Date(Date.now() - 300000).toISOString(),
       messages: [
-        { id: "M1", sender: "player", senderName: "Alex Johnson", text: "I'm having trouble with my account login.", timestamp: new Date(Date.now() - 300000).toISOString() },
-        { id: "M2", sender: "staff", senderName: "Admin", text: "Hi Alex, I'm here to help. Can you describe the issue?", timestamp: new Date(Date.now() - 240000).toISOString() }
+        {
+          id: "M1",
+          sender: "player",
+          senderName: "Alex Johnson",
+          text: "I'm having trouble with my account login.",
+          timestamp: new Date(Date.now() - 300000).toISOString(),
+        },
+        {
+          id: "M2",
+          sender: "staff",
+          senderName: "Admin",
+          text: "Hi Alex, I'm here to help. Can you describe the issue?",
+          timestamp: new Date(Date.now() - 240000).toISOString(),
+        },
       ],
-      createdAt: new Date(Date.now() - 3600000).toISOString()
+      createdAt: new Date(Date.now() - 3600000).toISOString(),
     },
     {
       id: "PC002",
@@ -1099,11 +1534,29 @@ export default function AdminDashboard() {
       lastMessage: "Thank you, the issue is resolved.",
       lastMessageTime: new Date(Date.now() - 600000).toISOString(),
       messages: [
-        { id: "M3", sender: "player", senderName: "Maria Garcia", text: "I need help with my KYC verification.", timestamp: new Date(Date.now() - 1800000).toISOString() },
-        { id: "M4", sender: "staff", senderName: "Admin", text: "Sure, let me check your documents.", timestamp: new Date(Date.now() - 1500000).toISOString() },
-        { id: "M5", sender: "player", senderName: "Maria Garcia", text: "Thank you, the issue is resolved.", timestamp: new Date(Date.now() - 600000).toISOString() }
+        {
+          id: "M3",
+          sender: "player",
+          senderName: "Maria Garcia",
+          text: "I need help with my KYC verification.",
+          timestamp: new Date(Date.now() - 1800000).toISOString(),
+        },
+        {
+          id: "M4",
+          sender: "staff",
+          senderName: "Admin",
+          text: "Sure, let me check your documents.",
+          timestamp: new Date(Date.now() - 1500000).toISOString(),
+        },
+        {
+          id: "M5",
+          sender: "player",
+          senderName: "Maria Garcia",
+          text: "Thank you, the issue is resolved.",
+          timestamp: new Date(Date.now() - 600000).toISOString(),
+        },
       ],
-      createdAt: new Date(Date.now() - 3600000).toISOString()
+      createdAt: new Date(Date.now() - 3600000).toISOString(),
     },
     {
       id: "PC003",
@@ -1113,12 +1566,30 @@ export default function AdminDashboard() {
       lastMessage: "Thanks for your help!",
       lastMessageTime: new Date(Date.now() - 7200000).toISOString(),
       messages: [
-        { id: "M6", sender: "player", senderName: "Rajesh Kumar", text: "How do I withdraw my winnings?", timestamp: new Date(Date.now() - 7200000).toISOString() },
-        { id: "M7", sender: "staff", senderName: "Admin", text: "You can withdraw from the cashier desk or use our online portal.", timestamp: new Date(Date.now() - 7000000).toISOString() },
-        { id: "M8", sender: "player", senderName: "Rajesh Kumar", text: "Thanks for your help!", timestamp: new Date(Date.now() - 6800000).toISOString() }
+        {
+          id: "M6",
+          sender: "player",
+          senderName: "Rajesh Kumar",
+          text: "How do I withdraw my winnings?",
+          timestamp: new Date(Date.now() - 7200000).toISOString(),
+        },
+        {
+          id: "M7",
+          sender: "staff",
+          senderName: "Admin",
+          text: "You can withdraw from the cashier desk or use our online portal.",
+          timestamp: new Date(Date.now() - 7000000).toISOString(),
+        },
+        {
+          id: "M8",
+          sender: "player",
+          senderName: "Rajesh Kumar",
+          text: "Thanks for your help!",
+          timestamp: new Date(Date.now() - 6800000).toISOString(),
+        },
       ],
-      createdAt: new Date(Date.now() - 14400000).toISOString()
-    }
+      createdAt: new Date(Date.now() - 14400000).toISOString(),
+    },
   ]);
 
   // Staff chats
@@ -1132,10 +1603,22 @@ export default function AdminDashboard() {
       lastMessage: "Need assistance with Table 3",
       lastMessageTime: new Date(Date.now() - 180000).toISOString(),
       messages: [
-        { id: "M9", sender: "staff", senderName: "Sarah Johnson", text: "Need assistance with Table 3", timestamp: new Date(Date.now() - 180000).toISOString() },
-        { id: "M10", sender: "admin", senderName: "Admin", text: "On my way!", timestamp: new Date(Date.now() - 120000).toISOString() }
+        {
+          id: "M9",
+          sender: "staff",
+          senderName: "Sarah Johnson",
+          text: "Need assistance with Table 3",
+          timestamp: new Date(Date.now() - 180000).toISOString(),
+        },
+        {
+          id: "M10",
+          sender: "admin",
+          senderName: "Admin",
+          text: "On my way!",
+          timestamp: new Date(Date.now() - 120000).toISOString(),
+        },
       ],
-      createdAt: new Date(Date.now() - 180000).toISOString()
+      createdAt: new Date(Date.now() - 180000).toISOString(),
     },
     {
       id: "SC002",
@@ -1146,18 +1629,41 @@ export default function AdminDashboard() {
       lastMessage: "Processing large withdrawal request",
       lastMessageTime: new Date(Date.now() - 600000).toISOString(),
       messages: [
-        { id: "M11", sender: "staff", senderName: "Mike Chen", text: "Processing large withdrawal request - need approval", timestamp: new Date(Date.now() - 900000).toISOString() },
-        { id: "M12", sender: "admin", senderName: "Admin", text: "Please hold and I'll review.", timestamp: new Date(Date.now() - 750000).toISOString() },
-        { id: "M13", sender: "staff", senderName: "Mike Chen", text: "Processing large withdrawal request", timestamp: new Date(Date.now() - 600000).toISOString() }
+        {
+          id: "M11",
+          sender: "staff",
+          senderName: "Mike Chen",
+          text: "Processing large withdrawal request - need approval",
+          timestamp: new Date(Date.now() - 900000).toISOString(),
+        },
+        {
+          id: "M12",
+          sender: "admin",
+          senderName: "Admin",
+          text: "Please hold and I'll review.",
+          timestamp: new Date(Date.now() - 750000).toISOString(),
+        },
+        {
+          id: "M13",
+          sender: "staff",
+          senderName: "Mike Chen",
+          text: "Processing large withdrawal request",
+          timestamp: new Date(Date.now() - 600000).toISOString(),
+        },
       ],
-      createdAt: new Date(Date.now() - 1800000).toISOString()
-    }
+      createdAt: new Date(Date.now() - 1800000).toISOString(),
+    },
   ]);
 
   // Filter chats by status
-  const filteredChats = chatType === "player"
-    ? playerChats.filter(chat => statusFilter === "all" || chat.status === statusFilter)
-    : staffChats.filter(chat => statusFilter === "all" || chat.status === statusFilter);
+  const filteredChats =
+    chatType === "player"
+      ? playerChats.filter(
+          (chat) => statusFilter === "all" || chat.status === statusFilter
+        )
+      : staffChats.filter(
+          (chat) => statusFilter === "all" || chat.status === statusFilter
+        );
 
   // Handle sending message
   const handleSendMessage = () => {
@@ -1168,33 +1674,37 @@ export default function AdminDashboard() {
       sender: chatType === "player" ? "staff" : "admin",
       senderName: "Admin",
       text: newMessage.trim(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     if (chatType === "player") {
-      setPlayerChats(prev => prev.map(chat =>
-        chat.id === selectedChat.id
-          ? {
-            ...chat,
-            messages: [...chat.messages, message],
-            lastMessage: message.text,
-            lastMessageTime: message.timestamp,
-            status: chat.status === "closed" ? "in_progress" : chat.status
-          }
-          : chat
-      ));
+      setPlayerChats((prev) =>
+        prev.map((chat) =>
+          chat.id === selectedChat.id
+            ? {
+                ...chat,
+                messages: [...chat.messages, message],
+                lastMessage: message.text,
+                lastMessageTime: message.timestamp,
+                status: chat.status === "closed" ? "in_progress" : chat.status,
+              }
+            : chat
+        )
+      );
     } else {
-      setStaffChats(prev => prev.map(chat =>
-        chat.id === selectedChat.id
-          ? {
-            ...chat,
-            messages: [...chat.messages, message],
-            lastMessage: message.text,
-            lastMessageTime: message.timestamp,
-            status: chat.status === "closed" ? "in_progress" : chat.status
-          }
-          : chat
-      ));
+      setStaffChats((prev) =>
+        prev.map((chat) =>
+          chat.id === selectedChat.id
+            ? {
+                ...chat,
+                messages: [...chat.messages, message],
+                lastMessage: message.text,
+                lastMessageTime: message.timestamp,
+                status: chat.status === "closed" ? "in_progress" : chat.status,
+              }
+            : chat
+        )
+      );
     }
     setNewMessage("");
   };
@@ -1202,21 +1712,25 @@ export default function AdminDashboard() {
   // Handle status change
   const handleStatusChange = (chatId, newStatus) => {
     if (chatType === "player") {
-      setPlayerChats(prev => prev.map(chat =>
-        chat.id === chatId ? { ...chat, status: newStatus } : chat
-      ));
+      setPlayerChats((prev) =>
+        prev.map((chat) =>
+          chat.id === chatId ? { ...chat, status: newStatus } : chat
+        )
+      );
       // Update selected chat if it's the one being changed
       if (selectedChat && selectedChat.id === chatId) {
-        const updatedChat = playerChats.find(c => c.id === chatId);
+        const updatedChat = playerChats.find((c) => c.id === chatId);
         if (updatedChat) setSelectedChat({ ...updatedChat, status: newStatus });
       }
     } else {
-      setStaffChats(prev => prev.map(chat =>
-        chat.id === chatId ? { ...chat, status: newStatus } : chat
-      ));
+      setStaffChats((prev) =>
+        prev.map((chat) =>
+          chat.id === chatId ? { ...chat, status: newStatus } : chat
+        )
+      );
       // Update selected chat if it's the one being changed
       if (selectedChat && selectedChat.id === chatId) {
-        const updatedChat = staffChats.find(c => c.id === chatId);
+        const updatedChat = staffChats.find((c) => c.id === chatId);
         if (updatedChat) setSelectedChat({ ...updatedChat, status: newStatus });
       }
     }
@@ -1226,7 +1740,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (selectedChat) {
       const currentChats = chatType === "player" ? playerChats : staffChats;
-      const updatedChat = currentChats.find(c => c.id === selectedChat.id);
+      const updatedChat = currentChats.find((c) => c.id === selectedChat.id);
       if (updatedChat) {
         setSelectedChat(updatedChat);
       } else {
@@ -1237,66 +1751,71 @@ export default function AdminDashboard() {
 
   // Handle staff bonus approval/rejection
   const handleStaffBonusAction = (requestId, action, notes = "") => {
-    setStaffBonusRequests(prev => prev.map(req => {
-      if (req.id === requestId) {
-        if (action === "approve") {
-          return { ...req, status: "approved", approvedDate: new Date().toISOString(), approvedBy: "Admin", notes: notes };
-        } else {
-          return { ...req, status: "rejected", rejectedDate: new Date().toISOString(), rejectedBy: "Admin", notes: notes };
+    setStaffBonusRequests((prev) =>
+      prev.map((req) => {
+        if (req.id === requestId) {
+          if (action === "approve") {
+            return {
+              ...req,
+              status: "approved",
+              approvedDate: new Date().toISOString(),
+              approvedBy: "Admin",
+              notes: notes,
+            };
+          } else {
+            return {
+              ...req,
+              status: "rejected",
+              rejectedDate: new Date().toISOString(),
+              rejectedBy: "Admin",
+              notes: notes,
+            };
+          }
         }
-      }
-      return req;
-    }));
-    const request = staffBonusRequests.find(r => r.id === requestId);
+        return req;
+      })
+    );
+    const request = staffBonusRequests.find((r) => r.id === requestId);
     if (action === "approve") {
-      alert(`Staff bonus approved for ${request.staffName}. Bonus will be processed.`);
+      alert(
+        `Staff bonus approved for ${request.staffName}. Bonus will be processed.`
+      );
     } else {
       alert(`Staff bonus rejected for ${request.staffName}.`);
     }
   };
 
+  // Factory Reset function
+  const factoryReset = () => {
+    try {
+      localStorage.clear();
+    } catch {}
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
-      <div className="mx-auto max-w-[1400px] px-6 py-10 grid grid-cols-12 gap-8">
+      <div className="flex">
         {/* Sidebar */}
-        <aside className="col-span-12 lg:col-span-3 xl:col-span-3 rounded-2xl bg-gradient-to-b from-red-500/20 via-purple-600/30 to-blue-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
-          <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-blue-400 drop-shadow-lg mb-6">
-            Admin
-          </div>
-          <div className="flex items-center mb-6 text-white min-w-0">
-            <div className="w-10 h-10 bg-gradient-to-r from-red-400 to-purple-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-              <span className="text-gray-900 font-bold text-sm">A</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-semibold truncate">System Administrator</div>
-              <div className="text-sm opacity-80 truncate">admin@pokerroom.com</div>
-            </div>
-          </div>
-
-          {/* Sidebar Menu */}
-          <nav className="space-y-3">
-            {menuItems.map((item, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveItem(item)}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${activeItem === item
-                  ? "bg-gradient-to-r from-red-400 to-purple-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                  : "bg-white/5 hover:bg-gradient-to-r hover:from-red-400/20 hover:to-purple-500/20 text-white"
-                  }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-        </aside>
+        <AdminSidebar
+          activeItem={activeItem}
+          setActiveItem={setActiveItem}
+          menuItems={menuItems}
+          onSignOut={handleSignOut}
+        />
 
         {/* Main Section */}
-        <main className="col-span-12 lg:col-span-9 xl:col-span-9 space-y-8">
+        <main className="flex-1 lg:ml-0 min-w-0">
+          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 sm:py-10 space-y-8">
           {/* Header */}
-          <header className="bg-gradient-to-r from-red-600 via-purple-500 to-blue-400 p-6 rounded-xl shadow-md flex justify-between items-center">
+          <header className="bg-gradient-to-r from-red-600 via-purple-500 to-blue-400 p-6 rounded-xl shadow-md flex justify-between items-center mt-16 lg:mt-0">
             <div>
-              <h1 className="text-2xl font-bold text-white">Admin - {activeItem}</h1>
-              <p className="text-gray-200 mt-1">Complete system administration and management</p>
+              <h1 className="text-2xl font-bold text-white">
+                Admin - {activeItem}
+              </h1>
+              <p className="text-gray-200 mt-1">
+                Complete system administration and management
+              </p>
             </div>
             <div className="flex gap-3">
               <button
@@ -1350,87 +1869,169 @@ export default function AdminDashboard() {
               {/* Statistics Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                 {[
-                  { title: "Active Tables", value: "8", color: "from-red-400 via-orange-500 to-yellow-500" },
-                  { title: "Total Players", value: "156", color: "from-blue-400 via-indigo-500 to-purple-500" },
-                  { title: "Active Dealers", value: "12", color: "from-green-400 via-emerald-500 to-teal-500" },
-                  { title: "System Status", value: "Online", color: "from-emerald-400 via-green-500 to-teal-500" },
+                  {
+                    title: "Active Tables",
+                    value: "8",
+                    color: "from-red-400 via-orange-500 to-yellow-500",
+                  },
+                  {
+                    title: "Total Players",
+                    value: "156",
+                    color: "from-blue-400 via-indigo-500 to-purple-500",
+                  },
+                  {
+                    title: "Active Dealers",
+                    value: "12",
+                    color: "from-green-400 via-emerald-500 to-teal-500",
+                  },
+                  {
+                    title: "System Status",
+                    value: "Online",
+                    color: "from-emerald-400 via-green-500 to-teal-500",
+                  },
                 ].map((card, i) => (
-                  <div key={i} className={`p-6 rounded-xl bg-gradient-to-br ${card.color} text-gray-900 shadow-lg transition-transform transform hover:scale-105`}>
-                    <div className="text-sm opacity-90 text-white/90">{card.title}</div>
-                    <div className="text-3xl font-bold mt-2 text-white">{card.value}</div>
-                    <div className="text-xs mt-1 text-white/70">Updated just now</div>
+                  <div
+                    key={i}
+                    className={`p-6 rounded-xl bg-gradient-to-br ${card.color} text-gray-900 shadow-lg transition-transform transform hover:scale-105`}
+                  >
+                    <div className="text-sm opacity-90 text-white/90">
+                      {card.title}
+                    </div>
+                    <div className="text-3xl font-bold mt-2 text-white">
+                      {card.value}
+                    </div>
+                    <div className="text-xs mt-1 text-white/70">
+                      Updated just now
+                    </div>
                   </div>
                 ))}
               </div>
 
               {/* Revenue & Rake Section */}
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Revenue, Rake & Tips Overview</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Revenue, Rake & Tips Overview
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Previous Day Revenue */}
                   <div className="bg-white/10 p-4 rounded-lg border border-purple-400/30">
-                    <div className="text-sm text-gray-300 mb-1">Previous Day Revenue</div>
-                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.previousDay.revenue)}</div>
+                    <div className="text-sm text-gray-300 mb-1">
+                      Previous Day Revenue
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {formatCurrency(revenueData.previousDay.revenue)}
+                    </div>
                     <div className="text-xs text-gray-400 mb-1">
                       <div>Date: {revenueData.previousDay.date}</div>
-                      <div>Last Updated: {revenueData.previousDay.lastUpdated}</div>
+                      <div>
+                        Last Updated: {revenueData.previousDay.lastUpdated}
+                      </div>
                     </div>
-                    <div className="text-xs text-purple-300 font-semibold mt-2">Yesterday's Sessions</div>
+                    <div className="text-xs text-purple-300 font-semibold mt-2">
+                      Yesterday's Sessions
+                    </div>
                   </div>
 
                   {/* Current Day Revenue */}
                   <div className="bg-white/10 p-4 rounded-lg border border-green-400/30">
-                    <div className="text-sm text-gray-300 mb-1">Current Day Revenue</div>
-                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.currentDay.revenue)}</div>
+                    <div className="text-sm text-gray-300 mb-1">
+                      Current Day Revenue
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {formatCurrency(revenueData.currentDay.revenue)}
+                    </div>
                     <div className="text-xs text-gray-400 mb-1">
                       <div>Date: {revenueData.currentDay.date}</div>
-                      <div>Last Updated: {revenueData.currentDay.lastUpdated}</div>
+                      <div>
+                        Last Updated: {revenueData.currentDay.lastUpdated}
+                      </div>
                     </div>
-                    <div className="text-xs text-green-300 font-semibold mt-2">Today's Sessions</div>
+                    <div className="text-xs text-green-300 font-semibold mt-2">
+                      Today's Sessions
+                    </div>
                   </div>
 
                   {/* Previous Day Rake */}
                   <div className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
-                    <div className="text-sm text-gray-300 mb-1">Previous Day Rake</div>
-                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.previousDay.rake)}</div>
+                    <div className="text-sm text-gray-300 mb-1">
+                      Previous Day Rake
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {formatCurrency(revenueData.previousDay.rake)}
+                    </div>
                     <div className="text-xs text-gray-400 mb-1">
                       <div>Date: {revenueData.previousDay.date}</div>
-                      <div>Last Updated: {revenueData.previousDay.lastUpdated}</div>
+                      <div>
+                        Last Updated: {revenueData.previousDay.lastUpdated}
+                      </div>
                     </div>
-                    <div className="text-xs text-blue-300 font-semibold mt-2">Yesterday's Sessions</div>
+                    <div className="text-xs text-blue-300 font-semibold mt-2">
+                      Yesterday's Sessions
+                    </div>
                   </div>
 
                   {/* Current Day Rake */}
                   <div className="bg-white/10 p-4 rounded-lg border border-yellow-400/30">
-                    <div className="text-sm text-gray-300 mb-1">Current Day Rake</div>
-                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.currentDay.rake)}</div>
+                    <div className="text-sm text-gray-300 mb-1">
+                      Current Day Rake
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {formatCurrency(revenueData.currentDay.rake)}
+                    </div>
                     <div className="text-xs text-gray-400 mb-1">
                       <div>Date: {revenueData.currentDay.date}</div>
-                      <div>Last Updated: {revenueData.currentDay.lastUpdated}</div>
+                      <div>
+                        Last Updated: {revenueData.currentDay.lastUpdated}
+                      </div>
                     </div>
-                    <div className="text-xs text-yellow-300 font-semibold mt-2">Today's Sessions</div>
+                    <div className="text-xs text-yellow-300 font-semibold mt-2">
+                      Today's Sessions
+                    </div>
                   </div>
 
                   {/* Previous Day Tips */}
                   <div className="bg-white/10 p-4 rounded-lg border border-cyan-400/30">
-                    <div className="text-sm text-gray-300 mb-1">Previous Day Tips</div>
-                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.previousDay.tips)}</div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      <div>Club Share: {formatCurrency(previousDayTipShares.club)}</div>
-                      <div>Staff Share: {formatCurrency(previousDayTipShares.staff)}</div>
+                    <div className="text-sm text-gray-300 mb-1">
+                      Previous Day Tips
                     </div>
-                    <div className="text-xs text-cyan-300 font-semibold mt-2">Hold {Math.round(TIP_HOLD_PERCENT * 100)}% • Staff {Math.round((1 - TIP_HOLD_PERCENT) * 100)}%</div>
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {formatCurrency(revenueData.previousDay.tips)}
+                    </div>
+                    <div className="text-xs text-gray-400 mb-1">
+                      <div>
+                        Club Share: {formatCurrency(previousDayTipShares.club)}
+                      </div>
+                      <div>
+                        Staff Share:{" "}
+                        {formatCurrency(previousDayTipShares.staff)}
+                      </div>
+                    </div>
+                    <div className="text-xs text-cyan-300 font-semibold mt-2">
+                      Hold {Math.round(TIP_HOLD_PERCENT * 100)}% • Staff{" "}
+                      {Math.round((1 - TIP_HOLD_PERCENT) * 100)}%
+                    </div>
                   </div>
 
                   {/* Current Day Tips */}
                   <div className="bg-white/10 p-4 rounded-lg border border-orange-400/30">
-                    <div className="text-sm text-gray-300 mb-1">Current Day Tips</div>
-                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.currentDay.tips)}</div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      <div>Club Share: {formatCurrency(currentDayTipShares.club)}</div>
-                      <div>Staff Share: {formatCurrency(currentDayTipShares.staff)}</div>
+                    <div className="text-sm text-gray-300 mb-1">
+                      Current Day Tips
                     </div>
-                    <div className="text-xs text-orange-300 font-semibold mt-2">Hold {Math.round(TIP_HOLD_PERCENT * 100)}% • Staff {Math.round((1 - TIP_HOLD_PERCENT) * 100)}%</div>
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {formatCurrency(revenueData.currentDay.tips)}
+                    </div>
+                    <div className="text-xs text-gray-400 mb-1">
+                      <div>
+                        Club Share: {formatCurrency(currentDayTipShares.club)}
+                      </div>
+                      <div>
+                        Staff Share: {formatCurrency(currentDayTipShares.staff)}
+                      </div>
+                    </div>
+                    <div className="text-xs text-orange-300 font-semibold mt-2">
+                      Hold {Math.round(TIP_HOLD_PERCENT * 100)}% • Staff{" "}
+                      {Math.round((1 - TIP_HOLD_PERCENT) * 100)}%
+                    </div>
                   </div>
                 </div>
               </section>
@@ -1439,14 +2040,20 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Active Tables CRUD */}
                 <section className="p-6 bg-gradient-to-r from-red-600/30 via-orange-500/20 to-yellow-700/30 rounded-xl shadow-md border border-red-800/40">
-                  <h2 className="text-lg font-semibold text-white mb-4">Active Tables Management</h2>
+                  <h2 className="text-lg font-semibold text-white mb-4">
+                    Active Tables Management
+                  </h2>
                   <div className="space-y-4">
                     <div className="bg-white/10 p-3 rounded-lg">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-white font-semibold">Table 1 - Texas Hold'em</span>
+                        <span className="text-white font-semibold">
+                          Table 1 - Texas Hold'em
+                        </span>
                         <span className="text-green-300 text-sm">Active</span>
                       </div>
-                      <div className="text-sm text-gray-300">Players: 6/9 | Dealer: John</div>
+                      <div className="text-sm text-gray-300">
+                        Players: 6/9 | Dealer: John
+                      </div>
                       <div className="flex gap-2 mt-2">
                         <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
                           Edit
@@ -1461,10 +2068,14 @@ export default function AdminDashboard() {
                     </div>
                     <div className="bg-white/10 p-3 rounded-lg">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-white font-semibold">Table 2 - Omaha</span>
+                        <span className="text-white font-semibold">
+                          Table 2 - Omaha
+                        </span>
                         <span className="text-yellow-300 text-sm">Paused</span>
                       </div>
-                      <div className="text-sm text-gray-300">Players: 4/8 | Dealer: Sarah</div>
+                      <div className="text-sm text-gray-300">
+                        Players: 4/8 | Dealer: Sarah
+                      </div>
                       <div className="flex gap-2 mt-2">
                         <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
                           Edit
@@ -1485,14 +2096,20 @@ export default function AdminDashboard() {
 
                 {/* Players Management */}
                 <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
-                  <h2 className="text-lg font-semibold text-white mb-4">Players Management</h2>
+                  <h2 className="text-lg font-semibold text-white mb-4">
+                    Players Management
+                  </h2>
                   <div className="space-y-4">
                     <div className="bg-white/10 p-3 rounded-lg">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-white font-semibold">John Doe</span>
+                        <span className="text-white font-semibold">
+                          John Doe
+                        </span>
                         <span className="text-green-300 text-sm">Active</span>
                       </div>
-                      <div className="text-sm text-gray-300">ID: P001 | Table: 1 | Chips: ₹2,500</div>
+                      <div className="text-sm text-gray-300">
+                        ID: P001 | Table: 1 | Chips: ₹2,500
+                      </div>
                       <div className="flex gap-2 mt-2">
                         <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
                           Edit
@@ -1507,10 +2124,14 @@ export default function AdminDashboard() {
                     </div>
                     <div className="bg-white/10 p-3 rounded-lg">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-white font-semibold">Jane Smith</span>
+                        <span className="text-white font-semibold">
+                          Jane Smith
+                        </span>
                         <span className="text-yellow-300 text-sm">Blocked</span>
                       </div>
-                      <div className="text-sm text-gray-300">ID: P002 | Table: None | Chips: ₹0</div>
+                      <div className="text-sm text-gray-300">
+                        ID: P002 | Table: None | Chips: ₹0
+                      </div>
                       <div className="flex gap-2 mt-2">
                         <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
                           Edit
@@ -1531,14 +2152,20 @@ export default function AdminDashboard() {
 
                 {/* Managers Management */}
                 <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
-                  <h2 className="text-lg font-semibold text-white mb-4">Managers Management</h2>
+                  <h2 className="text-lg font-semibold text-white mb-4">
+                    Managers Management
+                  </h2>
                   <div className="space-y-4">
                     <div className="bg-white/10 p-3 rounded-lg">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-white font-semibold">Manager 1 - Floor Manager</span>
+                        <span className="text-white font-semibold">
+                          Manager 1 - Floor Manager
+                        </span>
                         <span className="text-green-300 text-sm">Online</span>
                       </div>
-                      <div className="text-sm text-gray-300">Name: Mike Johnson | Shift: Day</div>
+                      <div className="text-sm text-gray-300">
+                        Name: Mike Johnson | Shift: Day
+                      </div>
                       <div className="flex gap-2 mt-2">
                         <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
                           Edit
@@ -1553,10 +2180,14 @@ export default function AdminDashboard() {
                     </div>
                     <div className="bg-white/10 p-3 rounded-lg">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-white font-semibold">Manager 2 - Shift Manager</span>
+                        <span className="text-white font-semibold">
+                          Manager 2 - Shift Manager
+                        </span>
                         <span className="text-gray-300 text-sm">Offline</span>
                       </div>
-                      <div className="text-sm text-gray-300">Name: Sarah Wilson | Shift: Night</div>
+                      <div className="text-sm text-gray-300">
+                        Name: Sarah Wilson | Shift: Night
+                      </div>
                       <div className="flex gap-2 mt-2">
                         <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
                           Edit
@@ -1577,14 +2208,20 @@ export default function AdminDashboard() {
 
                 {/* Dealers Management */}
                 <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
-                  <h2 className="text-lg font-semibold text-white mb-4">Dealers Management</h2>
+                  <h2 className="text-lg font-semibold text-white mb-4">
+                    Dealers Management
+                  </h2>
                   <div className="space-y-4">
                     <div className="bg-white/10 p-3 rounded-lg">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-white font-semibold">Dealer 1 - John</span>
+                        <span className="text-white font-semibold">
+                          Dealer 1 - John
+                        </span>
                         <span className="text-green-300 text-sm">Active</span>
                       </div>
-                      <div className="text-sm text-gray-300">Table: 1 | Experience: 5 years</div>
+                      <div className="text-sm text-gray-300">
+                        Table: 1 | Experience: 5 years
+                      </div>
                       <div className="flex gap-2 mt-2">
                         <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
                           Edit
@@ -1599,10 +2236,14 @@ export default function AdminDashboard() {
                     </div>
                     <div className="bg-white/10 p-3 rounded-lg">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-white font-semibold">Dealer 2 - Sarah</span>
+                        <span className="text-white font-semibold">
+                          Dealer 2 - Sarah
+                        </span>
                         <span className="text-yellow-300 text-sm">Break</span>
                       </div>
-                      <div className="text-sm text-gray-300">Table: None | Experience: 3 years</div>
+                      <div className="text-sm text-gray-300">
+                        Table: None | Experience: 3 years
+                      </div>
                       <div className="flex gap-2 mt-2">
                         <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
                           Edit
@@ -1624,7 +2265,9 @@ export default function AdminDashboard() {
 
               {/* Quick Actions */}
               <section className="p-6 bg-gradient-to-r from-red-600/30 via-purple-500/20 to-blue-700/30 rounded-xl shadow-md border border-red-800/40">
-                <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
+                <h2 className="text-lg font-semibold text-white mb-4">
+                  Quick Actions
+                </h2>
                 <div className="flex flex-wrap gap-4">
                   <button className="bg-gradient-to-r from-red-500 to-purple-600 hover:from-red-400 hover:to-purple-500 text-white px-5 py-3 rounded-xl font-semibold shadow transition">
                     Create New Table
@@ -1643,10 +2286,19 @@ export default function AdminDashboard() {
 
               {/* System Status */}
               <section className="p-6 bg-gradient-to-r from-green-700/30 via-emerald-600/30 to-teal-700/30 rounded-xl shadow-md border border-green-700/40">
-                <h2 className="text-lg font-semibold text-white mb-4">System Status</h2>
+                <h2 className="text-lg font-semibold text-white mb-4">
+                  System Status
+                </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {["Database Operational", "All Services Running", "Security Active"].map((item, i) => (
-                    <div key={i} className="bg-white/5 p-4 rounded-lg text-center font-semibold text-white shadow-inner border border-white/10">
+                  {[
+                    "Database Operational",
+                    "All Services Running",
+                    "Security Active",
+                  ].map((item, i) => (
+                    <div
+                      key={i}
+                      className="bg-white/5 p-4 rounded-lg text-center font-semibold text-white shadow-inner border border-white/10"
+                    >
                       {item}
                     </div>
                   ))}
@@ -1656,123 +2308,162 @@ export default function AdminDashboard() {
           )}
 
           {/* Player Management */}
-          {activeItem === "Player Management" && (() => {
-            // Transform KYC requests from allPlayers with pending status
-            const kycRequestsData = allPlayers
-              .filter(p => p.kycStatus === "pending")
-              .map((player, index) => ({
-                id: index + 1,
-                name: player.name,
-                documentType: player.documentType || "N/A",
-                docUrl: player.kycDocUrl || "#",
-                status: "Pending",
-                submittedDate: player.submittedDate || player.registrationDate,
-                playerId: player.id,
-                documentNumber: player.documentNumber || "",
-                email: player.email,
-                phone: player.phone,
-              }));
+          {activeItem === "Player Management" &&
+            (() => {
+              // Transform KYC requests from allPlayers with pending status
+              const kycRequestsData = allPlayers
+                .filter((p) => p.kycStatus === "pending")
+                .map((player, index) => ({
+                  id: index + 1,
+                  name: player.name,
+                  documentType: player.documentType || "N/A",
+                  docUrl: player.kycDocUrl || "#",
+                  status: "Pending",
+                  submittedDate:
+                    player.submittedDate || player.registrationDate,
+                  playerId: player.id,
+                  documentNumber: player.documentNumber || "",
+                  email: player.email,
+                  phone: player.phone,
+                }));
 
-            // Combine all players for allPlayers prop
-            const combinedAllPlayers = [
-              ...allPlayers.map(player => ({
-                id: player.id,
-                name: player.name,
-                email: player.email,
-                phone: player.phone,
-                status: player.accountStatus || (player.kycStatus === "pending" ? "Pending Approval" : "Active"),
-                kycStatus: player.kycStatus === "approved" ? "Verified" : player.kycStatus === "pending" ? "Pending" : player.kycStatus === "rejected" ? "Rejected" : "N/A",
-                registrationDate: player.registrationDate,
-                referredBy: player.referredBy || "N/A",
-                balance: 0, // Add balance if available in player data
-              })),
-              ...registeredPlayers.map(player => ({
-                id: player.id,
-                name: player.name,
-                email: player.email,
-                phone: player.phone,
-                status: player.accountStatus,
-                kycStatus: player.kycStatus === "approved" ? "Verified" : "N/A",
-                registrationDate: player.registrationDate,
-                referredBy: player.referredBy || "N/A",
-                balance: 0,
-              })),
-            ];
+              // Combine all players for allPlayers prop
+              const combinedAllPlayers = [
+                ...allPlayers.map((player) => ({
+                  id: player.id,
+                  name: player.name,
+                  email: player.email,
+                  phone: player.phone,
+                  status:
+                    player.accountStatus ||
+                    (player.kycStatus === "pending"
+                      ? "Pending Approval"
+                      : "Active"),
+                  kycStatus:
+                    player.kycStatus === "approved"
+                      ? "Verified"
+                      : player.kycStatus === "pending"
+                      ? "Pending"
+                      : player.kycStatus === "rejected"
+                      ? "Rejected"
+                      : "N/A",
+                  registrationDate: player.registrationDate,
+                  referredBy: player.referredBy || "N/A",
+                  balance: 0, // Add balance if available in player data
+                })),
+                ...registeredPlayers.map((player) => ({
+                  id: player.id,
+                  name: player.name,
+                  email: player.email,
+                  phone: player.phone,
+                  status: player.accountStatus,
+                  kycStatus:
+                    player.kycStatus === "approved" ? "Verified" : "N/A",
+                  registrationDate: player.registrationDate,
+                  referredBy: player.referredBy || "N/A",
+                  balance: 0,
+                })),
+              ];
 
-            // Remove duplicates based on id
-            const uniqueAllPlayers = combinedAllPlayers.reduce((acc, current) => {
-              const x = acc.find(item => item.id === current.id);
-              if (!x) {
-                return acc.concat([current]);
-              } else {
-                // Prefer registered player data over pending player data
-                return acc.map(item => item.id === current.id ? current : item);
-              }
-            }, []);
-
-            return (
-              <PlayerManagementSection
-                userRole="admin"
-                kycRequests={kycRequestsData}
-                setKycRequests={(updater) => {
-                  if (typeof updater === 'function') {
-                    const updated = updater(kycRequestsData);
-                    // Update allPlayers when KYC is approved/rejected
-                    updated.forEach(kycReq => {
-                      if (kycReq.status === "Approved") {
-                        setAllPlayers(prev => prev.map(p =>
-                          p.id === kycReq.playerId
-                            ? { ...p, kycStatus: "approved", verifiedDate: new Date().toISOString().split('T')[0] }
-                            : p
-                        ));
-                      } else if (kycReq.status === "Rejected") {
-                        setAllPlayers(prev => prev.map(p =>
-                          p.id === kycReq.playerId
-                            ? { ...p, kycStatus: "rejected" }
-                            : p
-                        ));
-                      }
-                    });
+              // Remove duplicates based on id
+              const uniqueAllPlayers = combinedAllPlayers.reduce(
+                (acc, current) => {
+                  const x = acc.find((item) => item.id === current.id);
+                  if (!x) {
+                    return acc.concat([current]);
+                  } else {
+                    // Prefer registered player data over pending player data
+                    return acc.map((item) =>
+                      item.id === current.id ? current : item
+                    );
                   }
-                }}
-                allPlayers={uniqueAllPlayers}
-                setAllPlayers={(updater) => {
-                  if (typeof updater === 'function') {
-                    const updated = updater(uniqueAllPlayers);
-                    // Update registeredPlayers and allPlayers based on updates
-                    updated.forEach(updatedPlayer => {
-                      const isRegistered = registeredPlayers.find(rp => rp.id === updatedPlayer.id);
-                      if (isRegistered) {
-                        setRegisteredPlayers(prev => prev.map(p =>
-                          p.id === updatedPlayer.id
-                            ? { ...p, accountStatus: updatedPlayer.status }
-                            : p
-                        ));
-                      } else {
-                        setAllPlayers(prev => prev.map(p =>
-                          p.id === updatedPlayer.id
-                            ? { ...p, accountStatus: updatedPlayer.status }
-                            : p
-                        ));
-                      }
-                    });
-                  }
-                }}
-              />
-            );
-          })()}
+                },
+                []
+              );
+
+              return (
+                <PlayerManagementSection
+                  userRole="admin"
+                  kycRequests={kycRequestsData}
+                  setKycRequests={(updater) => {
+                    if (typeof updater === "function") {
+                      const updated = updater(kycRequestsData);
+                      // Update allPlayers when KYC is approved/rejected
+                      updated.forEach((kycReq) => {
+                        if (kycReq.status === "Approved") {
+                          setAllPlayers((prev) =>
+                            prev.map((p) =>
+                              p.id === kycReq.playerId
+                                ? {
+                                    ...p,
+                                    kycStatus: "approved",
+                                    verifiedDate: new Date()
+                                      .toISOString()
+                                      .split("T")[0],
+                                  }
+                                : p
+                            )
+                          );
+                        } else if (kycReq.status === "Rejected") {
+                          setAllPlayers((prev) =>
+                            prev.map((p) =>
+                              p.id === kycReq.playerId
+                                ? { ...p, kycStatus: "rejected" }
+                                : p
+                            )
+                          );
+                        }
+                      });
+                    }
+                  }}
+                  allPlayers={uniqueAllPlayers}
+                  setAllPlayers={(updater) => {
+                    if (typeof updater === "function") {
+                      const updated = updater(uniqueAllPlayers);
+                      // Update registeredPlayers and allPlayers based on updates
+                      updated.forEach((updatedPlayer) => {
+                        const isRegistered = registeredPlayers.find(
+                          (rp) => rp.id === updatedPlayer.id
+                        );
+                        if (isRegistered) {
+                          setRegisteredPlayers((prev) =>
+                            prev.map((p) =>
+                              p.id === updatedPlayer.id
+                                ? { ...p, accountStatus: updatedPlayer.status }
+                                : p
+                            )
+                          );
+                        } else {
+                          setAllPlayers((prev) =>
+                            prev.map((p) =>
+                              p.id === updatedPlayer.id
+                                ? { ...p, accountStatus: updatedPlayer.status }
+                                : p
+                            )
+                          );
+                        }
+                      });
+                    }
+                  }}
+                />
+              );
+            })()}
 
           {/* Legacy Players - KYC Pending Review (removed, using PlayerManagementSection above) */}
           {false && activeItem === "Players" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Players - KYC Pending Review</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Players - KYC Pending Review
+                </h2>
 
                 {/* Search and Filters */}
                 <div className="bg-white/10 p-4 rounded-lg mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     <div className="md:col-span-2">
-                      <label className="text-white text-sm mb-1 block">Search Player</label>
+                      <label className="text-white text-sm mb-1 block">
+                        Search Player
+                      </label>
                       <div className="relative">
                         <input
                           type="text"
@@ -1784,26 +2475,38 @@ export default function AdminDashboard() {
                             setSelectedPlayer(null);
                           }}
                         />
-                        {playersSearch.length >= 2 && filteredPlayersForSearch.length > 0 && !selectedPlayer && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredPlayersForSearch.map(player => (
-                              <div
-                                key={player.id}
-                                onClick={() => {
-                                  setSelectedPlayer(player);
-                                  setPlayersSearch(`${player.name} (${player.id})`);
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                              >
-                                <div className="text-white font-medium">{player.name}</div>
-                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email} | Phone: {player.phone}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {playersSearch.length >= 2 &&
+                          filteredPlayersForSearch.length > 0 &&
+                          !selectedPlayer && (
+                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {filteredPlayersForSearch.map((player) => (
+                                <div
+                                  key={player.id}
+                                  onClick={() => {
+                                    setSelectedPlayer(player);
+                                    setPlayersSearch(
+                                      `${player.name} (${player.id})`
+                                    );
+                                  }}
+                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                                >
+                                  <div className="text-white font-medium">
+                                    {player.name}
+                                  </div>
+                                  <div className="text-gray-400 text-xs">
+                                    ID: {player.id} | Email: {player.email} |
+                                    Phone: {player.phone}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         {selectedPlayer && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
-                            <span className="text-green-300">Selected: {selectedPlayer.name} ({selectedPlayer.id})</span>
+                            <span className="text-green-300">
+                              Selected: {selectedPlayer.name} (
+                              {selectedPlayer.id})
+                            </span>
                             <button
                               onClick={() => {
                                 setSelectedPlayer(null);
@@ -1818,11 +2521,18 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-white text-sm mb-1 block">Registration Date</label>
+                      <label className="text-white text-sm mb-1 block">
+                        Registration Date
+                      </label>
                       <select
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                         value={playersFilter.registrationDate}
-                        onChange={(e) => setPlayersFilter({ ...playersFilter, registrationDate: e.target.value })}
+                        onChange={(e) =>
+                          setPlayersFilter({
+                            ...playersFilter,
+                            registrationDate: e.target.value,
+                          })
+                        }
                       >
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
@@ -1831,11 +2541,18 @@ export default function AdminDashboard() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-white text-sm mb-1 block">Document Type</label>
+                      <label className="text-white text-sm mb-1 block">
+                        Document Type
+                      </label>
                       <select
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                         value={playersFilter.documentType}
-                        onChange={(e) => setPlayersFilter({ ...playersFilter, documentType: e.target.value })}
+                        onChange={(e) =>
+                          setPlayersFilter({
+                            ...playersFilter,
+                            documentType: e.target.value,
+                          })
+                        }
                       >
                         <option value="all">All Documents</option>
                         <option value="PAN Card">PAN Card</option>
@@ -1847,13 +2564,28 @@ export default function AdminDashboard() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="text-white text-sm">
-                      Showing <span className="font-semibold">{filteredPlayers.length}</span> of <span className="font-semibold">{allPlayers.filter(p => p.kycStatus === 'pending').length}</span> pending KYC verifications
+                      Showing{" "}
+                      <span className="font-semibold">
+                        {filteredPlayers.length}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-semibold">
+                        {
+                          allPlayers.filter((p) => p.kycStatus === "pending")
+                            .length
+                        }
+                      </span>{" "}
+                      pending KYC verifications
                     </div>
                     <button
                       onClick={() => {
                         setPlayersSearch("");
                         setSelectedPlayer(null);
-                        setPlayersFilter({ kycStatus: "pending", registrationDate: "all", documentType: "all" });
+                        setPlayersFilter({
+                          kycStatus: "pending",
+                          registrationDate: "all",
+                          documentType: "all",
+                        });
                       }}
                       className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                     >
@@ -1866,35 +2598,72 @@ export default function AdminDashboard() {
                 <div className="bg-white/10 p-4 rounded-lg">
                   {filteredPlayers.length > 0 ? (
                     <div className="space-y-3">
-                      {filteredPlayers.map(player => (
-                        <div key={player.id} className="bg-white/5 p-4 rounded-lg border border-yellow-400/30">
+                      {filteredPlayers.map((player) => (
+                        <div
+                          key={player.id}
+                          className="bg-white/5 p-4 rounded-lg border border-yellow-400/30"
+                        >
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                             {/* Player Info */}
                             <div className="md:col-span-8 space-y-2">
                               <div className="flex items-center gap-3">
-                                <div className="font-semibold text-white text-lg">{player.name}</div>
+                                <div className="font-semibold text-white text-lg">
+                                  {player.name}
+                                </div>
                                 <span className="bg-yellow-500/30 text-yellow-300 font-medium px-3 py-1 rounded-full text-xs border border-yellow-400/50">
                                   KYC Pending
                                 </span>
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                                 <div>
-                                  <span className="text-gray-400">ID:</span> <span className="text-white">{player.id}</span>
+                                  <span className="text-gray-400">ID:</span>{" "}
+                                  <span className="text-white">
+                                    {player.id}
+                                  </span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-400">Email:</span> <span className="text-white">{player.email}</span>
+                                  <span className="text-gray-400">Email:</span>{" "}
+                                  <span className="text-white">
+                                    {player.email}
+                                  </span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-400">Phone:</span> <span className="text-white">{player.phone}</span>
+                                  <span className="text-gray-400">Phone:</span>{" "}
+                                  <span className="text-white">
+                                    {player.phone}
+                                  </span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-400">Doc Type:</span> <span className="text-white">{player.documentType}</span>
+                                  <span className="text-gray-400">
+                                    Doc Type:
+                                  </span>{" "}
+                                  <span className="text-white">
+                                    {player.documentType}
+                                  </span>
                                 </div>
                               </div>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-300">
-                                <div>Registered: {new Date(player.registrationDate).toLocaleDateString()}</div>
-                                <div>Submitted: {new Date(player.submittedDate).toLocaleDateString()}</div>
-                                <div className="md:col-span-2">Days Pending: {Math.floor((new Date() - new Date(player.submittedDate)) / (1000 * 60 * 60 * 24))} days</div>
+                                <div>
+                                  Registered:{" "}
+                                  {new Date(
+                                    player.registrationDate
+                                  ).toLocaleDateString()}
+                                </div>
+                                <div>
+                                  Submitted:{" "}
+                                  {new Date(
+                                    player.submittedDate
+                                  ).toLocaleDateString()}
+                                </div>
+                                <div className="md:col-span-2">
+                                  Days Pending:{" "}
+                                  {Math.floor(
+                                    (new Date() -
+                                      new Date(player.submittedDate)) /
+                                      (1000 * 60 * 60 * 24)
+                                  )}{" "}
+                                  days
+                                </div>
                               </div>
                             </div>
 
@@ -1902,16 +2671,24 @@ export default function AdminDashboard() {
                             <div className="md:col-span-4 flex flex-col gap-2">
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => handleKYCVerification(player.id, "approve")}
+                                  onClick={() =>
+                                    handleKYCVerification(player.id, "approve")
+                                  }
                                   className="flex-1 bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
                                 >
                                   ✓ Approve
                                 </button>
                                 <button
                                   onClick={() => {
-                                    const notes = prompt("Enter rejection reason (optional):");
+                                    const notes = prompt(
+                                      "Enter rejection reason (optional):"
+                                    );
                                     if (notes !== null) {
-                                      handleKYCVerification(player.id, "reject", notes);
+                                      handleKYCVerification(
+                                        player.id,
+                                        "reject",
+                                        notes
+                                      );
                                     }
                                   }}
                                   className="flex-1 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
@@ -1922,13 +2699,21 @@ export default function AdminDashboard() {
                               <div className="flex gap-2">
                                 <button
                                   className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
-                                  onClick={() => alert(`View documents for ${player.name} (${player.id})\nDocument Type: ${player.documentType}`)}
+                                  onClick={() =>
+                                    alert(
+                                      `View documents for ${player.name} (${player.id})\nDocument Type: ${player.documentType}`
+                                    )
+                                  }
                                 >
                                   View Docs
                                 </button>
                                 <button
                                   className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
-                                  onClick={() => alert(`Player Details:\n\nName: ${player.name}\nEmail: ${player.email}\nPhone: ${player.phone}\nDocument: ${player.documentType}\nRegistration: ${player.registrationDate}`)}
+                                  onClick={() =>
+                                    alert(
+                                      `Player Details:\n\nName: ${player.name}\nEmail: ${player.email}\nPhone: ${player.phone}\nDocument: ${player.documentType}\nRegistration: ${player.registrationDate}`
+                                    )
+                                  }
                                 >
                                   Details
                                 </button>
@@ -1940,9 +2725,13 @@ export default function AdminDashboard() {
                     </div>
                   ) : (
                     <div className="text-center py-12">
-                      <div className="text-gray-400 text-lg mb-2">No players found</div>
+                      <div className="text-gray-400 text-lg mb-2">
+                        No players found
+                      </div>
                       <div className="text-gray-500 text-sm">
-                        {playersSearch || playersFilter.registrationDate !== "all" || playersFilter.documentType !== "all"
+                        {playersSearch ||
+                        playersFilter.registrationDate !== "all" ||
+                        playersFilter.documentType !== "all"
                           ? "Try adjusting your search or filters"
                           : "No pending KYC verifications"}
                       </div>
@@ -1957,11 +2746,15 @@ export default function AdminDashboard() {
           {false && activeItem === "Registered Players" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Registered Players - Verified Users</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Registered Players - Verified Users
+                </h2>
                 <div className="bg-white/10 p-4 rounded-lg mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                     <div className="md:col-span-2">
-                      <label className="text-white text-sm mb-1 block">Search Player</label>
+                      <label className="text-white text-sm mb-1 block">
+                        Search Player
+                      </label>
                       <div className="relative">
                         <input
                           type="text"
@@ -1973,26 +2766,40 @@ export default function AdminDashboard() {
                             setSelectedRegisteredPlayer(null);
                           }}
                         />
-                        {registeredPlayersSearch.length >= 2 && filteredRegisteredPlayersForSearch.length > 0 && !selectedRegisteredPlayer && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredRegisteredPlayersForSearch.map(player => (
-                              <div
-                                key={player.id}
-                                onClick={() => {
-                                  setSelectedRegisteredPlayer(player);
-                                  setRegisteredPlayersSearch(`${player.name} (${player.id})`);
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                              >
-                                <div className="text-white font-medium">{player.name}</div>
-                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email} | Phone: {player.phone}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {registeredPlayersSearch.length >= 2 &&
+                          filteredRegisteredPlayersForSearch.length > 0 &&
+                          !selectedRegisteredPlayer && (
+                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {filteredRegisteredPlayersForSearch.map(
+                                (player) => (
+                                  <div
+                                    key={player.id}
+                                    onClick={() => {
+                                      setSelectedRegisteredPlayer(player);
+                                      setRegisteredPlayersSearch(
+                                        `${player.name} (${player.id})`
+                                      );
+                                    }}
+                                    className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                                  >
+                                    <div className="text-white font-medium">
+                                      {player.name}
+                                    </div>
+                                    <div className="text-gray-400 text-xs">
+                                      ID: {player.id} | Email: {player.email} |
+                                      Phone: {player.phone}
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          )}
                         {selectedRegisteredPlayer && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
-                            <span className="text-green-300">Selected: {selectedRegisteredPlayer.name} ({selectedRegisteredPlayer.id})</span>
+                            <span className="text-green-300">
+                              Selected: {selectedRegisteredPlayer.name} (
+                              {selectedRegisteredPlayer.id})
+                            </span>
                             <button
                               onClick={() => {
                                 setSelectedRegisteredPlayer(null);
@@ -2007,8 +2814,19 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-white text-sm mb-1 block">Account Status</label>
-                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={registeredPlayersFilter.status} onChange={(e) => setRegisteredPlayersFilter({ ...registeredPlayersFilter, status: e.target.value })}>
+                      <label className="text-white text-sm mb-1 block">
+                        Account Status
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        value={registeredPlayersFilter.status}
+                        onChange={(e) =>
+                          setRegisteredPlayersFilter({
+                            ...registeredPlayersFilter,
+                            status: e.target.value,
+                          })
+                        }
+                      >
                         <option value="all">All Status</option>
                         <option value="Active">Active</option>
                         <option value="Suspended">Suspended</option>
@@ -2016,8 +2834,19 @@ export default function AdminDashboard() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-white text-sm mb-1 block">Registration Date</label>
-                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={registeredPlayersFilter.registrationDate} onChange={(e) => setRegisteredPlayersFilter({ ...registeredPlayersFilter, registrationDate: e.target.value })}>
+                      <label className="text-white text-sm mb-1 block">
+                        Registration Date
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        value={registeredPlayersFilter.registrationDate}
+                        onChange={(e) =>
+                          setRegisteredPlayersFilter({
+                            ...registeredPlayersFilter,
+                            registrationDate: e.target.value,
+                          })
+                        }
+                      >
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
                         <option value="week">Last 7 Days</option>
@@ -2025,8 +2854,19 @@ export default function AdminDashboard() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-white text-sm mb-1 block">Document Type</label>
-                      <select className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={registeredPlayersFilter.documentType} onChange={(e) => setRegisteredPlayersFilter({ ...registeredPlayersFilter, documentType: e.target.value })}>
+                      <label className="text-white text-sm mb-1 block">
+                        Document Type
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        value={registeredPlayersFilter.documentType}
+                        onChange={(e) =>
+                          setRegisteredPlayersFilter({
+                            ...registeredPlayersFilter,
+                            documentType: e.target.value,
+                          })
+                        }
+                      >
                         <option value="all">All Documents</option>
                         <option value="PAN Card">PAN Card</option>
                         <option value="Aadhaar Card">Aadhaar Card</option>
@@ -2036,46 +2876,174 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="text-white text-sm">Showing <span className="font-semibold">{filteredRegisteredPlayers.length}</span> of <span className="font-semibold">{registeredPlayers.length}</span> verified players</div>
+                    <div className="text-white text-sm">
+                      Showing{" "}
+                      <span className="font-semibold">
+                        {filteredRegisteredPlayers.length}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-semibold">
+                        {registeredPlayers.length}
+                      </span>{" "}
+                      verified players
+                    </div>
                     <div className="flex gap-2">
-                      <button onClick={() => { setRegisteredPlayersSearch(""); setSelectedRegisteredPlayer(null); setRegisteredPlayersFilter({ status: "all", registrationDate: "all", documentType: "all", verifiedDate: "all" }); }} className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">Clear Filters</button>
-                      <button onClick={handleExportCSV} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">Export CSV</button>
+                      <button
+                        onClick={() => {
+                          setRegisteredPlayersSearch("");
+                          setSelectedRegisteredPlayer(null);
+                          setRegisteredPlayersFilter({
+                            status: "all",
+                            registrationDate: "all",
+                            documentType: "all",
+                            verifiedDate: "all",
+                          });
+                        }}
+                        className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
+                      >
+                        Clear Filters
+                      </button>
+                      <button
+                        onClick={handleExportCSV}
+                        className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
+                      >
+                        Export CSV
+                      </button>
                     </div>
                   </div>
                 </div>
                 <div className="bg-white/10 p-4 rounded-lg">
                   {filteredRegisteredPlayers.length > 0 ? (
                     <div className="space-y-3">
-                      {filteredRegisteredPlayers.map(player => (
-                        <div key={player.id} className="bg-white/5 p-4 rounded-lg border border-green-400/30">
+                      {filteredRegisteredPlayers.map((player) => (
+                        <div
+                          key={player.id}
+                          className="bg-white/5 p-4 rounded-lg border border-green-400/30"
+                        >
                           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                             <div className="md:col-span-8 space-y-2">
                               <div className="flex items-center gap-3">
-                                <div className="font-semibold text-white text-lg">{player.name}</div>
-                                <span className={`px-3 py-1 rounded-full text-xs border font-medium ${player.accountStatus === "Active" ? "bg-green-500/30 text-green-300 border-green-400/50" : player.accountStatus === "Suspended" ? "bg-red-500/30 text-red-300 border-red-400/50" : "bg-gray-500/30 text-gray-300 border-gray-400/50"}`}>{player.accountStatus}</span>
-                                <span className="bg-blue-500/30 text-blue-300 font-medium px-3 py-1 rounded-full text-xs border border-blue-400/50">✓ Verified</span>
+                                <div className="font-semibold text-white text-lg">
+                                  {player.name}
+                                </div>
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs border font-medium ${
+                                    player.accountStatus === "Active"
+                                      ? "bg-green-500/30 text-green-300 border-green-400/50"
+                                      : player.accountStatus === "Suspended"
+                                      ? "bg-red-500/30 text-red-300 border-red-400/50"
+                                      : "bg-gray-500/30 text-gray-300 border-gray-400/50"
+                                  }`}
+                                >
+                                  {player.accountStatus}
+                                </span>
+                                <span className="bg-blue-500/30 text-blue-300 font-medium px-3 py-1 rounded-full text-xs border border-blue-400/50">
+                                  ✓ Verified
+                                </span>
                               </div>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                                <div><span className="text-gray-400">ID:</span> <span className="text-white">{player.id}</span></div>
-                                <div><span className="text-gray-400">Email:</span> <span className="text-white">{player.email}</span></div>
-                                <div><span className="text-gray-400">Phone:</span> <span className="text-white">{player.phone}</span></div>
-                                <div><span className="text-gray-400">Doc:</span> <span className="text-white">{player.documentType}</span></div>
+                                <div>
+                                  <span className="text-gray-400">ID:</span>{" "}
+                                  <span className="text-white">
+                                    {player.id}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">Email:</span>{" "}
+                                  <span className="text-white">
+                                    {player.email}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">Phone:</span>{" "}
+                                  <span className="text-white">
+                                    {player.phone}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">Doc:</span>{" "}
+                                  <span className="text-white">
+                                    {player.documentType}
+                                  </span>
+                                </div>
                               </div>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-300">
-                                <div>Registered: {new Date(player.registrationDate).toLocaleDateString()}</div>
-                                <div>Verified: {new Date(player.verifiedDate).toLocaleDateString()}</div>
+                                <div>
+                                  Registered:{" "}
+                                  {new Date(
+                                    player.registrationDate
+                                  ).toLocaleDateString()}
+                                </div>
+                                <div>
+                                  Verified:{" "}
+                                  {new Date(
+                                    player.verifiedDate
+                                  ).toLocaleDateString()}
+                                </div>
                                 <div>Games: {player.totalGames}</div>
                                 <div>Last Active: {player.lastActive}</div>
                               </div>
                             </div>
                             <div className="md:col-span-4 flex flex-col gap-2">
                               <div className="flex gap-2">
-                                <button onClick={() => setSelectedPlayerDetails(player)} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg font-semibold text-sm">View Details</button>
-                                <button onClick={() => handleDownloadKYCDoc(player)} className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg font-semibold text-sm">📥 Download KYC</button>
+                                <button
+                                  onClick={() =>
+                                    setSelectedPlayerDetails(player)
+                                  }
+                                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
+                                >
+                                  View Details
+                                </button>
+                                <button
+                                  onClick={() => handleDownloadKYCDoc(player)}
+                                  className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
+                                >
+                                  📥 Download KYC
+                                </button>
                               </div>
                               <div className="flex gap-2">
-                                <button className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-2 rounded-lg font-semibold text-sm" onClick={() => { const newStatus = player.accountStatus === "Active" ? "Suspended" : "Active"; setRegisteredPlayers(prev => prev.map(p => p.id === player.id ? { ...p, accountStatus: newStatus } : p)); alert(`${player.name} account status changed to ${newStatus}`); }}>{player.accountStatus === "Active" ? "Suspend" : "Activate"}</button>
-                                <button className="flex-1 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg font-semibold text-sm" onClick={() => { if (window.confirm(`Are you sure you want to delete ${player.name}?`)) { setRegisteredPlayers(prev => prev.filter(p => p.id !== player.id)); alert(`${player.name} removed from system`); } }}>Delete</button>
+                                <button
+                                  className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
+                                  onClick={() => {
+                                    const newStatus =
+                                      player.accountStatus === "Active"
+                                        ? "Suspended"
+                                        : "Active";
+                                    setRegisteredPlayers((prev) =>
+                                      prev.map((p) =>
+                                        p.id === player.id
+                                          ? { ...p, accountStatus: newStatus }
+                                          : p
+                                      )
+                                    );
+                                    alert(
+                                      `${player.name} account status changed to ${newStatus}`
+                                    );
+                                  }}
+                                >
+                                  {player.accountStatus === "Active"
+                                    ? "Suspend"
+                                    : "Activate"}
+                                </button>
+                                <button
+                                  className="flex-1 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg font-semibold text-sm"
+                                  onClick={() => {
+                                    if (
+                                      window.confirm(
+                                        `Are you sure you want to delete ${player.name}?`
+                                      )
+                                    ) {
+                                      setRegisteredPlayers((prev) =>
+                                        prev.filter((p) => p.id !== player.id)
+                                      );
+                                      alert(
+                                        `${player.name} removed from system`
+                                      );
+                                    }
+                                  }}
+                                >
+                                  Delete
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -2084,8 +3052,17 @@ export default function AdminDashboard() {
                     </div>
                   ) : (
                     <div className="text-center py-12">
-                      <div className="text-gray-400 text-lg mb-2">No players found</div>
-                      <div className="text-gray-500 text-sm">{registeredPlayersSearch || registeredPlayersFilter.status !== "all" || registeredPlayersFilter.registrationDate !== "all" || registeredPlayersFilter.documentType !== "all" ? "Try adjusting your search or filters" : "No registered players found"}</div>
+                      <div className="text-gray-400 text-lg mb-2">
+                        No players found
+                      </div>
+                      <div className="text-gray-500 text-sm">
+                        {registeredPlayersSearch ||
+                        registeredPlayersFilter.status !== "all" ||
+                        registeredPlayersFilter.registrationDate !== "all" ||
+                        registeredPlayersFilter.documentType !== "all"
+                          ? "Try adjusting your search or filters"
+                          : "No registered players found"}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2095,32 +3072,174 @@ export default function AdminDashboard() {
                   <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl border border-purple-500/30 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
                     <div className="p-6 border-b border-white/10">
                       <div className="flex justify-between items-start">
-                        <div><h2 className="text-2xl font-bold text-white mb-2">Player Details</h2><p className="text-gray-400 text-sm">Complete information for {selectedPlayerDetails.name}</p></div>
-                        <button onClick={() => setSelectedPlayerDetails(null)} className="text-white/70 hover:text-white text-2xl font-bold">×</button>
+                        <div>
+                          <h2 className="text-2xl font-bold text-white mb-2">
+                            Player Details
+                          </h2>
+                          <p className="text-gray-400 text-sm">
+                            Complete information for{" "}
+                            {selectedPlayerDetails.name}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setSelectedPlayerDetails(null)}
+                          className="text-white/70 hover:text-white text-2xl font-bold"
+                        >
+                          ×
+                        </button>
                       </div>
                     </div>
                     <div className="p-6 space-y-6">
-                      <div><h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">Basic Information</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="text-gray-400 text-sm">Player ID</label><div className="text-white font-medium">{selectedPlayerDetails.id}</div></div>
-                        <div><label className="text-gray-400 text-sm">Full Name</label><div className="text-white font-medium">{selectedPlayerDetails.name}</div></div>
-                        <div><label className="text-gray-400 text-sm">Email</label><div className="text-white font-medium">{selectedPlayerDetails.email}</div></div>
-                        <div><label className="text-gray-400 text-sm">Phone</label><div className="text-white font-medium">{selectedPlayerDetails.phone}</div></div>
-                        <div><label className="text-gray-400 text-sm">Account Status</label><div><span className={`px-3 py-1 rounded-full text-xs border font-medium ${selectedPlayerDetails.accountStatus === "Active" ? "bg-green-500/30 text-green-300 border-green-400/50" : "bg-red-500/30 text-red-300 border-red-400/50"}`}>{selectedPlayerDetails.accountStatus}</span></div></div>
-                      </div></div>
-                      <div><h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">KYC Information</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="text-gray-400 text-sm">KYC Status</label><div><span className="bg-green-500/30 text-green-300 font-medium px-3 py-1 rounded-full text-xs border border-green-400/50">✓ Approved</span></div></div>
-                        <div><label className="text-gray-400 text-sm">Document Type</label><div className="text-white font-medium">{selectedPlayerDetails.documentType}</div></div>
-                        <div><label className="text-gray-400 text-sm">Registration Date</label><div className="text-white font-medium">{new Date(selectedPlayerDetails.registrationDate).toLocaleDateString()}</div></div>
-                        <div><label className="text-gray-400 text-sm">Verified Date</label><div className="text-white font-medium">{new Date(selectedPlayerDetails.verifiedDate).toLocaleDateString()}</div></div>
-                        <div className="md:col-span-2"><label className="text-gray-400 text-sm">Verification Notes</label><div className="text-white font-medium bg-white/5 p-3 rounded">{selectedPlayerDetails.verificationNotes}</div></div>
-                      </div></div>
-                      <div><h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">Activity Information</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="text-gray-400 text-sm">Total Games</label><div className="text-white font-medium text-xl">{selectedPlayerDetails.totalGames}</div></div>
-                        <div><label className="text-gray-400 text-sm">Last Active</label><div className="text-white font-medium">{selectedPlayerDetails.lastActive}</div></div>
-                      </div></div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">
+                          Basic Information
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-gray-400 text-sm">
+                              Player ID
+                            </label>
+                            <div className="text-white font-medium">
+                              {selectedPlayerDetails.id}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">
+                              Full Name
+                            </label>
+                            <div className="text-white font-medium">
+                              {selectedPlayerDetails.name}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">
+                              Email
+                            </label>
+                            <div className="text-white font-medium">
+                              {selectedPlayerDetails.email}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">
+                              Phone
+                            </label>
+                            <div className="text-white font-medium">
+                              {selectedPlayerDetails.phone}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">
+                              Account Status
+                            </label>
+                            <div>
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs border font-medium ${
+                                  selectedPlayerDetails.accountStatus ===
+                                  "Active"
+                                    ? "bg-green-500/30 text-green-300 border-green-400/50"
+                                    : "bg-red-500/30 text-red-300 border-red-400/50"
+                                }`}
+                              >
+                                {selectedPlayerDetails.accountStatus}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">
+                          KYC Information
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-gray-400 text-sm">
+                              KYC Status
+                            </label>
+                            <div>
+                              <span className="bg-green-500/30 text-green-300 font-medium px-3 py-1 rounded-full text-xs border border-green-400/50">
+                                ✓ Approved
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">
+                              Document Type
+                            </label>
+                            <div className="text-white font-medium">
+                              {selectedPlayerDetails.documentType}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">
+                              Registration Date
+                            </label>
+                            <div className="text-white font-medium">
+                              {new Date(
+                                selectedPlayerDetails.registrationDate
+                              ).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">
+                              Verified Date
+                            </label>
+                            <div className="text-white font-medium">
+                              {new Date(
+                                selectedPlayerDetails.verifiedDate
+                              ).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-gray-400 text-sm">
+                              Verification Notes
+                            </label>
+                            <div className="text-white font-medium bg-white/5 p-3 rounded">
+                              {selectedPlayerDetails.verificationNotes}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">
+                          Activity Information
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-gray-400 text-sm">
+                              Total Games
+                            </label>
+                            <div className="text-white font-medium text-xl">
+                              {selectedPlayerDetails.totalGames}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm">
+                              Last Active
+                            </label>
+                            <div className="text-white font-medium">
+                              {selectedPlayerDetails.lastActive}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       <div className="flex gap-3 pt-4 border-t border-white/10">
-                        <button onClick={() => handleDownloadKYCDoc(selectedPlayerDetails)} className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-4 py-3 rounded-lg font-semibold">📥 Download KYC Document</button>
-                        <button onClick={() => { setSelectedPlayerDetails(null); handleExportCSV(); }} className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-3 rounded-lg font-semibold">Export Player Data</button>
+                        <button
+                          onClick={() =>
+                            handleDownloadKYCDoc(selectedPlayerDetails)
+                          }
+                          className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-4 py-3 rounded-lg font-semibold"
+                        >
+                          📥 Download KYC Document
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedPlayerDetails(null);
+                            handleExportCSV();
+                          }}
+                          className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-3 rounded-lg font-semibold"
+                        >
+                          Export Player Data
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -2129,370 +3248,23 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {activeItem === "Credit Management" && (
-            <div className="space-y-6">
-              {/* Credit-Eligible Players Management */}
-              <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Credit-Eligible Players Management</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Set Player Credit Limit</h3>
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                        <input
-                          type="text"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="Search by name, ID, or email..."
-                          value={creditPlayerSearchLimit}
-                          onChange={(e) => {
-                            setCreditPlayerSearchLimit(e.target.value);
-                            setSelectedCreditPlayerLimit(null);
-                          }}
-                        />
-                        {creditPlayerSearchLimit.length >= 3 && filteredPlayersForLimit.length > 0 && !selectedCreditPlayerLimit && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredPlayersForLimit.map(player => {
-                              const eligiblePlayer = creditEligiblePlayers.find(p => p.id === player.id);
-                              return (
-                                <div
-                                  key={player.id}
-                                  onClick={() => {
-                                    setSelectedCreditPlayerLimit(player);
-                                    setCreditPlayerSearchLimit(`${player.name} (${player.id})`);
-                                  }}
-                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                                >
-                                  <div className="text-white font-medium">{player.name}</div>
-                                  <div className="text-gray-400 text-xs">
-                                    ID: {player.id} | {eligiblePlayer ? `Current Limit: ₹${eligiblePlayer.creditLimit.toLocaleString('en-IN')}` : 'Not eligible'}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                        {selectedCreditPlayerLimit && (
-                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                            <span className="text-green-300">Selected: {selectedCreditPlayerLimit.name} ({selectedCreditPlayerLimit.id})</span>
-                            <button
-                              onClick={() => {
-                                setSelectedCreditPlayerLimit(null);
-                                setCreditPlayerSearchLimit("");
-                              }}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Credit Limit (₹)</label>
-                        <input
-                          type="number"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="Enter credit limit amount"
-                          value={creditLimitAmount}
-                          onChange={(e) => setCreditLimitAmount(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Effective From (Optional)</label>
-                        <input
-                          type="date"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          value={creditEffectiveDate}
-                          onChange={(e) => setCreditEffectiveDate(e.target.value)}
-                        />
-                      </div>
-                      <button
-                        onClick={handleSetCreditLimit}
-                        className="w-full bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg font-semibold"
-                      >
-                        Set Credit Limit (Makes Player Eligible)
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Credit-Eligible Players List</h3>
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {creditEligiblePlayers.length > 0 ? (
-                        creditEligiblePlayers.map(player => (
-                          <div key={player.id} className="bg-white/5 p-3 rounded border border-green-400/30">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <div className="font-semibold text-white">{player.name}</div>
-                                <div className="text-xs text-gray-400">ID: {player.id}</div>
-                                <div className="text-sm text-gray-300 mt-1">
-                                  Limit: ₹{player.creditLimit.toLocaleString('en-IN')} |
-                                  Balance: ₹{player.currentBalance.toLocaleString('en-IN')} |
-                                  Available: ₹{(player.creditLimit - player.currentBalance).toLocaleString('en-IN')}
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  if (window.confirm(`Remove ${player.name} from credit-eligible players?`)) {
-                                    setCreditEligiblePlayers(prev => prev.filter(p => p.id !== player.id));
-                                  }
-                                }}
-                                className="text-red-400 hover:text-red-300 text-sm"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-gray-400">
-                          No credit-eligible players. Set a credit limit to add players.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Credit Requests Management */}
-              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-indigo-500/20 to-blue-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Credit Requests - Approval Required</h2>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  {creditRequests.filter(r => r.status === "pending").length > 0 ? (
-                    <div className="space-y-3">
-                      {creditRequests.filter(r => r.status === "pending").map(request => {
-                        const player = creditEligiblePlayers.find(p => p.id === request.playerId);
-                        const availableCredit = player ? player.creditLimit - player.currentBalance : 0;
-                        return (
-                          <div key={request.id} className="bg-white/5 p-4 rounded-lg border border-yellow-400/30">
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                              <div className="md:col-span-8">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <div className="font-semibold text-white text-lg">{request.playerName}</div>
-                                  <span className="bg-yellow-500/30 text-yellow-300 px-2 py-1 rounded text-xs">Pending Approval</span>
-                                </div>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-300">
-                                  <div>Player ID: <span className="text-white">{request.playerId}</span></div>
-                                  <div>Requested Amount: <span className="text-white font-semibold">₹{request.amount.toLocaleString('en-IN')}</span></div>
-                                  <div>Credit Limit: <span className="text-white">₹{request.requestedLimit.toLocaleString('en-IN')}</span></div>
-                                  <div>Available: <span className="text-white">₹{availableCredit.toLocaleString('en-IN')}</span></div>
-                                </div>
-                                <div className="mt-2 text-xs text-gray-400">
-                                  Requested: {new Date(request.requestedDate).toLocaleString('en-IN')}
-                                </div>
-                                {request.reason && (
-                                  <div className="mt-2 p-2 bg-white/5 rounded text-sm text-gray-300">
-                                    Reason: {request.reason}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="md:col-span-4 flex flex-col gap-2">
-                                {request.amount > availableCredit ? (
-                                  <div className="bg-red-500/20 border border-red-400/30 p-2 rounded text-xs text-red-300 mb-2">
-                                    Request exceeds available credit (₹{availableCredit.toLocaleString('en-IN')})
-                                  </div>
-                                ) : null}
-                                <button
-                                  onClick={() => handleCreditRequestAction(request.id, "approve")}
-                                  className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
-                                >
-                                  ✓ Approve & Send to Cashier
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    const reason = prompt("Enter rejection reason (optional):");
-                                    if (reason !== null) {
-                                      handleCreditRequestAction(request.id, "reject");
-                                    }
-                                  }}
-                                  className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
-                                >
-                                  ✗ Reject Request
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-gray-400">
-                      No pending credit requests
-                    </div>
-                  )}
-                </div>
-
-                {/* Recent Requests History */}
-                {creditRequests.filter(r => r.status !== "pending").length > 0 && (
-                  <div className="mt-6 bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Requests History</h3>
-                    <div className="space-y-2">
-                      {creditRequests.filter(r => r.status !== "pending").map(request => (
-                        <div key={request.id} className="bg-white/5 p-3 rounded border border-white/10">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <span className="text-white font-medium">{request.playerName}</span>
-                              <span className="text-gray-400 text-sm ml-2">- ₹{request.amount.toLocaleString('en-IN')}</span>
-                            </div>
-                            <span className={`px-2 py-1 rounded text-xs ${request.status === "approved"
-                              ? "bg-green-500/30 text-green-300"
-                              : "bg-red-500/30 text-red-300"
-                              }`}>
-                              {request.status === "approved" ? "✓ Approved" : "✗ Rejected"}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </section>
-
-              {/* Credit Adjustments */}
-              <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Credit Adjustments</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Adjust Credit Balance</h3>
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <label className="text-white text-sm">Search Credit-Eligible Player</label>
-                        <input
-                          type="text"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="Type at least 3 characters to search..."
-                          value={creditPlayerSearch}
-                          onChange={(e) => {
-                            setCreditPlayerSearch(e.target.value);
-                            setCreditAdjustmentPlayer(null);
-                          }}
-                        />
-                        {creditPlayerSearch.length >= 3 && creditPlayerSearch.length > 0 && !creditAdjustmentPlayer && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {creditEligiblePlayers.filter(p =>
-                              p.name.toLowerCase().includes(creditPlayerSearch.toLowerCase()) ||
-                              p.id.toLowerCase().includes(creditPlayerSearch.toLowerCase())
-                            ).map(player => (
-                              <div
-                                key={player.id}
-                                onClick={() => {
-                                  setCreditAdjustmentPlayer(player);
-                                  setCreditPlayerSearch(`${player.name} (${player.id})`);
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                              >
-                                <div className="text-white font-medium">{player.name}</div>
-                                <div className="text-gray-400 text-xs">
-                                  ID: {player.id} | Balance: ₹{player.currentBalance.toLocaleString('en-IN')} / ₹{player.creditLimit.toLocaleString('en-IN')}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {creditAdjustmentPlayer && (
-                          <div className="mt-2 p-2 bg-blue-500/20 border border-blue-400/30 rounded text-sm">
-                            <span className="text-blue-300">Selected: {creditAdjustmentPlayer.name} - Balance: ₹{creditAdjustmentPlayer.currentBalance.toLocaleString('en-IN')} / ₹{creditAdjustmentPlayer.creditLimit.toLocaleString('en-IN')}</span>
-                            <button
-                              onClick={() => {
-                                setCreditAdjustmentPlayer(null);
-                                setCreditPlayerSearch("");
-                              }}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Amount (₹)</label>
-                        <input
-                          type="number"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="Enter amount"
-                          value={creditAdjustmentAmount}
-                          onChange={(e) => setCreditAdjustmentAmount(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Notes/Reason</label>
-                        <textarea
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          rows="3"
-                          placeholder="Enter reason for adjustment..."
-                          value={creditAdjustmentNotes}
-                          onChange={(e) => setCreditAdjustmentNotes(e.target.value)}
-                        ></textarea>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleCreditAdjustment("credit")}
-                          className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold"
-                        >
-                          Add Credit
-                        </button>
-                        <button
-                          onClick={() => handleCreditAdjustment("debit")}
-                          className="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold"
-                        >
-                          Deduct Credit
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Credit Ledger</h3>
-                    <div className="bg-white/5 p-4 rounded-lg overflow-x-auto max-h-96">
-                      <table className="min-w-full text-left text-white/90 text-sm">
-                        <thead className="text-white/70 text-xs border-b border-white/20">
-                          <tr>
-                            <th className="py-2 pr-4">Date</th>
-                            <th className="py-2 pr-4">Player</th>
-                            <th className="py-2 pr-4">Type</th>
-                            <th className="py-2 pr-4">Amount (₹)</th>
-                            <th className="py-2 pr-4">Notes</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[
-                            { date: new Date().toLocaleDateString('en-IN'), player: 'P101', type: 'Credit Limit Set', amount: 100000, notes: 'Initial limit set' },
-                            { date: new Date().toLocaleDateString('en-IN'), player: 'P102', type: 'Credit Limit Set', amount: 50000, notes: 'Initial limit set' },
-                            { date: new Date().toLocaleDateString('en-IN'), player: 'P101', type: 'Credit Adjustment', amount: 50000, notes: 'Manual adjustment' },
-                          ].map((row, idx) => (
-                            <tr key={idx} className="border-b border-white/10">
-                              <td className="py-2 pr-4">{row.date}</td>
-                              <td className="py-2 pr-4">{row.player}</td>
-                              <td className="py-2 pr-4">
-                                <span className={`px-2 py-1 rounded text-xs ${row.type.includes('Credit') ? 'bg-green-500/30 text-green-300' : 'bg-blue-500/30 text-blue-300'
-                                  }`}>
-                                  {row.type}
-                                </span>
-                              </td>
-                              <td className="py-2 pr-4">₹{row.amount.toLocaleString('en-IN')}</td>
-                              <td className="py-2 pr-4 text-xs">{row.notes}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
-          )}
-
           {activeItem === "Core Management" && (
             <div className="space-y-6">
               {/* Player Management */}
               <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Player Management</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Player Management
+                </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Player Actions</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Player Actions
+                    </h3>
                     <div className="space-y-4">
                       <div className="relative">
-                        <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
+                        <label className="text-white text-sm">
+                          Search Player (Type at least 3 characters)
+                        </label>
                         <input
                           type="text"
                           className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
@@ -2503,26 +3275,37 @@ export default function AdminDashboard() {
                             setSelectedPlayerForManagement(null);
                           }}
                         />
-                        {playerManagementSearch.length >= 3 && filteredPlayersForManagement.length > 0 && !selectedPlayerForManagement && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredPlayersForManagement.map(player => (
-                              <div
-                                key={player.id}
-                                onClick={() => {
-                                  setSelectedPlayerForManagement(player);
-                                  setPlayerManagementSearch(`${player.name} (${player.id})`);
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                              >
-                                <div className="text-white font-medium">{player.name}</div>
-                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {playerManagementSearch.length >= 3 &&
+                          filteredPlayersForManagement.length > 0 &&
+                          !selectedPlayerForManagement && (
+                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {filteredPlayersForManagement.map((player) => (
+                                <div
+                                  key={player.id}
+                                  onClick={() => {
+                                    setSelectedPlayerForManagement(player);
+                                    setPlayerManagementSearch(
+                                      `${player.name} (${player.id})`
+                                    );
+                                  }}
+                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                                >
+                                  <div className="text-white font-medium">
+                                    {player.name}
+                                  </div>
+                                  <div className="text-gray-400 text-xs">
+                                    ID: {player.id} | Email: {player.email}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         {selectedPlayerForManagement && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                            <span className="text-green-300">Selected: {selectedPlayerForManagement.name} ({selectedPlayerForManagement.id})</span>
+                            <span className="text-green-300">
+                              Selected: {selectedPlayerForManagement.name} (
+                              {selectedPlayerForManagement.id})
+                            </span>
                             <button
                               onClick={() => {
                                 setSelectedPlayerForManagement(null);
@@ -2542,7 +3325,9 @@ export default function AdminDashboard() {
                               alert("Please select a player first");
                               return;
                             }
-                            alert(`Blocking player: ${selectedPlayerForManagement.name} (${selectedPlayerForManagement.id})`);
+                            alert(
+                              `Blocking player: ${selectedPlayerForManagement.name} (${selectedPlayerForManagement.id})`
+                            );
                           }}
                           className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold shadow"
                         >
@@ -2554,7 +3339,9 @@ export default function AdminDashboard() {
                               alert("Please select a player first");
                               return;
                             }
-                            alert(`Unblocking player: ${selectedPlayerForManagement.name} (${selectedPlayerForManagement.id})`);
+                            alert(
+                              `Unblocking player: ${selectedPlayerForManagement.name} (${selectedPlayerForManagement.id})`
+                            );
                           }}
                           className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold shadow"
                         >
@@ -2566,7 +3353,9 @@ export default function AdminDashboard() {
                               alert("Please select a player first");
                               return;
                             }
-                            alert(`Resetting status for player: ${selectedPlayerForManagement.name} (${selectedPlayerForManagement.id})`);
+                            alert(
+                              `Resetting status for player: ${selectedPlayerForManagement.name} (${selectedPlayerForManagement.id})`
+                            );
                           }}
                           className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold shadow"
                         >
@@ -2576,220 +3365,33 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Player History</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Player History
+                    </h3>
                     <div className="space-y-2">
                       <div className="bg-white/5 p-3 rounded border border-white/10">
-                        <div className="font-semibold text-white">Player: John Doe</div>
-                        <div className="text-sm text-gray-300">Last Login: 2 hours ago</div>
-                        <div className="text-sm text-gray-300">Total Sessions: 45</div>
+                        <div className="font-semibold text-white">
+                          Player: John Doe
+                        </div>
+                        <div className="text-sm text-gray-300">
+                          Last Login: 2 hours ago
+                        </div>
+                        <div className="text-sm text-gray-300">
+                          Total Sessions: 45
+                        </div>
                       </div>
                       <div className="bg-white/5 p-3 rounded border border-white/10">
-                        <div className="font-semibold text-white">Player: Jane Smith</div>
-                        <div className="text-sm text-gray-300">Last Login: 1 day ago</div>
-                        <div className="text-sm text-gray-300">Total Sessions: 23</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Table & Tournament Management */}
-              <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Table & Tournament Management</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Create New Table</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Table Name</label>
-                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Table 1" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Game Type</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Texas Hold'em</option>
-                          <option>Omaha</option>
-                          <option>Seven Card Stud</option>
-                          <option>Razz</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Blind Level</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>₹10/₹20</option>
-                          <option>₹25/₹50</option>
-                          <option>₹50/₹100</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Max Players</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="9" />
-                      </div>
-                      <div className="border-t border-white/20 pt-3 mt-3">
-                        <h4 className="text-white text-sm font-semibold mb-2">Session Parameters</h4>
-                        <div className="space-y-2">
-                          <div>
-                            <label className="text-white text-xs">Min Play Time (minutes)</label>
-                            <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="30" />
-                          </div>
-                          <div>
-                            <label className="text-white text-xs">Call Time (minutes)</label>
-                            <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="5" />
-                          </div>
-                          <div>
-                            <label className="text-white text-xs">Cash-out Window (minutes)</label>
-                            <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10" />
-                          </div>
-                          <div>
-                            <label className="text-white text-xs">Session Timeout (minutes)</label>
-                            <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="120" />
-                          </div>
+                        <div className="font-semibold text-white">
+                          Player: Jane Smith
+                        </div>
+                        <div className="text-sm text-gray-300">
+                          Last Login: 1 day ago
+                        </div>
+                        <div className="text-sm text-gray-300">
+                          Total Sessions: 23
                         </div>
                       </div>
-                      <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold shadow w-full mt-4">
-                        Create Table
-                      </button>
                     </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Dealer Assignment</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Select Table</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Table 1</option>
-                          <option>Table 2</option>
-                          <option>Table 3</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Assign Dealer</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>Dealer 1</option>
-                          <option>Dealer 2</option>
-                          <option>Dealer 3</option>
-                        </select>
-                      </div>
-                      <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold shadow">
-                        Assign Dealer
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Custom Bonus Creation */}
-              <section className="p-6 bg-gradient-to-r from-yellow-600/30 via-amber-500/20 to-orange-700/30 rounded-xl shadow-md border border-yellow-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Create Custom Bonus</h2>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <div className="space-y-4">
-                    {/* Player Search */}
-                    <div className="relative">
-                      <label className="text-white text-sm mb-1 block">Select Player</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="Type at least 2 characters to search..."
-                        value={bonusPlayerSearch}
-                        onChange={(e) => {
-                          setBonusPlayerSearch(e.target.value);
-                          setSelectedBonusPlayer(null);
-                        }}
-                      />
-                      {bonusPlayerSearch.length >= 2 && filteredPlayersForBonus.length > 0 && !selectedBonusPlayer && (
-                        <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                          {filteredPlayersForBonus.map(player => (
-                            <div
-                              key={player.id}
-                              onClick={() => {
-                                setSelectedBonusPlayer(player);
-                                setBonusPlayerSearch(`${player.name} (${player.id})`);
-                              }}
-                              className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                            >
-                              <div className="text-white font-medium">{player.name}</div>
-                              <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email || 'N/A'}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {selectedBonusPlayer && (
-                        <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center justify-between">
-                          <span className="text-green-300">Selected: {selectedBonusPlayer.name} ({selectedBonusPlayer.id})</span>
-                          <button
-                            onClick={() => {
-                              setSelectedBonusPlayer(null);
-                              setBonusPlayerSearch("");
-                            }}
-                            className="ml-2 text-red-400 hover:text-red-300 font-bold"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bonus Type */}
-                    <div>
-                      <label className="text-white text-sm mb-1 block">Bonus Type</label>
-                      <CustomSelect
-                        className="w-full"
-                        value={bonusForm.type}
-                        onChange={(e) => setBonusForm({ ...bonusForm, type: e.target.value })}
-                      >
-                        <option value="Welcome Bonus">Welcome Bonus</option>
-                        <option value="Loyalty Bonus">Loyalty Bonus</option>
-                        <option value="Referral Bonus">Referral Bonus</option>
-                        <option value="Tournament Bonus">Tournament Bonus</option>
-                        <option value="Special Event Bonus">Special Event Bonus</option>
-                        <option value="Custom Bonus">Custom Bonus</option>
-                      </CustomSelect>
-                    </div>
-
-                    {/* Bonus Amount */}
-                    <div>
-                      <label className="text-white text-sm mb-1 block">Bonus Amount (₹)</label>
-                      <input
-                        type="number"
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="₹0.00"
-                        value={bonusForm.amount}
-                        onChange={(e) => setBonusForm({ ...bonusForm, amount: e.target.value })}
-                      />
-                    </div>
-
-                    {/* Expiry Days */}
-                    <div>
-                      <label className="text-white text-sm mb-1 block">Expiry (Days)</label>
-                      <input
-                        type="number"
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="30"
-                        value={bonusForm.expiryDays}
-                        onChange={(e) => setBonusForm({ ...bonusForm, expiryDays: parseInt(e.target.value) || 30 })}
-                        min="1"
-                      />
-                    </div>
-
-                    {/* Reason */}
-                    <div>
-                      <label className="text-white text-sm mb-1 block">Reason / Notes</label>
-                      <textarea
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        rows="3"
-                        placeholder="Enter reason for this bonus..."
-                        value={bonusForm.reason}
-                        onChange={(e) => setBonusForm({ ...bonusForm, reason: e.target.value })}
-                      ></textarea>
-                    </div>
-
-                    {/* Create Bonus Button */}
-                    <button
-                      onClick={handleCreateBonus}
-                      className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-4 py-3 rounded-lg font-semibold shadow-lg transition-all"
-                    >
-                      ✨ Create Bonus
-                    </button>
                   </div>
                 </div>
               </section>
@@ -2798,80 +3400,52 @@ export default function AdminDashboard() {
 
           {activeItem === "Player Registration" && (
             <div className="space-y-6">
-              {/* Offers & Promotions */}
-              <section className="p-6 bg-gradient-to-r from-yellow-600/30 via-orange-500/20 to-red-700/30 rounded-xl shadow-md border border-yellow-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Offers & Promotions</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Create Promotion</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Promotion Title</label>
-                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Welcome Bonus" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Description</label>
-                        <textarea className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Get 100% bonus on first deposit"></textarea>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Target Audience</label>
-                        <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                          <option>All Players</option>
-                          <option>New Players</option>
-                          <option>VIP Players</option>
-                        </select>
-                      </div>
-                      <button className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold shadow">
-                        Create Promotion
-                      </button>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Bulk Operations</h3>
-                    <div className="space-y-4">
-                      <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold shadow">
-                        Send Bulk Email
-                      </button>
-                      <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold shadow">
-                        Send SMS Campaign
-                      </button>
-                      <button className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold shadow">
-                        Push Notifications
-                      </button>
-                      <button className="w-full bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold shadow">
-                        Download Player List
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
               {/* Reports & Analytics */}
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Reports & Analytics</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Reports & Analytics
+                </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Player Analytics</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Player Analytics
+                    </h3>
                     <div className="space-y-2">
                       <div className="bg-white/5 p-3 rounded">
-                        <div className="text-sm text-gray-300">Total Players: 156</div>
-                        <div className="text-sm text-gray-300">Active Today: 23</div>
-                        <div className="text-sm text-gray-300">New This Week: 8</div>
+                        <div className="text-sm text-gray-300">
+                          Total Players: 156
+                        </div>
+                        <div className="text-sm text-gray-300">
+                          Active Today: 23
+                        </div>
+                        <div className="text-sm text-gray-300">
+                          New This Week: 8
+                        </div>
                       </div>
                     </div>
                   </div>
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Revenue Reports</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Revenue Reports
+                    </h3>
                     <div className="space-y-2">
                       <div className="bg-white/5 p-3 rounded">
-                        <div className="text-sm text-gray-300">Today: ₹12,450</div>
-                        <div className="text-sm text-gray-300">This Week: ₹78,230</div>
-                        <div className="text-sm text-gray-300">This Month: ₹245,680</div>
+                        <div className="text-sm text-gray-300">
+                          Today: ₹12,450
+                        </div>
+                        <div className="text-sm text-gray-300">
+                          This Week: ₹78,230
+                        </div>
+                        <div className="text-sm text-gray-300">
+                          This Month: ₹245,680
+                        </div>
                       </div>
                     </div>
                   </div>
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Export Options</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Export Options
+                    </h3>
                     <div className="space-y-2">
                       <button className="w-full bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded text-sm">
                         Export CSV
@@ -3106,7 +3680,9 @@ export default function AdminDashboard() {
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-amber-600/30 via-yellow-500/20 to-orange-700/30 rounded-xl shadow-md border border-amber-800/40">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-white">Tournament Management</h2>
+                  <h2 className="text-xl font-bold text-white">
+                    Tournament Management
+                  </h2>
                   <button
                     onClick={() => setShowTournamentForm(!showTournamentForm)}
                     className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-6 py-2 rounded-lg font-semibold shadow-lg transition-all"
@@ -3118,166 +3694,540 @@ export default function AdminDashboard() {
                 {/* Create Tournament Form */}
                 {showTournamentForm && (
                   <div className="bg-white/10 p-6 rounded-lg border border-amber-400/30 mb-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Create New Tournament</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Create New Tournament
+                    </h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       <div className="space-y-4">
-                        <h4 className="text-white font-semibold border-b border-white/20 pb-2">Basic Information</h4>
+                        <h4 className="text-white font-semibold border-b border-white/20 pb-2">
+                          Basic Information
+                        </h4>
                         <div>
-                          <label className="text-white text-sm mb-1 block">Tournament Name *</label>
-                          <input type="text" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Monday Night Hold'em" value={tournamentForm.name} onChange={(e) => setTournamentForm({ ...tournamentForm, name: e.target.value })} />
+                          <label className="text-white text-sm mb-1 block">
+                            Tournament Name *
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            placeholder="Monday Night Hold'em"
+                            value={tournamentForm.name}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                name: e.target.value,
+                              })
+                            }
+                          />
                         </div>
                         <div>
-                          <label className="text-white text-sm mb-1 block">Tournament Type *</label>
-                          <CustomSelect className="w-full" value={tournamentForm.type} onChange={(e) => setTournamentForm({ ...tournamentForm, type: e.target.value })}>
-                            {tournamentTypes.map(type => <option key={type} value={type}>{type}</option>)}
+                          <label className="text-white text-sm mb-1 block">
+                            Tournament Type *
+                          </label>
+                          <CustomSelect
+                            className="w-full"
+                            value={tournamentForm.type}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                type: e.target.value,
+                              })
+                            }
+                          >
+                            {tournamentTypes.map((type) => (
+                              <option key={type} value={type}>
+                                {type}
+                              </option>
+                            ))}
                           </CustomSelect>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="text-white text-sm mb-1 block">Buy-in (₹) *</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="1000" value={tournamentForm.buyIn} onChange={(e) => setTournamentForm({ ...tournamentForm, buyIn: e.target.value })} />
+                            <label className="text-white text-sm mb-1 block">
+                              Buy-in (₹) *
+                            </label>
+                            <input
+                              type="number"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                              placeholder="1000"
+                              value={tournamentForm.buyIn}
+                              onChange={(e) =>
+                                setTournamentForm({
+                                  ...tournamentForm,
+                                  buyIn: e.target.value,
+                                })
+                              }
+                            />
                           </div>
                           <div>
-                            <label className="text-white text-sm mb-1 block">Entry Fee (₹)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="100" value={tournamentForm.entryFee} onChange={(e) => setTournamentForm({ ...tournamentForm, entryFee: e.target.value })} />
+                            <label className="text-white text-sm mb-1 block">
+                              Entry Fee (₹)
+                            </label>
+                            <input
+                              type="number"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                              placeholder="100"
+                              value={tournamentForm.entryFee}
+                              onChange={(e) =>
+                                setTournamentForm({
+                                  ...tournamentForm,
+                                  entryFee: e.target.value,
+                                })
+                              }
+                            />
                           </div>
                         </div>
                         <div>
-                          <label className="text-white text-sm mb-1 block">Starting Chips *</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10000" value={tournamentForm.startingChips} onChange={(e) => setTournamentForm({ ...tournamentForm, startingChips: e.target.value })} />
+                          <label className="text-white text-sm mb-1 block">
+                            Starting Chips *
+                          </label>
+                          <input
+                            type="number"
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            placeholder="10000"
+                            value={tournamentForm.startingChips}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                startingChips: e.target.value,
+                              })
+                            }
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="text-white text-sm mb-1 block">Start Time</label>
-                            <input type="datetime-local" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" value={tournamentForm.startTime} onChange={(e) => setTournamentForm({ ...tournamentForm, startTime: e.target.value })} />
+                            <label className="text-white text-sm mb-1 block">
+                              Start Time
+                            </label>
+                            <input
+                              type="datetime-local"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                              value={tournamentForm.startTime}
+                              onChange={(e) =>
+                                setTournamentForm({
+                                  ...tournamentForm,
+                                  startTime: e.target.value,
+                                })
+                              }
+                            />
                           </div>
                           <div>
-                            <label className="text-white text-sm mb-1 block">Max Players (unlimited if blank)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Unlimited" value={tournamentForm.maxPlayers} onChange={(e) => setTournamentForm({ ...tournamentForm, maxPlayers: e.target.value })} />
+                            <label className="text-white text-sm mb-1 block">
+                              Max Players (unlimited if blank)
+                            </label>
+                            <input
+                              type="number"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                              placeholder="Unlimited"
+                              value={tournamentForm.maxPlayers}
+                              onChange={(e) =>
+                                setTournamentForm({
+                                  ...tournamentForm,
+                                  maxPlayers: e.target.value,
+                                })
+                              }
+                            />
                           </div>
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <h4 className="text-white font-semibold border-b border-white/20 pb-2">Tournament Rules</h4>
+                        <h4 className="text-white font-semibold border-b border-white/20 pb-2">
+                          Tournament Rules
+                        </h4>
                         <div>
-                          <label className="text-white text-sm mb-1 block">Blind Structure *</label>
-                          <CustomSelect className="w-full" value={tournamentForm.blindStructure} onChange={(e) => setTournamentForm({ ...tournamentForm, blindStructure: e.target.value })}>
-                            {blindStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
+                          <label className="text-white text-sm mb-1 block">
+                            Blind Structure *
+                          </label>
+                          <CustomSelect
+                            className="w-full"
+                            value={tournamentForm.blindStructure}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                blindStructure: e.target.value,
+                              })
+                            }
+                          >
+                            {blindStructures.map((structure) => (
+                              <option key={structure} value={structure}>
+                                {structure}
+                              </option>
+                            ))}
                           </CustomSelect>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="text-white text-sm mb-1 block">Number of Levels</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindLevels} onChange={(e) => setTournamentForm({ ...tournamentForm, blindLevels: parseInt(e.target.value) || 15 })} />
+                            <label className="text-white text-sm mb-1 block">
+                              Number of Levels
+                            </label>
+                            <input
+                              type="number"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                              placeholder="15"
+                              value={tournamentForm.blindLevels}
+                              onChange={(e) =>
+                                setTournamentForm({
+                                  ...tournamentForm,
+                                  blindLevels: parseInt(e.target.value) || 15,
+                                })
+                              }
+                            />
                           </div>
                           <div>
-                            <label className="text-white text-sm mb-1 block">Minutes per Level</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15" value={tournamentForm.blindInterval} onChange={(e) => setTournamentForm({ ...tournamentForm, blindInterval: parseInt(e.target.value) || 15 })} />
+                            <label className="text-white text-sm mb-1 block">
+                              Minutes per Level
+                            </label>
+                            <input
+                              type="number"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                              placeholder="15"
+                              value={tournamentForm.blindInterval}
+                              onChange={(e) =>
+                                setTournamentForm({
+                                  ...tournamentForm,
+                                  blindInterval: parseInt(e.target.value) || 15,
+                                })
+                              }
+                            />
                           </div>
                         </div>
                         <div>
-                          <label className="text-white text-sm mb-1 block">Break Structure</label>
-                          <CustomSelect className="w-full" value={tournamentForm.breakStructure} onChange={(e) => setTournamentForm({ ...tournamentForm, breakStructure: e.target.value })}>
-                            {breakStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
+                          <label className="text-white text-sm mb-1 block">
+                            Break Structure
+                          </label>
+                          <CustomSelect
+                            className="w-full"
+                            value={tournamentForm.breakStructure}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                breakStructure: e.target.value,
+                              })
+                            }
+                          >
+                            {breakStructures.map((structure) => (
+                              <option key={structure} value={structure}>
+                                {structure}
+                              </option>
+                            ))}
                           </CustomSelect>
                         </div>
                         {tournamentForm.breakStructure !== "No breaks" && (
                           <div>
-                            <label className="text-white text-sm mb-1 block">Break Duration (minutes)</label>
-                            <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="10" value={tournamentForm.breakDuration} onChange={(e) => setTournamentForm({ ...tournamentForm, breakDuration: parseInt(e.target.value) || 10 })} />
+                            <label className="text-white text-sm mb-1 block">
+                              Break Duration (minutes)
+                            </label>
+                            <input
+                              type="number"
+                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                              placeholder="10"
+                              value={tournamentForm.breakDuration}
+                              onChange={(e) =>
+                                setTournamentForm({
+                                  ...tournamentForm,
+                                  breakDuration: parseInt(e.target.value) || 10,
+                                })
+                              }
+                            />
                           </div>
                         )}
                         <div>
-                          <label className="text-white text-sm mb-1 block">Late Registration (minutes)</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="60" value={tournamentForm.lateRegistration} onChange={(e) => setTournamentForm({ ...tournamentForm, lateRegistration: parseInt(e.target.value) || 60 })} />
+                          <label className="text-white text-sm mb-1 block">
+                            Late Registration (minutes)
+                          </label>
+                          <input
+                            type="number"
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            placeholder="60"
+                            value={tournamentForm.lateRegistration}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                lateRegistration:
+                                  parseInt(e.target.value) || 60,
+                              })
+                            }
+                          />
                         </div>
                         <div>
-                          <label className="text-white text-sm mb-1 block">Payout Structure</label>
-                          <CustomSelect className="w-full" value={tournamentForm.payoutStructure} onChange={(e) => setTournamentForm({ ...tournamentForm, payoutStructure: e.target.value })}>
-                            {payoutStructures.map(structure => <option key={structure} value={structure}>{structure}</option>)}
+                          <label className="text-white text-sm mb-1 block">
+                            Payout Structure
+                          </label>
+                          <CustomSelect
+                            className="w-full"
+                            value={tournamentForm.payoutStructure}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                payoutStructure: e.target.value,
+                              })
+                            }
+                          >
+                            {payoutStructures.map((structure) => (
+                              <option key={structure} value={structure}>
+                                {structure}
+                              </option>
+                            ))}
                           </CustomSelect>
                         </div>
                         <div>
-                          <label className="text-white text-sm mb-1 block">Seat Draw Method</label>
-                          <CustomSelect className="w-full" value={tournamentForm.seatDrawMethod} onChange={(e) => setTournamentForm({ ...tournamentForm, seatDrawMethod: e.target.value })}>
+                          <label className="text-white text-sm mb-1 block">
+                            Seat Draw Method
+                          </label>
+                          <CustomSelect
+                            className="w-full"
+                            value={tournamentForm.seatDrawMethod}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                seatDrawMethod: e.target.value,
+                              })
+                            }
+                          >
                             <option value="Random">Random</option>
                             <option value="Table Balance">Table Balance</option>
                             <option value="Manual">Manual</option>
                           </CustomSelect>
                         </div>
                         <div>
-                          <label className="text-white text-sm mb-1 block">Clock Pause Rules</label>
-                          <CustomSelect className="w-full" value={tournamentForm.clockPauseRules} onChange={(e) => setTournamentForm({ ...tournamentForm, clockPauseRules: e.target.value })}>
-                            <option value="Standard">Standard (pause on breaks)</option>
+                          <label className="text-white text-sm mb-1 block">
+                            Clock Pause Rules
+                          </label>
+                          <CustomSelect
+                            className="w-full"
+                            value={tournamentForm.clockPauseRules}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                clockPauseRules: e.target.value,
+                              })
+                            }
+                          >
+                            <option value="Standard">
+                              Standard (pause on breaks)
+                            </option>
                             <option value="No Pause">No Pause</option>
-                            <option value="Pause on All-in">Pause on All-in</option>
+                            <option value="Pause on All-in">
+                              Pause on All-in
+                            </option>
                             <option value="Custom">Custom</option>
                           </CustomSelect>
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <h4 className="text-white font-semibold border-b border-white/20 pb-2">Rebuy, Add-on & Re-entry</h4>
+                        <h4 className="text-white font-semibold border-b border-white/20 pb-2">
+                          Rebuy, Add-on & Re-entry
+                        </h4>
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" id="rebuy-allowed" className="w-4 h-4" checked={tournamentForm.rebuyAllowed} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyAllowed: e.target.checked })} />
-                          <label htmlFor="rebuy-allowed" className="text-white text-sm">Allow Rebuys</label>
+                          <input
+                            type="checkbox"
+                            id="rebuy-allowed"
+                            className="w-4 h-4"
+                            checked={tournamentForm.rebuyAllowed}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                rebuyAllowed: e.target.checked,
+                              })
+                            }
+                          />
+                          <label
+                            htmlFor="rebuy-allowed"
+                            className="text-white text-sm"
+                          >
+                            Allow Rebuys
+                          </label>
                         </div>
                         {tournamentForm.rebuyAllowed && (
                           <div className="grid grid-cols-3 gap-3 ml-7">
                             <div>
-                              <label className="text-white text-xs mb-1 block">Rebuy Chips</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.rebuyChips} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyChips: e.target.value })} />
+                              <label className="text-white text-xs mb-1 block">
+                                Rebuy Chips
+                              </label>
+                              <input
+                                type="number"
+                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                                placeholder="10000"
+                                value={tournamentForm.rebuyChips}
+                                onChange={(e) =>
+                                  setTournamentForm({
+                                    ...tournamentForm,
+                                    rebuyChips: e.target.value,
+                                  })
+                                }
+                              />
                             </div>
                             <div>
-                              <label className="text-white text-xs mb-1 block">Rebuy Fee (₹)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="1000" value={tournamentForm.rebuyFee} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyFee: e.target.value })} />
+                              <label className="text-white text-xs mb-1 block">
+                                Rebuy Fee (₹)
+                              </label>
+                              <input
+                                type="number"
+                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                                placeholder="1000"
+                                value={tournamentForm.rebuyFee}
+                                onChange={(e) =>
+                                  setTournamentForm({
+                                    ...tournamentForm,
+                                    rebuyFee: e.target.value,
+                                  })
+                                }
+                              />
                             </div>
                             <div>
-                              <label className="text-white text-xs mb-1 block">Rebuy Period (levels)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="6" value={tournamentForm.rebuyPeriod} onChange={(e) => setTournamentForm({ ...tournamentForm, rebuyPeriod: e.target.value })} />
+                              <label className="text-white text-xs mb-1 block">
+                                Rebuy Period (levels)
+                              </label>
+                              <input
+                                type="number"
+                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                                placeholder="6"
+                                value={tournamentForm.rebuyPeriod}
+                                onChange={(e) =>
+                                  setTournamentForm({
+                                    ...tournamentForm,
+                                    rebuyPeriod: e.target.value,
+                                  })
+                                }
+                              />
                             </div>
                           </div>
                         )}
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" id="addon-allowed" className="w-4 h-4" checked={tournamentForm.addOnAllowed} onChange={(e) => setTournamentForm({ ...tournamentForm, addOnAllowed: e.target.checked })} />
-                          <label htmlFor="addon-allowed" className="text-white text-sm">Allow Add-on</label>
+                          <input
+                            type="checkbox"
+                            id="addon-allowed"
+                            className="w-4 h-4"
+                            checked={tournamentForm.addOnAllowed}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                addOnAllowed: e.target.checked,
+                              })
+                            }
+                          />
+                          <label
+                            htmlFor="addon-allowed"
+                            className="text-white text-sm"
+                          >
+                            Allow Add-on
+                          </label>
                         </div>
                         {tournamentForm.addOnAllowed && (
                           <div className="grid grid-cols-2 gap-3 ml-7">
                             <div>
-                              <label className="text-white text-xs mb-1 block">Add-on Chips</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="10000" value={tournamentForm.addOnChips} onChange={(e) => setTournamentForm({ ...tournamentForm, addOnChips: e.target.value })} />
+                              <label className="text-white text-xs mb-1 block">
+                                Add-on Chips
+                              </label>
+                              <input
+                                type="number"
+                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                                placeholder="10000"
+                                value={tournamentForm.addOnChips}
+                                onChange={(e) =>
+                                  setTournamentForm({
+                                    ...tournamentForm,
+                                    addOnChips: e.target.value,
+                                  })
+                                }
+                              />
                             </div>
                             <div>
-                              <label className="text-white text-xs mb-1 block">Add-on Fee (₹)</label>
-                              <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="500" value={tournamentForm.addOnFee} onChange={(e) => setTournamentForm({ ...tournamentForm, addOnFee: e.target.value })} />
+                              <label className="text-white text-xs mb-1 block">
+                                Add-on Fee (₹)
+                              </label>
+                              <input
+                                type="number"
+                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                                placeholder="500"
+                                value={tournamentForm.addOnFee}
+                                onChange={(e) =>
+                                  setTournamentForm({
+                                    ...tournamentForm,
+                                    addOnFee: e.target.value,
+                                  })
+                                }
+                              />
                             </div>
                           </div>
                         )}
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" id="reentry-allowed" className="w-4 h-4" checked={tournamentForm.reEntryAllowed} onChange={(e) => setTournamentForm({ ...tournamentForm, reEntryAllowed: e.target.checked })} />
-                          <label htmlFor="reentry-allowed" className="text-white text-sm">Allow Re-entry</label>
+                          <input
+                            type="checkbox"
+                            id="reentry-allowed"
+                            className="w-4 h-4"
+                            checked={tournamentForm.reEntryAllowed}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                reEntryAllowed: e.target.checked,
+                              })
+                            }
+                          />
+                          <label
+                            htmlFor="reentry-allowed"
+                            className="text-white text-sm"
+                          >
+                            Allow Re-entry
+                          </label>
                         </div>
                         {tournamentForm.reEntryAllowed && (
                           <div className="ml-7">
-                            <label className="text-white text-xs mb-1 block">Re-entry Period (minutes)</label>
-                            <input type="number" className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm" placeholder="60" value={tournamentForm.reEntryPeriod} onChange={(e) => setTournamentForm({ ...tournamentForm, reEntryPeriod: e.target.value })} />
+                            <label className="text-white text-xs mb-1 block">
+                              Re-entry Period (minutes)
+                            </label>
+                            <input
+                              type="number"
+                              className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                              placeholder="60"
+                              value={tournamentForm.reEntryPeriod}
+                              onChange={(e) =>
+                                setTournamentForm({
+                                  ...tournamentForm,
+                                  reEntryPeriod: e.target.value,
+                                })
+                              }
+                            />
                           </div>
                         )}
                       </div>
                       <div className="space-y-4">
-                        <h4 className="text-white font-semibold border-b border-white/20 pb-2">Bounty Options</h4>
+                        <h4 className="text-white font-semibold border-b border-white/20 pb-2">
+                          Bounty Options
+                        </h4>
                         <div>
-                          <label className="text-white text-sm mb-1 block">Bounty Amount (₹) - Leave blank for regular tournament</label>
-                          <input type="number" className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="0" value={tournamentForm.bountyAmount} onChange={(e) => setTournamentForm({ ...tournamentForm, bountyAmount: e.target.value })} />
-                          <p className="text-xs text-gray-400 mt-1">If set, this becomes a knockout/bounty tournament</p>
+                          <label className="text-white text-sm mb-1 block">
+                            Bounty Amount (₹) - Leave blank for regular
+                            tournament
+                          </label>
+                          <input
+                            type="number"
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                            placeholder="0"
+                            value={tournamentForm.bountyAmount}
+                            onChange={(e) =>
+                              setTournamentForm({
+                                ...tournamentForm,
+                                bountyAmount: e.target.value,
+                              })
+                            }
+                          />
+                          <p className="text-xs text-gray-400 mt-1">
+                            If set, this becomes a knockout/bounty tournament
+                          </p>
                         </div>
                       </div>
                     </div>
                     <div className="mt-6 flex gap-3">
-                      <button onClick={handleCreateTournament} className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all">
+                      <button
+                        onClick={handleCreateTournament}
+                        className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all"
+                      >
                         Create Tournament
                       </button>
-                      <button onClick={() => setShowTournamentForm(false)} className="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-semibold">
+                      <button
+                        onClick={() => setShowTournamentForm(false)}
+                        className="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-semibold"
+                      >
                         Cancel
                       </button>
                     </div>
@@ -3286,46 +4236,160 @@ export default function AdminDashboard() {
 
                 {/* Tournaments List */}
                 <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">Tournaments ({tournaments.length})</h3>
+                  <h3 className="text-lg font-semibold text-white mb-4">
+                    Tournaments ({tournaments.length})
+                  </h3>
                   <div className="space-y-3 max-h-[600px] overflow-y-auto">
                     {tournaments.length > 0 ? (
-                      tournaments.map(tournament => (
-                        <div key={tournament.id} className="bg-white/5 p-4 rounded-lg border border-white/10 hover:bg-white/10 transition-all cursor-pointer" onClick={() => setSelectedTournament(tournament)}>
+                      tournaments.map((tournament) => (
+                        <div
+                          key={tournament.id}
+                          className="bg-white/5 p-4 rounded-lg border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                          onClick={() => setSelectedTournament(tournament)}
+                        >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
-                                <h4 className="text-white font-semibold text-lg">{tournament.name}</h4>
-                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${tournament.status === "Active" ? "bg-green-500/30 text-green-300 border border-green-400/50" : tournament.status === "Scheduled" ? "bg-blue-500/30 text-blue-300 border border-blue-400/50" : "bg-gray-500/30 text-gray-300 border border-gray-400/50"}`}>
+                                <h4 className="text-white font-semibold text-lg">
+                                  {tournament.name}
+                                </h4>
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                    tournament.status === "Active"
+                                      ? "bg-green-500/30 text-green-300 border border-green-400/50"
+                                      : tournament.status === "Scheduled"
+                                      ? "bg-blue-500/30 text-blue-300 border border-blue-400/50"
+                                      : "bg-gray-500/30 text-gray-300 border border-gray-400/50"
+                                  }`}
+                                >
                                   {tournament.status}
                                 </span>
-                                <span className="px-2 py-1 rounded text-xs bg-purple-500/30 text-purple-300 border border-purple-400/50">{tournament.type}</span>
+                                <span className="px-2 py-1 rounded text-xs bg-purple-500/30 text-purple-300 border border-purple-400/50">
+                                  {tournament.type}
+                                </span>
                               </div>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-300">
-                                <div><span className="text-gray-400">Buy-in:</span> <span className="text-white font-semibold">₹{tournament.buyIn.toLocaleString('en-IN')}</span></div>
-                                <div><span className="text-gray-400">Starting Chips:</span> <span className="text-white font-semibold">{tournament.startingChips.toLocaleString('en-IN')}</span></div>
-                                <div><span className="text-gray-400">Registered:</span> <span className="text-white font-semibold">{tournament.registeredPlayers}{tournament.maxPlayers ? `/${tournament.maxPlayers}` : '/∞'}</span></div>
-                                <div><span className="text-gray-400">Start:</span> <span className="text-white">{new Date(tournament.startTime).toLocaleString('en-IN')}</span></div>
+                                <div>
+                                  <span className="text-gray-400">Buy-in:</span>{" "}
+                                  <span className="text-white font-semibold">
+                                    ₹{tournament.buyIn.toLocaleString("en-IN")}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">
+                                    Starting Chips:
+                                  </span>{" "}
+                                  <span className="text-white font-semibold">
+                                    {tournament.startingChips.toLocaleString(
+                                      "en-IN"
+                                    )}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">
+                                    Registered:
+                                  </span>{" "}
+                                  <span className="text-white font-semibold">
+                                    {tournament.registeredPlayers}
+                                    {tournament.maxPlayers
+                                      ? `/${tournament.maxPlayers}`
+                                      : "/∞"}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">Start:</span>{" "}
+                                  <span className="text-white">
+                                    {new Date(
+                                      tournament.startTime
+                                    ).toLocaleString("en-IN")}
+                                  </span>
+                                </div>
                               </div>
                               <div className="flex flex-wrap gap-2 mt-2">
-                                {tournament.rebuyAllowed && <span className="px-2 py-1 rounded text-xs bg-yellow-500/30 text-yellow-300 border border-yellow-400/50">Rebuy</span>}
-                                {tournament.addOnAllowed && <span className="px-2 py-1 rounded text-xs bg-blue-500/30 text-blue-300 border border-blue-400/50">Add-on</span>}
-                                {tournament.reEntryAllowed && <span className="px-2 py-1 rounded text-xs bg-purple-500/30 text-purple-300 border border-purple-400/50">Re-entry</span>}
-                                {tournament.bountyAmount > 0 && <span className="px-2 py-1 rounded text-xs bg-red-500/30 text-red-300 border border-red-400/50">Bounty ₹{tournament.bountyAmount}</span>}
-                                <span className="px-2 py-1 rounded text-xs bg-indigo-500/30 text-indigo-300 border border-indigo-400/50">{tournament.blindStructure}</span>
+                                {tournament.rebuyAllowed && (
+                                  <span className="px-2 py-1 rounded text-xs bg-yellow-500/30 text-yellow-300 border border-yellow-400/50">
+                                    Rebuy
+                                  </span>
+                                )}
+                                {tournament.addOnAllowed && (
+                                  <span className="px-2 py-1 rounded text-xs bg-blue-500/30 text-blue-300 border border-blue-400/50">
+                                    Add-on
+                                  </span>
+                                )}
+                                {tournament.reEntryAllowed && (
+                                  <span className="px-2 py-1 rounded text-xs bg-purple-500/30 text-purple-300 border border-purple-400/50">
+                                    Re-entry
+                                  </span>
+                                )}
+                                {tournament.bountyAmount > 0 && (
+                                  <span className="px-2 py-1 rounded text-xs bg-red-500/30 text-red-300 border border-red-400/50">
+                                    Bounty ₹{tournament.bountyAmount}
+                                  </span>
+                                )}
+                                <span className="px-2 py-1 rounded text-xs bg-indigo-500/30 text-indigo-300 border border-indigo-400/50">
+                                  {tournament.blindStructure}
+                                </span>
                               </div>
                             </div>
                             <div className="flex flex-col gap-2 ml-4">
-                              <button onClick={(e) => { e.stopPropagation(); setSelectedTournament(tournament); }} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-semibold">View Details</button>
-                              {tournament.status === "Scheduled" && <button onClick={(e) => { e.stopPropagation(); setTournaments(prev => prev.map(t => t.id === tournament.id ? { ...t, status: "Active" } : t)); alert(`Tournament "${tournament.name}" started!`); }} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm font-semibold">Start</button>}
-                              <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete tournament "${tournament.name}"?`)) { setTournaments(prev => prev.filter(t => t.id !== tournament.id)); } }} className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold">Delete</button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTournament(tournament);
+                                }}
+                                className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm font-semibold"
+                              >
+                                View Details
+                              </button>
+                              {tournament.status === "Scheduled" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTournaments((prev) =>
+                                      prev.map((t) =>
+                                        t.id === tournament.id
+                                          ? { ...t, status: "Active" }
+                                          : t
+                                      )
+                                    );
+                                    alert(
+                                      `Tournament "${tournament.name}" started!`
+                                    );
+                                  }}
+                                  className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm font-semibold"
+                                >
+                                  Start
+                                </button>
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (
+                                    window.confirm(
+                                      `Delete tournament "${tournament.name}"?`
+                                    )
+                                  ) {
+                                    setTournaments((prev) =>
+                                      prev.filter((t) => t.id !== tournament.id)
+                                    );
+                                  }
+                                }}
+                                className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold"
+                              >
+                                Delete
+                              </button>
                             </div>
                           </div>
                         </div>
                       ))
                     ) : (
                       <div className="text-center py-12 text-gray-400">
-                        <div className="text-lg mb-2">No tournaments created yet</div>
-                        <div className="text-sm">Click "Create Tournament" to get started</div>
+                        <div className="text-lg mb-2">
+                          No tournaments created yet
+                        </div>
+                        <div className="text-sm">
+                          Click "Create Tournament" to get started
+                        </div>
                       </div>
                     )}
                   </div>
@@ -3334,66 +4398,256 @@ export default function AdminDashboard() {
 
               {/* Tournament Details Modal */}
               {selectedTournament && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setSelectedTournament(null)}>
-                  <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl border border-amber-500/30 max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+                  onClick={() => setSelectedTournament(null)}
+                >
+                  <div
+                    className="bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl border border-amber-500/30 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="p-6 border-b border-white/10">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h2 className="text-2xl font-bold text-white mb-2">{selectedTournament.name}</h2>
-                          <p className="text-gray-400 text-sm">Tournament Details & Settings</p>
+                          <h2 className="text-2xl font-bold text-white mb-2">
+                            {selectedTournament.name}
+                          </h2>
+                          <p className="text-gray-400 text-sm">
+                            Tournament Details & Settings
+                          </p>
                         </div>
-                        <button onClick={() => setSelectedTournament(null)} className="text-white/70 hover:text-white text-2xl font-bold">×</button>
+                        <button
+                          onClick={() => setSelectedTournament(null)}
+                          className="text-white/70 hover:text-white text-2xl font-bold"
+                        >
+                          ×
+                        </button>
                       </div>
                     </div>
                     <div className="p-6 space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">Basic Info</h3>
+                          <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">
+                            Basic Info
+                          </h3>
                           <div className="space-y-3">
-                            <div><label className="text-gray-400 text-xs">Tournament ID</label><div className="text-white font-medium">{selectedTournament.id}</div></div>
-                            <div><label className="text-gray-400 text-xs">Type</label><div className="text-white">{selectedTournament.type}</div></div>
-                            <div><label className="text-gray-400 text-xs">Status</label><div><span className={`px-3 py-1 rounded-full text-xs border font-medium ${selectedTournament.status === "Active" ? "bg-green-500/30 text-green-300 border-green-400/50" : selectedTournament.status === "Scheduled" ? "bg-blue-500/30 text-blue-300 border-blue-400/50" : "bg-gray-500/30 text-gray-300 border-gray-400/50"}`}>{selectedTournament.status}</span></div></div>
-                            <div><label className="text-gray-400 text-xs">Buy-in</label><div className="text-white font-semibold">₹{selectedTournament.buyIn.toLocaleString('en-IN')}</div></div>
-                            <div><label className="text-gray-400 text-xs">Entry Fee</label><div className="text-white">₹{selectedTournament.entryFee.toLocaleString('en-IN')}</div></div>
-                            <div><label className="text-gray-400 text-xs">Starting Chips</label><div className="text-white font-semibold">{selectedTournament.startingChips.toLocaleString('en-IN')}</div></div>
+                            <div>
+                              <label className="text-gray-400 text-xs">
+                                Tournament ID
+                              </label>
+                              <div className="text-white font-medium">
+                                {selectedTournament.id}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">
+                                Type
+                              </label>
+                              <div className="text-white">
+                                {selectedTournament.type}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">
+                                Status
+                              </label>
+                              <div>
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs border font-medium ${
+                                    selectedTournament.status === "Active"
+                                      ? "bg-green-500/30 text-green-300 border-green-400/50"
+                                      : selectedTournament.status ===
+                                        "Scheduled"
+                                      ? "bg-blue-500/30 text-blue-300 border-blue-400/50"
+                                      : "bg-gray-500/30 text-gray-300 border-gray-400/50"
+                                  }`}
+                                >
+                                  {selectedTournament.status}
+                                </span>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">
+                                Buy-in
+                              </label>
+                              <div className="text-white font-semibold">
+                                ₹
+                                {selectedTournament.buyIn.toLocaleString(
+                                  "en-IN"
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">
+                                Entry Fee
+                              </label>
+                              <div className="text-white">
+                                ₹
+                                {selectedTournament.entryFee.toLocaleString(
+                                  "en-IN"
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">
+                                Starting Chips
+                              </label>
+                              <div className="text-white font-semibold">
+                                {selectedTournament.startingChips.toLocaleString(
+                                  "en-IN"
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">Structure</h3>
+                          <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">
+                            Structure
+                          </h3>
                           <div className="space-y-3">
-                            <div><label className="text-gray-400 text-xs">Blind Structure</label><div className="text-white">{selectedTournament.blindStructure}</div></div>
-                            <div><label className="text-gray-400 text-xs">Blind Levels</label><div className="text-white">{selectedTournament.blindLevels} levels</div></div>
-                            <div><label className="text-gray-400 text-xs">Break Structure</label><div className="text-white">{selectedTournament.breakStructure}</div></div>
-                            <div><label className="text-gray-400 text-xs">Payout Structure</label><div className="text-white">{selectedTournament.payoutStructure}</div></div>
-                            <div><label className="text-gray-400 text-xs">Players</label><div className="text-white">{selectedTournament.registeredPlayers}{selectedTournament.maxPlayers ? ` / ${selectedTournament.maxPlayers}` : " / Unlimited"}</div></div>
-                            <div><label className="text-gray-400 text-xs">Start Time</label><div className="text-white">{new Date(selectedTournament.startTime).toLocaleString('en-IN')}</div></div>
+                            <div>
+                              <label className="text-gray-400 text-xs">
+                                Blind Structure
+                              </label>
+                              <div className="text-white">
+                                {selectedTournament.blindStructure}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">
+                                Blind Levels
+                              </label>
+                              <div className="text-white">
+                                {selectedTournament.blindLevels} levels
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">
+                                Break Structure
+                              </label>
+                              <div className="text-white">
+                                {selectedTournament.breakStructure}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">
+                                Payout Structure
+                              </label>
+                              <div className="text-white">
+                                {selectedTournament.payoutStructure}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">
+                                Players
+                              </label>
+                              <div className="text-white">
+                                {selectedTournament.registeredPlayers}
+                                {selectedTournament.maxPlayers
+                                  ? ` / ${selectedTournament.maxPlayers}`
+                                  : " / Unlimited"}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-gray-400 text-xs">
+                                Start Time
+                              </label>
+                              <div className="text-white">
+                                {new Date(
+                                  selectedTournament.startTime
+                                ).toLocaleString("en-IN")}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
                       <div className="pt-4 border-t border-white/10">
-                        <h3 className="text-lg font-semibold text-white mb-4">Rules & Options</h3>
+                        <h3 className="text-lg font-semibold text-white mb-4">
+                          Rules & Options
+                        </h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="text-center p-3 bg-white/5 rounded border border-white/10">
-                            <div className="text-xs text-gray-400 mb-1">Rebuy</div>
-                            <div className={`text-sm font-semibold ${selectedTournament.rebuyAllowed ? 'text-green-300' : 'text-gray-500'}`}>{selectedTournament.rebuyAllowed ? '✓ Allowed' : '✗ Not Allowed'}</div>
+                            <div className="text-xs text-gray-400 mb-1">
+                              Rebuy
+                            </div>
+                            <div
+                              className={`text-sm font-semibold ${
+                                selectedTournament.rebuyAllowed
+                                  ? "text-green-300"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {selectedTournament.rebuyAllowed
+                                ? "✓ Allowed"
+                                : "✗ Not Allowed"}
+                            </div>
                           </div>
                           <div className="text-center p-3 bg-white/5 rounded border border-white/10">
-                            <div className="text-xs text-gray-400 mb-1">Add-on</div>
-                            <div className={`text-sm font-semibold ${selectedTournament.addOnAllowed ? 'text-green-300' : 'text-gray-500'}`}>{selectedTournament.addOnAllowed ? '✓ Allowed' : '✗ Not Allowed'}</div>
+                            <div className="text-xs text-gray-400 mb-1">
+                              Add-on
+                            </div>
+                            <div
+                              className={`text-sm font-semibold ${
+                                selectedTournament.addOnAllowed
+                                  ? "text-green-300"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {selectedTournament.addOnAllowed
+                                ? "✓ Allowed"
+                                : "✗ Not Allowed"}
+                            </div>
                           </div>
                           <div className="text-center p-3 bg-white/5 rounded border border-white/10">
-                            <div className="text-xs text-gray-400 mb-1">Re-entry</div>
-                            <div className={`text-sm font-semibold ${selectedTournament.reEntryAllowed ? 'text-green-300' : 'text-gray-500'}`}>{selectedTournament.reEntryAllowed ? '✓ Allowed' : '✗ Not Allowed'}</div>
+                            <div className="text-xs text-gray-400 mb-1">
+                              Re-entry
+                            </div>
+                            <div
+                              className={`text-sm font-semibold ${
+                                selectedTournament.reEntryAllowed
+                                  ? "text-green-300"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {selectedTournament.reEntryAllowed
+                                ? "✓ Allowed"
+                                : "✗ Not Allowed"}
+                            </div>
                           </div>
                           <div className="text-center p-3 bg-white/5 rounded border border-white/10">
-                            <div className="text-xs text-gray-400 mb-1">Bounty</div>
-                            <div className={`text-sm font-semibold ${selectedTournament.bountyAmount > 0 ? 'text-red-300' : 'text-gray-500'}`}>{selectedTournament.bountyAmount > 0 ? `₹${selectedTournament.bountyAmount}` : 'None'}</div>
+                            <div className="text-xs text-gray-400 mb-1">
+                              Bounty
+                            </div>
+                            <div
+                              className={`text-sm font-semibold ${
+                                selectedTournament.bountyAmount > 0
+                                  ? "text-red-300"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {selectedTournament.bountyAmount > 0
+                                ? `₹${selectedTournament.bountyAmount}`
+                                : "None"}
+                            </div>
                           </div>
                         </div>
                       </div>
                       <div className="flex gap-3 pt-4 border-t border-white/10">
-                        <button onClick={() => { setSelectedTournament(null); setShowTournamentForm(true); }} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold">Edit Tournament</button>
-                        <button onClick={() => setSelectedTournament(null)} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 rounded-lg font-semibold">Close</button>
+                        <button
+                          onClick={() => {
+                            setSelectedTournament(null);
+                            setShowTournamentForm(true);
+                          }}
+                          className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold"
+                        >
+                          Edit Tournament
+                        </button>
+                        <button
+                          onClick={() => setSelectedTournament(null)}
+                          className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 rounded-lg font-semibold"
+                        >
+                          Close
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -3406,70 +4660,158 @@ export default function AdminDashboard() {
           {activeItem === "VIP Store" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">VIP Store Management</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  VIP Store Management - {adminClubName}
+                </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">VIP Products</h3>
-                    <div className="flex gap-2 mb-3">
-                      <input
-                        id="vip-title"
-                        className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="Product name"
-                      />
-                      <input
-                        id="vip-points"
-                        type="number"
-                        className="w-32 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="Points"
-                      />
-                      <button
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded"
-                        onClick={() => {
-                          const t = document.getElementById('vip-title');
-                          const p = document.getElementById('vip-points');
-                          const title = t && 'value' in t ? t.value : '';
-                          const pts = p && 'value' in p ? parseInt(p.value || '0', 10) : 0;
-                          if (title.trim() && pts > 0) {
-                            setVipProducts(prev => [...prev, { id: `vip-${Date.now()}`, title, points: pts }]);
-                            if (t) t.value = '';
-                            if (p) p.value = '';
-                          }
-                        }}
-                      >
-                        Add
-                      </button>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Products (Club)
+                    </h3>
+                    <div className="flex flex-col gap-3 mb-3">
+                      <div className="flex gap-2">
+                        <input
+                          id="vip-title"
+                          className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Product name"
+                        />
+                        <input
+                          id="vip-points"
+                          type="number"
+                          className="w-32 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Points"
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                          <input
+                            id="vip-image"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const fileName = e.target.files[0]?.name;
+                              if (fileName)
+                                document.getElementById(
+                                  "vip-image-label"
+                                ).innerText = fileName;
+                            }}
+                          />
+                          <label
+                            id="vip-image-label"
+                            htmlFor="vip-image"
+                            className="block w-full px-3 py-2 bg-white/10 border border-white/20 border-dashed rounded text-gray-400 cursor-pointer hover:bg-white/20 truncate"
+                          >
+                            Choose Product Image
+                          </label>
+                        </div>
+                        <button
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded font-bold"
+                          onClick={() => {
+                            const t = document.getElementById("vip-title");
+                            const p = document.getElementById("vip-points");
+                            const i = document.getElementById("vip-image");
+
+                            const title = t && "value" in t ? t.value : "";
+                            const pts =
+                              p && "value" in p
+                                ? parseInt(p.value || "0", 10)
+                                : 0;
+                            const file =
+                              i && i.files && i.files[0] ? i.files[0] : null;
+
+                            if (title.trim() && pts > 0) {
+                              let imageUrl =
+                                "https://placehold.co/100x100/333/FFF?text=Product";
+                              if (file) {
+                                imageUrl = URL.createObjectURL(file);
+                              }
+
+                              setVipProducts((prev) => [
+                                ...prev,
+                                {
+                                  id: `vip-${Date.now()}`,
+                                  clubId: adminClubId,
+                                  title,
+                                  points: pts,
+                                  image: imageUrl,
+                                },
+                              ]);
+
+                              if (t) t.value = "";
+                              if (p) p.value = "";
+                              if (i) i.value = "";
+                              document.getElementById(
+                                "vip-image-label"
+                              ).innerText = "Choose Product Image";
+                            } else {
+                              alert("Please enter product name and points");
+                            }
+                          }}
+                        >
+                          Add Product
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {vipProducts.map(v => (
-                        <div key={v.id} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
-                          <div className="text-white text-sm">{v.title}</div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-white/80 text-xs">{v.points} pts</div>
-                            <button
-                              onClick={() => {
-                                if (window.confirm(`Delete "${v.title}"?`)) {
-                                  setVipProducts(prev => prev.filter(p => p.id !== v.id));
-                                }
-                              }}
-                              className="text-red-400 hover:text-red-300 text-xs"
-                            >
-                              ✕
-                            </button>
+                      {vipProducts
+                        .filter((v) => v.clubId === adminClubId)
+                        .map((v) => (
+                          <div
+                            key={v.id}
+                            className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded bg-gray-700 overflow-hidden flex-shrink-0">
+                                {v.image && (
+                                  <img
+                                    src={v.image}
+                                    alt={v.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                )}
+                              </div>
+                              <div className="text-white text-sm font-medium">
+                                {v.title}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-white/80 text-xs">
+                                {v.points} pts
+                              </div>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Delete "${v.title}"?`)) {
+                                    setVipProducts((prev) =>
+                                      prev.filter((p) => p.id !== v.id)
+                                    );
+                                  }
+                                }}
+                                className="text-red-400 hover:text-red-300 text-xs"
+                              >
+                                ✕
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                      {vipProducts.length === 0 && (
+                        ))}
+                      {vipProducts.filter((v) => v.clubId === adminClubId)
+                        .length === 0 && (
                         <div className="text-center py-4 text-gray-400 text-sm">
-                          No products. Add products above.
+                          No products for this club. Add products above.
                         </div>
                       )}
                     </div>
                   </div>
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Points Calculator</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Points Calculator
+                    </h3>
                     <div className="space-y-3">
                       <div>
-                        <label className="text-white text-sm mb-1 block">Buy-in Total</label>
+                        <label className="text-white text-sm mb-1 block">
+                          Buy-in Total
+                        </label>
                         <input
                           id="calc-buyin"
                           type="number"
@@ -3478,7 +4820,9 @@ export default function AdminDashboard() {
                         />
                       </div>
                       <div>
-                        <label className="text-white text-sm mb-1 block">Hours Played</label>
+                        <label className="text-white text-sm mb-1 block">
+                          Hours Played
+                        </label>
                         <input
                           id="calc-hours"
                           type="number"
@@ -3487,7 +4831,9 @@ export default function AdminDashboard() {
                         />
                       </div>
                       <div>
-                        <label className="text-white text-sm mb-1 block">Visit Frequency</label>
+                        <label className="text-white text-sm mb-1 block">
+                          Visit Frequency
+                        </label>
                         <input
                           id="calc-visits"
                           type="number"
@@ -3498,20 +4844,25 @@ export default function AdminDashboard() {
                       <button
                         className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold"
                         onClick={() => {
-                          const b = document.getElementById('calc-buyin');
-                          const h = document.getElementById('calc-hours');
-                          const v = document.getElementById('calc-visits');
-                          const buyin = b && 'value' in b ? parseFloat(b.value || '0') : 0;
-                          const hours = h && 'value' in h ? parseFloat(h.value || '0') : 0;
-                          const visits = v && 'value' in v ? parseFloat(v.value || '0') : 0;
-                          const points = (buyin * 0.5) + (hours * 0.3) + (visits * 0.2);
+                          const b = document.getElementById("calc-buyin");
+                          const h = document.getElementById("calc-hours");
+                          const v = document.getElementById("calc-visits");
+                          const buyin =
+                            b && "value" in b ? parseFloat(b.value || "0") : 0;
+                          const hours =
+                            h && "value" in h ? parseFloat(h.value || "0") : 0;
+                          const visits =
+                            v && "value" in v ? parseFloat(v.value || "0") : 0;
+                          const points =
+                            buyin * 0.5 + hours * 0.3 + visits * 0.2;
                           alert(`Estimated Points: ${Math.round(points)}`);
                         }}
                       >
                         Calculate Points
                       </button>
                       <div className="text-xs text-white/70 bg-white/5 p-2 rounded">
-                        <strong>Formula:</strong> (Buy-in × 0.5) + (Hours × 0.3) + (Visits × 0.2)
+                        <strong>Formula:</strong> (Buy-in × 0.5) + (Hours × 0.3)
+                        + (Visits × 0.2)
                       </div>
                     </div>
                   </div>
@@ -3522,13 +4873,14 @@ export default function AdminDashboard() {
 
           {activeItem === "Staff Management" && (
             <div className="space-y-6">
-              <StaffManagement />
+              <StaffManagement userRole="admin" />
             </div>
           )}
 
           {activeItem === "Payroll Management" && (
             <div className="space-y-6">
               <EmployeeSalaryProcessingSection />
+              <DealerTips userRole="admin" forcedTab="percentage" />
             </div>
           )}
 
@@ -3537,31 +4889,49 @@ export default function AdminDashboard() {
               <BonusProcessingSection players={allPlayers || []} />
             </div>
           )}
-
+ 
           {activeItem === "Reports & Analytics" && (
+            <ReportsAnalyticsSection
+              allPlayersForReport={allPlayersForCredit}
+              registeredPlayers={registeredPlayers}
+            />
+          )}
+
+          {/* Legacy Reports & Analytics Section - Replaced by ReportsAnalyticsSection component */}
+          {false && activeItem === "Reports & Analytics" && (
             <div className="space-y-6">
               {/* Report Type Selection */}
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Generate Reports</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Generate Reports
+                </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Report Configuration</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Report Configuration
+                    </h3>
                     <div className="space-y-4">
                       <div>
-                        <label className="text-white text-sm mb-2 block">Select Report Type</label>
+                        <label className="text-white text-sm mb-2 block">
+                          Select Report Type
+                        </label>
                         <select
                           className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                           value={selectedReportType}
                           onChange={(e) => {
                             setSelectedReportType(e.target.value);
                             setReportData(null);
-                            if (e.target.value !== "individual_player") setSelectedPlayerForReport(null);
-                            if (e.target.value !== "custom") setCustomReportSelection([]);
+                            if (e.target.value !== "individual_player")
+                              setSelectedPlayerForReport(null);
+                            if (e.target.value !== "custom")
+                              setCustomReportSelection([]);
                           }}
                         >
                           <option value="">-- Select Report Type --</option>
-                          {reportTypes.map(type => (
-                            <option key={type.id} value={type.id}>{type.icon} {type.name}</option>
+                          {reportTypes.map((type) => (
+                            <option key={type.id} value={type.id}>
+                              {type.icon} {type.name}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -3569,7 +4939,9 @@ export default function AdminDashboard() {
                       {/* Player Selection for Individual Player Report */}
                       {selectedReportType === "individual_player" && (
                         <div className="relative">
-                          <label className="text-white text-sm mb-2 block">Search Player (Type at least 3 characters)</label>
+                          <label className="text-white text-sm mb-2 block">
+                            Search Player (Type at least 3 characters)
+                          </label>
                           <input
                             type="text"
                             className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
@@ -3580,26 +4952,37 @@ export default function AdminDashboard() {
                               setSelectedPlayerForReport(null);
                             }}
                           />
-                          {playerReportSearch.length >= 3 && filteredPlayersForReport.length > 0 && !selectedPlayerForReport && (
-                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                              {filteredPlayersForReport.map(player => (
-                                <div
-                                  key={player.id}
-                                  onClick={() => {
-                                    setSelectedPlayerForReport(player);
-                                    setPlayerReportSearch(`${player.name} (${player.id})`);
-                                  }}
-                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                                >
-                                  <div className="text-white font-medium">{player.name}</div>
-                                  <div className="text-gray-400 text-xs">ID: {player.id}</div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                          {playerReportSearch.length >= 3 &&
+                            filteredPlayersForReport.length > 0 &&
+                            !selectedPlayerForReport && (
+                              <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                {filteredPlayersForReport.map((player) => (
+                                  <div
+                                    key={player.id}
+                                    onClick={() => {
+                                      setSelectedPlayerForReport(player);
+                                      setPlayerReportSearch(
+                                        `${player.name} (${player.id})`
+                                      );
+                                    }}
+                                    className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                                  >
+                                    <div className="text-white font-medium">
+                                      {player.name}
+                                    </div>
+                                    <div className="text-gray-400 text-xs">
+                                      ID: {player.id}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           {selectedPlayerForReport && (
                             <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                              <span className="text-green-300">Selected: {selectedPlayerForReport.name} ({selectedPlayerForReport.id})</span>
+                              <span className="text-green-300">
+                                Selected: {selectedPlayerForReport.name} (
+                                {selectedPlayerForReport.id})
+                              </span>
                               <button
                                 onClick={() => {
                                   setSelectedPlayerForReport(null);
@@ -3617,11 +5000,15 @@ export default function AdminDashboard() {
                       {/* Table Selection for Per Table Transactions */}
                       {selectedReportType === "per_table_transactions" && (
                         <div>
-                          <label className="text-white text-sm mb-2 block">Select Table (Optional - leave blank for all tables)</label>
+                          <label className="text-white text-sm mb-2 block">
+                            Select Table (Optional - leave blank for all tables)
+                          </label>
                           <select
                             className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                             value={selectedTableForReport}
-                            onChange={(e) => setSelectedTableForReport(e.target.value)}
+                            onChange={(e) =>
+                              setSelectedTableForReport(e.target.value)
+                            }
                           >
                             <option value="">All Tables</option>
                             <option value="Table 1">Table 1</option>
@@ -3635,53 +5022,90 @@ export default function AdminDashboard() {
                       {/* Custom Report Multi-Select */}
                       {selectedReportType === "custom" && (
                         <div>
-                          <label className="text-white text-sm mb-2 block">Select Multiple Report Types to Compile</label>
+                          <label className="text-white text-sm mb-2 block">
+                            Select Multiple Report Types to Compile
+                          </label>
                           <div className="space-y-2 max-h-48 overflow-y-auto bg-white/5 p-3 rounded border border-white/10">
-                            {reportTypes.filter(t => t.id !== "custom").map(type => (
-                              <label key={type.id} className="flex items-center space-x-2 cursor-pointer hover:bg-white/5 p-2 rounded">
-                                <input
-                                  type="checkbox"
-                                  checked={customReportSelection.includes(type.id)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setCustomReportSelection([...customReportSelection, type.id]);
-                                    } else {
-                                      setCustomReportSelection(customReportSelection.filter(id => id !== type.id));
-                                    }
-                                  }}
-                                  className="w-4 h-4 text-purple-600 bg-white/10 border-white/20 rounded"
-                                />
-                                <span className="text-white text-sm">{type.icon} {type.name}</span>
-                              </label>
-                            ))}
+                            {reportTypes
+                              .filter((t) => t.id !== "custom")
+                              .map((type) => (
+                                <label
+                                  key={type.id}
+                                  className="flex items-center space-x-2 cursor-pointer hover:bg-white/5 p-2 rounded"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={customReportSelection.includes(
+                                      type.id
+                                    )}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setCustomReportSelection([
+                                          ...customReportSelection,
+                                          type.id,
+                                        ]);
+                                      } else {
+                                        setCustomReportSelection(
+                                          customReportSelection.filter(
+                                            (id) => id !== type.id
+                                          )
+                                        );
+                                      }
+                                    }}
+                                    className="w-4 h-4 text-purple-600 bg-white/10 border-white/20 rounded"
+                                  />
+                                  <span className="text-white text-sm">
+                                    {type.icon} {type.name}
+                                  </span>
+                                </label>
+                              ))}
                           </div>
                           {customReportSelection.length > 0 && (
                             <div className="mt-2 p-2 bg-blue-500/20 border border-blue-400/30 rounded text-sm">
-                              <span className="text-blue-300">Selected: {customReportSelection.length} report type(s)</span>
+                              <span className="text-blue-300">
+                                Selected: {customReportSelection.length} report
+                                type(s)
+                              </span>
                             </div>
                           )}
                         </div>
                       )}
 
                       <div>
-                        <label className="text-white text-sm mb-2 block">Date Range</label>
+                        <label className="text-white text-sm mb-2 block">
+                          Date Range
+                        </label>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-gray-400 text-xs">Start Date</label>
+                            <label className="text-gray-400 text-xs">
+                              Start Date
+                            </label>
                             <input
                               type="date"
                               className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                               value={reportDateRange.start}
-                              onChange={(e) => setReportDateRange({ ...reportDateRange, start: e.target.value })}
+                              onChange={(e) =>
+                                setReportDateRange({
+                                  ...reportDateRange,
+                                  start: e.target.value,
+                                })
+                              }
                             />
                           </div>
                           <div>
-                            <label className="text-gray-400 text-xs">End Date</label>
+                            <label className="text-gray-400 text-xs">
+                              End Date
+                            </label>
                             <input
                               type="date"
                               className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                               value={reportDateRange.end}
-                              onChange={(e) => setReportDateRange({ ...reportDateRange, end: e.target.value })}
+                              onChange={(e) =>
+                                setReportDateRange({
+                                  ...reportDateRange,
+                                  end: e.target.value,
+                                })
+                              }
                             />
                           </div>
                         </div>
@@ -3697,7 +5121,9 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Report Preview</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Report Preview
+                    </h3>
                     {reportData ? (
                       <div className="space-y-4">
                         <div className="bg-white/5 p-4 rounded-lg max-h-96 overflow-y-auto">
@@ -3705,15 +5131,22 @@ export default function AdminDashboard() {
                             <thead className="text-white/70 text-xs border-b border-white/20">
                               <tr>
                                 {reportData[0]?.map((header, idx) => (
-                                  <th key={idx} className="py-2 pr-4">{header}</th>
+                                  <th key={idx} className="py-2 pr-4">
+                                    {header}
+                                  </th>
                                 ))}
                               </tr>
                             </thead>
                             <tbody>
                               {reportData.slice(1).map((row, rowIdx) => (
-                                <tr key={rowIdx} className="border-b border-white/10">
+                                <tr
+                                  key={rowIdx}
+                                  className="border-b border-white/10"
+                                >
                                   {row.map((cell, cellIdx) => (
-                                    <td key={cellIdx} className="py-2 pr-4">{cell}</td>
+                                    <td key={cellIdx} className="py-2 pr-4">
+                                      {cell}
+                                    </td>
                                   ))}
                                 </tr>
                               ))}
@@ -3722,29 +5155,43 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleExportReportCSV(selectedReportType, reportData)}
+                            onClick={() =>
+                              handleExportReportCSV(
+                                selectedReportType,
+                                reportData
+                              )
+                            }
                             className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                           >
                             📥 Export CSV
                           </button>
                           <button
-                            onClick={() => handleExportReportPDF(selectedReportType)}
+                            onClick={() =>
+                              handleExportReportPDF(selectedReportType)
+                            }
                             className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                           >
                             📄 Export PDF
                           </button>
                           <button
                             onClick={() => {
-                              const reportName = prompt("Enter report name to save:");
+                              const reportName = prompt(
+                                "Enter report name to save:"
+                              );
                               if (reportName) {
-                                setSavedReports(prev => [...prev, {
-                                  id: Date.now(),
-                                  name: reportName,
-                                  type: selectedReportType,
-                                  dateRange: `${reportDateRange.start} to ${reportDateRange.end}`,
-                                  created: new Date().toISOString().split('T')[0],
-                                  player: selectedPlayerForReport?.id || null
-                                }]);
+                                setSavedReports((prev) => [
+                                  ...prev,
+                                  {
+                                    id: Date.now(),
+                                    name: reportName,
+                                    type: selectedReportType,
+                                    dateRange: `${reportDateRange.start} to ${reportDateRange.end}`,
+                                    created: new Date()
+                                      .toISOString()
+                                      .split("T")[0],
+                                    player: selectedPlayerForReport?.id || null,
+                                  },
+                                ]);
                                 alert("Report saved successfully!");
                               }
                             }}
@@ -3756,8 +5203,12 @@ export default function AdminDashboard() {
                       </div>
                     ) : (
                       <div className="text-center py-12 text-gray-400">
-                        <div className="text-lg mb-2">No report generated yet</div>
-                        <div className="text-sm">Select a report type and generate to preview</div>
+                        <div className="text-lg mb-2">
+                          No report generated yet
+                        </div>
+                        <div className="text-sm">
+                          Select a report type and generate to preview
+                        </div>
                       </div>
                     )}
                   </div>
@@ -3766,26 +5217,32 @@ export default function AdminDashboard() {
 
               {/* Report Types Grid */}
               <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-blue-500/20 to-cyan-700/30 rounded-xl shadow-md border border-indigo-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Available Report Types</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Available Report Types
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {reportTypes.map(type => (
+                  {reportTypes.map((type) => (
                     <button
                       key={type.id}
                       onClick={() => {
                         setSelectedReportType(type.id);
                         setReportData(null);
-                        if (type.id !== "individual_player") setSelectedPlayerForReport(null);
+                        if (type.id !== "individual_player")
+                          setSelectedPlayerForReport(null);
                         if (type.id !== "custom") setCustomReportSelection([]);
                         // Scroll to top
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
-                      className={`p-4 rounded-lg border transition-all ${selectedReportType === type.id
-                        ? "bg-white/20 border-white/40 shadow-lg scale-105"
-                        : "bg-white/10 border-white/20 hover:bg-white/15"
-                        }`}
+                      className={`p-4 rounded-lg border transition-all ${
+                        selectedReportType === type.id
+                          ? "bg-white/20 border-white/40 shadow-lg scale-105"
+                          : "bg-white/10 border-white/20 hover:bg-white/15"
+                      }`}
                     >
                       <div className="text-2xl mb-2">{type.icon}</div>
-                      <div className="text-white font-semibold text-sm">{type.name}</div>
+                      <div className="text-white font-semibold text-sm">
+                        {type.name}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -3793,44 +5250,64 @@ export default function AdminDashboard() {
 
               {/* Saved Reports Management */}
               <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Saved Reports (CRUD Operations)</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Saved Reports (CRUD Operations)
+                </h2>
                 <div className="bg-white/10 p-4 rounded-lg">
                   {savedReports.length > 0 ? (
                     <div className="space-y-3">
-                      {savedReports.map(report => (
-                        <div key={report.id} className="bg-white/5 p-4 rounded-lg border border-white/10">
+                      {savedReports.map((report) => (
+                        <div
+                          key={report.id}
+                          className="bg-white/5 p-4 rounded-lg border border-white/10"
+                        >
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
-                                <h4 className="text-white font-semibold">{report.name}</h4>
+                                <h4 className="text-white font-semibold">
+                                  {report.name}
+                                </h4>
                                 <span className="bg-blue-500/30 text-blue-300 px-2 py-1 rounded text-xs">
-                                  {reportTypes.find(t => t.id === report.type)?.name || report.type}
+                                  {reportTypes.find((t) => t.id === report.type)
+                                    ?.name || report.type}
                                 </span>
                               </div>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-300">
                                 <div>Date Range: {report.dateRange}</div>
                                 <div>Created: {report.created}</div>
-                                {report.player && <div>Player: {report.player}</div>}
+                                {report.player && (
+                                  <div>Player: {report.player}</div>
+                                )}
                               </div>
                             </div>
                             <div className="flex gap-2 ml-4">
                               <button
                                 onClick={() => {
-                                  const reportTypeObj = reportTypes.find(t => t.id === report.type);
+                                  const reportTypeObj = reportTypes.find(
+                                    (t) => t.id === report.type
+                                  );
                                   if (reportTypeObj) {
                                     setSelectedReportType(report.type);
                                     if (report.player) {
-                                      const player = allPlayersForCredit.find(p => p.id === report.player);
+                                      const player = allPlayersForCredit.find(
+                                        (p) => p.id === report.player
+                                      );
                                       if (player) {
                                         setSelectedPlayerForReport(player);
-                                        setPlayerReportSearch(`${player.name} (${player.id})`);
+                                        setPlayerReportSearch(
+                                          `${player.name} (${player.id})`
+                                        );
                                       }
                                     }
                                     setReportDateRange({
                                       start: report.dateRange.split(" to ")[0],
-                                      end: report.dateRange.split(" to ")[1] || report.dateRange.split(" to ")[0]
+                                      end:
+                                        report.dateRange.split(" to ")[1] ||
+                                        report.dateRange.split(" to ")[0],
                                     });
-                                    alert("Report configuration loaded. Click 'Generate Report' to regenerate.");
+                                    alert(
+                                      "Report configuration loaded. Click 'Generate Report' to regenerate."
+                                    );
                                   }
                                 }}
                                 className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm"
@@ -3839,11 +5316,18 @@ export default function AdminDashboard() {
                               </button>
                               <button
                                 onClick={() => {
-                                  const newName = prompt("Enter new report name:", report.name);
+                                  const newName = prompt(
+                                    "Enter new report name:",
+                                    report.name
+                                  );
                                   if (newName) {
-                                    setSavedReports(prev => prev.map(r =>
-                                      r.id === report.id ? { ...r, name: newName } : r
-                                    ));
+                                    setSavedReports((prev) =>
+                                      prev.map((r) =>
+                                        r.id === report.id
+                                          ? { ...r, name: newName }
+                                          : r
+                                      )
+                                    );
                                     alert("Report updated successfully!");
                                   }
                                 }}
@@ -3853,8 +5337,14 @@ export default function AdminDashboard() {
                               </button>
                               <button
                                 onClick={() => {
-                                  if (window.confirm(`Delete report "${report.name}"?`)) {
-                                    setSavedReports(prev => prev.filter(r => r.id !== report.id));
+                                  if (
+                                    window.confirm(
+                                      `Delete report "${report.name}"?`
+                                    )
+                                  ) {
+                                    setSavedReports((prev) =>
+                                      prev.filter((r) => r.id !== report.id)
+                                    );
                                     alert("Report deleted successfully!");
                                   }
                                 }}
@@ -3864,7 +5354,10 @@ export default function AdminDashboard() {
                               </button>
                               <button
                                 onClick={() => {
-                                  handleExportReportCSV(report.type, reportData);
+                                  handleExportReportCSV(
+                                    report.type,
+                                    reportData
+                                  );
                                 }}
                                 className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm"
                               >
@@ -3885,7 +5378,8 @@ export default function AdminDashboard() {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-400">
-                      No saved reports. Generate and save a report to see it here.
+                      No saved reports. Generate and save a report to see it
+                      here.
                     </div>
                   )}
                 </div>
@@ -3893,17 +5387,25 @@ export default function AdminDashboard() {
 
               {/* Quick Report Access */}
               <section className="p-6 bg-gradient-to-r from-orange-600/30 via-red-500/20 to-pink-700/30 rounded-xl shadow-md border border-orange-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Quick Report Access</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Quick Report Access
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <button
                     onClick={() => {
-                      const today = new Date().toISOString().split('T')[0];
+                      const today = new Date().toISOString().split("T")[0];
                       setSelectedReportType("daily_transactions");
                       setReportDateRange({ start: today, end: today });
                       setTimeout(() => {
                         const mockData = [
-                          ["Date", "Total Transactions", "Revenue", "Deposits", "Withdrawals"],
-                          [today, "45", "₹12,450", "₹25,000", "₹10,000"]
+                          [
+                            "Date",
+                            "Total Transactions",
+                            "Revenue",
+                            "Deposits",
+                            "Withdrawals",
+                          ],
+                          [today, "45", "₹12,450", "₹25,000", "₹10,000"],
                         ];
                         setReportData(mockData);
                       }, 100);
@@ -3914,13 +5416,19 @@ export default function AdminDashboard() {
                   </button>
                   <button
                     onClick={() => {
-                      const today = new Date().toISOString().split('T')[0];
+                      const today = new Date().toISOString().split("T")[0];
                       setSelectedReportType("daily_rake");
                       setReportDateRange({ start: today, end: today });
                       setTimeout(() => {
                         const mockData = [
-                          ["Date", "Total Rake", "Tables", "Average Rake per Table", "Top Table"],
-                          [today, "₹1,245", "8", "₹155.63", "Table 1"]
+                          [
+                            "Date",
+                            "Total Rake",
+                            "Tables",
+                            "Average Rake per Table",
+                            "Top Table",
+                          ],
+                          [today, "₹1,245", "8", "₹155.63", "Table 1"],
                         ];
                         setReportData(mockData);
                       }, 100);
@@ -3931,13 +5439,27 @@ export default function AdminDashboard() {
                   </button>
                   <button
                     onClick={() => {
-                      const today = new Date().toISOString().split('T')[0];
+                      const today = new Date().toISOString().split("T")[0];
                       setSelectedReportType("credit_transactions");
                       setReportDateRange({ start: today, end: today });
                       setTimeout(() => {
                         const mockData = [
-                          ["Date", "Player", "Type", "Amount", "Balance Before", "Balance After"],
-                          [today, "P101", "Credit Granted", "₹50,000", "₹0", "₹50,000"]
+                          [
+                            "Date",
+                            "Player",
+                            "Type",
+                            "Amount",
+                            "Balance Before",
+                            "Balance After",
+                          ],
+                          [
+                            today,
+                            "P101",
+                            "Credit Granted",
+                            "₹50,000",
+                            "₹0",
+                            "₹50,000",
+                          ],
                         ];
                         setReportData(mockData);
                       }, 100);
@@ -3948,13 +5470,25 @@ export default function AdminDashboard() {
                   </button>
                   <button
                     onClick={() => {
-                      const today = new Date().toISOString().split('T')[0];
+                      const today = new Date().toISOString().split("T")[0];
                       setSelectedReportType("expenses");
                       setReportDateRange({ start: today, end: today });
                       setTimeout(() => {
                         const mockData = [
-                          ["Date", "Category", "Description", "Amount", "Approved By"],
-                          [today, "Operations", "Staff Payment", "₹15,000", "Admin"]
+                          [
+                            "Date",
+                            "Category",
+                            "Description",
+                            "Amount",
+                            "Approved By",
+                          ],
+                          [
+                            today,
+                            "Operations",
+                            "Staff Payment",
+                            "₹15,000",
+                            "Admin",
+                          ],
                         ];
                         setReportData(mockData);
                       }, 100);
@@ -3968,13 +5502,19 @@ export default function AdminDashboard() {
 
               {/* Referral Analytics */}
               <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Referral Analytics & Tracking</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Referral Analytics & Tracking
+                </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Filter Referred Players</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Filter Referred Players
+                    </h3>
                     <div className="space-y-4">
                       <div className="relative">
-                        <label className="text-white text-sm">Search by Agent / Referrer</label>
+                        <label className="text-white text-sm">
+                          Search by Agent / Referrer
+                        </label>
                         <input
                           type="text"
                           className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
@@ -3985,25 +5525,29 @@ export default function AdminDashboard() {
                             setSelectedReferralAgent(null);
                           }}
                         />
-                        {referralAgentSearch.length >= 2 && filteredReferrersForSearch.length > 0 && !selectedReferralAgent && (
-                          <div className="absolute z-20 w-full mt-1 bg-gray-900 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredReferrersForSearch.map(agent => (
-                              <div
-                                key={agent}
-                                onClick={() => {
-                                  setSelectedReferralAgent(agent);
-                                  setReferralAgentSearch("");
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0 text-sm text-white"
-                              >
-                                {agent}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {referralAgentSearch.length >= 2 &&
+                          filteredReferrersForSearch.length > 0 &&
+                          !selectedReferralAgent && (
+                            <div className="absolute z-20 w-full mt-1 bg-gray-900 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {filteredReferrersForSearch.map((agent) => (
+                                <div
+                                  key={agent}
+                                  onClick={() => {
+                                    setSelectedReferralAgent(agent);
+                                    setReferralAgentSearch("");
+                                  }}
+                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0 text-sm text-white"
+                                >
+                                  {agent}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         {selectedReferralAgent && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-xs text-green-200 flex items-center justify-between">
-                            <span>Selected Referrer: {selectedReferralAgent}</span>
+                            <span>
+                              Selected Referrer: {selectedReferralAgent}
+                            </span>
                             <button
                               onClick={() => {
                                 setSelectedReferralAgent(null);
@@ -4017,7 +5561,9 @@ export default function AdminDashboard() {
                         )}
                       </div>
                       <div className="relative">
-                        <label className="text-white text-sm">Search by Referral Code</label>
+                        <label className="text-white text-sm">
+                          Search by Referral Code
+                        </label>
                         <input
                           type="text"
                           className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
@@ -4028,22 +5574,24 @@ export default function AdminDashboard() {
                             setSelectedReferralCode(null);
                           }}
                         />
-                        {referralCodeSearch.length >= 2 && filteredReferralCodesForSearch.length > 0 && !selectedReferralCode && (
-                          <div className="absolute z-20 w-full mt-1 bg-gray-900 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredReferralCodesForSearch.map(code => (
-                              <div
-                                key={code}
-                                onClick={() => {
-                                  setSelectedReferralCode(code);
-                                  setReferralCodeSearch("");
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0 text-sm text-white"
-                              >
-                                {code}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {referralCodeSearch.length >= 2 &&
+                          filteredReferralCodesForSearch.length > 0 &&
+                          !selectedReferralCode && (
+                            <div className="absolute z-20 w-full mt-1 bg-gray-900 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {filteredReferralCodesForSearch.map((code) => (
+                                <div
+                                  key={code}
+                                  onClick={() => {
+                                    setSelectedReferralCode(code);
+                                    setReferralCodeSearch("");
+                                  }}
+                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0 text-sm text-white"
+                                >
+                                  {code}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         {selectedReferralCode && (
                           <div className="mt-2 p-2 bg-cyan-500/20 border border-cyan-400/30 rounded text-xs text-cyan-200 flex items-center justify-between">
                             <span>Selected Code: {selectedReferralCode}</span>
@@ -4061,19 +5609,25 @@ export default function AdminDashboard() {
                       </div>
                       {uniqueReferrers.length > 0 && (
                         <div>
-                          <div className="text-white text-sm mb-2">Top Referrers</div>
+                          <div className="text-white text-sm mb-2">
+                            Top Referrers
+                          </div>
                           <div className="flex flex-wrap gap-2">
-                            {uniqueReferrers.map(agent => (
+                            {uniqueReferrers.map((agent) => (
                               <button
                                 key={agent}
                                 onClick={() => {
                                   setSelectedReferralAgent(agent || "");
                                   setReferralAgentSearch("");
                                 }}
-                                className={`px-3 py-1 rounded-full text-xs font-semibold transition border ${(selectedReferralAgent || "").toLowerCase() === (agent || "").toLowerCase()
-                                  ? "bg-green-500/40 border-green-400/50 text-green-100"
-                                  : "bg-white/10 border-white/20 text-white/80 hover:bg-white/15"
-                                  }`}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold transition border ${
+                                  (
+                                    selectedReferralAgent || ""
+                                  ).toLowerCase() ===
+                                  (agent || "").toLowerCase()
+                                    ? "bg-green-500/40 border-green-400/50 text-green-100"
+                                    : "bg-white/10 border-white/20 text-white/80 hover:bg-white/15"
+                                }`}
                               >
                                 {agent || "Unknown"}
                               </button>
@@ -4085,7 +5639,9 @@ export default function AdminDashboard() {
                         <button
                           onClick={() => {
                             const snapshot = filteredReferralPlayers.length;
-                            alert(`Referral report ready for export. ${snapshot} player(s) match the current filter.`);
+                            alert(
+                              `Referral report ready for export. ${snapshot} player(s) match the current filter.`
+                            );
                           }}
                           className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold"
                         >
@@ -4104,49 +5660,86 @@ export default function AdminDashboard() {
                         </button>
                       </div>
                       <div className="bg-white/5 p-3 rounded border border-white/10 text-sm text-gray-200">
-                        <div>Total referred players: <span className="font-semibold text-white">{allReferredPlayers.length}</span></div>
-                        <div>Unique referrers: <span className="font-semibold text-white">{uniqueReferrers.length}</span></div>
+                        <div>
+                          Total referred players:{" "}
+                          <span className="font-semibold text-white">
+                            {allReferredPlayers.length}
+                          </span>
+                        </div>
+                        <div>
+                          Unique referrers:{" "}
+                          <span className="font-semibold text-white">
+                            {uniqueReferrers.length}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   <div className="bg-white/10 p-4 rounded-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">
-                      Referred Players ({filteredReferralPlayers.length}/{allReferredPlayers.length})
+                      Referred Players ({filteredReferralPlayers.length}/
+                      {allReferredPlayers.length})
                     </h3>
                     {filteredReferralPlayers.length > 0 ? (
                       <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                        {filteredReferralPlayers.map(player => (
-                          <div key={player.id} className="bg-white/5 p-3 rounded-lg border border-green-400/30">
+                        {filteredReferralPlayers.map((player) => (
+                          <div
+                            key={player.id}
+                            className="bg-white/5 p-3 rounded-lg border border-green-400/30"
+                          >
                             <div className="flex justify-between items-start">
                               <div>
-                                <div className="text-white font-semibold text-base">{player.name}</div>
-                                <div className="text-xs text-gray-300">ID: {player.id} • Email: {player.email}</div>
-                                <div className="text-xs text-gray-300">Phone: {player.phone}</div>
+                                <div className="text-white font-semibold text-base">
+                                  {player.name}
+                                </div>
+                                <div className="text-xs text-gray-300">
+                                  ID: {player.id} • Email: {player.email}
+                                </div>
+                                <div className="text-xs text-gray-300">
+                                  Phone: {player.phone}
+                                </div>
                                 <div className="text-xs text-gray-400 mt-1">
-                                  Referred By: <span className="text-green-200 font-medium">{player.referredBy || "Unknown"}</span>
+                                  Referred By:{" "}
+                                  <span className="text-green-200 font-medium">
+                                    {player.referredBy || "Unknown"}
+                                  </span>
                                   {player.referralCode && (
                                     <>
-                                      <span className="text-gray-500 mx-1">•</span>
-                                      Referral Code: <span className="text-cyan-200 font-medium">{player.referralCode}</span>
+                                      <span className="text-gray-500 mx-1">
+                                        •
+                                      </span>
+                                      Referral Code:{" "}
+                                      <span className="text-cyan-200 font-medium">
+                                        {player.referralCode}
+                                      </span>
                                     </>
                                   )}
                                 </div>
                                 <div className="text-xs text-gray-400 mt-1">
-                                  Registered: {new Date(player.registrationDate).toLocaleDateString()} • Last Active: {player.lastActive}
+                                  Registered:{" "}
+                                  {new Date(
+                                    player.registrationDate
+                                  ).toLocaleDateString()}{" "}
+                                  • Last Active: {player.lastActive}
                                 </div>
                               </div>
                               <div className="flex flex-col gap-2">
-                                <span className={`px-2 py-1 rounded text-xs text-center font-semibold ${player.accountStatus === "Active"
-                                  ? "bg-green-500/30 text-green-200"
-                                  : player.accountStatus === "Suspended"
-                                    ? "bg-red-500/30 text-red-200"
-                                    : "bg-gray-500/30 text-gray-200"
-                                  }`}>
+                                <span
+                                  className={`px-2 py-1 rounded text-xs text-center font-semibold ${
+                                    player.accountStatus === "Active"
+                                      ? "bg-green-500/30 text-green-200"
+                                      : player.accountStatus === "Suspended"
+                                      ? "bg-red-500/30 text-red-200"
+                                      : "bg-gray-500/30 text-gray-200"
+                                  }`}
+                                >
                                   {player.accountStatus}
                                 </span>
                                 <button
-                                  onClick={() => setSelectedPlayerDetails(player)}
+                                  onClick={() =>
+                                    setSelectedPlayerDetails(player)
+                                  }
                                   className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-semibold"
                                 >
                                   View Details
@@ -4158,8 +5751,12 @@ export default function AdminDashboard() {
                       </div>
                     ) : (
                       <div className="text-center py-12 text-gray-300 border border-dashed border-white/20 rounded-lg">
-                        <div className="text-lg font-semibold mb-2">No referred players found</div>
-                        <div className="text-sm">Adjust the referral filters to see matching players</div>
+                        <div className="text-lg font-semibold mb-2">
+                          No referred players found
+                        </div>
+                        <div className="text-sm">
+                          Adjust the referral filters to see matching players
+                        </div>
                       </div>
                     )}
                   </div>
@@ -4168,183 +5765,11 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {activeItem === "FNB" && (
-            <FNBSections />
-          )}
+          {activeItem === "FNB" && <FNBSections />}
 
           {/* Push Notifications */}
           {activeItem === "Push Notifications" && (
             <PushNotificationsSection registeredPlayers={registeredPlayers} />
-          )}
-
-          {/* Staff Bonuses Approval */}
-          {activeItem === "Staff Bonuses Approval" && (
-            <div className="space-y-6">
-              {/* Approval Configuration */}
-              <section className="p-6 bg-gradient-to-r from-amber-600/30 via-orange-500/20 to-red-700/30 rounded-xl shadow-md border border-amber-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Staff Bonus Approval Configuration</h2>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                      <div>
-                        <div className="text-white font-semibold">Require Approval for Staff Bonuses</div>
-                        <div className="text-gray-400 text-sm">All staff bonuses must be approved by Admin/Admin</div>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={bonusApprovalConfig.requireApproval}
-                          onChange={(e) => setBonusApprovalConfig({ ...bonusApprovalConfig, requireApproval: e.target.checked })}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                      </label>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-white text-sm">Minimum Amount Requiring Approval (₹)</label>
-                        <input
-                          type="number"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          value={bonusApprovalConfig.minAmountRequiringApproval}
-                          onChange={(e) => setBonusApprovalConfig({ ...bonusApprovalConfig, minAmountRequiringApproval: parseFloat(e.target.value) || 0 })}
-                          placeholder="10000"
-                        />
-                        <p className="text-xs text-gray-400 mt-1">Bonuses above this amount require approval</p>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Auto-Approve Under (₹)</label>
-                        <input
-                          type="number"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          value={bonusApprovalConfig.autoApproveUnder}
-                          onChange={(e) => setBonusApprovalConfig({ ...bonusApprovalConfig, autoApproveUnder: parseFloat(e.target.value) || 0 })}
-                          placeholder="2000"
-                        />
-                        <p className="text-xs text-gray-400 mt-1">Bonuses under this amount auto-approve</p>
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Require Admin for Amount Over (₹)</label>
-                        <input
-                          type="number"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          value={bonusApprovalConfig.requireSuperAdminForAmountOver}
-                          onChange={(e) => setBonusApprovalConfig({ ...bonusApprovalConfig, requireSuperAdminForAmountOver: parseFloat(e.target.value) || 0 })}
-                          placeholder="50000"
-                        />
-                        <p className="text-xs text-gray-400 mt-1">Bonuses above this require Admin approval</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        alert("Staff bonus approval configuration saved successfully!");
-                      }}
-                      className="w-full bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg font-semibold"
-                    >
-                      Save Configuration
-                    </button>
-                  </div>
-                </div>
-              </section>
-
-              {/* Pending Staff Bonus Requests */}
-              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Pending Staff Bonus Requests - Approval Required</h2>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  {staffBonusRequests.filter(r => r.status === "pending").length > 0 ? (
-                    <div className="space-y-4">
-                      {staffBonusRequests.filter(r => r.status === "pending").map(request => (
-                        <div key={request.id} className="bg-white/5 p-4 rounded-lg border border-yellow-400/30">
-                          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                            <div className="md:col-span-8">
-                              <div className="flex items-center gap-3 mb-2">
-                                <div className="font-semibold text-white text-lg">{request.staffName}</div>
-                                <span className="bg-yellow-500/30 text-yellow-300 px-2 py-1 rounded text-xs">Pending Approval</span>
-                                <span className="bg-blue-500/30 text-blue-300 px-2 py-1 rounded text-xs">{request.staffRole}</span>
-                              </div>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-300">
-                                <div>Staff ID: <span className="text-white">{request.staffId}</span></div>
-                                <div>Bonus Type: <span className="text-white">{request.bonusType}</span></div>
-                                <div>Amount: <span className="text-white font-semibold">₹{request.amount.toLocaleString('en-IN')}</span></div>
-                                <div>Requested By: <span className="text-white">{request.requestedBy}</span></div>
-                              </div>
-                              <div className="mt-2 text-xs text-gray-400">
-                                Requested: {new Date(request.requestedDate).toLocaleString('en-IN')}
-                              </div>
-                              {request.reason && (
-                                <div className="mt-2 p-2 bg-white/5 rounded text-sm text-gray-300">
-                                  Reason: {request.reason}
-                                </div>
-                              )}
-                            </div>
-                            <div className="md:col-span-4 flex flex-col gap-2">
-                              <button
-                                onClick={() => {
-                                  const notes = prompt("Enter approval notes (optional):");
-                                  if (notes !== null) {
-                                    handleStaffBonusAction(request.id, "approve", notes);
-                                  }
-                                }}
-                                className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
-                              >
-                                ✓ Approve Bonus
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const reason = prompt("Enter rejection reason (required):");
-                                  if (reason && reason.trim()) {
-                                    handleStaffBonusAction(request.id, "reject", reason);
-                                  } else if (reason !== null) {
-                                    alert("Please provide a rejection reason");
-                                  }
-                                }}
-                                className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
-                              >
-                                ✗ Reject Bonus
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-gray-400">
-                      No pending staff bonus requests
-                    </div>
-                  )}
-                </div>
-
-                {/* Recent Approval History */}
-                {staffBonusRequests.filter(r => r.status !== "pending").length > 0 && (
-                  <div className="mt-6 bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Approval History</h3>
-                    <div className="space-y-2">
-                      {staffBonusRequests.filter(r => r.status !== "pending").map(request => (
-                        <div key={request.id} className="bg-white/5 p-3 rounded border border-white/10">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <span className="text-white font-medium">{request.staffName}</span>
-                              <span className="text-gray-400 text-sm ml-2">- {request.bonusType} - ₹{request.amount.toLocaleString('en-IN')}</span>
-                            </div>
-                            <span className={`px-2 py-1 rounded text-xs ${request.status === "approved"
-                              ? "bg-green-500/30 text-green-300"
-                              : "bg-red-500/30 text-red-300"
-                              }`}>
-                              {request.status === "approved" ? "✓ Approved" : "✗ Rejected"}
-                            </span>
-                          </div>
-                          {request.approvedBy && (
-                            <div className="text-xs text-gray-400 mt-1">
-                              {request.status === "approved" ? "Approved" : "Rejected"} by {request.approvedBy || request.rejectedBy} on {new Date(request.approvedDate || request.rejectedDate).toLocaleDateString('en-IN')}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </section>
-            </div>
           )}
 
           {/* Chat - Chat System */}
@@ -4358,6 +5783,60 @@ export default function AdminDashboard() {
             />
           )}
 
+          {activeItem === "Affiliates" && (
+            <div className="space-y-6">
+              <AffiliatesTable 
+                affiliates={[
+                  {
+                    id: "AFF001",
+                    name: "Agent X",
+                    email: "agent.x@example.com",
+                    referralCode: "AGTX-ALPHA",
+                    status: "Active",
+                    kycStatus: "Verified",
+                    totalReferrals: 12,
+                    earnings: 45000,
+                  },
+                  {
+                    id: "AFF002",
+                    name: "Agent Y",
+                    email: "agent.y@example.com",
+                    referralCode: "AGTY-BETA",
+                    status: "Active",
+                    kycStatus: "Pending",
+                    totalReferrals: 8,
+                    earnings: 28000,
+                  },
+                ]}
+                userRole="admin"
+              />
+            </div>
+          )}
+
+          {activeItem === "System Control" && (
+            <div className="space-y-6">
+              <section className="p-6 bg-gradient-to-r from-gray-700/30 via-zinc-600/20 to-slate-700/30 rounded-xl shadow-md border border-gray-700/40">
+                <h2 className="text-xl font-bold text-white mb-6">
+                  System Control
+                </h2>
+                <div className="bg-white/10 p-4 rounded-lg">
+                  <div className="space-y-3">
+                    <p className="text-white/80">
+                      Factory Reset clears local data and resets the UI. Use
+                      with caution.
+                    </p>
+                    <button
+                      onClick={factoryReset}
+                      className="w-full bg-red-700 hover:bg-red-600 text-white px-4 py-3 rounded-lg font-semibold"
+                    >
+                      Factory Reset
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+          </div>
         </main>
       </div>
 
