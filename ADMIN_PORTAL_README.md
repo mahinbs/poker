@@ -74,7 +74,6 @@ The Admin Portal is a comprehensive dashboard designed for system administrators
 ### ⚙️ System Settings
 - **General Settings**: Site name, currency, timezone configuration
 - **Security Settings**: Two-factor authentication, session timeout, login limits
-- **System Configuration**: Database settings, notification preferences
 
 ## Technical Features
 

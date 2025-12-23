@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
-import CustomSelect from "./common/CustomSelect";
+import CustomSelect from "../../components/common/CustomSelect";
 import { useNavigate } from "react-router-dom";
+import TableManagementSection from "../../components/TableManagementSection";
+import PlayerManagementSection from "../../components/PlayerManagementSection";
+import TournamentManagementSection from "../../components/TournamentManagementSection";
+import ChatSection from "../../components/ChatSection";
+import PushNotificationsSection from "../../components/PushNotificationsSection";
+import EmployeeSalaryProcessingSection from "../../components/EmployeeSalaryProcessingSection";
+import GreSidebar from "../../components/sidebars/GreSidebar";
 
 export default function GreDashboard() {
   const [activeItem, setActiveItem] = useState("Monitoring");
@@ -8,14 +15,106 @@ export default function GreDashboard() {
 
   const menuItems = [
     "Monitoring",
-    "Players",
-    "Registered Players",
+    "Player Management",
+    "Live Tables",
+    "Tournaments",
+    "Payroll Management",
     "Push Notifications",
     "Player Registration", 
-    "Table View",
-    "Player Support",
-    "Offers",
+    "Chat",
+    // "Offers",
   ];
+
+  // --- Live Tables (GRE: view-only) ---
+  const [playerBalances] = useState({
+    P101: {
+      id: "P101",
+      name: "Alex Johnson",
+      email: "alex.johnson@example.com",
+      availableBalance: 25000,
+      tableBalance: 5000,
+      tableId: 1,
+      seatNumber: 3,
+    },
+    P102: {
+      id: "P102",
+      name: "Maria Garcia",
+      email: "maria.garcia@example.com",
+      availableBalance: 15000,
+      tableBalance: 0,
+      tableId: null,
+      seatNumber: null,
+    },
+    P103: {
+      id: "P103",
+      name: "Rajesh Kumar",
+      email: "rajesh.kumar@example.com",
+      availableBalance: 45000,
+      tableBalance: 10000,
+      tableId: 1,
+      seatNumber: 5,
+    },
+  });
+
+  const mockPlayers = Object.values(playerBalances).map(
+    ({ availableBalance, tableBalance, tableId, seatNumber, ...player }) =>
+      player
+  );
+
+  const [tableBalances] = useState({
+    1: {
+      id: 1,
+      name: "Table 1 - Texas Hold'em",
+      totalBalance: 15000,
+      players: ["P101", "P103"],
+    },
+    2: { id: 2, name: "Table 2 - Omaha", totalBalance: 0, players: [] },
+    3: { id: 3, name: "Table 3 - Stud", totalBalance: 0, players: [] },
+  });
+
+  const [tables] = useState([
+    {
+      id: 1,
+      name: "Table 1 - Texas Hold'em",
+      status: "Active",
+      gameType: "Texas Hold'em",
+      stakes: "₹1000.00/10000.00",
+      maxPlayers: 6,
+      minPlayTime: 30,
+    },
+    {
+      id: 2,
+      name: "Table 2 - Omaha",
+      status: "Active",
+      gameType: "Omaha",
+      stakes: "₹5000.00/50000.00",
+      maxPlayers: 9,
+      minPlayTime: 30,
+    },
+    {
+      id: 3,
+      name: "Table 3 - Stud",
+      status: "Active",
+      gameType: "Seven Card Stud",
+      stakes: "₹10000.00/100000.00",
+      maxPlayers: 6,
+      minPlayTime: 30,
+    },
+  ]);
+
+  const [occupiedSeats] = useState({
+    1: [3, 5],
+    2: [],
+    3: [],
+  });
+
+  const [showTableView, setShowTableView] = useState(false);
+  const [selectedPlayerForSeating, setSelectedPlayerForSeating] =
+    useState(null);
+  const [selectedTableForSeating, setSelectedTableForSeating] = useState(null);
+  const [liveTablePlayerSearch, setLiveTablePlayerSearch] = useState("");
+  const [selectedLiveTablePlayer, setSelectedLiveTablePlayer] = useState(null);
+  const [buyInAmount, setBuyInAmount] = useState("");
 
   // State for Players (KYC Pending) management
   const [playersSearch, setPlayersSearch] = useState("");
@@ -478,167 +577,23 @@ export default function GreDashboard() {
     resetOfferForm();
   };
 
-  // Load custom groups from localStorage (read-only access)
-  const loadCustomGroups = () => {
-    try {
-      const stored = localStorage.getItem('notification_custom_groups');
-      return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      return [];
-    }
-  };
-
-  const [customGroups, setCustomGroups] = useState(loadCustomGroups);
-
-  // Reload custom groups when Push Notifications tab is active
-  useEffect(() => {
-    if (activeItem === "Push Notifications") {
-      setCustomGroups(loadCustomGroups());
-    }
-  }, [activeItem]);
-
-  // Get available audience options (including custom groups - read-only)
-  const getAudienceOptions = () => {
-    const standardOptions = [
-      "All Players",
-      "Tables in Play",
-      "Waitlist",
-      "VIP"
-    ];
-    const playerGroups = customGroups.filter(g => g.type === "player").map(g => `[Player Group] ${g.name}`);
-    const staffGroups = customGroups.filter(g => g.type === "staff").map(g => `[Staff Group] ${g.name}`);
-    return [...standardOptions, ...playerGroups, ...staffGroups];
-  };
-
-  // Push Notifications state and helpers
-  const [notificationForm, setNotificationForm] = useState({
-    title: "",
-    message: "",
-    audience: "All Players",
-    imageFile: null,
-    imageUrl: "",
-    videoUrl: "",
-    imagePreview: null
-  });
-  const [notificationErrors, setNotificationErrors] = useState({});
-
-  const validateImageFile = (file) => {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const maxSize = 5 * 1024 * 1024;
-    if (!validTypes.includes(file.type)) return "Image must be JPG, PNG, GIF, or WebP format";
-    if (file.size > maxSize) return "Image size must be less than 5MB";
-    return null;
-  };
-
-  const validateVideoUrl = (url) => {
-    if (!url) return null;
-    const videoUrlPattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|facebook\.com|instagram\.com)\/.+$/i;
-    return videoUrlPattern.test(url) ? null : "Please enter a valid video URL (YouTube, Vimeo, DailyMotion, Facebook, Instagram)";
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const error = validateImageFile(file);
-    if (error) { setNotificationErrors(prev => ({...prev, image: error})); return; }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setNotificationForm(prev => ({...prev, imageFile: file, imagePreview: reader.result, imageUrl: ""}));
-      setNotificationErrors(prev => ({...prev, image: null}));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleImageUrlChange = (url) => {
-    if (!url) {
-      setNotificationForm(prev => ({...prev, imageUrl: "", imageFile: null, imagePreview: null}));
-      setNotificationErrors(prev => ({...prev, image: null}));
-      return;
-    }
-    const urlPattern = /^https?:\/\/.+/i;
-    if (!urlPattern.test(url)) {
-      setNotificationErrors(prev => ({...prev, image: "Please enter a valid URL starting with http:// or https://"}));
-      return;
-    }
-    setNotificationForm(prev => ({...prev, imageUrl: url, imageFile: null, imagePreview: null}));
-    setNotificationErrors(prev => ({...prev, image: null}));
-  };
-
-  const handleVideoUrlChange = (url) => {
-    setNotificationForm(prev => ({...prev, videoUrl: url}));
-    setNotificationErrors(prev => ({...prev, video: validateVideoUrl(url)}));
-  };
-
-  const handleSendNotification = () => {
-    const errors = {};
-    if (!notificationForm.title.trim()) errors.title = "Title is required";
-    if (!notificationForm.message.trim()) errors.message = "Message is required";
-    if (notificationForm.imageFile && notificationForm.imageUrl) errors.image = "Use either image upload OR image URL, not both";
-    if (notificationForm.videoUrl) {
-      const v = validateVideoUrl(notificationForm.videoUrl);
-      if (v) errors.video = v;
-    }
-    if (Object.keys(errors).length) { setNotificationErrors(errors); return; }
-
-    const payload = {
-      title: notificationForm.title,
-      message: notificationForm.message,
-      audience: notificationForm.audience,
-      media: {}
-    };
-    if (notificationForm.imageFile) {
-      payload.media.imageUrl = "https://api.example.com/uploads/" + notificationForm.imageFile.name;
-    } else if (notificationForm.imageUrl) {
-      payload.media.imageUrl = notificationForm.imageUrl;
-    }
-    if (notificationForm.videoUrl) payload.media.videoUrl = notificationForm.videoUrl;
-
-    console.log("Sending notification payload:", payload);
-    alert(`Notification sent!\nPayload: ${JSON.stringify(payload, null, 2)}`);
-    setNotificationForm({ title: "", message: "", audience: "All Players", imageFile: null, imageUrl: "", videoUrl: "", imagePreview: null });
-    setNotificationErrors({});
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
-      <div className="mx-auto max-w-[1400px] px-6 py-10 grid grid-cols-12 gap-8">
+      <div className="flex">
         {/* Sidebar */}
-        <aside className="col-span-12 lg:col-span-3 xl:col-span-3 rounded-2xl bg-gradient-to-b from-blue-500/20 via-cyan-600/30 to-teal-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
-          <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-teal-400 drop-shadow-lg mb-6">
-            GRE Portal
-          </div>
-          <div className="flex items-center mb-6 text-white min-w-0">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-              <span className="text-gray-900 font-bold text-sm">GRE</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-semibold truncate">Guest Relation Executive</div>
-              <div className="text-sm opacity-80 truncate">gre@pokerroom.com</div>
-            </div>
-          </div>
-
-          {/* Sidebar Menu */}
-          <nav className="space-y-3">
-            {menuItems.map((item, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveItem(item)}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-blue-400 to-cyan-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-blue-400/20 hover:to-cyan-500/20 text-white"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-        </aside>
+        <GreSidebar
+          activeItem={activeItem}
+          setActiveItem={setActiveItem}
+          menuItems={menuItems}
+          onSignOut={handleSignOut}
+        />
 
         {/* Main Section */}
-        <main className="col-span-12 lg:col-span-9 xl:col-span-9 space-y-8">
+        <main className="flex-1 lg:ml-0 min-w-0">
+          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 sm:py-10 space-y-8">
           {/* Header */}
-          <header className="bg-gradient-to-r from-cyan-600 via-blue-500 to-indigo-400 p-6 rounded-xl shadow-md flex justify-between items-center">
+          <header className="bg-gradient-to-r from-cyan-600 via-blue-500 to-indigo-400 p-6 rounded-xl shadow-md flex justify-between items-center mt-16 lg:mt-0">
             <div>
               <h1 className="text-2xl font-bold text-white">GRE Portal - {activeItem}</h1>
               <p className="text-gray-200 mt-1">Monitor players, handle Player Registrations, and view tables</p>
@@ -779,8 +734,115 @@ export default function GreDashboard() {
             </>
           )}
 
-          {/* Players */}
-          {activeItem === "Players" && (
+          {/* Player Management */}
+          {activeItem === "Player Management" && (() => {
+            // Transform KYC requests from allPlayers with pending status
+            const kycRequestsData = allPlayers
+              .filter(p => p.kycStatus === "pending")
+              .map((player, index) => ({
+                id: index + 1,
+                name: player.name,
+                documentType: player.documentType || "N/A",
+                docUrl: player.kycDocUrl || "#",
+                status: "Pending",
+                submittedDate: player.submittedDate || player.registrationDate,
+                playerId: player.id,
+                documentNumber: player.documentNumber || "",
+                email: player.email,
+                phone: player.phone,
+              }));
+
+            // Combine all players for allPlayers prop
+            const combinedAllPlayers = [
+              ...allPlayers.map(player => ({
+                id: player.id,
+                name: player.name,
+                email: player.email,
+                phone: player.phone,
+                status: player.accountStatus || (player.kycStatus === "pending" ? "Pending Approval" : "Active"),
+                kycStatus: player.kycStatus === "approved" ? "Verified" : player.kycStatus === "pending" ? "Pending" : player.kycStatus === "rejected" ? "Rejected" : "N/A",
+                registrationDate: player.registrationDate,
+                referredBy: player.referredBy || "N/A",
+                balance: 0, // Add balance if available in player data
+              })),
+              ...registeredPlayers.map(player => ({
+                id: player.id,
+                name: player.name,
+                email: player.email,
+                phone: player.phone,
+                status: player.accountStatus,
+                kycStatus: player.kycStatus === "approved" ? "Verified" : "N/A",
+                registrationDate: player.registrationDate,
+                referredBy: player.referredBy || "N/A",
+                balance: 0,
+              })),
+            ];
+
+            // Remove duplicates based on id
+            const uniqueAllPlayers = combinedAllPlayers.reduce((acc, current) => {
+              const x = acc.find(item => item.id === current.id);
+              if (!x) {
+                return acc.concat([current]);
+              } else {
+                // Prefer registered player data over pending player data
+                return acc.map(item => item.id === current.id ? current : item);
+              }
+            }, []);
+
+            return (
+              <PlayerManagementSection
+                userRole="gre"
+                kycRequests={kycRequestsData}
+                setKycRequests={(updater) => {
+                  if (typeof updater === 'function') {
+                    const updated = updater(kycRequestsData);
+                    // Update allPlayers when KYC is approved/rejected
+                    updated.forEach(kycReq => {
+                      if (kycReq.status === "Approved") {
+                        setAllPlayers(prev => prev.map(p =>
+                          p.id === kycReq.playerId
+                            ? { ...p, kycStatus: "approved", verifiedDate: new Date().toISOString().split('T')[0] }
+                            : p
+                        ));
+                      } else if (kycReq.status === "Rejected") {
+                        setAllPlayers(prev => prev.map(p =>
+                          p.id === kycReq.playerId
+                            ? { ...p, kycStatus: "rejected" }
+                            : p
+                        ));
+                      }
+                    });
+                  }
+                }}
+                allPlayers={uniqueAllPlayers}
+                setAllPlayers={(updater) => {
+                  if (typeof updater === 'function') {
+                    const updated = updater(uniqueAllPlayers);
+                    // Update registeredPlayers and allPlayers based on updates
+                    updated.forEach(updatedPlayer => {
+                      const isRegistered = registeredPlayers.find(rp => rp.id === updatedPlayer.id);
+                      if (isRegistered) {
+                        setRegisteredPlayers(prev => prev.map(p =>
+                          p.id === updatedPlayer.id
+                            ? { ...p, accountStatus: updatedPlayer.status }
+                            : p
+                        ));
+                      } else {
+                        setAllPlayers(prev => prev.map(p =>
+                          p.id === updatedPlayer.id
+                            ? { ...p, accountStatus: updatedPlayer.status }
+                            : p
+                        ));
+                      }
+                    });
+                  }
+                }}
+              />
+            );
+          })()}
+
+          {/* Legacy Players - KYC Pending Review (removed, using PlayerManagementSection above) */}
+          {false && activeItem === "Players" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Players - KYC Pending Review</h2>
@@ -791,16 +853,16 @@ export default function GreDashboard() {
                     <div className="md:col-span-2">
                       <label className="text-white text-sm mb-1 block">Search Player</label>
                       <div className="relative">
-                        <input 
-                          type="text" 
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
+                      <input 
+                        type="text" 
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
                           placeholder="Type at least 2 characters to search..." 
-                          value={playersSearch}
+                        value={playersSearch}
                           onChange={(e) => {
                             setPlayersSearch(e.target.value);
                             setSelectedPlayer(null);
                           }}
-                        />
+                      />
                         {playersSearch.length >= 2 && filteredPlayersForSearch.length > 0 && !selectedPlayer && (
                           <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                             {filteredPlayersForSearch.map(player => (
@@ -970,8 +1032,8 @@ export default function GreDashboard() {
             </div>
           )}
 
-          {/* Registered Players */}
-          {activeItem === "Registered Players" && (
+          {/* Legacy Registered Players (removed, using PlayerManagementSection above) */}
+          {false && activeItem === "Registered Players" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Registered Players - Verified Users</h2>
@@ -1206,155 +1268,7 @@ export default function GreDashboard() {
 
           {/* Push Notifications */}
           {activeItem === "Push Notifications" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Push Notifications</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Compose Notification</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Title</label>
-                        <input 
-                          type="text" 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${
-                            notificationErrors.title ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          placeholder="Enter title" 
-                          value={notificationForm.title}
-                          onChange={(e) => {
-                            setNotificationForm({...notificationForm, title: e.target.value});
-                            setNotificationErrors({...notificationErrors, title: null});
-                          }}
-                        />
-                        {notificationErrors.title && (
-                          <p className="text-red-400 text-xs mt-1">{notificationErrors.title}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Message</label>
-                        <textarea 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white ${
-                            notificationErrors.message ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          rows="3" 
-                          placeholder="Enter message..."
-                          value={notificationForm.message}
-                          onChange={(e) => {
-                            setNotificationForm({...notificationForm, message: e.target.value});
-                            setNotificationErrors({...notificationErrors, message: null});
-                          }}
-                        ></textarea>
-                        {notificationErrors.message && (
-                          <p className="text-red-400 text-xs mt-1">{notificationErrors.message}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Audience</label>
-                        <CustomSelect
-                          className="w-full"
-                          value={notificationForm.audience}
-                          onChange={(e) => setNotificationForm({...notificationForm, audience: e.target.value})}
-                        >
-                          {getAudienceOptions().map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </CustomSelect>
-                      </div>
-                      
-                      {/* Image Section */}
-                      <div className="border-t border-white/20 pt-4">
-                        <label className="text-white text-sm font-semibold mb-2 block">Image (Optional)</label>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-white text-xs">Upload Image</label>
-                            <div className="mt-1 border-2 border-dashed border-white/30 rounded-lg p-4 text-center">
-                              <input 
-                                type="file" 
-                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                                className="hidden"
-                                id="image-upload-gre"
-                                onChange={handleImageUpload}
-                              />
-                              <label htmlFor="image-upload-gre" className="cursor-pointer">
-                                <div className="text-white text-sm mb-1">Click to upload or drag and drop</div>
-                                <div className="text-gray-400 text-xs">JPG, PNG, GIF, WebP (max 5MB)</div>
-                              </label>
-                              {notificationForm.imagePreview && (
-                                <div className="mt-3">
-                                  <img src={notificationForm.imagePreview} alt="Preview" className="max-h-32 mx-auto rounded" />
-                                  <button
-                                    type="button"
-                                    onClick={() => setNotificationForm({...notificationForm, imageFile: null, imagePreview: null})}
-                                    className="mt-2 text-red-400 text-xs hover:text-red-300"
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-center text-white/60 text-xs">OR</div>
-                          <div>
-                            <label className="text-white text-xs">Image URL</label>
-                            <input 
-                              type="url" 
-                              className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${
-                                notificationErrors.image ? 'border-red-500' : 'border-white/20'
-                              }`}
-                              placeholder="https://example.com/image.jpg"
-                              value={notificationForm.imageUrl}
-                              onChange={(e) => handleImageUrlChange(e.target.value)}
-                            />
-                          </div>
-                          {notificationErrors.image && (
-                            <p className="text-red-400 text-xs">{notificationErrors.image}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Video Section */}
-                      <div className="border-t border-white/20 pt-4">
-                        <label className="text-white text-sm font-semibold mb-2 block">Video Link (Optional)</label>
-                        <input 
-                          type="url" 
-                          className={`w-full mt-1 px-3 py-2 bg-white/10 border rounded text-white text-sm ${
-                            notificationErrors.video ? 'border-red-500' : 'border-white/20'
-                          }`}
-                          placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
-                          value={notificationForm.videoUrl}
-                          onChange={(e) => handleVideoUrlChange(e.target.value)}
-                        />
-                        {notificationErrors.video && (
-                          <p className="text-red-400 text-xs mt-1">{notificationErrors.video}</p>
-                        )}
-                        <p className="text-gray-400 text-xs mt-1">
-                          Supported: YouTube, Vimeo, DailyMotion, Facebook, Instagram
-                        </p>
-                      </div>
-
-                      <button 
-                        onClick={handleSendNotification}
-                        className="w-full bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg font-semibold mt-4"
-                      >
-                        Send Notification
-                      </button>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Notifications</h3>
-                    <div className="space-y-2">
-                      {[{title:'Welcome Offer', time:'2h ago'}, {title:'Table 2 starting soon', time:'10m ago'}].map(n => (
-                        <div key={n.title} className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between">
-                          <div className="text-white">{n.title}</div>
-                          <div className="text-white/60 text-sm">{n.time}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
+            <PushNotificationsSection registeredPlayers={registeredPlayers} />
           )}
 
           {/* Player Registration */}
@@ -1381,10 +1295,10 @@ export default function GreDashboard() {
                       <div>
                         <label className="text-white text-sm">Preferred Game</label>
                       <CustomSelect className="w-full">
-                        <option>Texas Hold'em</option>
-                        <option>Omaha</option>
-                        <option>Stud</option>
-                        <option>Mixed Games</option>
+                          <option>Texas Hold'em</option>
+                          <option>Omaha</option>
+                          <option>Stud</option>
+                          <option>Mixed Games</option>
                       </CustomSelect>
                       </div>
                       <button className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
@@ -1496,107 +1410,56 @@ export default function GreDashboard() {
           )}
 
           {/* Table View */}
-          {activeItem === "Table View" && (
+          {activeItem === "Live Tables" && (
+            <TableManagementSection
+              userRole="gre"
+              tables={tables}
+              playerBalances={playerBalances}
+              tableBalances={tableBalances}
+              occupiedSeats={occupiedSeats}
+              mockPlayers={mockPlayers}
+              onSeatAssign={() => {}}
+              showTableView={showTableView}
+              setShowTableView={setShowTableView}
+              selectedPlayerForSeating={selectedPlayerForSeating}
+              setSelectedPlayerForSeating={setSelectedPlayerForSeating}
+              selectedTableForSeating={selectedTableForSeating}
+              setSelectedTableForSeating={setSelectedTableForSeating}
+              liveTablePlayerSearch={liveTablePlayerSearch}
+              setLiveTablePlayerSearch={setLiveTablePlayerSearch}
+              selectedLiveTablePlayer={selectedLiveTablePlayer}
+              setSelectedLiveTablePlayer={setSelectedLiveTablePlayer}
+              buyInAmount={buyInAmount}
+              setBuyInAmount={setBuyInAmount}
+              forceTab="live-tables"
+            />
+          )}
+
+          {/* Tournaments - View Only */}
+          {activeItem === "Tournaments" && (
+            <TournamentManagementSection userRole="gre" />
+          )}
+
+          {/* Payroll Management */}
+          {activeItem === "Payroll Management" && (
             <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-indigo-500/20 to-blue-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Poker Tables Overview</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg border border-green-400/30">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold text-white">Table 1</h3>
-                      <span className="bg-green-500/30 text-green-300 px-2 py-1 rounded text-sm">Active</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-sm text-gray-300">Game: Texas Hold'em</div>
-                      <div className="text-sm text-gray-300">Players: 6/8</div>
-                      <div className="text-sm text-gray-300">Blinds: ₹25/₹50</div>
-                      <div className="text-sm text-gray-300">Dealer: John</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg border border-yellow-400/30">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold text-white">Table 2</h3>
-                      <span className="bg-yellow-500/30 text-yellow-300 px-2 py-1 rounded text-sm">Waiting</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-sm text-gray-300">Game: Omaha</div>
-                      <div className="text-sm text-gray-300">Players: 4/8</div>
-                      <div className="text-sm text-gray-300">Blinds: ₹50/₹100</div>
-                      <div className="text-sm text-gray-300">Dealer: Sarah</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg border border-red-400/30">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold text-white">Table 3</h3>
-                      <span className="bg-red-500/30 text-red-300 px-2 py-1 rounded text-sm">Inactive</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-sm text-gray-300">Game: Stud</div>
-                      <div className="text-sm text-gray-300">Players: 0/8</div>
-                      <div className="text-sm text-gray-300">Blinds: ₹100/₹200</div>
-                      <div className="text-sm text-gray-300">Dealer: Mike</div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Table Details (Read-Only)</h2>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-4">Table 1 - Texas Hold'em</h3>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Status:</span>
-                          <span className="text-green-300">Active</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Current Players:</span>
-                          <span className="text-white">6</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Max Players:</span>
-                          <span className="text-white">8</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Small Blind:</span>
-                          <span className="text-white">₹25</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Big Blind:</span>
-                          <span className="text-white">₹50</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Dealer:</span>
-                          <span className="text-white">John</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-4">Seat Occupancy</h3>
-                      <div className="grid grid-cols-4 gap-2">
-                        {[1,2,3,4,5,6,7,8].map(seat => (
-                          <div key={seat} className={`p-2 rounded text-center text-sm ${
-                            seat <= 6 ? 'bg-green-500/20 text-green-300 border border-green-400/30' : 'bg-gray-500/20 text-gray-400 border border-gray-400/30'
-                          }`}>
-                            Seat {seat}
-                            {seat <= 6 && <div className="text-xs">Occupied</div>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
+              <EmployeeSalaryProcessingSection />
             </div>
           )}
 
-          {/* Player Support - Chat System */}
-          {activeItem === "Player Support" && (
+          {/* Chat - Chat System */}
+          {activeItem === "Chat" && (
+            <ChatSection
+              userRole="gre"
+              playerChats={playerChats}
+              setPlayerChats={setPlayerChats}
+              staffChats={staffChats}
+              setStaffChats={setStaffChats}
+            />
+          )}
+
+          {/* Legacy Chat Section (removed, using ChatSection above) */}
+          {false && activeItem === "Player Support" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Player & Staff Support Chat</h2>
@@ -1631,7 +1494,7 @@ export default function GreDashboard() {
                   >
                     👥 Staff Chat
                   </button>
-                </div>
+                    </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Chat List Sidebar */}
@@ -1648,8 +1511,8 @@ export default function GreDashboard() {
                         <option value="in_progress">In Progress</option>
                         <option value="closed">Closed</option>
                       </CustomSelect>
-                    </div>
-                    
+                  </div>
+
                     <div className="space-y-2 max-h-[600px] overflow-y-auto">
                       {filteredChats.length > 0 ? (
                         filteredChats.map(chat => (
@@ -1665,7 +1528,7 @@ export default function GreDashboard() {
                             <div className="flex items-start justify-between mb-1">
                               <div className="font-semibold text-white text-sm">
                                 {chatType === "player" ? chat.playerName : chat.staffName}
-                              </div>
+                    </div>
                               <span className={`px-2 py-1 rounded text-xs ${
                                 chat.status === "open"
                                   ? "bg-yellow-500/30 text-yellow-300"
@@ -1675,23 +1538,23 @@ export default function GreDashboard() {
                               }`}>
                                 {chat.status === "open" ? "Open" : chat.status === "in_progress" ? "In Progress" : "Closed"}
                               </span>
-                            </div>
+                    </div>
                             {chatType === "staff" && (
                               <div className="text-xs text-gray-400 mb-1">{chat.staffRole}</div>
                             )}
                             <div className="text-xs text-gray-300 truncate">{chat.lastMessage}</div>
                             <div className="text-xs text-gray-500 mt-1">
                               {new Date(chat.lastMessageTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                          </div>
+                  </div>
+                    </div>
                         ))
                       ) : (
                         <div className="text-center py-8 text-gray-400 text-sm">
                           No {statusFilter !== "all" ? statusFilter : ""} chats found
-                        </div>
-                      )}
                     </div>
+                      )}
                   </div>
+                </div>
 
                   {/* Chat Window */}
                   <div className="lg:col-span-2 bg-white/10 p-4 rounded-lg">
@@ -1699,17 +1562,17 @@ export default function GreDashboard() {
                       <div className="flex flex-col h-[600px]">
                         {/* Chat Header */}
                         <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/20">
-                          <div>
+                    <div>
                             <div className="font-semibold text-white text-lg">
                               {chatType === "player" ? selectedChat.playerName : selectedChat.staffName}
-                            </div>
+                        </div>
                             {chatType === "staff" && (
                               <div className="text-sm text-gray-400">{selectedChat.staffRole}</div>
                             )}
                             {chatType === "player" && (
                               <div className="text-sm text-gray-400">ID: {selectedChat.playerId}</div>
                             )}
-                          </div>
+                        </div>
                           <div className="flex items-center gap-2">
                             <CustomSelect
                               className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
@@ -1720,7 +1583,7 @@ export default function GreDashboard() {
                               <option value="in_progress">In Progress</option>
                               <option value="closed">Closed</option>
                             </CustomSelect>
-                          </div>
+                        </div>
                         </div>
 
                         {/* Messages */}
@@ -1739,11 +1602,11 @@ export default function GreDashboard() {
                                 <div className="text-sm">{message.text}</div>
                                 <div className="text-xs opacity-70 mt-1">
                                   {new Date(message.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
                         </div>
+                        </div>
+                      </div>
+                          ))}
+                    </div>
 
                         {/* Message Input */}
                         <div className="flex gap-2">
@@ -1763,13 +1626,13 @@ export default function GreDashboard() {
                           >
                             Send
                           </button>
-                        </div>
+                          </div>
                         {selectedChat.status === "closed" && (
                           <div className="text-xs text-gray-400 mt-2 text-center">
                             This chat is closed. Change status to reopen.
-                          </div>
-                        )}
                       </div>
+                        )}
+                    </div>
                     ) : (
                       <div className="flex items-center justify-center h-[600px] text-gray-400">
                         <div className="text-center">
@@ -1785,7 +1648,7 @@ export default function GreDashboard() {
           )}
 
           {/* Offers */}
-          {activeItem === "Offers" && (
+          {/* {activeItem === "Offers" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-orange-600/30 via-red-500/20 to-pink-700/30 rounded-xl shadow-md border border-orange-800/40">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
@@ -1794,13 +1657,13 @@ export default function GreDashboard() {
                     <p className="text-gray-300 text-sm mt-1">
                       Create player-facing offers and coordinate instant notifications from the GRE desk.
                     </p>
-                  </div>
+                      </div>
                   <div className="bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-xs text-gray-300 space-y-1">
                     <div>Active Offers: {offers.filter(o => o.status === "Active").length}</div>
                     <div>Upcoming Offers: {offers.filter(o => o.status === "Upcoming").length}</div>
                     <div>Notifications ready: {offers.reduce((sum, o) => sum + (o.sentNotifications || 0), 0)}</div>
+                    </div>
                   </div>
-                </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-[37%,1fr] gap-6">
                   <div className="bg-white/10 p-4 rounded-lg border border-white/20">
@@ -1815,7 +1678,7 @@ export default function GreDashboard() {
                           value={offerForm.title}
                           onChange={(e) => setOfferForm({...offerForm, title: e.target.value})}
                         />
-                      </div>
+                    </div>
                       <div>
                         <label className="text-white text-sm">Description</label>
                         <textarea
@@ -1825,7 +1688,7 @@ export default function GreDashboard() {
                           value={offerForm.description}
                           onChange={(e) => setOfferForm({...offerForm, description: e.target.value})}
                         ></textarea>
-                      </div>
+                  </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                           <label className="text-white text-sm">Audience</label>
@@ -1840,7 +1703,7 @@ export default function GreDashboard() {
                             <option>VIP Players</option>
                             <option>Waitlist</option>
                           </CustomSelect>
-                        </div>
+                </div>
                         <div>
                           <label className="text-white text-sm">Reward Type</label>
                           <CustomSelect
@@ -1853,14 +1716,14 @@ export default function GreDashboard() {
                             <option>Free Entry</option>
                             <option>Food & Beverage Voucher</option>
                           </CustomSelect>
-                        </div>
+            </div>
                         <div>
                           <label className="text-white text-sm">
                             {offerForm.rewardType.includes("Points") ? "Point Multiplier / Value" : "Reward Value (₹)"}
                           </label>
-                          <input
-                            type="text"
-                            className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        <input 
+                          type="text" 
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
                             placeholder={offerForm.rewardType.includes("Points") ? "Eg. 2x" : "Eg. 2500"}
                             value={offerForm.rewardValue}
                             onChange={(e) => setOfferForm({...offerForm, rewardValue: e.target.value})}
@@ -1915,15 +1778,15 @@ export default function GreDashboard() {
                         >
                           Reset
                         </button>
-                      </div>
-                    </div>
+                              </div>
+                          </div>
                   </div>
 
                   <div className="bg-white/10 p-4 rounded-lg border border-white/20">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                       <h3 className="text-lg font-semibold text-white">Offer Pipeline</h3>
                       <div className="flex flex-wrap gap-2">
-                        <button
+                            <button 
                           onClick={() => alert("Offer notification blast sent to the selected audience.")}
                           className="bg-orange-500 hover:bg-orange-400 text-white px-3 py-2 rounded-lg text-sm font-semibold"
                         >
@@ -1932,11 +1795,11 @@ export default function GreDashboard() {
                         <button
                           onClick={() => alert("Offer performance report exported (mock).")}
                           className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-semibold"
-                        >
+                            >
                           Export Offer Report
-                        </button>
+                            </button>
+                          </div>
                       </div>
-                    </div>
                     <div className="space-y-3 max-h-[520px] overflow-y-auto pr-2">
                       {offers.map((offer) => (
                         <div
@@ -1958,15 +1821,15 @@ export default function GreDashboard() {
                                 >
                                   {offer.status}
                                 </span>
-                              </div>
+                      </div>
                               <p className="text-sm text-gray-300 leading-relaxed">{offer.description}</p>
                               <div className="flex flex-wrap gap-3 text-xs text-gray-400">
                                 <div className="bg-white/5 px-2 py-1 rounded border border-white/10">
                                   Audience: <span className="text-gray-200 font-medium">{offer.audience}</span>
-                                </div>
+                        </div>
                                 <div className="bg-white/5 px-2 py-1 rounded border border-white/10">
                                   Reward: <span className="text-gray-200 font-medium">{offer.reward}</span>
-                                </div>
+                      </div>
                                 <div className="bg-white/5 px-2 py-1 rounded border border-white/10">
                                   Duration: <span className="text-gray-200 font-medium">{offer.startDate} - {offer.endDate}</span>
                                 </div>
@@ -1982,22 +1845,23 @@ export default function GreDashboard() {
                                 className="w-full bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg font-semibold"
                               >
                                 Follow Up
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                      </button>
+                    </div>
+                  </div>
+                      </div>
                       ))}
                       {offers.length === 0 && (
                         <div className="text-center py-12 text-gray-400">
                           No offers configured yet. Create your first offer using the form on the left.
-                        </div>
+                      </div>
                       )}
                     </div>
                   </div>
                 </div>
               </section>
             </div>
-          )}
+          )} */}
+          </div>
         </main>
       </div>
     </div>
