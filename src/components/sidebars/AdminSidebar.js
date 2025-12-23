@@ -90,7 +90,7 @@ export default function AdminSidebar({
         <div className="p-5 h-full flex flex-col min-w-0">
           {/* Header */}
           <div className="mb-6">
-            <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-blue-400 drop-shadow-lg mb-6">
+            <div className="pt-11 lg:pt-0 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-blue-400 drop-shadow-lg mb-6">
               Admin
             </div>
             <div className="flex items-center text-white min-w-0">

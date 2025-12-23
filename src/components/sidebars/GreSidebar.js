@@ -85,7 +85,7 @@ export default function GreSidebar({
       >
         <div className="p-5 h-full flex flex-col min-w-0">
           <div className="mb-6">
-            <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 drop-shadow-lg mb-6">
+            <div className="pt-11 lg:pt-0 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 drop-shadow-lg mb-6">
               GRE Portal
             </div>
             <div className="flex items-center text-white min-w-0">

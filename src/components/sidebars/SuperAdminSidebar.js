@@ -91,7 +91,7 @@ export default function SuperAdminSidebar({
       >
         <div className="p-5 h-full flex flex-col min-w-0">
           <div className="mb-6">
-            <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-indigo-400 drop-shadow-lg mb-6">
+            <div className="pt-11 lg:pt-0 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-indigo-400 drop-shadow-lg mb-6">
               Super Admin
             </div>
             <div className="bg-white/10 rounded-xl p-4 mb-6 text-white shadow-inner">
