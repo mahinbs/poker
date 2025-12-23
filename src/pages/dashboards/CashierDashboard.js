@@ -9,24 +9,36 @@ import PushNotificationsSection from "../../components/PushNotificationsSection"
 import EmployeeSalaryProcessingSection from "../../components/EmployeeSalaryProcessingSection";
 import BonusProcessingSection from "../../components/BonusProcessingSection";
 import ClubBuyInSection from "../../components/ClubBuyInSection";
+import CreditFeatureSection from "../../components/CreditFeatureSection";
+import ReportsAnalyticsSection from "../../components/ReportsAnalyticsSection";
+import TipsProcessing from "../../components/TipsProcessing";
+import RakeEntryToClub from "../../components/RakeEntryToClub";
+import AffiliatesTable from "../../components/AffiliatesTable";
+import FinancialOverrides from "../../components/FinancialOverrides";
+import DealerTips from "../../components/DealerTips";
+import CashierSidebar from "../../components/sidebars/CashierSidebar";
 
 export default function CashierDashboard() {
   const [activeItem, setActiveItem] = useState("Transactions Dashboard");
   const navigate = useNavigate();
 
-  
   const menuItems = [
     "Transactions Dashboard",
     "Balance Management",
     "Table Management",
     "Club Buy-In",
-    "Payroll Management", 
-    "Transaction History & Reports",
+    "Payroll Management",
+    "Transaction History",
     "Shift Reconciliation",
     "Bonus Processing",
+    "Credit Disbursement",
+    "Rake Entry to Club",
     "Tournaments",
     "Push Notifications",
     "Chat",
+    "Reports & Analytics",
+    "Affiliates",
+    "Financial Overrides",
   ];
 
   const handleSignOut = () => {
@@ -35,59 +47,200 @@ export default function CashierDashboard() {
 
   // Mock players data with balances (connected across all portals)
   const [playerBalances, setPlayerBalances] = useState({
-    "P101": { id: "P101", name: "Alex Johnson", email: "alex.johnson@example.com", availableBalance: 25000, tableBalance: 5000, tableId: 1, seatNumber: 3 },
-    "P102": { id: "P102", name: "Maria Garcia", email: "maria.garcia@example.com", availableBalance: 15000, tableBalance: 0, tableId: null, seatNumber: null },
-    "P103": { id: "P103", name: "Rajesh Kumar", email: "rajesh.kumar@example.com", availableBalance: 45000, tableBalance: 10000, tableId: 1, seatNumber: 5 },
-    "P104": { id: "P104", name: "Priya Sharma", email: "priya.sharma@example.com", availableBalance: 32000, tableBalance: 0, tableId: null, seatNumber: null },
-    "P105": { id: "P105", name: "Amit Patel", email: "amit.patel@example.com", availableBalance: 18000, tableBalance: 7500, tableId: 2, seatNumber: 2 },
-    "P106": { id: "P106", name: "John Doe", email: "john.doe@example.com", availableBalance: 28000, tableBalance: 0, tableId: null, seatNumber: null },
-    "P107": { id: "P107", name: "Jane Smith", email: "jane.smith@example.com", availableBalance: 35000, tableBalance: 0, tableId: null, seatNumber: null },
-    "P108": { id: "P108", name: "Sarah Connor", email: "sarah.connor@example.com", availableBalance: 55000, tableBalance: 0, tableId: null, seatNumber: null },
-    "P109": { id: "P109", name: "Michael Chen", email: "michael.chen@example.com", availableBalance: 42000, tableBalance: 0, tableId: null, seatNumber: null },
-    "P110": { id: "P110", name: "Emma Wilson", email: "emma.wilson@example.com", availableBalance: 38000, tableBalance: 0, tableId: null, seatNumber: null },
-    "P111": { id: "P111", name: "David Brown", email: "david.brown@example.com", availableBalance: 62000, tableBalance: 0, tableId: null, seatNumber: null },
-    "P112": { id: "P112", name: "Lisa Anderson", email: "lisa.anderson@example.com", availableBalance: 29000, tableBalance: 0, tableId: null, seatNumber: null },
-    "P113": { id: "P113", name: "Robert Taylor", email: "robert.taylor@example.com", availableBalance: 48000, tableBalance: 0, tableId: null, seatNumber: null }
+    P101: {
+      id: "P101",
+      name: "Alex Johnson",
+      email: "alex.johnson@example.com",
+      availableBalance: 25000,
+      tableBalance: 5000,
+      tableId: 1,
+      seatNumber: 3,
+    },
+    P102: {
+      id: "P102",
+      name: "Maria Garcia",
+      email: "maria.garcia@example.com",
+      availableBalance: 15000,
+      tableBalance: 0,
+      tableId: null,
+      seatNumber: null,
+    },
+    P103: {
+      id: "P103",
+      name: "Rajesh Kumar",
+      email: "rajesh.kumar@example.com",
+      availableBalance: 45000,
+      tableBalance: 10000,
+      tableId: 1,
+      seatNumber: 5,
+    },
+    P104: {
+      id: "P104",
+      name: "Priya Sharma",
+      email: "priya.sharma@example.com",
+      availableBalance: 32000,
+      tableBalance: 0,
+      tableId: null,
+      seatNumber: null,
+    },
+    P105: {
+      id: "P105",
+      name: "Amit Patel",
+      email: "amit.patel@example.com",
+      availableBalance: 18000,
+      tableBalance: 7500,
+      tableId: 2,
+      seatNumber: 2,
+    },
+    P106: {
+      id: "P106",
+      name: "John Doe",
+      email: "john.doe@example.com",
+      availableBalance: 28000,
+      tableBalance: 0,
+      tableId: null,
+      seatNumber: null,
+    },
+    P107: {
+      id: "P107",
+      name: "Jane Smith",
+      email: "jane.smith@example.com",
+      availableBalance: 35000,
+      tableBalance: 0,
+      tableId: null,
+      seatNumber: null,
+    },
+    P108: {
+      id: "P108",
+      name: "Sarah Connor",
+      email: "sarah.connor@example.com",
+      availableBalance: 55000,
+      tableBalance: 0,
+      tableId: null,
+      seatNumber: null,
+    },
+    P109: {
+      id: "P109",
+      name: "Michael Chen",
+      email: "michael.chen@example.com",
+      availableBalance: 42000,
+      tableBalance: 0,
+      tableId: null,
+      seatNumber: null,
+    },
+    P110: {
+      id: "P110",
+      name: "Emma Wilson",
+      email: "emma.wilson@example.com",
+      availableBalance: 38000,
+      tableBalance: 0,
+      tableId: null,
+      seatNumber: null,
+    },
+    P111: {
+      id: "P111",
+      name: "David Brown",
+      email: "david.brown@example.com",
+      availableBalance: 62000,
+      tableBalance: 0,
+      tableId: null,
+      seatNumber: null,
+    },
+    P112: {
+      id: "P112",
+      name: "Lisa Anderson",
+      email: "lisa.anderson@example.com",
+      availableBalance: 29000,
+      tableBalance: 0,
+      tableId: null,
+      seatNumber: null,
+    },
+    P113: {
+      id: "P113",
+      name: "Robert Taylor",
+      email: "robert.taylor@example.com",
+      availableBalance: 48000,
+      tableBalance: 0,
+      tableId: null,
+      seatNumber: null,
+    },
   });
 
   // Mock players data for search (for backward compatibility)
-  const mockPlayers = Object.values(playerBalances).map(({ availableBalance, tableBalance, tableId, seatNumber, ...player }) => player);
+  const mockPlayers = Object.values(playerBalances).map(
+    ({ availableBalance, tableBalance, tableId, seatNumber, ...player }) =>
+      player
+  );
 
   // Registered players for Push Notifications (mapped from playerBalances)
-  const registeredPlayers = Object.values(playerBalances).map(({ availableBalance, tableBalance, tableId, seatNumber, ...player }) => ({
-    ...player,
-    kycStatus: "approved",
-    accountStatus: "Active",
-    phone: player.email ? player.email.replace("@example.com", "") : "",
-    registrationDate: "2024-01-01",
-    documentType: "PAN Card",
-    verifiedDate: "2024-01-01"
-  }));
+  const registeredPlayers = Object.values(playerBalances).map(
+    ({ availableBalance, tableBalance, tableId, seatNumber, ...player }) => ({
+      ...player,
+      kycStatus: "approved",
+      accountStatus: "Active",
+      phone: player.email ? player.email.replace("@example.com", "") : "",
+      registrationDate: "2024-01-01",
+      documentType: "PAN Card",
+      verifiedDate: "2024-01-01",
+    })
+  );
 
   // Table balances tracking
   const [tableBalances, setTableBalances] = useState({
-    1: { id: 1, name: "Table 1 - Texas Hold'em", totalBalance: 15000, players: ["P101", "P103"] },
-    2: { id: 2, name: "Table 2 - Omaha", totalBalance: 7500, players: ["P105"] },
-    3: { id: 3, name: "Table 3 - Stud", totalBalance: 0, players: [] }
+    1: {
+      id: 1,
+      name: "Table 1 - Texas Hold'em",
+      totalBalance: 15000,
+      players: ["P101", "P103"],
+    },
+    2: {
+      id: 2,
+      name: "Table 2 - Omaha",
+      totalBalance: 7500,
+      players: ["P105"],
+    },
+    3: { id: 3, name: "Table 3 - Stud", totalBalance: 0, players: [] },
   });
 
   // Mock table data for hologram view
   const tables = [
-    { id: 1, name: "Table 1 - Texas Hold'em", status: "Active", gameType: "Texas Hold'em", stakes: "₹1000.00/10000.00", maxPlayers: 6 },
-    { id: 2, name: "Table 2 - Omaha", status: "Active", gameType: "Omaha", stakes: "₹5000.00/50000.00", maxPlayers: 9 },
-    { id: 3, name: "Table 3 - Stud", status: "Active", gameType: "Seven Card Stud", stakes: "₹10000.00/100000.00", maxPlayers: 6 },
+    {
+      id: 1,
+      name: "Table 1 - Texas Hold'em",
+      status: "Active",
+      gameType: "Texas Hold'em",
+      stakes: "₹1000.00/10000.00",
+      maxPlayers: 6,
+    },
+    {
+      id: 2,
+      name: "Table 2 - Omaha",
+      status: "Active",
+      gameType: "Omaha",
+      stakes: "₹5000.00/50000.00",
+      maxPlayers: 9,
+    },
+    {
+      id: 3,
+      name: "Table 3 - Stud",
+      status: "Active",
+      gameType: "Seven Card Stud",
+      stakes: "₹10000.00/100000.00",
+      maxPlayers: 6,
+    },
   ];
 
   // Track occupied seats by table (tableId -> array of occupied seat numbers)
   const [occupiedSeats, setOccupiedSeats] = useState({
     1: [3, 5], // Table 1 has seats 3, 5 occupied (based on playerBalances)
     2: [2], // Table 2 has seat 2 occupied
-    3: [] // Table 3 is empty
+    3: [], // Table 3 is empty
   });
 
   // State for table view modal (cashier mode - similar to manager mode)
   const [showTableView, setShowTableView] = useState(false);
-  const [selectedPlayerForSeating, setSelectedPlayerForSeating] = useState(null);
+  const [selectedPlayerForSeating, setSelectedPlayerForSeating] =
+    useState(null);
   const [selectedTableForSeating, setSelectedTableForSeating] = useState(null);
   const [buyInAmount, setBuyInAmount] = useState("");
 
@@ -107,10 +260,22 @@ export default function CashierDashboard() {
       lastMessage: "I need help with withdrawal.",
       lastMessageTime: new Date(Date.now() - 180000).toISOString(),
       messages: [
-        { id: "M1", sender: "player", senderName: "Alex Johnson", text: "I need help with withdrawal.", timestamp: new Date(Date.now() - 180000).toISOString() },
-        { id: "M2", sender: "staff", senderName: "Cashier", text: "Sure, I can help you with that.", timestamp: new Date(Date.now() - 120000).toISOString() }
+        {
+          id: "M1",
+          sender: "player",
+          senderName: "Alex Johnson",
+          text: "I need help with withdrawal.",
+          timestamp: new Date(Date.now() - 180000).toISOString(),
+        },
+        {
+          id: "M2",
+          sender: "staff",
+          senderName: "Cashier",
+          text: "Sure, I can help you with that.",
+          timestamp: new Date(Date.now() - 120000).toISOString(),
+        },
       ],
-      createdAt: new Date(Date.now() - 600000).toISOString()
+      createdAt: new Date(Date.now() - 600000).toISOString(),
     },
     {
       id: "PC002",
@@ -120,12 +285,30 @@ export default function CashierDashboard() {
       lastMessage: "Thank you for processing my deposit.",
       lastMessageTime: new Date(Date.now() - 3600000).toISOString(),
       messages: [
-        { id: "M3", sender: "player", senderName: "Maria Garcia", text: "I want to deposit money.", timestamp: new Date(Date.now() - 3600000).toISOString() },
-        { id: "M4", sender: "staff", senderName: "Cashier", text: "Please come to the cashier desk.", timestamp: new Date(Date.now() - 3500000).toISOString() },
-        { id: "M5", sender: "player", senderName: "Maria Garcia", text: "Thank you for processing my deposit.", timestamp: new Date(Date.now() - 3400000).toISOString() }
+        {
+          id: "M3",
+          sender: "player",
+          senderName: "Maria Garcia",
+          text: "I want to deposit money.",
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+        },
+        {
+          id: "M4",
+          sender: "staff",
+          senderName: "Cashier",
+          text: "Please come to the cashier desk.",
+          timestamp: new Date(Date.now() - 3500000).toISOString(),
+        },
+        {
+          id: "M5",
+          sender: "player",
+          senderName: "Maria Garcia",
+          text: "Thank you for processing my deposit.",
+          timestamp: new Date(Date.now() - 3400000).toISOString(),
+        },
       ],
-      createdAt: new Date(Date.now() - 3600000).toISOString()
-    }
+      createdAt: new Date(Date.now() - 3600000).toISOString(),
+    },
   ]);
 
   // Staff chats
@@ -139,71 +322,96 @@ export default function CashierDashboard() {
       lastMessage: "Need cash for Table 3",
       lastMessageTime: new Date(Date.now() - 300000).toISOString(),
       messages: [
-        { id: "M6", sender: "staff", senderName: "Sarah Johnson", text: "Need cash for Table 3", timestamp: new Date(Date.now() - 300000).toISOString() },
-        { id: "M7", sender: "cashier", senderName: "Cashier", text: "I'll prepare it now.", timestamp: new Date(Date.now() - 240000).toISOString() }
+        {
+          id: "M6",
+          sender: "staff",
+          senderName: "Sarah Johnson",
+          text: "Need cash for Table 3",
+          timestamp: new Date(Date.now() - 300000).toISOString(),
+        },
+        {
+          id: "M7",
+          sender: "cashier",
+          senderName: "Cashier",
+          text: "I'll prepare it now.",
+          timestamp: new Date(Date.now() - 240000).toISOString(),
+        },
       ],
-      createdAt: new Date(Date.now() - 300000).toISOString()
-    }
+      createdAt: new Date(Date.now() - 300000).toISOString(),
+    },
   ]);
 
-  const filteredChats = chatType === "player" 
-    ? playerChats.filter(chat => statusFilter === "all" || chat.status === statusFilter)
-    : staffChats.filter(chat => statusFilter === "all" || chat.status === statusFilter);
+  const filteredChats =
+    chatType === "player"
+      ? playerChats.filter(
+          (chat) => statusFilter === "all" || chat.status === statusFilter
+        )
+      : staffChats.filter(
+          (chat) => statusFilter === "all" || chat.status === statusFilter
+        );
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedChat) return;
-    
+
     const message = {
       id: `M${Date.now()}`,
       sender: chatType === "player" ? "staff" : "cashier",
       senderName: "Cashier",
       text: newMessage.trim(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     if (chatType === "player") {
-      setPlayerChats(prev => prev.map(chat => 
-        chat.id === selectedChat.id
-          ? {
-              ...chat,
-              messages: [...chat.messages, message],
-              lastMessage: message.text,
-              lastMessageTime: message.timestamp,
-              status: chat.status === "closed" ? "in_progress" : chat.status
-            }
-          : chat
-      ));
+      setPlayerChats((prev) =>
+        prev.map((chat) =>
+          chat.id === selectedChat.id
+            ? {
+                ...chat,
+                messages: [...chat.messages, message],
+                lastMessage: message.text,
+                lastMessageTime: message.timestamp,
+                status: chat.status === "closed" ? "in_progress" : chat.status,
+              }
+            : chat
+        )
+      );
     } else {
-      setStaffChats(prev => prev.map(chat => 
-        chat.id === selectedChat.id
-          ? {
-              ...chat,
-              messages: [...chat.messages, message],
-              lastMessage: message.text,
-              lastMessageTime: message.timestamp,
-              status: chat.status === "closed" ? "in_progress" : chat.status
-            }
-          : chat
-      ));
+      setStaffChats((prev) =>
+        prev.map((chat) =>
+          chat.id === selectedChat.id
+            ? {
+                ...chat,
+                messages: [...chat.messages, message],
+                lastMessage: message.text,
+                lastMessageTime: message.timestamp,
+                status: chat.status === "closed" ? "in_progress" : chat.status,
+              }
+            : chat
+        )
+      );
     }
     setNewMessage("");
   };
 
   const handleStatusChange = (chatId, newStatus) => {
     if (chatType === "player") {
-      setPlayerChats(prev => prev.map(chat => 
-        chat.id === chatId ? { ...chat, status: newStatus } : chat
-      ));
+      setPlayerChats((prev) =>
+        prev.map((chat) =>
+          chat.id === chatId ? { ...chat, status: newStatus } : chat
+        )
+      );
       if (selectedChat && selectedChat.id === chatId) {
-        const updatedChat = playerChats.find(c => c.id === chatId);
+        const updatedChat = playerChats.find((c) => c.id === chatId);
         if (updatedChat) setSelectedChat({ ...updatedChat, status: newStatus });
       }
     } else {
-      setStaffChats(prev => prev.map(chat => 
-        chat.id === chatId ? { ...chat, status: newStatus } : chat
-      ));
+      setStaffChats((prev) =>
+        prev.map((chat) =>
+          chat.id === chatId ? { ...chat, status: newStatus } : chat
+        )
+      );
       if (selectedChat && selectedChat.id === chatId) {
-        const updatedChat = staffChats.find(c => c.id === chatId);
+        const updatedChat = staffChats.find((c) => c.id === chatId);
         if (updatedChat) setSelectedChat({ ...updatedChat, status: newStatus });
       }
     }
@@ -212,7 +420,7 @@ export default function CashierDashboard() {
   useEffect(() => {
     if (selectedChat) {
       const currentChats = chatType === "player" ? playerChats : staffChats;
-      const updatedChat = currentChats.find(c => c.id === selectedChat.id);
+      const updatedChat = currentChats.find((c) => c.id === selectedChat.id);
       if (updatedChat) {
         setSelectedChat(updatedChat);
       } else {
@@ -223,142 +431,279 @@ export default function CashierDashboard() {
 
   // Transaction tracking (buy-in, cash-out, withdrawals)
   const [balanceTransactions, setBalanceTransactions] = useState([
-    { id: 1, type: "buy-in", playerId: "P101", playerName: "Alex Johnson", amount: 5000, tableId: 1, tableName: "Table 1 - Texas Hold'em", timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), status: "completed" },
-    { id: 2, type: "buy-in", playerId: "P103", playerName: "Rajesh Kumar", amount: 10000, tableId: 1, tableName: "Table 1 - Texas Hold'em", timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), status: "completed" },
-    { id: 3, type: "buy-in", playerId: "P105", playerName: "Amit Patel", amount: 7500, tableId: 2, tableName: "Table 2 - Omaha", timestamp: new Date(Date.now() - 30 * 60 * 1000), status: "completed" },
-    { id: 4, type: "cash-out", playerId: "P102", playerName: "Maria Garcia", amount: 8000, tableId: 1, tableName: "Table 1 - Texas Hold'em", chipCount: 8000, timestamp: new Date(Date.now() - 45 * 60 * 1000), status: "completed", managerVerified: true },
-    { id: 5, type: "withdrawal", playerId: "P104", playerName: "Priya Sharma", amount: 5000, timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), status: "completed" }
+    {
+      id: 1,
+      type: "buy-in",
+      playerId: "P101",
+      playerName: "Alex Johnson",
+      amount: 5000,
+      tableId: 1,
+      tableName: "Table 1 - Texas Hold'em",
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      status: "completed",
+    },
+    {
+      id: 2,
+      type: "buy-in",
+      playerId: "P103",
+      playerName: "Rajesh Kumar",
+      amount: 10000,
+      tableId: 1,
+      tableName: "Table 1 - Texas Hold'em",
+      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
+      status: "completed",
+    },
+    {
+      id: 3,
+      type: "buy-in",
+      playerId: "P105",
+      playerName: "Amit Patel",
+      amount: 7500,
+      tableId: 2,
+      tableName: "Table 2 - Omaha",
+      timestamp: new Date(Date.now() - 30 * 60 * 1000),
+      status: "completed",
+    },
+    {
+      id: 4,
+      type: "cash-out",
+      playerId: "P102",
+      playerName: "Maria Garcia",
+      amount: 8000,
+      tableId: 1,
+      tableName: "Table 1 - Texas Hold'em",
+      chipCount: 8000,
+      timestamp: new Date(Date.now() - 45 * 60 * 1000),
+      status: "completed",
+      managerVerified: true,
+    },
+    {
+      id: 5,
+      type: "withdrawal",
+      playerId: "P104",
+      playerName: "Priya Sharma",
+      amount: 5000,
+      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
+      status: "completed",
+    },
+  ]);
+
+  // Credit Disbursement state
+  const [creditDisbursements, setCreditDisbursements] = useState([
+    {
+      id: "CD-001",
+      playerId: "P101",
+      player: "Alex Johnson",
+      approvedLimit: 50000,
+      currentBalance: 0,
+      requestedAmount: 10000,
+      status: "Pending",
+      requestedDate: "2024-01-22",
+      notes: "",
+    },
+    {
+      id: "CD-002",
+      playerId: "P103",
+      player: "Rajesh Kumar",
+      approvedLimit: 25000,
+      currentBalance: 5000,
+      requestedAmount: 15000,
+      status: "Pending",
+      requestedDate: "2024-01-22",
+      notes: "",
+    },
+    {
+      id: "CD-003",
+      playerId: "P105",
+      player: "Amit Patel",
+      approvedLimit: 30000,
+      currentBalance: 10000,
+      requestedAmount: 20000,
+      status: "Pending",
+      requestedDate: "2024-01-22",
+      notes: "",
+    },
   ]);
 
   // Player search for Live Tables seating
   const [liveTablePlayerSearch, setLiveTablePlayerSearch] = useState("");
   const [selectedLiveTablePlayer, setSelectedLiveTablePlayer] = useState(null);
-  const filteredLiveTablePlayers = liveTablePlayerSearch.length >= 3
-    ? mockPlayers.filter(player => {
-        const searchLower = liveTablePlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
-    : [];
+  const filteredLiveTablePlayers =
+    liveTablePlayerSearch.length >= 3
+      ? mockPlayers.filter((player) => {
+          const searchLower = liveTablePlayerSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower)
+          );
+        })
+      : [];
 
   // Player search states - multiple instances for different sections
   const [depositPlayerSearch, setDepositPlayerSearch] = useState("");
   const [selectedDepositPlayer, setSelectedDepositPlayer] = useState(null);
   const [depositChipCount, setDepositChipCount] = useState("");
-  const filteredDepositPlayers = depositPlayerSearch.length >= 3
-    ? mockPlayers.filter(player => {
-        const searchLower = depositPlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
-    : [];
+  const filteredDepositPlayers =
+    depositPlayerSearch.length >= 3
+      ? mockPlayers.filter((player) => {
+          const searchLower = depositPlayerSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower)
+          );
+        })
+      : [];
 
   const [withdrawalPlayerSearch, setWithdrawalPlayerSearch] = useState("");
-  const [selectedWithdrawalPlayer, setSelectedWithdrawalPlayer] = useState(null);
+  const [selectedWithdrawalPlayer, setSelectedWithdrawalPlayer] =
+    useState(null);
   const [withdrawalChipCount, setWithdrawalChipCount] = useState("");
-  const filteredWithdrawalPlayers = withdrawalPlayerSearch.length >= 3
-    ? mockPlayers.filter(player => {
-        const searchLower = withdrawalPlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
-    : [];
+  const filteredWithdrawalPlayers =
+    withdrawalPlayerSearch.length >= 3
+      ? mockPlayers.filter((player) => {
+          const searchLower = withdrawalPlayerSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower)
+          );
+        })
+      : [];
 
   const [adjustmentPlayerSearch, setAdjustmentPlayerSearch] = useState("");
-  const [selectedAdjustmentPlayer, setSelectedAdjustmentPlayer] = useState(null);
-  const filteredAdjustmentPlayers = adjustmentPlayerSearch.length >= 3
-    ? mockPlayers.filter(player => {
-        const searchLower = adjustmentPlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
-    : [];
+  const [selectedAdjustmentPlayer, setSelectedAdjustmentPlayer] =
+    useState(null);
+  const filteredAdjustmentPlayers =
+    adjustmentPlayerSearch.length >= 3
+      ? mockPlayers.filter((player) => {
+          const searchLower = adjustmentPlayerSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower)
+          );
+        })
+      : [];
 
   const [creditPlayerSearch, setCreditPlayerSearch] = useState("");
   const [selectedCreditPlayer, setSelectedCreditPlayer] = useState(null);
-  const filteredCreditPlayers = creditPlayerSearch.length >= 3
-    ? mockPlayers.filter(player => {
-        const searchLower = creditPlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
-    : [];
+  const filteredCreditPlayers =
+    creditPlayerSearch.length >= 3
+      ? mockPlayers.filter((player) => {
+          const searchLower = creditPlayerSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower)
+          );
+        })
+      : [];
 
   const [bonusPlayerSearch, setBonusPlayerSearch] = useState("");
   const [selectedBonusPlayer, setSelectedBonusPlayer] = useState(null);
-  const filteredBonusPlayers = bonusPlayerSearch.length >= 3
-    ? mockPlayers.filter(player => {
-        const searchLower = bonusPlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
-    : [];
+  const filteredBonusPlayers =
+    bonusPlayerSearch.length >= 3
+      ? mockPlayers.filter((player) => {
+          const searchLower = bonusPlayerSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower)
+          );
+        })
+      : [];
 
   // Balance Management search states
   const [balancePlayerSearch, setBalancePlayerSearch] = useState("");
   const [selectedBalancePlayer, setSelectedBalancePlayer] = useState(null);
-  const filteredBalancePlayers = balancePlayerSearch.length >= 3
-    ? mockPlayers.filter(player => {
-        const searchLower = balancePlayerSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
-    : [];
+  const filteredBalancePlayers =
+    balancePlayerSearch.length >= 3
+      ? mockPlayers.filter((player) => {
+          const searchLower = balancePlayerSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower)
+          );
+        })
+      : [];
 
   // Mock registered cashiers data (not players)
   const registeredCashiers = [
-    { id: "C001", name: "Sarah Williams", email: "sarah.williams@example.com", status: "Active" },
-    { id: "C002", name: "Michael Chen", email: "michael.chen@example.com", status: "Active" },
-    { id: "C003", name: "Emily Davis", email: "emily.davis@example.com", status: "Active" },
-    { id: "C004", name: "David Brown", email: "david.brown@example.com", status: "Active" },
-    { id: "C005", name: "Lisa Anderson", email: "lisa.anderson@example.com", status: "Active" }
+    {
+      id: "C001",
+      name: "Sarah Williams",
+      email: "sarah.williams@example.com",
+      status: "Active",
+    },
+    {
+      id: "C002",
+      name: "Michael Chen",
+      email: "michael.chen@example.com",
+      status: "Active",
+    },
+    {
+      id: "C003",
+      name: "Emily Davis",
+      email: "emily.davis@example.com",
+      status: "Active",
+    },
+    {
+      id: "C004",
+      name: "David Brown",
+      email: "david.brown@example.com",
+      status: "Active",
+    },
+    {
+      id: "C005",
+      name: "Lisa Anderson",
+      email: "lisa.anderson@example.com",
+      status: "Active",
+    },
   ];
 
   // Cashier search state for Shift Reconciliation
   const [cashierSearch, setCashierSearch] = useState("");
   const [selectedCashier, setSelectedCashier] = useState(null);
-  const filteredCashiers = cashierSearch.length >= 3
-    ? registeredCashiers.filter(cashier => {
-        const searchLower = cashierSearch.toLowerCase();
-        return (
-          cashier.name.toLowerCase().includes(searchLower) ||
-          cashier.id.toLowerCase().includes(searchLower) ||
-          cashier.email.toLowerCase().includes(searchLower)
-        );
-      })
-    : [];
+  const filteredCashiers =
+    cashierSearch.length >= 3
+      ? registeredCashiers.filter((cashier) => {
+          const searchLower = cashierSearch.toLowerCase();
+          return (
+            cashier.name.toLowerCase().includes(searchLower) ||
+            cashier.id.toLowerCase().includes(searchLower) ||
+            cashier.email.toLowerCase().includes(searchLower)
+          );
+        })
+      : [];
 
   // Reports & Analytics State
   const [selectedReportType, setSelectedReportType] = useState("");
-  const [reportDateRange, setReportDateRange] = useState({ start: "", end: "" });
+  const [reportDateRange, setReportDateRange] = useState({
+    start: "",
+    end: "",
+  });
   const [selectedPlayerForReport, setSelectedPlayerForReport] = useState(null);
   const [selectedTableForReport, setSelectedTableForReport] = useState("");
   const [customReportSelection, setCustomReportSelection] = useState([]);
   const [reportData, setReportData] = useState(null);
   const [savedReports, setSavedReports] = useState([
-    { id: 1, name: "Daily Revenue - Jan 2024", type: "daily_transactions", dateRange: "2024-01-01 to 2024-01-31", created: "2024-01-15" },
-    { id: 2, name: "Player Report - Alex Johnson", type: "individual_player", player: "P101", created: "2024-01-20" }
+    {
+      id: 1,
+      name: "Daily Revenue - Jan 2024",
+      type: "daily_transactions",
+      dateRange: "2024-01-01 to 2024-01-31",
+      created: "2024-01-15",
+    },
+    {
+      id: 2,
+      name: "Player Report - Alex Johnson",
+      type: "individual_player",
+      player: "P101",
+      created: "2024-01-20",
+    },
   ]);
 
   // Available report types
@@ -367,48 +712,70 @@ export default function CashierDashboard() {
     { id: "cumulative_player", name: "Cumulative Player Report", icon: "📊" },
     { id: "daily_transactions", name: "Daily Transactions Report", icon: "💰" },
     { id: "daily_rake", name: "Daily Rake Report", icon: "🎰" },
-    { id: "per_table_transactions", name: "Per Table Transactions Report", icon: "🃏" },
-    { id: "credit_transactions", name: "Credit Transactions Report", icon: "💳" },
+    {
+      id: "per_table_transactions",
+      name: "Per Table Transactions Report",
+      icon: "🃏",
+    },
+    {
+      id: "credit_transactions",
+      name: "Credit Transactions Report",
+      icon: "💳",
+    },
     { id: "expenses", name: "Expenses Report", icon: "📉" },
     { id: "bonus", name: "Bonus Report", icon: "🎁" },
-    { id: "custom", name: "Custom Report", icon: "🔧" }
+    { id: "custom", name: "Custom Report", icon: "🔧" },
   ];
 
   // Player search for reports
   const [playerReportSearch, setPlayerReportSearch] = useState("");
-  const filteredPlayersForReport = playerReportSearch.length >= 3
-    ? mockPlayers.filter(player => {
-        const searchLower = playerReportSearch.toLowerCase();
-        return (
-          player.name.toLowerCase().includes(searchLower) ||
-          player.id.toLowerCase().includes(searchLower) ||
-          player.email.toLowerCase().includes(searchLower)
-        );
-      })
-    : [];
+  const filteredPlayersForReport =
+    playerReportSearch.length >= 3
+      ? mockPlayers.filter((player) => {
+          const searchLower = playerReportSearch.toLowerCase();
+          return (
+            player.name.toLowerCase().includes(searchLower) ||
+            player.id.toLowerCase().includes(searchLower) ||
+            player.email.toLowerCase().includes(searchLower)
+          );
+        })
+      : [];
 
   // Handle export CSV for reports
   const handleExportReportCSV = (reportType, data) => {
     const csvContent = [
       ["Report Type", "Date Range", "Generated Date"],
-      [reportType, `${reportDateRange.start} to ${reportDateRange.end}`, new Date().toLocaleString('en-IN')],
+      [
+        reportType,
+        `${reportDateRange.start} to ${reportDateRange.end}`,
+        new Date().toLocaleString("en-IN"),
+      ],
       [],
-      ...(data || []).map(row => Array.isArray(row) ? row : Object.values(row))
-    ].map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      ...(data || []).map((row) =>
+        Array.isArray(row) ? row : Object.values(row)
+      ),
+    ]
+      .map((row) =>
+        row
+          .map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `${reportType}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `${reportType}_${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   // Handle export PDF for reports (print-friendly view)
   const handleExportReportPDF = (reportType) => {
-    const printWindow = window.open('', '_blank');
-    const reportTitle = reportTypes.find(t => t.id === reportType)?.name || reportType;
+    const printWindow = window.open("", "_blank");
+    const reportTitle =
+      reportTypes.find((t) => t.id === reportType)?.name || reportType;
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -427,24 +794,39 @@ export default function CashierDashboard() {
         <body>
           <div class="header">
             <h1>${reportTitle}</h1>
-            <p><strong>Date Range:</strong> ${reportDateRange.start} to ${reportDateRange.end}</p>
-            <p><strong>Generated:</strong> ${new Date().toLocaleString('en-IN')}</p>
+            <p><strong>Date Range:</strong> ${reportDateRange.start} to ${
+      reportDateRange.end
+    }</p>
+            <p><strong>Generated:</strong> ${new Date().toLocaleString(
+              "en-IN"
+            )}</p>
           </div>
           <table>
-            ${reportData ? `
+            ${
+              reportData
+                ? `
               <thead>
                 <tr>
-                  ${reportData[0]?.map(header => `<th>${header}</th>`).join('')}
+                  ${reportData[0]
+                    ?.map((header) => `<th>${header}</th>`)
+                    .join("")}
                 </tr>
               </thead>
               <tbody>
-                ${reportData.slice(1).map(row => `
+                ${reportData
+                  .slice(1)
+                  .map(
+                    (row) => `
                   <tr>
-                    ${row.map(cell => `<td>${cell}</td>`).join('')}
+                    ${row.map((cell) => `<td>${cell}</td>`).join("")}
                   </tr>
-                `).join('')}
+                `
+                  )
+                  .join("")}
               </tbody>
-            ` : '<tr><td>No data available</td></tr>'}
+            `
+                : "<tr><td>No data available</td></tr>"
+            }
           </table>
           <script>window.onload = () => window.print();</script>
         </body>
@@ -466,37 +848,64 @@ export default function CashierDashboard() {
     }
 
     let mockData = [];
-    switch(selectedReportType) {
+    switch (selectedReportType) {
       case "individual_player":
         if (!selectedPlayerForReport) {
           alert("Please select a player for individual report");
           return;
         }
         mockData = [
-          ["Player ID", "Name", "Total Games", "Total Revenue", "Total Rake", "Win/Loss"],
-          [selectedPlayerForReport.id, selectedPlayerForReport.name, "45", "₹12,500", "₹1,250", "₹-5,000"]
+          [
+            "Player ID",
+            "Name",
+            "Total Games",
+            "Total Revenue",
+            "Total Rake",
+            "Win/Loss",
+          ],
+          [
+            selectedPlayerForReport.id,
+            selectedPlayerForReport.name,
+            "45",
+            "₹12,500",
+            "₹1,250",
+            "₹-5,000",
+          ],
         ];
         break;
       case "cumulative_player":
         mockData = [
-          ["Player ID", "Name", "Total Games", "Total Revenue", "Average Session", "Total Rake"],
+          [
+            "Player ID",
+            "Name",
+            "Total Games",
+            "Total Revenue",
+            "Average Session",
+            "Total Rake",
+          ],
           ["P101", "Alex Johnson", "125", "₹45,000", "₹360", "₹4,500"],
           ["P102", "Maria Garcia", "89", "₹32,500", "₹365", "₹3,250"],
-          ["P103", "Rajesh Kumar", "156", "₹67,800", "₹435", "₹6,780"]
+          ["P103", "Rajesh Kumar", "156", "₹67,800", "₹435", "₹6,780"],
         ];
         break;
       case "daily_transactions":
         mockData = [
           ["Date", "Total Transactions", "Revenue", "Deposits", "Withdrawals"],
           ["2024-01-20", "45", "₹12,450", "₹25,000", "₹10,000"],
-          ["2024-01-19", "38", "₹11,200", "₹22,500", "₹8,500"]
+          ["2024-01-19", "38", "₹11,200", "₹22,500", "₹8,500"],
         ];
         break;
       case "daily_rake":
         mockData = [
-          ["Date", "Total Rake", "Tables", "Average Rake per Table", "Top Table"],
+          [
+            "Date",
+            "Total Rake",
+            "Tables",
+            "Average Rake per Table",
+            "Top Table",
+          ],
           ["2024-01-20", "₹1,245", "8", "₹155.63", "Table 1"],
-          ["2024-01-19", "₹1,120", "8", "₹140.00", "Table 2"]
+          ["2024-01-19", "₹1,120", "8", "₹140.00", "Table 2"],
         ];
         break;
       case "per_table_transactions":
@@ -504,28 +913,49 @@ export default function CashierDashboard() {
           ["Table", "Date", "Transactions", "Revenue", "Rake", "Players"],
           ["Table 1", "2024-01-20", "12", "₹5,200", "₹520", "8"],
           ["Table 2", "2024-01-20", "10", "₹4,100", "₹410", "6"],
-          ["Table 3", "2024-01-20", "8", "₹3,150", "₹315", "5"]
+          ["Table 3", "2024-01-20", "8", "₹3,150", "₹315", "5"],
         ];
         break;
       case "credit_transactions":
         mockData = [
-          ["Date", "Player", "Type", "Amount", "Balance Before", "Balance After"],
+          [
+            "Date",
+            "Player",
+            "Type",
+            "Amount",
+            "Balance Before",
+            "Balance After",
+          ],
           ["2024-01-20", "P101", "Credit Granted", "₹50,000", "₹0", "₹50,000"],
-          ["2024-01-20", "P102", "Credit Adjustment", "₹25,000", "₹25,000", "₹50,000"]
+          [
+            "2024-01-20",
+            "P102",
+            "Credit Adjustment",
+            "₹25,000",
+            "₹25,000",
+            "₹50,000",
+          ],
         ];
         break;
       case "expenses":
         mockData = [
           ["Date", "Category", "Description", "Amount", "Approved By"],
           ["2024-01-20", "Operations", "Staff Payment", "₹15,000", "Admin"],
-          ["2024-01-19", "Maintenance", "Equipment Repair", "₹8,500", "Admin"]
+          ["2024-01-19", "Maintenance", "Equipment Repair", "₹8,500", "Admin"],
         ];
         break;
       case "bonus":
         mockData = [
           ["Date", "Player", "Bonus Type", "Amount", "Status", "Expiry"],
-          ["2024-01-20", "P101", "Welcome Bonus", "₹1,000", "Active", "2024-02-20"],
-          ["2024-01-19", "P102", "Referral Bonus", "₹500", "Used", "N/A"]
+          [
+            "2024-01-20",
+            "P101",
+            "Welcome Bonus",
+            "₹1,000",
+            "Active",
+            "2024-02-20",
+          ],
+          ["2024-01-19", "P102", "Referral Bonus", "₹500", "Used", "N/A"],
         ];
         break;
       case "custom":
@@ -536,7 +966,7 @@ export default function CashierDashboard() {
         mockData = [
           ["Custom Report", "Compiled from multiple reports"],
           ["Report Types", customReportSelection.join(", ")],
-          ["Generated", new Date().toLocaleString('en-IN')]
+          ["Generated", new Date().toLocaleString("en-IN")],
         ];
         break;
     }
@@ -548,9 +978,23 @@ export default function CashierDashboard() {
   const getCurrentDateTime = () => {
     const now = new Date();
     return {
-      date: now.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }),
-      time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      full: now.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      date: now.toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      time: now.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }),
+      full: now.toLocaleString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
   };
 
@@ -558,23 +1002,37 @@ export default function CashierDashboard() {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     return {
-      date: yesterday.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }),
-      time: yesterday.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      full: yesterday.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      date: yesterday.toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      time: yesterday.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }),
+      full: yesterday.toLocaleString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
   };
 
   // Revenue and Rake data with date/time
   const currentDateTime = getCurrentDateTime();
   const previousDateTime = getPreviousDayDateTime();
-  
+
   const TIP_HOLD_PERCENT = 0.15;
 
-  const formatCurrency = (value) => `₹${value.toLocaleString('en-IN')}`;
+  const formatCurrency = (value) => `₹${value.toLocaleString("en-IN")}`;
 
   const calculateTipShares = (amount) => ({
     club: Math.round(amount * TIP_HOLD_PERCENT),
-    staff: Math.round(amount * (1 - TIP_HOLD_PERCENT))
+    staff: Math.round(amount * (1 - TIP_HOLD_PERCENT)),
   });
 
   const revenueData = {
@@ -584,7 +1042,7 @@ export default function CashierDashboard() {
       tips: 3200,
       date: previousDateTime.date,
       time: previousDateTime.time,
-      lastUpdated: previousDateTime.full
+      lastUpdated: previousDateTime.full,
     },
     currentDay: {
       revenue: 78500,
@@ -592,8 +1050,8 @@ export default function CashierDashboard() {
       tips: 1680,
       date: currentDateTime.date,
       time: currentDateTime.time,
-      lastUpdated: currentDateTime.full
-    }
+      lastUpdated: currentDateTime.full,
+    },
   };
 
   const previousDayTipShares = calculateTipShares(revenueData.previousDay.tips);
@@ -609,7 +1067,7 @@ export default function CashierDashboard() {
   const handleSeatAssign = ({ playerId, playerName, tableId, seatNumber }) => {
     const tableIdNum = parseInt(tableId);
     const seatNum = parseInt(seatNumber);
-    
+
     if (!isSeatAvailable(tableIdNum, seatNum)) {
       alert(`Seat ${seatNum} at Table ${tableIdNum} is already occupied`);
       return;
@@ -619,75 +1077,92 @@ export default function CashierDashboard() {
     if (buyInAmount && parseFloat(buyInAmount) > 0) {
       const amount = parseFloat(buyInAmount);
       const player = playerBalances[playerId];
-      
+
       if (!player) {
         alert(`Player ${playerId} not found`);
         return;
       }
 
       if (player.availableBalance < amount) {
-        alert(`Insufficient balance. Available: ₹${player.availableBalance.toLocaleString('en-IN')}`);
+        alert(
+          `Insufficient balance. Available: ₹${player.availableBalance.toLocaleString(
+            "en-IN"
+          )}`
+        );
         return;
       }
 
       // Update player balance
-      setPlayerBalances(prev => ({
+      setPlayerBalances((prev) => ({
         ...prev,
         [playerId]: {
           ...prev[playerId],
           availableBalance: prev[playerId].availableBalance - amount,
           tableBalance: (prev[playerId].tableBalance || 0) + amount,
           tableId: tableIdNum,
-          seatNumber: seatNum
-        }
+          seatNumber: seatNum,
+        },
       }));
 
       // Update table balance
-      setTableBalances(prev => ({
+      setTableBalances((prev) => ({
         ...prev,
         [tableIdNum]: {
           ...prev[tableIdNum],
           totalBalance: (prev[tableIdNum].totalBalance || 0) + amount,
-          players: prev[tableIdNum].players.includes(playerId) 
-            ? prev[tableIdNum].players 
-            : [...prev[tableIdNum].players, playerId]
-        }
+          players: prev[tableIdNum].players.includes(playerId)
+            ? prev[tableIdNum].players
+            : [...prev[tableIdNum].players, playerId],
+        },
       }));
 
       // Add transaction record
-      setBalanceTransactions(prev => [...prev, {
-        id: Date.now(),
-        type: "buy-in",
-        playerId: playerId,
-        playerName: playerName,
-        amount: amount,
-        tableId: tableIdNum,
-        tableName: tables.find(t => t.id === tableIdNum)?.name || `Table ${tableIdNum}`,
-        timestamp: Date.now(),
-        status: "completed"
-      }]);
+      setBalanceTransactions((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          type: "buy-in",
+          playerId: playerId,
+          playerName: playerName,
+          amount: amount,
+          tableId: tableIdNum,
+          tableName:
+            tables.find((t) => t.id === tableIdNum)?.name ||
+            `Table ${tableIdNum}`,
+          timestamp: Date.now(),
+          status: "completed",
+        },
+      ]);
     } else {
       // Update player seat info even without buy-in
       if (playerBalances[playerId]) {
-        setPlayerBalances(prev => ({
+        setPlayerBalances((prev) => ({
           ...prev,
           [playerId]: {
             ...prev[playerId],
             tableId: tableIdNum,
-            seatNumber: seatNum
-          }
+            seatNumber: seatNum,
+          },
         }));
       }
     }
-    
+
     // Assign seat
-    setOccupiedSeats(prev => ({
+    setOccupiedSeats((prev) => ({
       ...prev,
-      [tableIdNum]: [...(prev[tableIdNum] || []), seatNum]
+      [tableIdNum]: [...(prev[tableIdNum] || []), seatNum],
     }));
-    
-    alert(`Assigned ${playerName} to Table ${tableIdNum}, Seat ${seatNum}${buyInAmount && parseFloat(buyInAmount) > 0 ? ` with buy-in of ₹${parseFloat(buyInAmount).toLocaleString('en-IN')}` : ''}`);
-    
+
+    alert(
+      `Assigned ${playerName} to Table ${tableIdNum}, Seat ${seatNum}${
+        buyInAmount && parseFloat(buyInAmount) > 0
+          ? ` with buy-in of ₹${parseFloat(buyInAmount).toLocaleString(
+              "en-IN"
+            )}`
+          : ""
+      }`
+    );
+
     // Close table view and reset
     setShowTableView(false);
     setSelectedPlayerForSeating(null);
@@ -699,49 +1174,29 @@ export default function CashierDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
-      <div className="mx-auto max-w-[1400px] px-6 py-10 grid grid-cols-12 gap-8">
+      <div className="flex">
         {/* Sidebar */}
-        <aside className="col-span-12 lg:col-span-3 xl:col-span-3 rounded-2xl bg-gradient-to-b from-green-500/20 via-emerald-600/30 to-teal-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
-          <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-300 to-teal-400 drop-shadow-lg mb-6">
-            Cashier Portal
-          </div>
-          <div className="flex items-center mb-6 text-white min-w-0">
-            <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-              <span className="text-gray-900 font-bold text-sm">C</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-semibold truncate">Cashier Manager</div>
-              <div className="text-sm opacity-80 truncate">cashier@pokerroom.com</div>
-            </div>
-          </div>
-
-          {/* Sidebar Menu */}
-          <nav className="space-y-3">
-            {menuItems.map((item, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveItem(item)}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-green-400 to-emerald-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-green-400/20 hover:to-emerald-500/20 text-white"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-        </aside>
+        <CashierSidebar
+          activeItem={activeItem}
+          setActiveItem={setActiveItem}
+          menuItems={menuItems}
+          onSignOut={handleSignOut}
+        />
 
         {/* Main Section */}
-        <main className="col-span-12 lg:col-span-9 xl:col-span-9 space-y-8">
+        <main className="flex-1 lg:ml-0 min-w-0">
+          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 sm:py-10 space-y-8">
           {/* Header */}
-          <header className="bg-gradient-to-r from-green-600 via-emerald-500 to-teal-400 p-6 rounded-xl shadow-md flex justify-between items-center">
+          <header className="bg-gradient-to-r from-green-600 via-emerald-500 to-teal-400 p-6 rounded-xl shadow-md flex justify-between items-center mt-16 lg:mt-0">
             <div>
-              <h1 className="text-2xl font-bold text-white">Cashier Portal - {activeItem}</h1>
-              <p className="text-gray-200 mt-1">Manage financial transactions, payroll, and bonuses</p>
+              <h1 className="text-2xl font-bold text-white">
+                Cashier Portal - {activeItem}
+              </h1>
+              <p className="text-gray-200 mt-1">
+                Manage financial transactions, payroll, and bonuses
+              </p>
             </div>
-            <button 
+            <button
               onClick={handleSignOut}
               className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
             >
@@ -755,96 +1210,175 @@ export default function CashierDashboard() {
               {/* Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                 {[
-                  { title: "Today's Transactions", value: "₹45,250", color: "from-green-400 via-emerald-500 to-teal-500" },
-                  { title: "Pending Deposits", value: "₹12,500", color: "from-blue-400 via-indigo-500 to-violet-500" },
-                  { title: "Cash on Hand", value: "₹125,000", color: "from-yellow-400 via-orange-500 to-red-500" },
-                  { title: "System Status", value: "Online", color: "from-emerald-400 via-green-500 to-teal-500" },
+                  {
+                    title: "Today's Transactions",
+                    value: "₹45,250",
+                    color: "from-green-400 via-emerald-500 to-teal-500",
+                  },
+                  {
+                    title: "Pending Deposits",
+                    value: "₹12,500",
+                    color: "from-blue-400 via-indigo-500 to-violet-500",
+                  },
+                  {
+                    title: "Cash on Hand",
+                    value: "₹125,000",
+                    color: "from-yellow-400 via-orange-500 to-red-500",
+                  },
+                  {
+                    title: "System Status",
+                    value: "Online",
+                    color: "from-emerald-400 via-green-500 to-teal-500",
+                  },
                 ].map((card, i) => (
                   <div
                     key={i}
                     className={`p-6 rounded-xl bg-gradient-to-br ${card.color} text-gray-900 shadow-lg transition-transform transform hover:scale-105`}
                   >
-                    <div className="text-sm opacity-90 text-white/90">{card.title}</div>
-                    <div className="text-3xl font-bold mt-2 text-white">{card.value}</div>
-                    <div className="text-xs mt-1 text-white/70">Real-time data</div>
+                    <div className="text-sm opacity-90 text-white/90">
+                      {card.title}
+                    </div>
+                    <div className="text-3xl font-bold mt-2 text-white">
+                      {card.value}
+                    </div>
+                    <div className="text-xs mt-1 text-white/70">
+                      Real-time data
+                    </div>
                   </div>
                 ))}
               </div>
 
               {/* Revenue, Rake & Tips Section */}
               <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Revenue, Rake & Tips Overview</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Revenue, Rake & Tips Overview
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Previous Day Revenue */}
                   <div className="bg-white/10 p-4 rounded-lg border border-purple-400/30">
-                    <div className="text-sm text-gray-300 mb-1">Previous Day Revenue</div>
-                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.previousDay.revenue)}</div>
+                    <div className="text-sm text-gray-300 mb-1">
+                      Previous Day Revenue
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {formatCurrency(revenueData.previousDay.revenue)}
+                    </div>
                     <div className="text-xs text-gray-400 mb-1">
                       <div>Date: {revenueData.previousDay.date}</div>
-                      <div>Last Updated: {revenueData.previousDay.lastUpdated}</div>
+                      <div>
+                        Last Updated: {revenueData.previousDay.lastUpdated}
+                      </div>
                     </div>
-                    <div className="text-xs text-purple-300 font-semibold mt-2">Yesterday's Sessions</div>
+                    <div className="text-xs text-purple-300 font-semibold mt-2">
+                      Yesterday's Sessions
+                    </div>
                   </div>
 
                   {/* Current Day Revenue */}
                   <div className="bg-white/10 p-4 rounded-lg border border-green-400/30">
-                    <div className="text-sm text-gray-300 mb-1">Current Day Revenue</div>
-                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.currentDay.revenue)}</div>
+                    <div className="text-sm text-gray-300 mb-1">
+                      Current Day Revenue
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {formatCurrency(revenueData.currentDay.revenue)}
+                    </div>
                     <div className="text-xs text-gray-400 mb-1">
                       <div>Date: {revenueData.currentDay.date}</div>
-                      <div>Last Updated: {revenueData.currentDay.lastUpdated}</div>
+                      <div>
+                        Last Updated: {revenueData.currentDay.lastUpdated}
+                      </div>
                     </div>
-                    <div className="text-xs text-green-300 font-semibold mt-2">Today's Sessions</div>
+                    <div className="text-xs text-green-300 font-semibold mt-2">
+                      Today's Sessions
+                    </div>
                   </div>
 
                   {/* Previous Day Rake */}
                   <div className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
-                    <div className="text-sm text-gray-300 mb-1">Previous Day Rake</div>
-                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.previousDay.rake)}</div>
+                    <div className="text-sm text-gray-300 mb-1">
+                      Previous Day Rake
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {formatCurrency(revenueData.previousDay.rake)}
+                    </div>
                     <div className="text-xs text-gray-400 mb-1">
                       <div>Date: {revenueData.previousDay.date}</div>
-                      <div>Last Updated: {revenueData.previousDay.lastUpdated}</div>
+                      <div>
+                        Last Updated: {revenueData.previousDay.lastUpdated}
+                      </div>
                     </div>
-                    <div className="text-xs text-blue-300 font-semibold mt-2">Yesterday's Sessions</div>
+                    <div className="text-xs text-blue-300 font-semibold mt-2">
+                      Yesterday's Sessions
+                    </div>
                   </div>
 
                   {/* Current Day Rake */}
                   <div className="bg-white/10 p-4 rounded-lg border border-yellow-400/30">
-                    <div className="text-sm text-gray-300 mb-1">Current Day Rake</div>
-                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.currentDay.rake)}</div>
+                    <div className="text-sm text-gray-300 mb-1">
+                      Current Day Rake
+                    </div>
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {formatCurrency(revenueData.currentDay.rake)}
+                    </div>
                     <div className="text-xs text-gray-400 mb-1">
                       <div>Date: {revenueData.currentDay.date}</div>
-                      <div>Last Updated: {revenueData.currentDay.lastUpdated}</div>
+                      <div>
+                        Last Updated: {revenueData.currentDay.lastUpdated}
+                      </div>
                     </div>
-                    <div className="text-xs text-yellow-300 font-semibold mt-2">Today's Sessions</div>
+                    <div className="text-xs text-yellow-300 font-semibold mt-2">
+                      Today's Sessions
+                    </div>
                   </div>
 
                   {/* Previous Day Tips */}
                   <div className="bg-white/10 p-4 rounded-lg border border-cyan-400/30">
-                    <div className="text-sm text-gray-300 mb-1">Previous Day Tips</div>
-                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.previousDay.tips)}</div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      <div>Club Share: {formatCurrency(previousDayTipShares.club)}</div>
-                      <div>Staff Share: {formatCurrency(previousDayTipShares.staff)}</div>
+                    <div className="text-sm text-gray-300 mb-1">
+                      Previous Day Tips
                     </div>
-                    <div className="text-xs text-cyan-300 font-semibold mt-2">Hold {Math.round(TIP_HOLD_PERCENT * 100)}% • Staff {Math.round((1 - TIP_HOLD_PERCENT) * 100)}%</div>
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {formatCurrency(revenueData.previousDay.tips)}
+                    </div>
+                    <div className="text-xs text-gray-400 mb-1">
+                      <div>
+                        Club Share: {formatCurrency(previousDayTipShares.club)}
+                      </div>
+                      <div>
+                        Staff Share:{" "}
+                        {formatCurrency(previousDayTipShares.staff)}
+                      </div>
+                    </div>
+                    <div className="text-xs text-cyan-300 font-semibold mt-2">
+                      Hold {Math.round(TIP_HOLD_PERCENT * 100)}% • Staff{" "}
+                      {Math.round((1 - TIP_HOLD_PERCENT) * 100)}%
+                    </div>
                   </div>
 
                   {/* Current Day Tips */}
                   <div className="bg-white/10 p-4 rounded-lg border border-orange-400/30">
-                    <div className="text-sm text-gray-300 mb-1">Current Day Tips</div>
-                    <div className="text-2xl font-bold text-white mb-2">{formatCurrency(revenueData.currentDay.tips)}</div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      <div>Club Share: {formatCurrency(currentDayTipShares.club)}</div>
-                      <div>Staff Share: {formatCurrency(currentDayTipShares.staff)}</div>
+                    <div className="text-sm text-gray-300 mb-1">
+                      Current Day Tips
                     </div>
-                    <div className="text-xs text-orange-300 font-semibold mt-2">Hold {Math.round(TIP_HOLD_PERCENT * 100)}% • Staff {Math.round((1 - TIP_HOLD_PERCENT) * 100)}%</div>
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {formatCurrency(revenueData.currentDay.tips)}
+                    </div>
+                    <div className="text-xs text-gray-400 mb-1">
+                      <div>
+                        Club Share: {formatCurrency(currentDayTipShares.club)}
+                      </div>
+                      <div>
+                        Staff Share: {formatCurrency(currentDayTipShares.staff)}
+                      </div>
+                    </div>
+                    <div className="text-xs text-orange-300 font-semibold mt-2">
+                      Hold {Math.round(TIP_HOLD_PERCENT * 100)}% • Staff{" "}
+                      {Math.round((1 - TIP_HOLD_PERCENT) * 100)}%
+                    </div>
                   </div>
                 </div>
               </section>
 
               {/* Transaction Management */}
-              <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
+              {/* <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Transaction Management</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
@@ -1027,10 +1561,10 @@ export default function CashierDashboard() {
                     </div>
                   </div>
                 </div>
-              </section>
+              </section> */}
 
               {/* Cash-in/Cash-out */}
-              <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
+              {/* <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Cash-in/Cash-out Operations</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
@@ -1227,7 +1761,7 @@ export default function CashierDashboard() {
                     </div>
                   </div>
                 </div>
-              </section>
+              </section> */}
 
               {/* Fund Moves & Batch Operations - removed as requested */}
             </>
@@ -1238,108 +1772,191 @@ export default function CashierDashboard() {
             <div className="space-y-6">
               {/* Player Balance Search & Overview */}
               <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-purple-500/20 to-pink-700/30 rounded-xl shadow-md border border-indigo-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Player Balance Management</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Player Balance Management
+                </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Search Player Balance</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Search Player Balance
+                    </h3>
                     <div className="relative">
-                      <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                      <input 
-                        type="text" 
-                        className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                        placeholder="Search by name, ID, or email..." 
+                      <label className="text-white text-sm">
+                        Search Player (Type at least 3 characters)
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        placeholder="Search by name, ID, or email..."
                         value={balancePlayerSearch || ""}
                         onChange={(e) => {
                           setBalancePlayerSearch(e.target.value);
                           setSelectedBalancePlayer(null);
                         }}
                       />
-                      {(balancePlayerSearch || "").length >= 3 && filteredBalancePlayers.length > 0 && !selectedBalancePlayer && (
-                        <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                          {filteredBalancePlayers.map(player => (
-                            <div
-                              key={player.id}
-                              onClick={() => {
-                                setSelectedBalancePlayer(player);
-                                setBalancePlayerSearch(`${player.name} (${player.id})`);
-                              }}
-                              className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                            >
-                              <div className="text-white font-medium">{player.name}</div>
-                              <div className="text-gray-400 text-xs">ID: {player.id} | Balance: ₹{playerBalances[player.id]?.availableBalance?.toLocaleString('en-IN') || 0}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {selectedBalancePlayer && playerBalances[selectedBalancePlayer.id] && (
-                        <div className="mt-4 p-4 bg-indigo-500/20 border border-indigo-400/30 rounded-lg">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-white font-semibold">{selectedBalancePlayer.name} ({selectedBalancePlayer.id})</span>
-                            <button 
-                              onClick={() => {
-                                setSelectedBalancePlayer(null);
-                                setBalancePlayerSearch("");
-                              }}
-                              className="text-red-400 hover:text-red-300"
-                            >
-                              X
-                            </button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3 mt-3">
-                            <div>
-                              <div className="text-xs text-gray-400">Available Balance</div>
-                              <div className="text-xl font-bold text-green-400">₹{playerBalances[selectedBalancePlayer.id].availableBalance.toLocaleString('en-IN')}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-gray-400">Table Balance</div>
-                              <div className="text-xl font-bold text-yellow-400">
-                                {playerBalances[selectedBalancePlayer.id].tableBalance > 0 ? (
-                                  <>₹{playerBalances[selectedBalancePlayer.id].tableBalance.toLocaleString('en-IN')}</>
-                                ) : (
-                                  <>₹0</>
-                                )}
-                              </div>
-                            </div>
-                            {playerBalances[selectedBalancePlayer.id].tableId && (
-                              <div className="col-span-2">
-                                <div className="text-xs text-gray-400">Playing At</div>
-                                <div className="text-sm font-medium text-blue-400">
-                                  {tableBalances[playerBalances[selectedBalancePlayer.id].tableId]?.name} - Seat {playerBalances[selectedBalancePlayer.id].seatNumber}
+                      {(balancePlayerSearch || "").length >= 3 &&
+                        filteredBalancePlayers.length > 0 &&
+                        !selectedBalancePlayer && (
+                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {filteredBalancePlayers.map((player) => (
+                              <div
+                                key={player.id}
+                                onClick={() => {
+                                  setSelectedBalancePlayer(player);
+                                  setBalancePlayerSearch(
+                                    `${player.name} (${player.id})`
+                                  );
+                                }}
+                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                              >
+                                <div className="text-white font-medium">
+                                  {player.name}
+                                </div>
+                                <div className="text-gray-400 text-xs">
+                                  ID: {player.id} | Balance: ₹
+                                  {playerBalances[
+                                    player.id
+                                  ]?.availableBalance?.toLocaleString(
+                                    "en-IN"
+                                  ) || 0}
                                 </div>
                               </div>
-                            )}
-                            <div className="col-span-2">
-                              <div className="text-xs text-gray-400">Total Balance</div>
-                              <div className="text-lg font-semibold text-white">
-                                ₹{(playerBalances[selectedBalancePlayer.id].availableBalance + playerBalances[selectedBalancePlayer.id].tableBalance).toLocaleString('en-IN')}
+                            ))}
+                          </div>
+                        )}
+                      {selectedBalancePlayer &&
+                        playerBalances[selectedBalancePlayer.id] && (
+                          <div className="mt-4 p-4 bg-indigo-500/20 border border-indigo-400/30 rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-white font-semibold">
+                                {selectedBalancePlayer.name} (
+                                {selectedBalancePlayer.id})
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setSelectedBalancePlayer(null);
+                                  setBalancePlayerSearch("");
+                                }}
+                                className="text-red-400 hover:text-red-300"
+                              >
+                                X
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 mt-3">
+                              <div>
+                                <div className="text-xs text-gray-400">
+                                  Available Balance
+                                </div>
+                                <div className="text-xl font-bold text-green-400">
+                                  ₹
+                                  {playerBalances[
+                                    selectedBalancePlayer.id
+                                  ].availableBalance.toLocaleString("en-IN")}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-gray-400">
+                                  Table Balance
+                                </div>
+                                <div className="text-xl font-bold text-yellow-400">
+                                  {playerBalances[selectedBalancePlayer.id]
+                                    .tableBalance > 0 ? (
+                                    <>
+                                      ₹
+                                      {playerBalances[
+                                        selectedBalancePlayer.id
+                                      ].tableBalance.toLocaleString("en-IN")}
+                                    </>
+                                  ) : (
+                                    <>₹0</>
+                                  )}
+                                </div>
+                              </div>
+                              {playerBalances[selectedBalancePlayer.id]
+                                .tableId && (
+                                <div className="col-span-2">
+                                  <div className="text-xs text-gray-400">
+                                    Playing At
+                                  </div>
+                                  <div className="text-sm font-medium text-blue-400">
+                                    {
+                                      tableBalances[
+                                        playerBalances[selectedBalancePlayer.id]
+                                          .tableId
+                                      ]?.name
+                                    }{" "}
+                                    - Seat{" "}
+                                    {
+                                      playerBalances[selectedBalancePlayer.id]
+                                        .seatNumber
+                                    }
+                                  </div>
+                                </div>
+                              )}
+                              <div className="col-span-2">
+                                <div className="text-xs text-gray-400">
+                                  Total Balance
+                                </div>
+                                <div className="text-lg font-semibold text-white">
+                                  ₹
+                                  {(
+                                    playerBalances[selectedBalancePlayer.id]
+                                      .availableBalance +
+                                    playerBalances[selectedBalancePlayer.id]
+                                      .tableBalance
+                                  ).toLocaleString("en-IN")}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   </div>
 
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Total System Balances</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Total System Balances
+                    </h3>
                     <div className="space-y-3">
                       <div className="bg-green-500/20 p-3 rounded-lg border border-green-400/30">
-                        <div className="text-xs text-gray-400">Total Player Balances</div>
+                        <div className="text-xs text-gray-400">
+                          Total Player Balances
+                        </div>
                         <div className="text-2xl font-bold text-green-400">
-                          ₹{Object.values(playerBalances).reduce((sum, p) => sum + (p.availableBalance || 0), 0).toLocaleString('en-IN')}
+                          ₹
+                          {Object.values(playerBalances)
+                            .reduce(
+                              (sum, p) => sum + (p.availableBalance || 0),
+                              0
+                            )
+                            .toLocaleString("en-IN")}
                         </div>
                       </div>
                       <div className="bg-yellow-500/20 p-3 rounded-lg border border-yellow-400/30">
-                        <div className="text-xs text-gray-400">Total Table Balances</div>
+                        <div className="text-xs text-gray-400">
+                          Total Table Balances
+                        </div>
                         <div className="text-2xl font-bold text-yellow-400">
-                          ₹{Object.values(tableBalances).reduce((sum, t) => sum + (t.totalBalance || 0), 0).toLocaleString('en-IN')}
+                          ₹
+                          {Object.values(tableBalances)
+                            .reduce((sum, t) => sum + (t.totalBalance || 0), 0)
+                            .toLocaleString("en-IN")}
                         </div>
                       </div>
                       <div className="bg-purple-500/20 p-3 rounded-lg border border-purple-400/30">
                         <div className="text-xs text-gray-400">Grand Total</div>
                         <div className="text-xl font-bold text-purple-400">
-                          ₹{(Object.values(playerBalances).reduce((sum, p) => sum + (p.availableBalance || 0), 0) + 
-                              Object.values(tableBalances).reduce((sum, t) => sum + (t.totalBalance || 0), 0)).toLocaleString('en-IN')}
+                          ₹
+                          {(
+                            Object.values(playerBalances).reduce(
+                              (sum, p) => sum + (p.availableBalance || 0),
+                              0
+                            ) +
+                            Object.values(tableBalances).reduce(
+                              (sum, t) => sum + (t.totalBalance || 0),
+                              0
+                            )
+                          ).toLocaleString("en-IN")}
                         </div>
                       </div>
                     </div>
@@ -1349,33 +1966,54 @@ export default function CashierDashboard() {
 
               {/* Table Balances */}
               <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Table Balances</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Table Balances
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.values(tableBalances).map(table => (
-                    <div key={table.id} className="bg-white/10 p-4 rounded-lg border border-cyan-400/30">
+                  {Object.values(tableBalances).map((table) => (
+                    <div
+                      key={table.id}
+                      className="bg-white/10 p-4 rounded-lg border border-cyan-400/30"
+                    >
                       <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-lg font-semibold text-white">{table.name}</h3>
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                          table.totalBalance > 0 ? 'bg-green-500/30 text-green-300' : 'bg-gray-500/30 text-gray-400'
-                        }`}>
-                          {table.players.length} {table.players.length === 1 ? 'Player' : 'Players'}
+                        <h3 className="text-lg font-semibold text-white">
+                          {table.name}
+                        </h3>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-semibold ${
+                            table.totalBalance > 0
+                              ? "bg-green-500/30 text-green-300"
+                              : "bg-gray-500/30 text-gray-400"
+                          }`}
+                        >
+                          {table.players.length}{" "}
+                          {table.players.length === 1 ? "Player" : "Players"}
                         </span>
                       </div>
                       <div className="text-2xl font-bold text-cyan-400 mb-3">
-                        ₹{table.totalBalance.toLocaleString('en-IN')}
+                        ₹{table.totalBalance.toLocaleString("en-IN")}
                       </div>
                       {table.players.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-white/10">
-                          <div className="text-xs text-gray-400 mb-2">Active Players:</div>
-                          {table.players.map(playerId => {
+                          <div className="text-xs text-gray-400 mb-2">
+                            Active Players:
+                          </div>
+                          {table.players.map((playerId) => {
                             const player = playerBalances[playerId];
                             if (!player) return null;
                             return (
-                              <div key={playerId} className="text-sm text-white mb-1">
-                                <span>{player.name}</span> - 
-                                <span className="text-yellow-400 ml-1">₹{player.tableBalance.toLocaleString('en-IN')}</span>
+                              <div
+                                key={playerId}
+                                className="text-sm text-white mb-1"
+                              >
+                                <span>{player.name}</span> -
+                                <span className="text-yellow-400 ml-1">
+                                  ₹{player.tableBalance.toLocaleString("en-IN")}
+                                </span>
                                 {player.seatNumber && (
-                                  <span className="text-gray-400 ml-1">(Seat {player.seatNumber})</span>
+                                  <span className="text-gray-400 ml-1">
+                                    (Seat {player.seatNumber})
+                                  </span>
                                 )}
                               </div>
                             );
@@ -1389,7 +2027,9 @@ export default function CashierDashboard() {
 
               {/* Balance Transactions */}
               <section className="p-6 bg-gradient-to-r from-teal-600/30 via-green-500/20 to-emerald-700/30 rounded-xl shadow-md border border-teal-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Recent Balance Transactions</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Recent Balance Transactions
+                </h2>
                 <div className="bg-white/10 rounded-lg overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-white">
@@ -1404,41 +2044,70 @@ export default function CashierDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {balanceTransactions.slice().sort((a, b) => b.timestamp - a.timestamp).map(transaction => (
-                          <tr key={transaction.id} className="border-b border-white/10 hover:bg-white/5">
-                            <td className="py-3 px-4 text-sm">{new Date(transaction.timestamp).toLocaleString('en-IN')}</td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                                transaction.type === 'buy-in' ? 'bg-blue-500/30 text-blue-300' :
-                                transaction.type === 'cash-out' ? 'bg-green-500/30 text-green-300' :
-                                'bg-red-500/30 text-red-300'
-                              }`}>
-                                {transaction.type === 'buy-in' ? 'Buy-in' : transaction.type === 'cash-out' ? 'Cash-out' : 'Withdrawal'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4">{transaction.playerName}</td>
-                            <td className="py-3 px-4 text-sm">
-                              {transaction.tableName || transaction.tableId ? (transaction.tableName || `Table ${transaction.tableId}`) : '-'}
-                              {transaction.chipCount && (
-                                <span className="text-gray-400 ml-2">({transaction.chipCount} chips)</span>
-                              )}
-                            </td>
-                            <td className="py-3 px-4 text-right font-semibold">
-                              {transaction.type === 'withdrawal' ? '-' : ''}₹{transaction.amount.toLocaleString('en-IN')}
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                                transaction.status === 'completed' ? 'bg-green-500/30 text-green-300' :
-                                'bg-yellow-500/30 text-yellow-300'
-                              }`}>
-                                {transaction.status}
-                                {transaction.managerVerified && (
-                                  <span className="ml-1">✓</span>
+                        {balanceTransactions
+                          .slice()
+                          .sort((a, b) => b.timestamp - a.timestamp)
+                          .map((transaction) => (
+                            <tr
+                              key={transaction.id}
+                              className="border-b border-white/10 hover:bg-white/5"
+                            >
+                              <td className="py-3 px-4 text-sm">
+                                {new Date(transaction.timestamp).toLocaleString(
+                                  "en-IN"
                                 )}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span
+                                  className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    transaction.type === "buy-in"
+                                      ? "bg-blue-500/30 text-blue-300"
+                                      : transaction.type === "cash-out"
+                                      ? "bg-green-500/30 text-green-300"
+                                      : "bg-red-500/30 text-red-300"
+                                  }`}
+                                >
+                                  {transaction.type === "buy-in"
+                                    ? "Buy-in"
+                                    : transaction.type === "cash-out"
+                                    ? "Cash-out"
+                                    : "Withdrawal"}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                {transaction.playerName}
+                              </td>
+                              <td className="py-3 px-4 text-sm">
+                                {transaction.tableName || transaction.tableId
+                                  ? transaction.tableName ||
+                                    `Table ${transaction.tableId}`
+                                  : "-"}
+                                {transaction.chipCount && (
+                                  <span className="text-gray-400 ml-2">
+                                    ({transaction.chipCount} chips)
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-right font-semibold">
+                                {transaction.type === "withdrawal" ? "-" : ""}₹
+                                {transaction.amount.toLocaleString("en-IN")}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span
+                                  className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    transaction.status === "completed"
+                                      ? "bg-green-500/30 text-green-300"
+                                      : "bg-yellow-500/30 text-yellow-300"
+                                  }`}
+                                >
+                                  {transaction.status}
+                                  {transaction.managerVerified && (
+                                    <span className="ml-1">✓</span>
+                                  )}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>
@@ -1446,7 +2115,7 @@ export default function CashierDashboard() {
               </section>
 
               {/* Buy-in / Cash-out Information */}
-              <section className="p-6 bg-gradient-to-r from-amber-600/30 via-orange-500/20 to-red-700/30 rounded-xl shadow-md border border-amber-800/40">
+              {/* <section className="p-6 bg-gradient-to-r from-amber-600/30 via-orange-500/20 to-red-700/30 rounded-xl shadow-md border border-amber-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Balance Flow Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
@@ -1496,7 +2165,7 @@ export default function CashierDashboard() {
                     </div>
                   </div>
                 </div>
-              </section>
+              </section> */}
             </div>
           )}
 
@@ -1527,57 +2196,26 @@ export default function CashierDashboard() {
 
           {/* Club Buy-In */}
           {activeItem === "Club Buy-In" && (
-            <ClubBuyInSection players={mockPlayers} />
+            <ClubBuyInSection 
+              players={mockPlayers}
+              playerBalances={playerBalances}
+              setPlayerBalances={setPlayerBalances}
+            />
           )}
 
           {/* Payroll Management */}
           {activeItem === "Payroll Management" && (
             <div className="space-y-6">
-              <EmployeeSalaryProcessingSection />
-
-              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Dealer Tips Processing</h2>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-4">Dynamic Percentage Settings</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-white text-sm">Club Hold Percentage</label>
-                          <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="15%" />
-                        </div>
-                        <div>
-                          <label className="text-white text-sm">Dealer Share Percentage</label>
-                          <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="85%" />
-                        </div>
-                        <div>
-                          <label className="text-white text-sm">Floor Manager Share</label>
-                          <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="5%" />
-                        </div>
-                        <button className="w-full bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg font-semibold">
-                          Update Settings
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-4">Today's Dealer Tips</h3>
-                      <div className="space-y-2">
-                        <div className="bg-cyan-500/20 p-3 rounded-lg border border-cyan-400/30">
-                          <div className="font-semibold text-white">Sarah Johnson</div>
-                          <div className="text-sm text-gray-300">Total Tips: ₹2,500 | Share: ₹2,125</div>
-                          <div className="text-xs text-cyan-300">Status: Processed</div>
-                        </div>
-                        <div className="bg-cyan-500/20 p-3 rounded-lg border border-cyan-400/30">
-                          <div className="font-semibold text-white">Mike Chen</div>
-                          <div className="text-sm text-gray-300">Total Tips: ₹1,800 | Share: ₹1,530</div>
-                          <div className="text-xs text-cyan-300">Status: Pending</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <EmployeeSalaryProcessingSection />
                 </div>
-              </section>
+                <div>
+                  <TipsProcessing />
+                </div>
+              </div>
+
+              <DealerTips userRole="cashier" forcedTab="cashout" />
             </div>
           )}
 
@@ -1586,20 +2224,61 @@ export default function CashierDashboard() {
             <BonusProcessingSection players={mockPlayers} />
           )}
 
-          {/* Transaction History & Reports */}
-          {activeItem === "Transaction History & Reports" && (
+          {activeItem === "Credit Disbursement" && (
+            <CreditFeatureSection
+              userRole="cashier"
+              creditDisbursements={creditDisbursements}
+              setCreditDisbursements={setCreditDisbursements}
+              forcedTab="disbursement"
+            />
+          )}
+
+          {/* Transaction History */}
+          {activeItem === "Transaction History" && (
             <div className="space-y-6">
               {/* Transaction History Table */}
               <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-purple-500/20 to-blue-700/30 rounded-xl shadow-md border border-indigo-800/40">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-white">Transaction History</h2>
-                  <button 
-                    onClick={() => handleExportReportCSV("transaction_history", [
-                      ["Date", "Type", "Player ID", "Amount", "Status", "Reference"],
-                      ["2024-01-18", "Deposit", "P001", "+₹5,000", "Completed", "TXN001"],
-                      ["2024-01-18", "Withdrawal", "P002", "-₹2,500", "Completed", "TXN002"],
-                      ["2024-01-18", "Bonus", "P003", "+₹1,000", "Pending", "TXN003"]
-                    ])}
+                  <h2 className="text-xl font-bold text-white">
+                    Transaction History
+                  </h2>
+                  <button
+                    onClick={() =>
+                      handleExportReportCSV("transaction_history", [
+                        [
+                          "Date",
+                          "Type",
+                          "Player ID",
+                          "Amount",
+                          "Status",
+                          "Reference",
+                        ],
+                        [
+                          "2024-01-18",
+                          "Deposit",
+                          "P001",
+                          "+₹5,000",
+                          "Completed",
+                          "TXN001",
+                        ],
+                        [
+                          "2024-01-18",
+                          "Withdrawal",
+                          "P002",
+                          "-₹2,500",
+                          "Completed",
+                          "TXN002",
+                        ],
+                        [
+                          "2024-01-18",
+                          "Bonus",
+                          "P003",
+                          "+₹1,000",
+                          "Pending",
+                          "TXN003",
+                        ],
+                      ])
+                    }
                     className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
                   >
                     📥 Export CSV
@@ -1625,7 +2304,9 @@ export default function CashierDashboard() {
                           <td className="py-3 px-4">P001</td>
                           <td className="py-3 px-4 text-green-300">+₹5,000</td>
                           <td className="py-3 px-4">
-                            <span className="bg-green-500/30 text-green-300 px-2 py-1 rounded text-sm">Completed</span>
+                            <span className="bg-green-500/30 text-green-300 px-2 py-1 rounded text-sm">
+                              Completed
+                            </span>
                           </td>
                           <td className="py-3 px-4">TXN001</td>
                         </tr>
@@ -1635,7 +2316,9 @@ export default function CashierDashboard() {
                           <td className="py-3 px-4">P002</td>
                           <td className="py-3 px-4 text-red-300">-₹2,500</td>
                           <td className="py-3 px-4">
-                            <span className="bg-green-500/30 text-green-300 px-2 py-1 rounded text-sm">Completed</span>
+                            <span className="bg-green-500/30 text-green-300 px-2 py-1 rounded text-sm">
+                              Completed
+                            </span>
                           </td>
                           <td className="py-3 px-4">TXN002</td>
                         </tr>
@@ -1645,440 +2328,15 @@ export default function CashierDashboard() {
                           <td className="py-3 px-4">P003</td>
                           <td className="py-3 px-4 text-yellow-300">+₹1,000</td>
                           <td className="py-3 px-4">
-                            <span className="bg-yellow-500/30 text-yellow-300 px-2 py-1 rounded text-sm">Pending</span>
+                            <span className="bg-yellow-500/30 text-yellow-300 px-2 py-1 rounded text-sm">
+                              Pending
+                            </span>
                           </td>
                           <td className="py-3 px-4">TXN003</td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
-                </div>
-              </section>
-
-              {/* Reports Builder */}
-              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Reports Builder</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Report Configuration</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm mb-2 block">Report Type</label>
-                        <CustomSelect
-                          className="w-full"
-                          value={selectedReportType}
-                          onChange={(e) => {
-                            setSelectedReportType(e.target.value);
-                            setReportData(null);
-                            if (e.target.value !== "individual_player") setSelectedPlayerForReport(null);
-                            if (e.target.value !== "custom") setCustomReportSelection([]);
-                          }}
-                          placeholder="Select Report Type"
-                          allowSearch
-                        >
-                          <option value="">Select Report Type</option>
-                          {reportTypes.map(type => (
-                            <option key={type.id} value={type.id}>{type.icon} {type.name}</option>
-                          ))}
-                        </CustomSelect>
-                      </div>
-
-                      {/* Player Selection for Individual Player Report */}
-                      {selectedReportType === "individual_player" && (
-                        <div className="relative">
-                          <label className="text-white text-sm mb-2 block">Search Player (Type at least 3 characters)</label>
-                          <input 
-                            type="text" 
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                            placeholder="Search by name, ID, or email..." 
-                            value={playerReportSearch}
-                            onChange={(e) => {
-                              setPlayerReportSearch(e.target.value);
-                              setSelectedPlayerForReport(null);
-                            }}
-                          />
-                          {playerReportSearch.length >= 3 && filteredPlayersForReport.length > 0 && !selectedPlayerForReport && (
-                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                              {filteredPlayersForReport.map(player => (
-                                <div
-                                  key={player.id}
-                                  onClick={() => {
-                                    setSelectedPlayerForReport(player);
-                                    setPlayerReportSearch(`${player.name} (${player.id})`);
-                                  }}
-                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                                >
-                                  <div className="text-white font-medium">{player.name}</div>
-                                  <div className="text-gray-400 text-xs">ID: {player.id}</div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {selectedPlayerForReport && (
-                            <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                              <span className="text-green-300">Selected: {selectedPlayerForReport.name} ({selectedPlayerForReport.id})</span>
-                              <button 
-                                onClick={() => {
-                                  setSelectedPlayerForReport(null);
-                                  setPlayerReportSearch("");
-                                }}
-                                className="ml-2 text-red-400 hover:text-red-300"
-                              >
-                                X
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Table Selection for Per Table Transactions */}
-                      {selectedReportType === "per_table_transactions" && (
-                        <div>
-                          <label className="text-white text-sm mb-2 block">Select Table (Optional - leave blank for all tables)</label>
-                          <CustomSelect
-                            className="w-full"
-                            value={selectedTableForReport}
-                            onChange={(e) => setSelectedTableForReport(e.target.value)}
-                          >
-                            <option value="">All Tables</option>
-                            <option value="Table 1">Table 1</option>
-                            <option value="Table 2">Table 2</option>
-                            <option value="Table 3">Table 3</option>
-                          </CustomSelect>
-                        </div>
-                      )}
-
-                      {/* Custom Report Multi-Select */}
-                      {selectedReportType === "custom" && (
-                        <div>
-                          <label className="text-white text-sm mb-2 block">Select Multiple Report Types to Compile</label>
-                          <div className="space-y-2 max-h-48 overflow-y-auto bg-white/5 p-3 rounded border border-white/10">
-                            {reportTypes.filter(t => t.id !== "custom").map(type => (
-                              <label key={type.id} className="flex items-center space-x-2 cursor-pointer hover:bg-white/5 p-2 rounded">
-                                <input
-                                  type="checkbox"
-                                  checked={customReportSelection.includes(type.id)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setCustomReportSelection([...customReportSelection, type.id]);
-                                    } else {
-                                      setCustomReportSelection(customReportSelection.filter(id => id !== type.id));
-                                    }
-                                  }}
-                                  className="w-4 h-4 text-purple-600 bg-white/10 border-white/20 rounded"
-                                />
-                                <span className="text-white text-sm">{type.icon} {type.name}</span>
-                              </label>
-                            ))}
-                          </div>
-                          {customReportSelection.length > 0 && (
-                            <div className="mt-2 p-2 bg-blue-500/20 border border-blue-400/30 rounded text-sm">
-                              <span className="text-blue-300">Selected: {customReportSelection.length} report type(s)</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="text-white text-sm mb-2 block">Date Range</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-gray-400 text-xs">Start Date</label>
-                            <input 
-                              type="date" 
-                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                              value={reportDateRange.start}
-                              onChange={(e) => setReportDateRange({...reportDateRange, start: e.target.value})}
-                            />
-                          </div>
-                          <div>
-                            <label className="text-gray-400 text-xs">End Date</label>
-                            <input 
-                              type="date" 
-                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                              value={reportDateRange.end}
-                              onChange={(e) => setReportDateRange({...reportDateRange, end: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <button 
-                        onClick={generateReport}
-                        className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold"
-                      >
-                        Generate Report
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Report Preview</h3>
-                    {reportData ? (
-                      <div className="space-y-4">
-                        <div className="bg-white/5 p-4 rounded-lg max-h-96 overflow-y-auto">
-                          <table className="min-w-full text-left text-white/90 text-sm">
-                            <thead className="text-white/70 text-xs border-b border-white/20">
-                              <tr>
-                                {reportData[0]?.map((header, idx) => (
-                                  <th key={idx} className="py-2 pr-4">{header}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {reportData.slice(1).map((row, rowIdx) => (
-                                <tr key={rowIdx} className="border-b border-white/10">
-                                  {row.map((cell, cellIdx) => (
-                                    <td key={cellIdx} className="py-2 pr-4">{cell}</td>
-                                  ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => handleExportReportCSV(selectedReportType, reportData)}
-                            className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
-                          >
-                            📥 Export CSV
-                          </button>
-                          <button 
-                            onClick={() => handleExportReportPDF(selectedReportType)}
-                            className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
-                          >
-                            📄 Export PDF
-                          </button>
-                          <button 
-                            onClick={() => {
-                              const reportName = prompt("Enter report name to save:");
-                              if (reportName) {
-                                setSavedReports(prev => [...prev, {
-                                  id: Date.now(),
-                                  name: reportName,
-                                  type: selectedReportType,
-                                  dateRange: `${reportDateRange.start} to ${reportDateRange.end}`,
-                                  created: new Date().toISOString().split('T')[0],
-                                  player: selectedPlayerForReport?.id || null
-                                }]);
-                                alert("Report saved successfully!");
-                              }
-                            }}
-                            className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
-                          >
-                            💾 Save Report
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-12 text-gray-400">
-                        <div className="text-lg mb-2">No report generated yet</div>
-                        <div className="text-sm">Select a report type and generate to preview</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-
-              {/* Report Types Grid */}
-              <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-blue-500/20 to-cyan-700/30 rounded-xl shadow-md border border-indigo-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Available Report Types</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {reportTypes.map(type => (
-                    <button
-                      key={type.id}
-                      onClick={() => {
-                        setSelectedReportType(type.id);
-                        setReportData(null);
-                        if (type.id !== "individual_player") setSelectedPlayerForReport(null);
-                        if (type.id !== "custom") setCustomReportSelection([]);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className={`p-4 rounded-lg border transition-all ${
-                        selectedReportType === type.id
-                          ? "bg-white/20 border-white/40 shadow-lg scale-105"
-                          : "bg-white/10 border-white/20 hover:bg-white/15"
-                      }`}
-                    >
-                      <div className="text-2xl mb-2">{type.icon}</div>
-                      <div className="text-white font-semibold text-sm">{type.name}</div>
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              {/* Saved Reports Management */}
-              <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-green-500/20 to-teal-700/30 rounded-xl shadow-md border border-emerald-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Saved Reports (CRUD Operations)</h2>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  {savedReports.length > 0 ? (
-                    <div className="space-y-3">
-                      {savedReports.map(report => (
-                        <div key={report.id} className="bg-white/5 p-4 rounded-lg border border-white/10">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h4 className="text-white font-semibold">{report.name}</h4>
-                                <span className="bg-blue-500/30 text-blue-300 px-2 py-1 rounded text-xs">
-                                  {reportTypes.find(t => t.id === report.type)?.name || report.type}
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-300">
-                                <div>Date Range: {report.dateRange}</div>
-                                <div>Created: {report.created}</div>
-                                {report.player && <div>Player: {report.player}</div>}
-                              </div>
-                            </div>
-                            <div className="flex gap-2 ml-4">
-                              <button
-                                onClick={() => {
-                                  const reportTypeObj = reportTypes.find(t => t.id === report.type);
-                                  if (reportTypeObj) {
-                                    setSelectedReportType(report.type);
-                                    if (report.player) {
-                                      const player = mockPlayers.find(p => p.id === report.player);
-                                      if (player) {
-                                        setSelectedPlayerForReport(player);
-                                        setPlayerReportSearch(`${player.name} (${player.id})`);
-                                      }
-                                    }
-                                    setReportDateRange({
-                                      start: report.dateRange.split(" to ")[0],
-                                      end: report.dateRange.split(" to ")[1] || report.dateRange.split(" to ")[0]
-                                    });
-                                    alert("Report configuration loaded. Click 'Generate Report' to regenerate.");
-                                  }
-                                }}
-                                className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                              >
-                                🔄 Load
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const newName = prompt("Enter new report name:", report.name);
-                                  if (newName) {
-                                    setSavedReports(prev => prev.map(r => 
-                                      r.id === report.id ? {...r, name: newName} : r
-                                    ));
-                                    alert("Report updated successfully!");
-                                  }
-                                }}
-                                className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm"
-                              >
-                                ✏️ Edit
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (window.confirm(`Delete report "${report.name}"?`)) {
-                                    setSavedReports(prev => prev.filter(r => r.id !== report.id));
-                                    alert("Report deleted successfully!");
-                                  }
-                                }}
-                                className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm"
-                              >
-                                🗑️ Delete
-                              </button>
-                              <button
-                                onClick={() => {
-                                  handleExportReportCSV(report.type, reportData);
-                                }}
-                                className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm"
-                              >
-                                📥 CSV
-                              </button>
-                              <button
-                                onClick={() => {
-                                  handleExportReportPDF(report.type);
-                                }}
-                                className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-sm"
-                              >
-                                📄 PDF
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-400">
-                      No saved reports. Generate and save a report to see it here.
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              {/* Quick Report Access */}
-              <section className="p-6 bg-gradient-to-r from-orange-600/30 via-red-500/20 to-pink-700/30 rounded-xl shadow-md border border-orange-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Quick Report Access</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <button
-                    onClick={() => {
-                      const today = new Date().toISOString().split('T')[0];
-                      setSelectedReportType("daily_transactions");
-                      setReportDateRange({ start: today, end: today });
-                      setTimeout(() => {
-                        const mockData = [
-                          ["Date", "Total Transactions", "Revenue", "Deposits", "Withdrawals"],
-                          [today, "45", "₹12,450", "₹25,000", "₹10,000"]
-                        ];
-                        setReportData(mockData);
-                      }, 100);
-                    }}
-                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white px-4 py-3 rounded-lg font-semibold shadow"
-                  >
-                    📊 Today's Transactions
-                  </button>
-                  <button
-                    onClick={() => {
-                      const today = new Date().toISOString().split('T')[0];
-                      setSelectedReportType("daily_rake");
-                      setReportDateRange({ start: today, end: today });
-                      setTimeout(() => {
-                        const mockData = [
-                          ["Date", "Total Rake", "Tables", "Average Rake per Table", "Top Table"],
-                          [today, "₹1,245", "8", "₹155.63", "Table 1"]
-                        ];
-                        setReportData(mockData);
-                      }, 100);
-                    }}
-                    className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-400 hover:to-cyan-500 text-white px-4 py-3 rounded-lg font-semibold shadow"
-                  >
-                    🎰 Today's Rake
-                  </button>
-                  <button
-                    onClick={() => {
-                      const today = new Date().toISOString().split('T')[0];
-                      setSelectedReportType("credit_transactions");
-                      setReportDateRange({ start: today, end: today });
-                      setTimeout(() => {
-                        const mockData = [
-                          ["Date", "Player", "Type", "Amount", "Balance Before", "Balance After"],
-                          [today, "P101", "Credit Granted", "₹50,000", "₹0", "₹50,000"]
-                        ];
-                        setReportData(mockData);
-                      }, 100);
-                    }}
-                    className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white px-4 py-3 rounded-lg font-semibold shadow"
-                  >
-                    💳 Today's Credit
-                  </button>
-                  <button
-                    onClick={() => {
-                      const today = new Date().toISOString().split('T')[0];
-                      setSelectedReportType("expenses");
-                      setReportDateRange({ start: today, end: today });
-                      setTimeout(() => {
-                        const mockData = [
-                          ["Date", "Category", "Description", "Amount", "Approved By"],
-                          [today, "Operations", "Staff Payment", "₹15,000", "Admin"]
-                        ];
-                        setReportData(mockData);
-                      }, 100);
-                    }}
-                    className="bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-400 hover:to-orange-500 text-white px-4 py-3 rounded-lg font-semibold shadow"
-                  >
-                    📉 Today's Expenses
-                  </button>
                 </div>
               </section>
             </div>
@@ -2088,45 +2346,64 @@ export default function CashierDashboard() {
           {activeItem === "Shift Reconciliation" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-teal-600/30 via-cyan-500/20 to-blue-700/30 rounded-xl shadow-md border border-teal-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Shift Reconciliation</h2>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Shift Reconciliation
+                </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Start Shift</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      Start Shift
+                    </h3>
                     <div className="space-y-4">
                       <div className="relative">
-                        <label className="text-white text-sm">Cashier ID (Type at least 3 characters to search)</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Search by Cashier ID, name, or email..." 
+                        <label className="text-white text-sm">
+                          Cashier ID (Type at least 3 characters to search)
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="Search by Cashier ID, name, or email..."
                           value={cashierSearch}
                           onChange={(e) => {
                             setCashierSearch(e.target.value);
                             setSelectedCashier(null);
                           }}
                         />
-                        {cashierSearch.length >= 3 && filteredCashiers.length > 0 && !selectedCashier && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredCashiers.map(cashier => (
-                              <div
-                                key={cashier.id}
-                                onClick={() => {
-                                  setSelectedCashier(cashier);
-                                  setCashierSearch(`${cashier.name} (${cashier.id})`);
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                              >
-                                <div className="text-white font-medium">{cashier.name}</div>
-                                <div className="text-gray-400 text-xs">ID: {cashier.id} | Email: {cashier.email}</div>
-                                <div className="text-gray-500 text-xs">Status: {cashier.status}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {cashierSearch.length >= 3 &&
+                          filteredCashiers.length > 0 &&
+                          !selectedCashier && (
+                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {filteredCashiers.map((cashier) => (
+                                <div
+                                  key={cashier.id}
+                                  onClick={() => {
+                                    setSelectedCashier(cashier);
+                                    setCashierSearch(
+                                      `${cashier.name} (${cashier.id})`
+                                    );
+                                  }}
+                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
+                                >
+                                  <div className="text-white font-medium">
+                                    {cashier.name}
+                                  </div>
+                                  <div className="text-gray-400 text-xs">
+                                    ID: {cashier.id} | Email: {cashier.email}
+                                  </div>
+                                  <div className="text-gray-500 text-xs">
+                                    Status: {cashier.status}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         {selectedCashier && (
                           <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                            <span className="text-green-300">Selected: {selectedCashier.name} ({selectedCashier.id})</span>
-                            <button 
+                            <span className="text-green-300">
+                              Selected: {selectedCashier.name} (
+                              {selectedCashier.id})
+                            </span>
+                            <button
                               onClick={() => {
                                 setSelectedCashier(null);
                                 setCashierSearch("");
@@ -2139,12 +2416,21 @@ export default function CashierDashboard() {
                         )}
                       </div>
                       <div>
-                        <label className="text-white text-sm">Starting Cash</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
+                        <label className="text-white text-sm">
+                          Starting Cash
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="₹0.00"
+                        />
                       </div>
                       <div>
                         <label className="text-white text-sm">Shift Date</label>
-                        <input type="date" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" />
+                        <input
+                          type="date"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        />
                       </div>
                       <button className="w-full bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg font-semibold">
                         Start Shift
@@ -2153,19 +2439,38 @@ export default function CashierDashboard() {
                   </div>
 
                   <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">End Shift</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">
+                      End Shift
+                    </h3>
                     <div className="space-y-4">
                       <div>
-                        <label className="text-white text-sm">Ending Cash</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
+                        <label className="text-white text-sm">
+                          Ending Cash
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="₹0.00"
+                        />
                       </div>
                       <div>
-                        <label className="text-white text-sm">Expected Cash</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
+                        <label className="text-white text-sm">
+                          Expected Cash
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="₹0.00"
+                        />
                       </div>
                       <div>
                         <label className="text-white text-sm">Variance</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" readOnly />
+                        <input
+                          type="number"
+                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                          placeholder="₹0.00"
+                          readOnly
+                        />
                       </div>
                       <button className="w-full bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg font-semibold">
                         End Shift & Reconcile
@@ -2188,6 +2493,10 @@ export default function CashierDashboard() {
           )}
 
           {/* Chat - Chat System */}
+          {activeItem === "Rake Entry to Club" && (
+            <RakeEntryToClub />
+          )}
+
           {activeItem === "Chat" && (
             <ChatSection
               userRole="cashier"
@@ -2197,30 +2506,74 @@ export default function CashierDashboard() {
               setStaffChats={setStaffChats}
             />
           )}
+
+          {activeItem === "Reports & Analytics" && (
+            <ReportsAnalyticsSection
+              allPlayersForReport={mockPlayers}
+              registeredPlayers={registeredPlayers}
+            />
+          )}
+
+          {activeItem === "Affiliates" && (
+            <div className="space-y-6">
+              <AffiliatesTable 
+                affiliates={[
+                  {
+                    id: "AFF001",
+                    name: "Agent X",
+                    email: "agent.x@example.com",
+                    referralCode: "AGTX-ALPHA",
+                    status: "Active",
+                    kycStatus: "Verified",
+                    totalReferrals: 12,
+                    earnings: 45000,
+                  },
+                  {
+                    id: "AFF002",
+                    name: "Agent Y",
+                    email: "agent.y@example.com",
+                    referralCode: "AGTY-BETA",
+                    status: "Active",
+                    kycStatus: "Pending",
+                    totalReferrals: 8,
+                    earnings: 28000,
+                  },
+                ]}
+                userRole="cashier"
+              />
+            </div>
+          )}
+
+          {activeItem === "Financial Overrides" && (
+            <FinancialOverrides
+              userRole="cashier"
+            />
+          )}
+          </div>
+
+          {/* Table View Modal for Seat Assignment (Cashier Mode) */}
+          {showTableView && selectedTableForSeating && (
+            <div className="fixed inset-0 z-50 bg-black/90 overflow-y-auto hide-scrollbar">
+              <TableView
+                tableId={selectedTableForSeating}
+                onClose={() => {
+                  setShowTableView(false);
+                  setSelectedPlayerForSeating(null);
+                  setSelectedTableForSeating(null);
+                  setBuyInAmount("");
+                  setSelectedLiveTablePlayer(null);
+                  setLiveTablePlayerSearch("");
+                }}
+                isManagerMode={true}
+                selectedPlayerForSeating={selectedPlayerForSeating}
+                occupiedSeats={occupiedSeats}
+                onSeatAssign={handleSeatAssign}
+                tables={tables}
+              />
+            </div>
+          )}
         </main>
       </div>
-
-      {/* Table View Modal for Seat Assignment (Cashier Mode) */}
-      {showTableView && selectedTableForSeating && (
-        <div className="fixed inset-0 z-50 bg-black/90 overflow-y-auto hide-scrollbar">
-          <TableView
-            tableId={selectedTableForSeating}
-            onClose={() => {
-              setShowTableView(false);
-              setSelectedPlayerForSeating(null);
-              setSelectedTableForSeating(null);
-              setBuyInAmount("");
-              setSelectedLiveTablePlayer(null);
-              setLiveTablePlayerSearch("");
-            }}
-            isManagerMode={true}
-            selectedPlayerForSeating={selectedPlayerForSeating}
-            occupiedSeats={occupiedSeats}
-            onSeatAssign={handleSeatAssign}
-            tables={tables}
-          />
-        </div>
-      )}
     </div>
   );
 }

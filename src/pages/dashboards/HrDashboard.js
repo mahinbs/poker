@@ -4,6 +4,7 @@ import CustomSelect from "../../components/common/CustomSelect";
 import StaffManagement from "../../components/StaffManagement";
 import PlayerManagementSection from "../../components/PlayerManagementSection";
 import ChatSection from "../../components/ChatSection";
+import HrSidebar from "../../components/sidebars/HrSidebar";
 
 export default function HrDashboard() {
   const [activeItem, setActiveItem] = useState("Staff Management");
@@ -424,43 +425,20 @@ export default function HrDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
-      <div className="mx-auto max-w-[1400px] px-6 py-10 grid grid-cols-12 gap-8">
+      <div className="flex">
         {/* Sidebar */}
-        <aside className="col-span-12 lg:col-span-3 xl:col-span-3 rounded-2xl bg-gradient-to-b from-purple-500/20 via-pink-600/30 to-rose-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
-          <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-300 to-rose-400 drop-shadow-lg mb-6">
-            HR Portal
-          </div>
-          <div className="flex items-center mb-6 text-white min-w-0">
-            <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-              <span className="text-gray-900 font-bold text-sm">HR</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-semibold truncate">HR Manager</div>
-              <div className="text-sm opacity-80 truncate">hr@pokerroom.com</div>
-            </div>
-          </div>
-
-          {/* Sidebar Menu */}
-          <nav className="space-y-3">
-            {menuItems.map((item, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveItem(item)}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${activeItem === item
-                    ? "bg-gradient-to-r from-purple-400 to-pink-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-purple-400/20 hover:to-pink-500/20 text-white"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-        </aside>
+        <HrSidebar
+          activeItem={activeItem}
+          setActiveItem={setActiveItem}
+          menuItems={menuItems}
+          onSignOut={handleSignOut}
+        />
 
         {/* Main Section */}
-        <main className="col-span-12 lg:col-span-9 xl:col-span-9 space-y-8">
+        <main className="flex-1 lg:ml-0 min-w-0">
+          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 sm:py-10 space-y-8">
           {/* Header */}
-          <header className="bg-gradient-to-r from-purple-600 via-pink-500 to-rose-400 p-6 rounded-xl shadow-md flex justify-between items-center">
+          <header className="bg-gradient-to-r from-purple-600 via-pink-500 to-rose-400 p-6 rounded-xl shadow-md flex justify-between items-center mt-16 lg:mt-0">
             <div>
               <h1 className="text-2xl font-bold text-white">HR Portal - {activeItem}</h1>
               <p className="text-gray-200 mt-1">Staff management, attendance, and performance</p>
@@ -1201,7 +1179,7 @@ export default function HrDashboard() {
               setStaffChats={setStaffChats}
             />
           )}
-
+          </div>
         </main>
       </div>
     </div>

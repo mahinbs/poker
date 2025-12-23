@@ -9,6 +9,8 @@ import TournamentManagementSection from "../../components/TournamentManagementSe
 import ChatSection from "../../components/ChatSection";
 import PushNotificationsSection from "../../components/PushNotificationsSection";
 import EmployeeSalaryProcessingSection from "../../components/EmployeeSalaryProcessingSection";
+import RakeCountAndCollection from "../../components/RakeCountAndCollection";
+import ManagerSidebar from "../../components/sidebars/ManagerSidebar";
 
 export default function ManagerDashboardPage() {
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -1036,6 +1038,7 @@ export default function ManagerDashboardPage() {
     "Payroll Management",
     "Tournaments",
     "Player Flow",
+    "Rake Count and Collection",
     "Chat",
     "KYC Review",
     "Push Notifications",
@@ -1043,46 +1046,19 @@ export default function ManagerDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
-      <div className="mx-auto max-w-[1400px] px-6 py-10 grid grid-cols-12 gap-8">
+      <div className="flex">
         {/* Sidebar */}
-        <aside className="col-span-12 lg:col-span-3 xl:col-span-3 rounded-2xl bg-gradient-to-b from-yellow-500/20 via-green-600/30 to-emerald-700/30 p-5 shadow-lg border border-gray-800 min-w-0">
-          <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-green-300 to-teal-400 drop-shadow-lg mb-6">
-            Manager Portal
-          </div>
-          <div className="flex items-center mb-6 text-white min-w-0">
-            <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 to-green-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-              <span className="text-gray-900 font-bold text-sm">M</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-lg font-semibold truncate">Manager</div>
-              <div className="text-sm opacity-80 truncate">
-                manager@pokerroom.com
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar Menu */}
-          <nav className="space-y-3">
-            {menuItems.map((item, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveItem(item)}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-yellow-400/20 hover:to-green-500/20 text-white"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-        </aside>
+        <ManagerSidebar
+          activeItem={activeItem}
+          setActiveItem={setActiveItem}
+          menuItems={menuItems}
+        />
 
         {/* Main Section */}
-        <main className="col-span-12 lg:col-span-9 xl:col-span-9 space-y-8">
+        <main className="flex-1 lg:ml-0 min-w-0">
+          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 sm:py-10 space-y-8">
           {/* Header */}
-          <header className="bg-gradient-to-r from-emerald-600 via-green-500 to-yellow-400 p-6 rounded-xl shadow-md flex justify-between items-center">
+          <header className="bg-gradient-to-r from-emerald-600 via-green-500 to-yellow-400 p-6 rounded-xl shadow-md flex justify-between items-center mt-16 lg:mt-0">
             <div>
               <h1 className="text-2xl font-bold text-white">
                 Manager Portal - {activeItem}
@@ -1271,340 +1247,12 @@ export default function ManagerDashboardPage() {
                 handleOpenTableViewForWaitlist={handleOpenTableView}
                 dealers={dealers}
               />
-
-              <section className="p-6 bg-gradient-to-r from-orange-600/30 via-red-500/20 to-pink-700/30 rounded-xl shadow-md border border-orange-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">
-                  Rake Entry Form
-                </h2>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-white text-sm">Table ID</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="Table 1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-white text-sm">Session Date</label>
-                      <input
-                        type="date"
-                        className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-white text-sm">
-                        Chip Denomination
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="₹25, ₹50, ₹100, ₹500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-white text-sm">
-                        Total Rake Amount
-                      </label>
-                      <input
-                        type="number"
-                        className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="₹0.00"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="text-white text-sm">Notes</label>
-                      <textarea
-                        className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        rows="3"
-                        placeholder="Additional notes about the session..."
-                      ></textarea>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex gap-3">
-                    <button className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-semibold">
-                      Submit Rake Entry
-                    </button>
-                    <button className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded-lg font-semibold">
-                      Save Draft
-                    </button>
-                  </div>
-                </div>
-              </section>
-
-              {/* Cash-in/Cash-out Operations */}
-              <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">
-                  Cash-in/Cash-out Operations
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      Cash-in to Table
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Table ID</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option>Table 1 - Texas Hold'em</option>
-                          <option>Table 2 - Omaha</option>
-                          <option>Table 3 - Stud</option>
-                        </CustomSelect>
-                      </div>
-                      <div className="relative">
-                        <label className="text-white text-sm">
-                          Search Player (Type at least 3 characters)
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="Search by name, ID, or email..."
-                          value={adjustmentPlayerSearch}
-                          onChange={(e) => {
-                            setAdjustmentPlayerSearch(e.target.value);
-                            setSelectedAdjustmentPlayer(null);
-                          }}
-                        />
-                        {adjustmentPlayerSearch.length >= 3 &&
-                          filteredAdjustmentPlayers.length > 0 &&
-                          !selectedAdjustmentPlayer && (
-                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                              {filteredAdjustmentPlayers.map((player) => (
-                                <div
-                                  key={player.id}
-                                  onClick={() => {
-                                    setSelectedAdjustmentPlayer(player);
-                                    setAdjustmentPlayerSearch(
-                                      `${player.name} (${player.id})`
-                                    );
-                                  }}
-                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                                >
-                                  <div className="text-white font-medium">
-                                    {player.name}
-                                  </div>
-                                  <div className="text-gray-400 text-xs">
-                                    ID: {player.id} | Email: {player.email}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        {selectedAdjustmentPlayer && (
-                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                            <span className="text-green-300">
-                              Selected: {selectedAdjustmentPlayer.name} (
-                              {selectedAdjustmentPlayer.id})
-                            </span>
-                            <button
-                              onClick={() => {
-                                setSelectedAdjustmentPlayer(null);
-                                setAdjustmentPlayerSearch("");
-                              }}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                            >
-                              X
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      {selectedAdjustmentPlayer &&
-                        playerBalances[selectedAdjustmentPlayer.id] && (
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-white text-sm">
-                                Available Balance
-                              </label>
-                              <input
-                                type="text"
-                                className="w-full mt-1 px-3 py-2 bg-green-500/20 border border-green-400/30 rounded text-white font-semibold"
-                                value={`₹${playerBalances[
-                                  selectedAdjustmentPlayer.id
-                                ].availableBalance.toLocaleString("en-IN")}`}
-                                readOnly
-                              />
-                            </div>
-                            <div>
-                              <label className="text-white text-sm">
-                                Current Table Balance
-                              </label>
-                              <input
-                                type="text"
-                                className="w-full mt-1 px-3 py-2 bg-yellow-500/20 border border-yellow-400/30 rounded text-white font-semibold"
-                                value={`₹${playerBalances[
-                                  selectedAdjustmentPlayer.id
-                                ].tableBalance.toLocaleString("en-IN")}`}
-                                readOnly
-                              />
-                            </div>
-                          </div>
-                        )}
-                      <div>
-                        <label className="text-white text-sm">
-                          Buy-in Amount
-                        </label>
-                        <input
-                          type="number"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="₹0.00"
-                        />
-                        <p className="text-xs text-gray-400 mt-1">
-                          This will deduct from available balance and add to
-                          table balance
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (!selectedAdjustmentPlayer) {
-                            alert("Please select a player first");
-                            return;
-                          }
-                          alert(
-                            `Cash-in to table for ${selectedAdjustmentPlayer.name} (${selectedAdjustmentPlayer.id})`
-                          );
-                        }}
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold"
-                      >
-                        Cash-in to Table (Buy-in)
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      Cash-out from Table
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Table ID</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option>Table 1 - Texas Hold'em</option>
-                          <option>Table 2 - Omaha</option>
-                          <option>Table 3 - Stud</option>
-                        </CustomSelect>
-                      </div>
-                      <div className="relative">
-                        <label className="text-white text-sm">
-                          Search Player (Type at least 3 characters)
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="Search by name, ID, or email..."
-                          value={adjustmentPlayerSearch}
-                          onChange={(e) => {
-                            setAdjustmentPlayerSearch(e.target.value);
-                            setSelectedAdjustmentPlayer(null);
-                          }}
-                        />
-                        {adjustmentPlayerSearch.length >= 3 &&
-                          filteredAdjustmentPlayers.length > 0 &&
-                          !selectedAdjustmentPlayer && (
-                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                              {filteredAdjustmentPlayers.map((player) => (
-                                <div
-                                  key={player.id}
-                                  onClick={() => {
-                                    setSelectedAdjustmentPlayer(player);
-                                    setAdjustmentPlayerSearch(
-                                      `${player.name} (${player.id})`
-                                    );
-                                  }}
-                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                                >
-                                  <div className="text-white font-medium">
-                                    {player.name}
-                                  </div>
-                                  <div className="text-gray-400 text-xs">
-                                    ID: {player.id} | Email: {player.email}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        {selectedAdjustmentPlayer && (
-                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                            <span className="text-green-300">
-                              Selected: {selectedAdjustmentPlayer.name} (
-                              {selectedAdjustmentPlayer.id})
-                            </span>
-                            <button
-                              onClick={() => {
-                                setSelectedAdjustmentPlayer(null);
-                                setAdjustmentPlayerSearch("");
-                              }}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                            >
-                              X
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      {selectedAdjustmentPlayer &&
-                        playerBalances[selectedAdjustmentPlayer.id] && (
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-white text-sm">
-                                Available Balance
-                              </label>
-                              <input
-                                type="text"
-                                className="w-full mt-1 px-3 py-2 bg-green-500/20 border border-green-400/30 rounded text-white font-semibold"
-                                value={`₹${playerBalances[
-                                  selectedAdjustmentPlayer.id
-                                ].availableBalance.toLocaleString("en-IN")}`}
-                                readOnly
-                              />
-                            </div>
-                            <div>
-                              <label className="text-white text-sm">
-                                Current Table Balance
-                              </label>
-                              <input
-                                type="text"
-                                className="w-full mt-1 px-3 py-2 bg-yellow-500/20 border border-yellow-400/30 rounded text-white font-semibold"
-                                value={`₹${playerBalances[
-                                  selectedAdjustmentPlayer.id
-                                ].tableBalance.toLocaleString("en-IN")}`}
-                                readOnly
-                              />
-                            </div>
-                          </div>
-                        )}
-                      <div>
-                        <label className="text-white text-sm">
-                          Chip Count (Manager Verified)
-                        </label>
-                        <input
-                          type="number"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="Enter chip count from manager"
-                        />
-                        <p className="text-xs text-gray-400 mt-1">
-                          Manager counts chips → Balance updated → Added to
-                          available balance
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (!selectedAdjustmentPlayer) {
-                            alert("Please select a player first");
-                            return;
-                          }
-                          alert(
-                            `Cash-out from table for ${selectedAdjustmentPlayer.name} (${selectedAdjustmentPlayer.id}). This will update player balance and show as withdrawal.`
-                          );
-                        }}
-                        className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold"
-                      >
-                        Cash-out from Table (Update Balance)
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
             </div>
+          )}
+
+          {/* Rake Count and Collection */}
+          {activeItem === "Rake Count and Collection" && (
+            <RakeCountAndCollection />
           )}
 
           {/* Player Flow */}
@@ -3133,27 +2781,28 @@ export default function ManagerDashboardPage() {
           {activeItem === "Push Notifications" && (
             <PushNotificationsSection registeredPlayers={registeredPlayers} />
           )}
+
+          {/* Table View Modal for Seat Assignment (Manager Mode) */}
+          {showTableView && selectedPlayerForSeating && (
+            <div className="fixed inset-0 z-50 bg-black/90 overflow-y-auto hide-scrollbar">
+              <TableView
+                tableId={selectedTableForSeating}
+                onClose={() => {
+                  setShowTableView(false);
+                  setSelectedPlayerForSeating(null);
+                  setSelectedTableForSeating(null);
+                }}
+                isManagerMode={true}
+                selectedPlayerForSeating={selectedPlayerForSeating}
+                occupiedSeats={occupiedSeats}
+                onSeatAssign={handleSeatAssign}
+                tables={tables}
+              />
+            </div>
+          )}
+          </div>
         </main>
       </div>
-
-      {/* Table View Modal for Seat Assignment (Manager Mode) */}
-      {showTableView && selectedPlayerForSeating && (
-        <div className="fixed inset-0 z-50 bg-black/90 overflow-y-auto hide-scrollbar">
-          <TableView
-            tableId={selectedTableForSeating}
-            onClose={() => {
-              setShowTableView(false);
-              setSelectedPlayerForSeating(null);
-              setSelectedTableForSeating(null);
-            }}
-            isManagerMode={true}
-            selectedPlayerForSeating={selectedPlayerForSeating}
-            occupiedSeats={occupiedSeats}
-            onSeatAssign={handleSeatAssign}
-            tables={tables}
-          />
-        </div>
-      )}
     </div>
   );
 }

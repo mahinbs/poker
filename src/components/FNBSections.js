@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import AllOrdersView from "./AllOrdersView";
 
 export default function FNBSections({ forceTab = null }) {
   // Tab state
@@ -12,6 +13,23 @@ export default function FNBSections({ forceTab = null }) {
       setActiveTab(forceTab);
     }
   }, [forceTab]);
+
+  // Menu item form state
+  const [menuItemImage, setMenuItemImage] = useState(null);
+  const [menuItemImagePreview, setMenuItemImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
+
+  // Bill generation state
+  const [billData, setBillData] = useState({
+    orderNumber: "",
+    tableNumber: "",
+    playerName: "",
+    discount: 0,
+    tax: 18,
+    subtotal: 0,
+    orderItems: [],
+  });
+  const [generatedBill, setGeneratedBill] = useState(null);
 
   // Orders state with status tracking
   const [orders, setOrders] = useState([
@@ -232,13 +250,6 @@ export default function FNBSections({ forceTab = null }) {
     );
   };
 
-  // Filter orders by status
-  const [orderFilter, setOrderFilter] = useState("all");
-
-  const filteredOrders =
-    orderFilter === "all"
-      ? orders
-      : orders.filter((order) => order.status === orderFilter);
 
   return (
     <div className="space-y-6">
@@ -374,6 +385,81 @@ export default function FNBSections({ forceTab = null }) {
                       rows="3"
                       placeholder="Item description..."
                     ></textarea>
+                  </div>
+                  <div>
+                    <label className="text-white text-sm mb-2 block">
+                      Item Image
+                    </label>
+                    <div className="space-y-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            // Validate file type
+                            if (!file.type.startsWith("image/")) {
+                              alert("Please select a valid image file");
+                              e.target.value = "";
+                              return;
+                            }
+                            // Validate file size (max 5MB)
+                            if (file.size > 5 * 1024 * 1024) {
+                              alert("Image size should be less than 5MB");
+                              e.target.value = "";
+                              return;
+                            }
+                            setMenuItemImage(file);
+                            // Create preview
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setMenuItemImagePreview(reader.result);
+                            };
+                            reader.readAsDataURL(file);
+                          } else {
+                            setMenuItemImage(null);
+                            setMenuItemImagePreview(null);
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-500 cursor-pointer"
+                      />
+                      {menuItemImagePreview && (
+                        <div className="relative">
+                          <img
+                            src={menuItemImagePreview}
+                            alt="Menu item preview"
+                            className="w-full h-48 object-cover rounded-lg border border-white/20"
+                          />
+                          <button
+                            onClick={() => {
+                              setMenuItemImage(null);
+                              setMenuItemImagePreview(null);
+                              // Reset file input
+                              if (fileInputRef.current) {
+                                fileInputRef.current.value = "";
+                              }
+                            }}
+                            className="absolute top-2 right-2 bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold"
+                          >
+                            ✕ Remove
+                          </button>
+                          <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                            {menuItemImage?.name}
+                          </div>
+                        </div>
+                      )}
+                      {!menuItemImagePreview && (
+                        <div className="border-2 border-dashed border-white/30 rounded-lg p-8 text-center">
+                          <div className="text-gray-400 text-sm">
+                            📷 No image selected
+                          </div>
+                          <div className="text-gray-500 text-xs mt-1">
+                            Click "Choose File" to upload an image
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="text-white text-sm">Availability</label>
@@ -513,303 +599,7 @@ export default function FNBSections({ forceTab = null }) {
       {activeTab === "order-management" && (
         <div className="space-y-6">
           {/* All Orders View */}
-          <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-purple-500/20 to-pink-700/30 rounded-xl shadow-md border border-indigo-800/40">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-white">
-                All Orders - Player Orders
-              </h2>
-              <div className="flex gap-2">
-                <select
-                  className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                  value={orderFilter}
-                  onChange={(e) => setOrderFilter(e.target.value)}
-                >
-                  <option value="all">All Orders</option>
-                  <option value="pending">Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="ready">Ready</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Workflow Info */}
-            <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4 mb-6">
-              <h3 className="text-white font-semibold mb-2">
-                📋 Order Processing Workflow
-              </h3>
-              <div className="flex items-center gap-2 text-sm text-gray-300">
-                <span>1. Player places order</span>
-                <span>→</span>
-                <span>2. FNB Manager processes & sends to Chef</span>
-                <span>→</span>
-                <span>3. Chef prepares food</span>
-                <span>→</span>
-                <span>4. Status updates visible in Player Portal</span>
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
-                Status updates are automatically synced to the Player Portal for
-                real-time visibility.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {filteredOrders.length > 0 ? (
-                filteredOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="bg-white/10 p-5 rounded-lg border border-white/20"
-                  >
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                      {/* Order Info */}
-                      <div className="lg:col-span-8">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold text-white">
-                                {order.orderNumber}
-                              </h3>
-                              {getStatusBadge(order.status)}
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-300">
-                              <div>
-                                <span className="text-gray-400">Player:</span>{" "}
-                                <span className="text-white font-medium">
-                                  {order.playerName}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-gray-400">Table:</span>{" "}
-                                <span className="text-white">
-                                  {order.tableNumber}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-gray-400">Order Time:</span>{" "}
-                                <span className="text-white">
-                                  {new Date(order.orderDate).toLocaleTimeString(
-                                    "en-IN",
-                                    { hour: "2-digit", minute: "2-digit" }
-                                  )}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-gray-400">Total:</span>{" "}
-                                <span className="text-green-300 font-semibold">
-                                  ₹{order.totalAmount}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Order Items */}
-                        <div className="mb-3">
-                          <div className="text-xs text-gray-400 mb-1">
-                            Order Items:
-                          </div>
-                          <div className="bg-white/5 p-3 rounded border border-white/10">
-                            {order.items.map((item, idx) => (
-                              <div
-                                key={idx}
-                                className="text-sm text-gray-300 mb-1 last:mb-0"
-                              >
-                                <span className="text-white">
-                                  {item.quantity}x
-                                </span>{" "}
-                                {item.name} -{" "}
-                                <span className="text-green-300">
-                                  ₹{item.price * item.quantity}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Special Instructions */}
-                        {order.specialInstructions && (
-                          <div className="mb-3">
-                            <div className="text-xs text-gray-400 mb-1">
-                              Special Instructions:
-                            </div>
-                            <div className="bg-purple-500/20 p-2 rounded border border-purple-400/30 text-sm text-purple-200">
-                              {order.specialInstructions}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Workflow Status */}
-                        <div className="mb-3">
-                          <div className="text-xs text-gray-400 mb-2">
-                            Processing Status:
-                          </div>
-                          <div className="grid grid-cols-3 gap-2">
-                            <div
-                              className={`p-2 rounded text-xs text-center ${
-                                order.status !== "pending"
-                                  ? "bg-green-500/20 text-green-300"
-                                  : "bg-gray-500/20 text-gray-400"
-                              }`}
-                            >
-                              ✓ Processed by FNB Manager
-                            </div>
-                            <div
-                              className={`p-2 rounded text-xs text-center ${
-                                order.sentToChef
-                                  ? "bg-green-500/20 text-green-300"
-                                  : "bg-gray-500/20 text-gray-400"
-                              }`}
-                            >
-                              {order.sentToChef ? "✓ Sent to Chef" : "Pending"}
-                            </div>
-                            <div
-                              className={`p-2 rounded text-xs text-center ${
-                                order.status === "ready" ||
-                                order.status === "delivered"
-                                  ? "bg-green-500/20 text-green-300"
-                                  : "bg-gray-500/20 text-gray-400"
-                              }`}
-                            >
-                              {order.chefAssigned
-                                ? `Chef: ${order.chefAssigned}`
-                                : "Chef: Pending"}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Status History */}
-                        <div className="mt-3">
-                          <div className="text-xs text-gray-400 mb-1">
-                            Status Timeline:
-                          </div>
-                          <div className="space-y-1">
-                            {order.statusHistory
-                              .slice()
-                              .reverse()
-                              .slice(0, 3)
-                              .map((history, idx) => (
-                                <div key={idx} className="text-xs text-gray-400">
-                                  <span className="text-white">
-                                    {history.status.toUpperCase()}
-                                  </span>{" "}
-                                  -{" "}
-                                  {new Date(
-                                    history.timestamp
-                                  ).toLocaleTimeString("en-IN", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}{" "}
-                                  by {history.updatedBy}
-                                </div>
-                              ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Status Update Actions */}
-                      <div className="lg:col-span-4 flex flex-col gap-2">
-                        <div className="bg-white/5 p-3 rounded border border-white/10">
-                          <div className="text-sm font-semibold text-white mb-2">
-                            Update Order Status
-                          </div>
-                          <div className="space-y-2">
-                            {order.status === "pending" && (
-                              <button
-                                onClick={() => {
-                                  if (
-                                    window.confirm(
-                                      `Process order ${order.orderNumber} and send to Chef?`
-                                    )
-                                  ) {
-                                    handleStatusUpdate(order.id, "processing");
-                                  }
-                                }}
-                                className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded text-sm font-semibold"
-                              >
-                                📤 Process & Send to Chef
-                              </button>
-                            )}
-                            {order.status === "processing" && (
-                              <button
-                                onClick={() => {
-                                  if (
-                                    window.confirm(
-                                      `Mark order ${order.orderNumber} as ready?`
-                                    )
-                                  ) {
-                                    handleStatusUpdate(order.id, "ready");
-                                  }
-                                }}
-                                className="w-full bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded text-sm font-semibold"
-                              >
-                                ✅ Mark as Ready
-                              </button>
-                            )}
-                            {order.status === "ready" && (
-                              <button
-                                onClick={() => {
-                                  if (
-                                    window.confirm(
-                                      `Mark order ${order.orderNumber} as delivered?`
-                                    )
-                                  ) {
-                                    handleStatusUpdate(order.id, "delivered");
-                                  }
-                                }}
-                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded text-sm font-semibold"
-                              >
-                                🚀 Mark as Delivered
-                              </button>
-                            )}
-                            <select
-                              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                              value={order.status}
-                              onChange={(e) => {
-                                if (
-                                  window.confirm(
-                                    `Change order ${order.orderNumber} status to ${e.target.value}?`
-                                  )
-                                ) {
-                                  handleStatusUpdate(order.id, e.target.value);
-                                } else {
-                                  e.target.value = order.status;
-                                }
-                              }}
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="processing">Processing</option>
-                              <option value="ready">Ready</option>
-                              <option value="delivered">Delivered</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
-                            <p className="text-xs text-gray-400 mt-1">
-                              Select status or use quick actions above
-                            </p>
-                          </div>
-                        </div>
-                        {order.status === "delivered" && order.deliveredAt && (
-                          <div className="bg-emerald-500/20 p-2 rounded border border-emerald-400/30 text-xs text-emerald-300">
-                            ✓ Delivered at{" "}
-                            {new Date(
-                              order.deliveredAt
-                            ).toLocaleTimeString("en-IN", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-12 text-gray-400">
-                  No orders found with selected filter
-                </div>
-              )}
-            </div>
-          </section>
+          <AllOrdersView orders={orders} onStatusUpdate={handleStatusUpdate} />
 
           {/* Quick Order Processing */}
           <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
@@ -930,11 +720,56 @@ export default function FNBSections({ forceTab = null }) {
                 </h3>
                 <div className="space-y-4">
                   <div>
+                    <label className="text-white text-sm">Select Order</label>
+                    <select
+                      className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                      value={billData.orderNumber}
+                      onChange={(e) => {
+                        const orderId = e.target.value;
+                        const selectedOrder = orders.find((o) => o.id === orderId);
+                        if (selectedOrder) {
+                          const subtotal = selectedOrder.items.reduce(
+                            (sum, item) => sum + item.price * item.quantity,
+                            0
+                          );
+                          setBillData({
+                            ...billData,
+                            orderNumber: selectedOrder.orderNumber,
+                            tableNumber: selectedOrder.tableNumber,
+                            playerName: selectedOrder.playerName,
+                            orderItems: selectedOrder.items,
+                            subtotal: subtotal,
+                          });
+                        } else {
+                          setBillData({
+                            ...billData,
+                            orderNumber: "",
+                            tableNumber: "",
+                            playerName: "",
+                            orderItems: [],
+                            subtotal: 0,
+                          });
+                        }
+                      }}
+                    >
+                      <option value="">-- Select Order --</option>
+                      {orders.map((order) => (
+                        <option key={order.id} value={order.id}>
+                          {order.orderNumber} - {order.playerName} ({order.tableNumber})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
                     <label className="text-white text-sm">Order Number</label>
                     <input
                       type="text"
                       className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                       placeholder="Order #001"
+                      value={billData.orderNumber}
+                      onChange={(e) =>
+                        setBillData({ ...billData, orderNumber: e.target.value })
+                      }
                     />
                   </div>
                   <div>
@@ -945,6 +780,10 @@ export default function FNBSections({ forceTab = null }) {
                       type="text"
                       className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                       placeholder="Table 1"
+                      value={billData.tableNumber}
+                      onChange={(e) =>
+                        setBillData({ ...billData, tableNumber: e.target.value })
+                      }
                     />
                   </div>
                   <div>
@@ -953,6 +792,10 @@ export default function FNBSections({ forceTab = null }) {
                       type="text"
                       className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                       placeholder="Player name"
+                      value={billData.playerName}
+                      onChange={(e) =>
+                        setBillData({ ...billData, playerName: e.target.value })
+                      }
                     />
                   </div>
                   <div>
@@ -961,6 +804,15 @@ export default function FNBSections({ forceTab = null }) {
                       type="number"
                       className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                       placeholder="0"
+                      value={billData.discount}
+                      onChange={(e) =>
+                        setBillData({
+                          ...billData,
+                          discount: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      min="0"
+                      max="100"
                     />
                   </div>
                   <div>
@@ -969,9 +821,53 @@ export default function FNBSections({ forceTab = null }) {
                       type="number"
                       className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
                       placeholder="18"
+                      value={billData.tax}
+                      onChange={(e) =>
+                        setBillData({
+                          ...billData,
+                          tax: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      min="0"
                     />
                   </div>
-                  <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
+                  <button
+                    onClick={() => {
+                      if (!billData.orderNumber || !billData.playerName) {
+                        alert("Please fill in Order Number and Player Name");
+                        return;
+                      }
+                      if (billData.subtotal <= 0) {
+                        alert("Please select an order with items");
+                        return;
+                      }
+                      const discountAmount =
+                        (billData.subtotal * billData.discount) / 100;
+                      const subtotalAfterDiscount =
+                        billData.subtotal - discountAmount;
+                      const taxAmount = (subtotalAfterDiscount * billData.tax) / 100;
+                      const total = subtotalAfterDiscount + taxAmount;
+
+                      const invoice = {
+                        ...billData,
+                        discountAmount: discountAmount,
+                        subtotalAfterDiscount: subtotalAfterDiscount,
+                        taxAmount: taxAmount,
+                        total: total,
+                        invoiceNumber: `INV-${Date.now()}`,
+                        date: new Date().toLocaleString("en-IN", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }),
+                      };
+                      setGeneratedBill(invoice);
+                      alert("Bill generated successfully!");
+                    }}
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold"
+                  >
                     Generate Bill
                   </button>
                 </div>
@@ -981,29 +877,277 @@ export default function FNBSections({ forceTab = null }) {
                 <h3 className="text-lg font-semibold text-white mb-4">
                   Bill Summary
                 </h3>
+                {generatedBill ? (
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-300">Subtotal:</span>
-                    <span className="text-white">₹750.00</span>
+                      <span className="text-white">
+                        ₹{billData.subtotal.toFixed(2)}
+                      </span>
                   </div>
+                    {generatedBill.discountAmount > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-300">Discount (10%):</span>
-                    <span className="text-green-300">-₹75.00</span>
+                        <span className="text-gray-300">
+                          Discount ({billData.discount}%):
+                        </span>
+                        <span className="text-green-300">
+                          -₹{generatedBill.discountAmount.toFixed(2)}
+                        </span>
                   </div>
+                    )}
                   <div className="flex justify-between">
-                    <span className="text-gray-300">Tax (18%):</span>
-                    <span className="text-white">₹121.50</span>
+                      <span className="text-gray-300">Tax ({billData.tax}%):</span>
+                      <span className="text-white">
+                        ₹{generatedBill.taxAmount.toFixed(2)}
+                      </span>
                   </div>
                   <div className="flex justify-between border-t border-white/20 pt-2">
                     <span className="text-white font-bold">Total:</span>
-                    <span className="text-white font-bold">₹796.50</span>
+                      <span className="text-white font-bold">
+                        ₹{generatedBill.total.toFixed(2)}
+                      </span>
                   </div>
                 </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Subtotal:</span>
+                      <span className="text-white">
+                        ₹{billData.subtotal.toFixed(2)}
+                      </span>
+                    </div>
+                    {billData.discount > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-300">
+                          Discount ({billData.discount}%):
+                        </span>
+                        <span className="text-green-300">
+                          -₹{((billData.subtotal * billData.discount) / 100).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Tax ({billData.tax}%):</span>
+                      <span className="text-white">
+                        ₹{(
+                          ((billData.subtotal -
+                            (billData.subtotal * billData.discount) / 100) *
+                            billData.tax) /
+                          100
+                        ).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-white/20 pt-2">
+                      <span className="text-white font-bold">Total:</span>
+                      <span className="text-white font-bold">
+                        ₹{(
+                          billData.subtotal -
+                          (billData.subtotal * billData.discount) / 100 +
+                          ((billData.subtotal -
+                            (billData.subtotal * billData.discount) / 100) *
+                            billData.tax) /
+                            100
+                        ).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div className="mt-4 flex gap-2">
-                  <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
+                  <button
+                    onClick={() => {
+                      if (!generatedBill) {
+                        alert("Please generate a bill first");
+                        return;
+                      }
+                      const printWindow = window.open("", "_blank");
+                      const invoiceHTML = `
+                        <!DOCTYPE html>
+                        <html>
+                          <head>
+                            <title>Invoice ${generatedBill.invoiceNumber}</title>
+                            <style>
+                              @media print {
+                                body { margin: 0; }
+                                .no-print { display: none; }
+                              }
+                              body {
+                                font-family: Arial, sans-serif;
+                                padding: 20px;
+                                max-width: 800px;
+                                margin: 0 auto;
+                              }
+                              .header {
+                                text-align: center;
+                                border-bottom: 2px solid #333;
+                                padding-bottom: 20px;
+                                margin-bottom: 30px;
+                              }
+                              .header h1 {
+                                color: #333;
+                                margin: 0;
+                              }
+                              .invoice-info {
+                                display: flex;
+                                justify-content: space-between;
+                                margin-bottom: 30px;
+                              }
+                              .info-section {
+                                flex: 1;
+                              }
+                              .info-section h3 {
+                                color: #333;
+                                border-bottom: 1px solid #ddd;
+                                padding-bottom: 5px;
+                                margin-bottom: 10px;
+                              }
+                              table {
+                                width: 100%;
+                                border-collapse: collapse;
+                                margin-bottom: 20px;
+                              }
+                              th, td {
+                                padding: 12px;
+                                text-align: left;
+                                border-bottom: 1px solid #ddd;
+                              }
+                              th {
+                                background-color: #4CAF50;
+                                color: white;
+                              }
+                              .text-right {
+                                text-align: right;
+                              }
+                              .totals {
+                                margin-top: 20px;
+                                float: right;
+                                width: 300px;
+                              }
+                              .totals table {
+                                margin: 0;
+                              }
+                              .total-row {
+                                font-weight: bold;
+                                font-size: 1.2em;
+                                border-top: 2px solid #333;
+                              }
+                              .footer {
+                                margin-top: 50px;
+                                text-align: center;
+                                color: #666;
+                                font-size: 0.9em;
+                              }
+                              .print-btn {
+                                background-color: #4CAF50;
+                                color: white;
+                                padding: 10px 20px;
+                                border: none;
+                                border-radius: 5px;
+                                cursor: pointer;
+                                font-size: 16px;
+                                margin-bottom: 20px;
+                              }
+                              .print-btn:hover {
+                                background-color: #45a049;
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="no-print">
+                              <button class="print-btn" onclick="window.print()">🖨️ Print Invoice</button>
+                            </div>
+                            <div class="header">
+                              <h1>INVOICE</h1>
+                              <p>Invoice #${generatedBill.invoiceNumber}</p>
+                            </div>
+                            <div class="invoice-info">
+                              <div class="info-section">
+                                <h3>Bill To:</h3>
+                                <p><strong>${generatedBill.playerName}</strong></p>
+                                <p>Table: ${generatedBill.tableNumber}</p>
+                                <p>Order: ${generatedBill.orderNumber}</p>
+                              </div>
+                              <div class="info-section">
+                                <h3>Invoice Details:</h3>
+                                <p>Date: ${generatedBill.date}</p>
+                                <p>Invoice #: ${generatedBill.invoiceNumber}</p>
+                              </div>
+                            </div>
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th>Item</th>
+                                  <th class="text-right">Quantity</th>
+                                  <th class="text-right">Unit Price</th>
+                                  <th class="text-right">Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                ${generatedBill.orderItems
+                                  .map(
+                                    (item) => `
+                                  <tr>
+                                    <td>${item.name}</td>
+                                    <td class="text-right">${item.quantity}</td>
+                                    <td class="text-right">₹${item.price.toFixed(2)}</td>
+                                    <td class="text-right">₹${(
+                                      item.price * item.quantity
+                                    ).toFixed(2)}</td>
+                                  </tr>
+                                `
+                                  )
+                                  .join("")}
+                              </tbody>
+                            </table>
+                            <div class="totals">
+                              <table>
+                                <tr>
+                                  <td>Subtotal:</td>
+                                  <td class="text-right">₹${generatedBill.subtotal.toFixed(2)}</td>
+                                </tr>
+                                ${generatedBill.discountAmount > 0
+                                  ? `
+                                <tr>
+                                  <td>Discount (${billData.discount}%):</td>
+                                  <td class="text-right">-₹${generatedBill.discountAmount.toFixed(2)}</td>
+                                </tr>
+                                `
+                                  : ""}
+                                <tr>
+                                  <td>Tax (${billData.tax}%):</td>
+                                  <td class="text-right">₹${generatedBill.taxAmount.toFixed(2)}</td>
+                                </tr>
+                                <tr class="total-row">
+                                  <td>Total:</td>
+                                  <td class="text-right">₹${generatedBill.total.toFixed(2)}</td>
+                                </tr>
+                              </table>
+                            </div>
+                            <div class="footer">
+                              <p>Thank you for your business!</p>
+                              <p>Generated on ${generatedBill.date}</p>
+                            </div>
+                          </body>
+                        </html>
+                      `;
+                      printWindow.document.write(invoiceHTML);
+                      printWindow.document.close();
+                    }}
+                    className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold"
+                  >
                     Print Bill
                   </button>
-                  <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
+                  <button
+                    onClick={() => {
+                      if (!generatedBill) {
+                        alert("Please generate a bill first");
+                        return;
+                      }
+                      alert(
+                        `Email functionality would send the invoice to ${generatedBill.playerName}.\n\nIn production, this would integrate with an email service to send the invoice.`
+                      );
+                    }}
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold"
+                  >
                     Email Bill
                   </button>
                 </div>

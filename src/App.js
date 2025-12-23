@@ -39,7 +39,7 @@ function App() {
           <Route path="/master-admin" element={<MasterAdminDashboard />} />
           <Route path="/super-admin/signin" element={<SuperAdminSignIn />} />
           <Route path="/super-admin" element={<SuperAdminPortal />} />
-          <Route path="/affiliate-dashboard" element={<AffiliateDashboard />} />
+          {/* <Route path="/affiliate-dashboard" element={<AffiliateDashboard />} /> */}
           <Route path="/staff" element={<StaffDashboard />} />
           <Route path="*" element={<Navigate to="/manager" replace />} />
         </Routes>
