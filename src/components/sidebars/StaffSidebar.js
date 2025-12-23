@@ -85,7 +85,7 @@ export default function StaffSidebar({
       >
         <div className="p-3 sm:p-4 md:p-5 h-full flex flex-col min-w-0">
           <div className="mb-4 sm:mb-6">
-            <div className="text-xl sm:text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-300 to-indigo-400 drop-shadow-lg mb-4 sm:mb-6 break-words">
+            <div className="pt-11 lg:pt-0 text-xl sm:text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-300 to-indigo-400 drop-shadow-lg mb-4 sm:mb-6 break-words">
               Staff Portal
             </div>
             <div className="bg-white/10 rounded-lg md:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6 text-white shadow-inner">
