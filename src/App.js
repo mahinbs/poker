@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import AuthenticatedRoute from './components/AuthenticatedRoute';
 import DashboardPage from './pages/dashboards/ManagerDashboardPage';
 import GreSignIn from './pages/auth/GreSignIn';
 import GreDashboard from './pages/dashboards/GreDashboard';
@@ -36,7 +37,11 @@ function App() {
           <Route path="/admin/signin" element={<AdminSignIn />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/master-admin/signin" element={<MasterAdminSignIn />} />
-          <Route path="/master-admin" element={<MasterAdminDashboard />} />
+          <Route path="/master-admin" element={
+            <AuthenticatedRoute requiredRole="MASTER_ADMIN">
+              <MasterAdminDashboard />
+            </AuthenticatedRoute>
+          } />
           <Route path="/super-admin/signin" element={<SuperAdminSignIn />} />
           <Route path="/super-admin" element={<SuperAdminPortal />} />
           {/* <Route path="/affiliate-dashboard" element={<AffiliateDashboard />} /> */}

@@ -1,8 +1,20 @@
+/**
+ * Universal Sign In Component
+ * Reusable authentication form for all staff roles
+ */
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authAPI } from "../../lib/api";
+import { authAPI } from "../lib/api";
 
-export default function GreSignIn() {
+export default function UniversalSignIn({ 
+  role, 
+  roleDisplayName, 
+  redirectPath, 
+  gradientFrom, 
+  gradientTo,
+  description 
+}) {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,21 +28,23 @@ export default function GreSignIn() {
     try {
       const response = await authAPI.login(credentials.email, credentials.password);
       
-      // Check if user has GRE role
-      const hasGreRole = response.clubRoles?.some(role => role.role === 'GRE');
+      // Check if user has the required role
+      const hasRole = response.clubRoles?.some(r => r.role === role) ||
+                      response.tenantRoles?.some(r => r.role === role) ||
+                      (role === 'MASTER_ADMIN' && response.user.isMasterAdmin);
       
-      if (!hasGreRole) {
-        throw new Error("You don't have GRE access. Please use the correct portal.");
+      if (!hasRole) {
+        throw new Error(`You don't have ${roleDisplayName} access. Please use the correct portal.`);
       }
 
       // Store user info for persistence
-      localStorage.setItem('greUser', JSON.stringify({ 
+      localStorage.setItem(`${role.toLowerCase()}User`, JSON.stringify({ 
         email: credentials.email, 
-        role: 'GRE',
+        role: role,
         userId: response.user.id,
       }));
 
-      navigate("/gre");
+      navigate(redirectPath);
     } catch (err) {
       console.error("Login error:", err);
       setError(err.message || "Invalid email or password. Please try again.");
@@ -51,10 +65,10 @@ export default function GreSignIn() {
       <div className="max-w-md w-full mx-4">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-green-300 to-teal-400 drop-shadow-lg mb-4">
-            GRE Portal
+          <div className={`text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r ${gradientFrom} ${gradientTo} drop-shadow-lg mb-4`}>
+            {roleDisplayName} Portal
           </div>
-          <p className="text-gray-300">Guest Relation Executive Access</p>
+          <p className="text-gray-300">{description}</p>
         </div>
 
         {/* Sign In Form */}
@@ -77,7 +91,7 @@ export default function GreSignIn() {
                 name="email"
                 value={credentials.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
                 placeholder="Enter your email"
                 required
               />
@@ -92,7 +106,7 @@ export default function GreSignIn() {
                 name="password"
                 value={credentials.password}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
                 placeholder="Enter your password"
                 required
               />
@@ -101,13 +115,13 @@ export default function GreSignIn() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full bg-gradient-to-r ${gradientFrom} ${gradientTo} hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {loading ? "Signing In..." : "Sign In to GRE Portal"}
+              {loading ? "Signing In..." : `Sign In to ${roleDisplayName} Portal`}
             </button>
           </form>
 
-          {/* Demo Info */}
+          {/* Info */}
           <div className="mt-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
             <p className="text-blue-300 text-sm text-center">
               <strong>Note:</strong> Please use your registered credentials<br />
@@ -118,10 +132,10 @@ export default function GreSignIn() {
           {/* Navigation Links */}
           <div className="mt-6 text-center">
             <button
-              onClick={() => navigate("/manager")}
-              className="text-yellow-400 hover:text-yellow-300 text-sm underline"
+              onClick={() => navigate("/")}
+              className="text-emerald-400 hover:text-emerald-300 text-sm underline"
             >
-              ← Back to Manager Portal
+              ← Back to Home
             </button>
           </div>
         </div>
@@ -129,3 +143,4 @@ export default function GreSignIn() {
     </div>
   );
 }
+
