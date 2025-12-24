@@ -1,137 +1,423 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { masterAdminAPI, tenantsAPI, authAPI } from "../../lib/api";
 import BrandingHeader from "../../components/BrandingHeader";
-import CustomSelect from "../../components/common/CustomSelect";
-import AffiliatesTable from "../../components/AffiliatesTable";
 import MasterAdminSidebar from "../../components/sidebars/MasterAdminSidebar";
 
 export default function MasterAdminDashboard() {
   const [activeItem, setActiveItem] = useState("Dashboard");
-  const [clubs, setClubs] = useState([
-    {
-      id: "club-01",
-      name: "Emerald Poker Mumbai",
-      location: "Mumbai, IN",
-      rummyEnabled: false,
-      subscription: "active",
-      terms: "",
-      logoUrl: "",
-      videoUrl: "",
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  
+  // Real data from backend
+  const [stats, setStats] = useState(null);
+  const [clubs, setClubs] = useState([]);
+  const [tenants, setTenants] = useState([]);
+  const [selectedTenantId, setSelectedTenantId] = useState(null);
+  const [selectedClubId, setSelectedClubId] = useState(null);
+  
+  // Filters and sorting
+  const [clubFilter, setClubFilter] = useState("all"); // all, active, suspended, killed
+  const [clubSort, setClubSort] = useState("name"); // name, status, subscription
+  const [tenantSort, setTenantSort] = useState("name"); // name, clubs
+  const [subscriptionSort, setSubscriptionSort] = useState("price"); // price, name, tenant, date
+  const [editingSubscriptionClubId, setEditingSubscriptionClubId] = useState(null);
+  const [subscriptionEditForm, setSubscriptionEditForm] = useState({});
+  
+  // Modals
+  const [showCreateTenantModal, setShowCreateTenantModal] = useState(false);
+  const [showCreateClubModal, setShowCreateClubModal] = useState(false);
+  const [selectedClub, setSelectedClub] = useState(null);
+  
+  // Form states
+  const [tenantForm, setTenantForm] = useState({
+    tenantName: "",
+    superAdminName: "",
+    superAdminEmail: "",
+  });
+
+  const [clubForm, setClubForm] = useState({
+    clubName: "",
+    clubDescription: "",
       skinColor: "#10b981",
-      gradient: "from-emerald-600 via-green-500 to-teal-500",
-    },
-    {
-      id: "club-02",
-      name: "Teal Poker Bangalore",
-      location: "Bengaluru, IN",
-      rummyEnabled: true,
-      subscription: "active",
-      terms: "",
+    gradient: "emerald-green-teal",
       logoUrl: "",
       videoUrl: "",
-      skinColor: "#14b8a6",
-      gradient: "from-teal-600 via-cyan-500 to-blue-500",
-    },
-    {
-      id: "club-03",
-      name: "Cyan Poker Delhi",
-      location: "Delhi, IN",
-      rummyEnabled: false,
-      subscription: "paused",
-      terms: "",
-      logoUrl: "",
-      videoUrl: "",
-      skinColor: "#06b6d4",
-      gradient: "from-cyan-600 via-blue-500 to-indigo-500",
-    },
-  ]);
-  const [selectedClubId, setSelectedClubId] = useState("club-01");
-  const selectedClub = clubs.find((c) => c.id === selectedClubId) || clubs[0];
+    tenantId: "",
+    createNewTenant: false,
+    newTenantName: "",
+    newSuperAdminName: "",
+    newSuperAdminEmail: "",
+  });
+
+  const [logoFile, setLogoFile] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  const [termsForm, setTermsForm] = useState({
+    termsText: "",
+    publicUrl: "",
+  });
 
   const navigate = useNavigate();
 
   const menuItems = [
     "Dashboard",
+    "Tenants Management",
     "Clubs Management",
     "Rummy Settings",
     "Terms & Conditions",
     "Subscriptions",
-    "Branding & Media",
-    "Clients Management",
     "Reports",
-    "Affiliates",
   ];
 
-  // Helper function to get date/time strings
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    return {
-      date: now.toLocaleDateString("en-IN", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      }),
-      time: now.toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      }),
-      full: now.toLocaleString("en-IN", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
+  // All gradient options
+  const gradientOptions = [
+    { value: "emerald-green-teal", label: "Emerald → Green → Teal", class: "from-emerald-600 via-green-500 to-teal-500" },
+    { value: "teal-cyan-blue", label: "Teal → Cyan → Blue", class: "from-teal-500 via-cyan-500 to-blue-500" },
+    { value: "cyan-blue-indigo", label: "Cyan → Blue → Indigo", class: "from-cyan-500 via-blue-500 to-indigo-600" },
+    { value: "blue-indigo-purple", label: "Blue → Indigo → Purple", class: "from-blue-600 via-indigo-500 to-purple-600" },
+    { value: "purple-pink-rose", label: "Purple → Pink → Rose", class: "from-purple-600 via-pink-500 to-rose-500" },
+    { value: "pink-red-orange", label: "Pink → Red → Orange", class: "from-pink-500 via-red-500 to-orange-500" },
+    { value: "red-orange-yellow", label: "Red → Orange → Yellow", class: "from-red-600 via-orange-500 to-yellow-500" },
+    { value: "orange-yellow-lime", label: "Orange → Yellow → Lime", class: "from-orange-500 via-yellow-500 to-lime-500" },
+    { value: "yellow-lime-green", label: "Yellow → Lime → Green", class: "from-yellow-500 via-lime-500 to-green-500" },
+    { value: "indigo-purple-pink", label: "Indigo → Purple → Pink", class: "from-indigo-600 via-purple-500 to-pink-500" },
+    { value: "gray-slate-zinc", label: "Gray → Slate → Zinc", class: "from-gray-600 via-slate-500 to-zinc-500" },
+    { value: "slate-gray-neutral", label: "Slate → Gray → Neutral", class: "from-slate-600 via-gray-500 to-neutral-500" },
+  ];
+
+  // Load all data from backend
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const dashboardStats = await masterAdminAPI.getDashboardStats();
+      setStats(dashboardStats);
+      setClubs(dashboardStats.clubs || []);
+      setTenants(dashboardStats.tenants || []);
+      
+      if (dashboardStats.clubs && dashboardStats.clubs.length > 0) {
+        setSelectedClubId(dashboardStats.clubs[0].id);
+      }
+    } catch (err) {
+      console.error("Failed to load dashboard data:", err);
+      setError("Failed to load dashboard data: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getPreviousDayDateTime = () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return {
-      date: yesterday.toLocaleDateString("en-IN", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      }),
-      time: yesterday.toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      }),
-      full: yesterday.toLocaleString("en-IN", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
+  const handleSignOut = () => {
+    authAPI.logout();
+    navigate("/master-admin/signin");
   };
 
-  // Revenue, Rake, and Tips data with date/time
-  const currentDateTime = getCurrentDateTime();
-  const previousDateTime = getPreviousDayDateTime();
-
-  const revenueData = {
-    previousDay: {
-      revenue: "₹1,25,000",
-      rake: "₹12,500",
-      tips: "₹8,450",
-      date: previousDateTime.date,
-      time: previousDateTime.time,
-      lastUpdated: previousDateTime.full,
-    },
-    currentDay: {
-      revenue: "₹45,230",
-      rake: "₹4,523",
-      tips: "₹3,120",
-      date: currentDateTime.date,
-      time: currentDateTime.time,
-      lastUpdated: currentDateTime.full,
-    },
+  const handleCreateTenant = async (e) => {
+    e.preventDefault();
+    try {
+      const result = await tenantsAPI.createTenant({
+        name: tenantForm.tenantName,
+        superAdminName: tenantForm.superAdminName,
+        superAdminEmail: tenantForm.superAdminEmail,
+      });
+      
+      alert(`✅ Tenant Created!\n\nTenant: ${result.tenant.name}\n\nSuper Admin Email: ${result.superAdmin.email}\nTemporary Password: ${result.superAdmin.tempPassword}\n\n⚠️ Save these credentials!`);
+      
+      setShowCreateTenantModal(false);
+      setTenantForm({
+        tenantName: "",
+        superAdminName: "",
+        superAdminEmail: "",
+      });
+      
+      loadDashboardData();
+    } catch (err) {
+      alert("Failed to create tenant: " + err.message);
+    }
   };
+
+  const handleCreateClub = async (e) => {
+    e.preventDefault();
+    try {
+      let result;
+      let logoUrl = clubForm.logoUrl;
+      
+      const gradientClass = gradientOptions.find(g => g.value === clubForm.gradient)?.class || clubForm.gradient;
+      
+      if (clubForm.createNewTenant) {
+        // Create tenant + club together
+        result = await masterAdminAPI.createTenantWithClub({
+          tenantName: clubForm.newTenantName,
+          superAdminName: clubForm.newSuperAdminName,
+          superAdminEmail: clubForm.newSuperAdminEmail,
+          clubName: clubForm.clubName,
+          clubDescription: clubForm.clubDescription,
+          skinColor: clubForm.skinColor,
+          gradient: gradientClass,
+          logoUrl: logoUrl,
+          videoUrl: clubForm.videoUrl,
+        });
+        
+        // Upload logo if file is selected
+        if (logoFile && result.club) {
+          try {
+            setUploadingLogo(true);
+            const tenantId = result.tenant.id;
+            const clubId = result.club.id;
+            
+            // Get signed upload URL
+            const uploadData = await tenantsAPI.getLogoUploadUrl(tenantId, clubId);
+            
+            // Upload file to Supabase
+            await tenantsAPI.uploadLogo(uploadData.signedUrl, logoFile);
+            
+            // Get public URL
+            logoUrl = tenantsAPI.getLogoPublicUrl(tenantId, clubId);
+            
+            // Update club with logo URL
+            await tenantsAPI.createClubWithBranding(tenantId, {
+              ...result.club,
+              logoUrl: logoUrl,
+            });
+          } catch (uploadErr) {
+            console.error('Logo upload failed:', uploadErr);
+            alert('⚠️ Club created but logo upload failed. You can upload it later.');
+          } finally {
+            setUploadingLogo(false);
+          }
+        }
+        
+        alert(`✅ Success!\n\nTenant: ${result.tenant.name}\nClub: ${result.club.name}\nClub Code: ${result.club.code}\n\nSuper Admin Email: ${result.superAdmin.email}\nTemporary Password: ${result.superAdmin.tempPassword}\n\n⚠️ Save these credentials!`);
+      } else {
+        // Create club for existing tenant
+        result = await tenantsAPI.createClubWithBranding(clubForm.tenantId, {
+          name: clubForm.clubName,
+          description: clubForm.clubDescription,
+          skinColor: clubForm.skinColor,
+          gradient: gradientClass,
+          logoUrl: logoUrl,
+          videoUrl: clubForm.videoUrl,
+        });
+        
+        // Upload logo if file is selected
+        if (logoFile && result.id) {
+          try {
+            setUploadingLogo(true);
+            const tenantId = clubForm.tenantId;
+            const clubId = result.id;
+            
+            // Get signed upload URL
+            const uploadData = await tenantsAPI.getLogoUploadUrl(tenantId, clubId);
+            
+            // Upload file to Supabase
+            await tenantsAPI.uploadLogo(uploadData.signedUrl, logoFile);
+            
+            // Get public URL
+            logoUrl = tenantsAPI.getLogoPublicUrl(tenantId, clubId);
+            
+            alert(`✅ Club Created with Logo!\n\nClub: ${result.name}\nClub Code: ${result.code}\n\n6-digit code for player signup!`);
+          } catch (uploadErr) {
+            console.error('Logo upload failed:', uploadErr);
+            alert('⚠️ Club created but logo upload failed. You can upload it later.');
+          } finally {
+            setUploadingLogo(false);
+          }
+        } else {
+          alert(`✅ Club Created!\n\nClub: ${result.name}\nClub Code: ${result.code}\n\n6-digit code for player signup!`);
+        }
+      }
+      
+      setShowCreateClubModal(false);
+      setClubForm({
+        clubName: "",
+        clubDescription: "",
+        skinColor: "#10b981",
+        gradient: "emerald-green-teal",
+        logoUrl: "",
+        videoUrl: "",
+        tenantId: "",
+        createNewTenant: false,
+        newTenantName: "",
+        newSuperAdminName: "",
+        newSuperAdminEmail: "",
+      });
+      setLogoFile(null);
+      
+      loadDashboardData();
+    } catch (err) {
+      alert("Failed to create club: " + err.message);
+    }
+  };
+
+  const handleUpdateClubStatus = async (clubId, status, reason) => {
+    if (!confirm(`Are you sure you want to ${status} this club?\n\n${reason ? 'Reason: ' + reason : ''}`)) {
+      return;
+    }
+
+    try {
+      await masterAdminAPI.updateClubStatus(clubId, status, reason);
+      alert(`✅ Club status updated to: ${status}`);
+      loadDashboardData();
+    } catch (err) {
+      alert("Failed to update club status: " + err.message);
+    }
+  };
+
+  const handleUpdateSubscription = async (clubId, subscriptionData) => {
+    try {
+      await masterAdminAPI.updateClubSubscription(clubId, subscriptionData);
+      alert("✅ Subscription updated successfully!");
+      setEditingSubscriptionClubId(null);
+      setSubscriptionEditForm({});
+      loadDashboardData();
+    } catch (err) {
+      alert("Failed to update subscription: " + err.message);
+    }
+  };
+
+  const handleStartEditSubscription = (club) => {
+    setEditingSubscriptionClubId(club.id);
+    setSubscriptionEditForm({
+      price: club.subscriptionPrice,
+      status: club.subscriptionStatus,
+      notes: club.subscriptionNotes || '',
+    });
+  };
+
+  const handleCancelEditSubscription = () => {
+    setEditingSubscriptionClubId(null);
+    setSubscriptionEditForm({});
+  };
+
+  // Sort clubs for subscriptions
+  const getSortedClubsForSubscriptions = () => {
+    return [...clubs].sort((a, b) => {
+      if (subscriptionSort === "price") {
+        return parseFloat(b.subscriptionPrice) - parseFloat(a.subscriptionPrice);
+      }
+      if (subscriptionSort === "name") {
+        return a.name.localeCompare(b.name);
+      }
+      if (subscriptionSort === "tenant") {
+        return a.tenant.name.localeCompare(b.tenant.name);
+      }
+      if (subscriptionSort === "date") {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      }
+      return 0;
+    });
+  };
+
+  // Export reports to CSV
+  const exportReportsToCSV = () => {
+    const headers = ['Club Name', 'Club Code', 'Tenant Name', 'Monthly Price (₹)', 'Status', 'Subscription Status', 'Created Date'];
+    const rows = clubs.map(club => [
+      club.name,
+      club.code,
+      club.tenant.name,
+      club.subscriptionPrice,
+      club.status,
+      club.subscriptionStatus,
+      new Date(club.createdAt).toLocaleDateString(),
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `revenue-report-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleUpdateTerms = async (e) => {
+    e.preventDefault();
+    if (!selectedClubId) {
+      alert("Please select a club first");
+      return;
+    }
+    
+    try {
+      await masterAdminAPI.updateClubTerms(selectedClubId, termsForm.termsText);
+      alert("✅ Terms & Conditions updated successfully!");
+      loadDashboardData();
+    } catch (err) {
+      alert("Failed to update terms: " + err.message);
+    }
+  };
+
+  // Filter and sort clubs
+  const filteredClubs = clubs
+    .filter(club => {
+      if (clubFilter === "all") return true;
+      return club.status === clubFilter;
+    })
+    .sort((a, b) => {
+      if (clubSort === "name") return a.name.localeCompare(b.name);
+      if (clubSort === "status") return a.status.localeCompare(b.status);
+      if (clubSort === "subscription") return parseFloat(b.subscriptionPrice) - parseFloat(a.subscriptionPrice);
+      return 0;
+    });
+
+  // Sort tenants
+  const sortedTenants = [...tenants].sort((a, b) => {
+    if (tenantSort === "name") return a.name.localeCompare(b.name);
+    if (tenantSort === "clubs") {
+      const aClubs = clubs.filter(c => c.tenant.id === a.id).length;
+      const bClubs = clubs.filter(c => c.tenant.id === b.id).length;
+      return bClubs - aClubs;
+    }
+    return 0;
+  });
+
+  const selectedClubData = clubs.find(c => c.id === selectedClubId);
+
+  // Get gradient class for preview
+  const getGradientClass = (gradientValue) => {
+    const option = gradientOptions.find(g => g.value === gradientValue);
+    return option ? option.class : gradientValue;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-xl font-medium">Loading Master Admin Dashboard...</p>
+          <p className="text-gray-400 mt-2">Fetching data from backend...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white flex items-center justify-center">
+        <div className="max-w-md text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold mb-2">Error Loading Dashboard</h2>
+          <p className="text-gray-400 mb-6">{error}</p>
+          <button
+            onClick={loadDashboardData}
+            className="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-lg font-medium"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
@@ -147,346 +433,398 @@ export default function MasterAdminDashboard() {
         <main className="flex-1 lg:ml-0 min-w-0">
           <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 sm:py-10 space-y-8">
             <div className="mt-16 lg:mt-0">
+              <div className="flex justify-between items-center mb-6">
               <BrandingHeader
                 title={`Master Admin - ${activeItem}`}
                 subtitle="White-label control center"
               />
+                <button
+                  onClick={handleSignOut}
+                  className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
 
-          {activeItem === "Dashboard" && (
+            {/* DASHBOARD */}
+            {activeItem === "Dashboard" && stats && (
             <>
+                {/* Stats Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                {[
-                  {
-                    title: "Total Clubs",
-                    value: "12",
-                    color: "from-emerald-400 via-teal-500 to-cyan-500",
-                  },
-                  {
-                    title: "Total Clients",
-                    value: "2,430",
-                    color: "from-blue-400 via-indigo-500 to-purple-500",
-                  },
-                  {
-                    title: "Active Clubs",
-                    value: "9",
-                    color: "from-green-400 via-emerald-500 to-teal-500",
-                  },
-                  {
-                    title: "Monthly Revenue",
-                    value: "₹3,42,120",
-                    color: "from-yellow-400 via-orange-500 to-red-500",
-                  },
-                ].map((card) => (
-                  <div
-                    key={card.title}
-                    className={`p-6 rounded-xl bg-gradient-to-br ${card.color} text-gray-900 shadow-lg transition-transform transform hover:scale-105`}
-                  >
-                    <div className="text-sm opacity-90 text-white/90">
-                      {card.title}
+                  <div className="p-6 rounded-xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 text-gray-900 shadow-lg">
+                    <div className="text-sm opacity-90 text-white/90">Total Tenants</div>
+                    <div className="text-3xl font-bold mt-2 text-white">{stats.totalTenants}</div>
+                    <div className="text-xs mt-1 text-white/70">Organization groups</div>
                     </div>
-                    <div className="text-3xl font-bold mt-2 text-white">
-                      {card.value}
+
+                  <div className="p-6 rounded-xl bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-500 text-gray-900 shadow-lg">
+                    <div className="text-sm opacity-90 text-white/90">Total Clubs</div>
+                    <div className="text-3xl font-bold mt-2 text-white">{stats.totalClubs}</div>
+                    <div className="text-xs mt-1 text-white/70">All poker clubs</div>
                     </div>
+
+                  <div className="p-6 rounded-xl bg-gradient-to-br from-green-400 via-emerald-500 to-teal-500 text-gray-900 shadow-lg">
+                    <div className="text-sm opacity-90 text-white/90">Active Clubs</div>
+                    <div className="text-3xl font-bold mt-2 text-white">{stats.activeClubs}</div>
                     <div className="text-xs mt-1 text-white/70">
-                      Updated just now
+                      {stats.suspendedClubs > 0 && `${stats.suspendedClubs} suspended, `}
+                      {stats.killedClubs > 0 && `${stats.killedClubs} killed`}
                     </div>
-                  </div>
-                ))}
               </div>
 
-              {/* Revenue, Rake & Tips Overview */}
-              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">
-                  Revenue, Rake & Tips Overview - {selectedClub?.name}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Previous Day Revenue */}
-                  <div className="bg-white/10 p-4 rounded-lg border border-purple-400/30">
-                    <div className="text-sm text-gray-300 mb-1">
-                      Prev Day Revenue
+                  <div className="p-6 rounded-xl bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 text-gray-900 shadow-lg">
+                    <div className="text-sm opacity-90 text-white/90">Monthly Revenue</div>
+                    <div className="text-3xl font-bold mt-2 text-white">
+                      ₹{stats.monthlyRevenue.toLocaleString('en-IN')}
                     </div>
-                    <div className="text-2xl font-bold text-white mb-2">
-                      {revenueData.previousDay.revenue}
+                    <div className="text-xs mt-1 text-white/70">From subscriptions</div>
                     </div>
-                    <div className="text-xs text-gray-400">
-                      {revenueData.previousDay.date}
                     </div>
-                  </div>
 
-                  {/* Current Day Revenue */}
-                  <div className="bg-white/10 p-4 rounded-lg border border-green-400/30">
-                    <div className="text-sm text-gray-300 mb-1">
-                      Today's Revenue
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-2">
-                      {revenueData.currentDay.revenue}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {revenueData.currentDay.date}
-                    </div>
-                  </div>
-
-                  {/* Previous Day Rake */}
-                  <div className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
-                    <div className="text-sm text-gray-300 mb-1">
-                      Prev Day Rake
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-2">
-                      {revenueData.previousDay.rake}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {revenueData.previousDay.date}
-                    </div>
-                  </div>
-
-                  {/* Current Day Rake */}
-                  <div className="bg-white/10 p-4 rounded-lg border border-yellow-400/30">
-                    <div className="text-sm text-gray-300 mb-1">
-                      Today's Rake
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-2">
-                      {revenueData.currentDay.rake}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {revenueData.currentDay.date}
-                    </div>
-                  </div>
-
-                  {/* Previous Day Tips */}
-                  <div className="bg-white/10 p-4 rounded-lg border border-cyan-400/30">
-                    <div className="text-sm text-gray-300 mb-1">
-                      Prev Day Tips
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-2">
-                      {revenueData.previousDay.tips}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {revenueData.previousDay.date}
-                    </div>
-                  </div>
-
-                  {/* Current Day Tips */}
-                  <div className="bg-white/10 p-4 rounded-lg border border-orange-400/30">
-                    <div className="text-sm text-gray-300 mb-1">
-                      Today's Tips
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-2">
-                      {revenueData.currentDay.tips}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {revenueData.currentDay.date}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 text-xs text-gray-400">
-                  Last Updated: {revenueData.currentDay.lastUpdated} | Data for{" "}
-                  {selectedClub?.name}
-                </div>
-              </section>
-
-              <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-teal-500/20 to-cyan-700/30 rounded-xl shadow-md border border-emerald-800/40">
-                <h2 className="text-lg font-semibold text-white mb-4">
-                  Quick Actions
-                </h2>
+                {/* Quick Actions */}
+                <section className="p-6 bg-gradient-to-r from-slate-800/50 via-slate-900/50 to-black/50 rounded-xl border border-slate-700">
+                  <h2 className="text-xl font-bold text-white mb-6">Quick Actions</h2>
                 <div className="flex flex-wrap gap-4">
-                  <button className="bg-gradient-to-r from-emerald-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-white px-5 py-3 rounded-xl font-semibold shadow transition">
-                    Create Club
+                    <button
+                      onClick={() => setShowCreateTenantModal(true)}
+                      className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg"
+                    >
+                      + Create Tenant
                   </button>
-                  <button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white px-5 py-3 rounded-xl font-semibold shadow transition">
-                    Invite Client
+                    <button
+                      onClick={() => setShowCreateClubModal(true)}
+                      className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg"
+                    >
+                      + Create Club
                   </button>
-                  <button className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white px-5 py-3 rounded-xl font-semibold shadow transition">
-                    Generate Report
+                    <button
+                      onClick={() => setActiveItem("Reports")}
+                      className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg"
+                    >
+                      View Reports
                   </button>
+                  </div>
+              </section>
+
+                {/* Recent Clubs */}
+                <section className="p-6 bg-gradient-to-r from-slate-800/50 via-slate-900/50 to-black/50 rounded-xl border border-slate-700">
+                  <h2 className="text-xl font-bold text-white mb-6">Recent Clubs</h2>
+                  <div className="space-y-4">
+                    {clubs.slice(0, 5).map(club => (
+                      <div key={club.id} className="p-4 bg-slate-800/50 rounded-lg border border-slate-700 flex justify-between items-center">
+                    <div>
+                          <div className="font-bold text-white">{club.name}</div>
+                          <div className="text-sm text-gray-400">
+                            Code: {club.code} | Tenant: {club.tenant.name}
+                    </div>
+                    </div>
+                        <div className="flex items-center gap-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            club.status === 'active' ? 'bg-green-500/20 text-green-300' :
+                            club.status === 'suspended' ? 'bg-yellow-500/20 text-yellow-300' :
+                            'bg-red-500/20 text-red-300'
+                          }`}>
+                            {club.status}
+                          </span>
+                          <span className="text-emerald-400 font-medium">
+                            ₹{club.subscriptionPrice}/mo
+                          </span>
+                    </div>
+                  </div>
+                    ))}
+              </div>
+            </section>
+              </>
+            )}
+
+            {/* TENANTS MANAGEMENT */}
+            {activeItem === "Tenants Management" && (
+              <section className="p-6 bg-gradient-to-r from-slate-800/50 via-slate-900/50 to-black/50 rounded-xl border border-slate-700">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-white">Tenants ({tenants.length})</h2>
+                  <div className="flex gap-3">
+                    <select
+                      value={tenantSort}
+                      onChange={(e) => setTenantSort(e.target.value)}
+                      className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm"
+                    >
+                      <option value="name">Sort by Name</option>
+                      <option value="clubs">Sort by Club Count</option>
+                    </select>
+                    <button
+                      onClick={() => setShowCreateTenantModal(true)}
+                      className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg font-medium"
+                    >
+                      + Create Tenant
+                    </button>
+                    </div>
+                  </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {sortedTenants.map(tenant => {
+                    const tenantClubs = clubs.filter(c => c.tenant.id === tenant.id);
+                    const isExpanded = selectedTenantId === tenant.id;
+                    
+                    return (
+                      <div key={tenant.id} className={`p-6 bg-slate-800/50 rounded-lg border ${isExpanded ? 'border-emerald-500' : 'border-slate-700'} cursor-pointer transition-all hover:border-emerald-500/50`}>
+                        <div onClick={() => setSelectedTenantId(isExpanded ? null : tenant.id)}>
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold text-white">{tenant.name}</h3>
+                              <p className="text-gray-400 text-sm">Created: {new Date(tenant.createdAt).toLocaleDateString()}</p>
+                    </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-emerald-400">{tenantClubs.length}</div>
+                              <div className="text-sm text-gray-400">Clubs</div>
+                    </div>
+                    </div>
+                  </div>
+
+                        {isExpanded && tenantClubs.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-slate-700 space-y-2">
+                            <div className="text-sm font-medium text-gray-300 mb-3">Clubs:</div>
+                            {tenantClubs.map(club => (
+                              <div key={club.id} className="p-3 bg-slate-900/50 rounded border border-slate-700">
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <div className="font-medium text-white">{club.name}</div>
+                                    <div className="text-xs text-gray-400 font-mono">Code: {club.code}</div>
+                    </div>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    club.status === 'active' ? 'bg-green-500/20 text-green-300' :
+                                    club.status === 'suspended' ? 'bg-yellow-500/20 text-yellow-300' :
+                                    'bg-red-500/20 text-red-300'
+                                  }`}>
+                                    {club.status}
+                                  </span>
+                    </div>
+                    </div>
+                            ))}
+                  </div>
+                        )}
+
+                        {isExpanded && tenantClubs.length === 0 && (
+                          <div className="mt-4 pt-4 border-t border-slate-700 text-center text-gray-400 text-sm">
+                            No clubs yet
+                    </div>
+                        )}
+                    </div>
+                    );
+                  })}
+
+                  {tenants.length === 0 && (
+                    <div className="col-span-full text-center py-12 text-gray-400">
+                      <p>No tenants found. Create your first tenant to get started!</p>
+                    </div>
+                  )}
                 </div>
               </section>
-            </>
-          )}
+            )}
 
-          {activeItem === "Clubs Management" && (
-            <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-teal-500/20 to-cyan-700/30 rounded-xl shadow-md border border-emerald-800/40">
-              <h2 className="text-xl font-bold text-white mb-6">
-                Clubs Management
-              </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Create New Club
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-white text-sm">Club Name</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="Enter club name"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-white text-sm">Location</label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="City, Country"
-                      />
-                    </div>
-                    <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold shadow">
-                      Create Club
-                    </button>
-                  </div>
+            {/* CLUBS MANAGEMENT */}
+            {activeItem === "Clubs Management" && (
+              <section className="p-6 bg-gradient-to-r from-slate-800/50 via-slate-900/50 to-black/50 rounded-xl border border-slate-700">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-white">All Clubs ({filteredClubs.length})</h2>
+                  <div className="flex gap-3">
+                    <select
+                      value={clubFilter}
+                      onChange={(e) => setClubFilter(e.target.value)}
+                      className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="active">Active</option>
+                      <option value="suspended">Suspended</option>
+                      <option value="killed">Killed</option>
+                    </select>
+                    <select
+                      value={clubSort}
+                      onChange={(e) => setClubSort(e.target.value)}
+                      className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm"
+                    >
+                      <option value="name">Sort by Name</option>
+                      <option value="status">Sort by Status</option>
+                      <option value="subscription">Sort by Subscription</option>
+                    </select>
+                    <button
+                      onClick={() => setShowCreateClubModal(true)}
+                      className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg font-medium"
+                    >
+                      + Create Club
+                  </button>
                 </div>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Existing Clubs
-                  </h3>
-                  <div className="space-y-2">
-                    {clubs.map((club) => (
-                      <div
-                        key={club.id}
-                        className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between"
-                      >
-                        <div className="text-white">
-                          {club.name}{" "}
-                          <span className="text-xs text-white/60">
-                            • {club.subscription}
-                          </span>
+                </div>
+
+                <div className="grid gap-4">
+                  {filteredClubs.map(club => (
+                    <div key={club.id} className="p-6 bg-slate-800/50 rounded-lg border border-slate-700">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-xl font-bold text-white">{club.name}</h3>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              club.status === 'active' ? 'bg-green-500/20 text-green-300' :
+                              club.status === 'suspended' ? 'bg-yellow-500/20 text-yellow-300' :
+                              'bg-red-500/20 text-red-300'
+                            }`}>
+                              {club.status}
+                            </span>
+                </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                    <div>
+                              <span className="text-gray-400">Club Code:</span>
+                              <span className="text-white font-mono ml-2">{club.code}</span>
+                    </div>
+                    <div>
+                              <span className="text-gray-400">Tenant:</span>
+                              <span className="text-white ml-2">{club.tenant.name}</span>
+                    </div>
+                            <div>
+                              <span className="text-gray-400">Subscription:</span>
+                              <span className="text-emerald-400 ml-2 font-medium">₹{club.subscriptionPrice}/month</span>
+                  </div>
+                            <div>
+                              <span className="text-gray-400">Sub Status:</span>
+                              <span className="text-white ml-2">{club.subscriptionStatus}</span>
+                </div>
                         </div>
-                        <div className="flex gap-2">
+
+                          {club.description && (
+                            <p className="text-gray-400 mt-3 text-sm">{club.description}</p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col gap-2 ml-4">
+                          {club.status === 'active' && (
+                            <>
                           <button
-                            onClick={() => setSelectedClubId(club.id)}
-                            className={`px-3 py-1 rounded text-sm ${
-                              selectedClubId === club.id
-                                ? "bg-emerald-600"
-                                : "bg-blue-600 hover:bg-blue-500"
-                            } text-white`}
+                                onClick={() => handleUpdateClubStatus(club.id, 'suspended', 'Temporary suspension')}
+                                className="bg-yellow-600 hover:bg-yellow-500 px-3 py-1 rounded text-sm"
+                              >
+                                Suspend
+                          </button>
+                      <button
+                                onClick={() => handleUpdateClubStatus(club.id, 'killed', 'Permanent closure')}
+                                className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-sm"
+                      >
+                        Kill
+                          </button>
+                            </>
+                          )}
+                          {club.status === 'suspended' && (
+                        <button
+                              onClick={() => handleUpdateClubStatus(club.id, 'active', 'Reactivated')}
+                              className="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm"
+                            >
+                              Reactivate
+                        </button>
+                          )}
+                          {club.status === 'killed' && (
+                        <button
+                              onClick={() => handleUpdateClubStatus(club.id, 'active', 'Restored from killed status')}
+                              className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm"
+                            >
+                              Restore
+                        </button>
+                      )}
+                          <button
+                            onClick={() => {
+                              setSelectedClub(club);
+                              setActiveItem("Subscriptions");
+                            }}
+                            className="bg-purple-600 hover:bg-purple-500 px-3 py-1 rounded text-sm"
                           >
-                            {selectedClubId === club.id ? "Selected" : "Select"}
+                            Edit Sub
                           </button>
-                          <button className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm">
-                            Manage
+                          <button
+                            onClick={() => {
+                              setSelectedClub(club);
+                              setSelectedClubId(club.id);
+                              setActiveItem("Terms & Conditions");
+                            }}
+                            className="bg-indigo-600 hover:bg-indigo-500 px-3 py-1 rounded text-sm"
+                          >
+                            Terms
                           </button>
-                          <button className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm">
-                            Delete
-                          </button>
+                        </div>
                         </div>
                       </div>
                     ))}
+
+                  {filteredClubs.length === 0 && (
+                    <div className="text-center py-12 text-gray-400">
+                      <p>No clubs found with the selected filters.</p>
                   </div>
-                </div>
+                  )}
               </div>
             </section>
           )}
 
+            {/* RUMMY SETTINGS */}
           {activeItem === "Rummy Settings" && (
-            <section className="p-6 bg-gradient-to-r from-emerald-600/30 via-teal-500/20 to-cyan-700/30 rounded-xl shadow-md border border-emerald-800/40">
-              <h2 className="text-xl font-bold text-white mb-6">
-                Rummy Mode Settings
-              </h2>
+              <section className="p-6 bg-gradient-to-r from-slate-800/50 via-slate-900/50 to-black/50 rounded-xl border border-slate-700">
+                <h2 className="text-2xl font-bold text-white mb-6">Rummy Mode Settings</h2>
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Club Selection
-                  </h3>
-                  <CustomSelect
-                    className="w-full mb-4"
-                    value={selectedClubId}
+                  {/* Club Selection */}
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium text-white mb-4">Club Selection</h3>
+                      <select
+                        value={selectedClubId || ''}
                     onChange={(e) => setSelectedClubId(e.target.value)}
-                  >
-                    {clubs.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
+                        className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                      >
+                        <option value="">Choose a club...</option>
+                        {clubs.map(club => (
+                          <option key={club.id} value={club.id}>
+                            {club.name} ({club.code})
                       </option>
                     ))}
-                  </CustomSelect>
-                  <div className="flex items-center justify-between bg-white/5 p-4 rounded-lg border border-white/10">
-                    <div className="flex-1">
-                      <div className="text-white font-semibold mb-2">
-                        Enable Rummy Mode for {selectedClub?.name}
+                      </select>
                       </div>
-                      <div className="text-xs text-white/70">
-                        When enabled, the club's backend dashboard and player
-                        portal will show Rummy-specific features:
-                        <ul className="list-disc list-inside mt-2 space-y-1">
-                          <li>
-                            UI labels change from "Poker Table" to "Rummy Table"
-                          </li>
-                          <li>
-                            Table shape switches to round for Rummy tables
-                          </li>
-                          <li>
-                            Rummy variants become available in table creation
-                          </li>
-                          <li>
-                            Rummy-specific rules and gameplay features are
-                            enabled
-                          </li>
+
+                    {selectedClubData && (
+                      <div className="p-6 bg-slate-800/70 rounded-lg border border-slate-600">
+                        <h4 className="font-bold text-lg mb-4 text-emerald-400">
+                          Enable Rummy Mode for {selectedClubData.name}
+                        </h4>
+                        <p className="text-gray-300 text-sm mb-4">
+                          When enabled, the club's backend dashboard and player portal will show Rummy-specific features:
+                        </p>
+                        <ul className="space-y-2 text-sm text-gray-400 mb-6">
+                          <li>• UI labels change from "Poker Table" to "Rummy Table"</li>
+                          <li>• Table shape switches to round for Rummy tables</li>
+                          <li>• Rummy variants become available in table creation</li>
+                          <li>• Rummy-specific rules and gameplay features are enabled</li>
                         </ul>
-                      </div>
-                    </div>
                     <button
-                      onClick={() =>
-                        setClubs((prev) =>
-                          prev.map((c) =>
-                            c.id === selectedClubId
-                              ? { ...c, rummyEnabled: !c.rummyEnabled }
-                              : c
-                          )
-                        )
-                      }
-                      className={`ml-4 px-6 py-3 rounded-lg font-semibold text-sm transition-all ${
-                        selectedClub?.rummyEnabled
-                          ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg"
-                          : "bg-gray-600 hover:bg-gray-500 text-white"
-                      }`}
-                    >
-                      {selectedClub?.rummyEnabled ? "✓ Enabled" : "Disabled"}
+                          disabled
+                          className="w-full bg-slate-700 text-gray-400 px-6 py-3 rounded-lg font-medium cursor-not-allowed"
+                        >
+                          Disabled
                     </button>
+                        <p className="text-xs text-gray-500 mt-3">
+                          Note: Table creation and management is handled by club staff (Admin/Manager) in their respective portals, just like poker tables. This setting only enables/disables Rummy mode features for the club.
+                        </p>
                   </div>
-                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-400/30 rounded-lg">
-                    <div className="text-xs text-blue-300">
-                      <strong>Note:</strong> Table creation and management is
-                      handled by club staff (Admin/Manager) in their respective
-                      portals, just like poker tables. This setting only
-                      enables/disables Rummy mode features for the club.
-                    </div>
-                  </div>
+                    )}
                 </div>
 
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Club Rummy Status
-                  </h3>
+                  {/* Club Rummy Status */}
+                  <div>
+                    <h3 className="text-lg font-medium text-white mb-4">Club Rummy Status</h3>
                   <div className="space-y-3">
-                    {clubs.map((club) => (
-                      <div
-                        key={club.id}
-                        className="bg-white/5 p-3 rounded-lg border border-white/10 flex items-center justify-between"
-                      >
+                      {clubs.map(club => (
+                        <div key={club.id} className="p-4 bg-slate-800/70 rounded-lg border border-slate-600 flex justify-between items-center">
                         <div>
-                          <div className="text-white font-medium">
-                            {club.name}
+                            <div className="font-medium text-white">{club.name}</div>
+                            <div className="text-xs text-gray-400">Rummy Mode: Disabled</div>
                           </div>
-                          <div className="text-xs text-gray-400 mt-1">
-                            {club.rummyEnabled ? (
-                              <span className="text-green-400">
-                                Rummy Mode: Enabled
-                              </span>
-                            ) : (
-                              <span className="text-gray-400">
-                                Rummy Mode: Disabled
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <span
-                          className={`px-3 py-1 rounded text-xs font-semibold ${
-                            club.rummyEnabled
-                              ? "bg-emerald-500/30 text-emerald-300"
-                              : "bg-gray-500/30 text-gray-400"
-                          }`}
-                        >
-                          {club.rummyEnabled ? "Enabled" : "Disabled"}
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-300">
+                            Disabled
                         </span>
                       </div>
                     ))}
@@ -496,617 +834,623 @@ export default function MasterAdminDashboard() {
             </section>
           )}
 
+            {/* TERMS & CONDITIONS */}
           {activeItem === "Terms & Conditions" && (
-            <section className="p-6 bg-gradient-to-r from-gray-600/30 via-slate-500/20 to-gray-700/30 rounded-xl shadow-md border border-gray-800/40">
-              <h2 className="text-xl font-bold text-white mb-6">
-                Terms & Conditions (Per Club)
-              </h2>
-              <div className="bg-white/10 p-4 rounded-lg">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <CustomSelect
-                    className="w-full"
-                    value={selectedClubId}
-                    onChange={(e) => setSelectedClubId(e.target.value)}
-                  >
-                    {clubs.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
+              <section className="p-6 bg-gradient-to-r from-slate-800/50 via-slate-900/50 to-black/50 rounded-xl border border-slate-700">
+                <h2 className="text-2xl font-bold text-white mb-6">Terms & Conditions (Per Club)</h2>
+
+                <div className="max-w-4xl mx-auto">
+                  <div className="flex gap-4 mb-6">
+                    <select
+                      value={selectedClubId || ''}
+                      onChange={(e) => {
+                        setSelectedClubId(e.target.value);
+                        const club = clubs.find(c => c.id === e.target.value);
+                        if (club) {
+                          setTermsForm({
+                            termsText: club.termsAndConditions || '',
+                            publicUrl: '',
+                          });
+                        }
+                      }}
+                      className="flex-1 px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                    >
+                      <option value="">Choose a club...</option>
+                      {clubs.map(club => (
+                        <option key={club.id} value={club.id}>
+                          {club.name} ({club.code}) - {club.tenant.name}
                       </option>
                     ))}
-                  </CustomSelect>
+                    </select>
                   <input
-                    id="tnc-link"
-                    type="url"
-                    className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                      type="text"
                     placeholder="Optional public URL"
-                  />
-                  <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded">
+                      value={termsForm.publicUrl}
+                      onChange={(e) => setTermsForm({...termsForm, publicUrl: e.target.value})}
+                      className="flex-1 px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-gray-500"
+                    />
+                    <button
+                      onClick={handleUpdateTerms}
+                      disabled={!selectedClubId}
+                      className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-600 disabled:cursor-not-allowed px-8 py-3 rounded-lg font-medium text-white whitespace-nowrap"
+                    >
                     Upload / Save
                   </button>
                 </div>
+
+                  {selectedClubData && (
+                    <form onSubmit={handleUpdateTerms}>
                 <textarea
-                  id="tnc-text"
-                  className="w-full mt-3 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                  rows="6"
+                        name="terms"
+                        value={termsForm.termsText}
+                        onChange={(e) => setTermsForm({...termsForm, termsText: e.target.value})}
+                        rows={15}
+                        className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white font-mono text-sm"
                   placeholder="Paste Terms & Conditions here..."
-                  onBlur={() => {
-                    const area = document.getElementById("tnc-text");
-                    const value = area && "value" in area ? area.value : "";
-                    setClubs((prev) =>
-                      prev.map((c) =>
-                        c.id === selectedClubId ? { ...c, terms: value } : c
-                      )
-                    );
-                  }}
-                ></textarea>
-                <div className="text-xs text-white/60 mt-2">
+                      />
+                      <p className="text-xs text-gray-400 mt-2">
                   Only Master Admin can manage club T&C.
-                </div>
+                      </p>
+                    </form>
+                  )}
+
+                  {!selectedClubData && (
+                    <div className="text-center py-12 text-gray-400">
+                      <p>Select a club from the dropdown above to edit terms & conditions.</p>
+                    </div>
+                  )}
               </div>
             </section>
           )}
 
+            {/* SUBSCRIPTIONS */}
           {activeItem === "Subscriptions" && (
-            <section className="p-6 bg-gradient-to-r from-amber-600/30 via-yellow-500/20 to-orange-700/30 rounded-xl shadow-md border border-amber-800/40">
-              <h2 className="text-xl font-bold text-white mb-6">
-                Subscriptions
-              </h2>
-              <div className="space-y-2">
-                {clubs.map((c) => (
-                  <div
-                    key={c.id}
-                    className="bg-white/10 p-3 rounded flex items-center justify-between"
+              <section className="p-6 bg-gradient-to-r from-slate-800/50 via-slate-900/50 to-black/50 rounded-xl border border-slate-700">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-white">Subscription Management ({clubs.length})</h2>
+                      <select
+                    value={subscriptionSort}
+                    onChange={(e) => setSubscriptionSort(e.target.value)}
+                    className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm"
                   >
-                    <div className="text-white text-sm">
-                      {c.name} •{" "}
-                      <span className="text-white/70">{c.subscription}</span>
+                    <option value="price">Sort by Price</option>
+                    <option value="name">Sort by Club Name</option>
+                    <option value="tenant">Sort by Tenant Name</option>
+                    <option value="date">Sort by Date Created</option>
+                      </select>
                     </div>
-                    <div className="flex gap-2">
+
+                <div className="space-y-4">
+                  {getSortedClubsForSubscriptions().map(club => (
+                    <div key={club.id} className="p-6 bg-slate-800/50 rounded-lg border border-slate-700">
+                      {editingSubscriptionClubId === club.id ? (
+                        <form onSubmit={(e) => {
+                          e.preventDefault();
+                          handleUpdateSubscription(club.id, {
+                            subscriptionPrice: parseFloat(subscriptionEditForm.price),
+                            subscriptionStatus: subscriptionEditForm.status,
+                            subscriptionNotes: subscriptionEditForm.notes,
+                          });
+                        }} className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                              <label className="block text-sm font-medium mb-2 text-gray-300">Club Name</label>
+                              <div className="px-4 py-2 bg-slate-900 rounded-lg text-white">
+                                {club.name} ({club.code})
+                              </div>
+                    </div>
+                    <div>
+                              <label className="block text-sm font-medium mb-2 text-gray-300">Tenant</label>
+                              <div className="px-4 py-2 bg-slate-900 rounded-lg text-white">
+                                {club.tenant.name}
+                              </div>
+                    </div>
+                    <div>
+                              <label className="block text-sm font-medium mb-2 text-gray-300">Monthly Price (₹)</label>
+                        <input
+                                type="number"
+                                step="0.01"
+                                value={subscriptionEditForm.price}
+                                onChange={(e) => setSubscriptionEditForm({...subscriptionEditForm, price: e.target.value})}
+                                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                                required
+                              />
+                    </div>
+                    <div>
+                              <label className="block text-sm font-medium mb-2 text-gray-300">Status</label>
+                      <select
+                                value={subscriptionEditForm.status}
+                                onChange={(e) => setSubscriptionEditForm({...subscriptionEditForm, status: e.target.value})}
+                                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                              >
+                                <option value="active">Active</option>
+                                <option value="paused">Paused</option>
+                                <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2 text-gray-300">Notes</label>
+                            <textarea
+                              value={subscriptionEditForm.notes}
+                              onChange={(e) => setSubscriptionEditForm({...subscriptionEditForm, notes: e.target.value})}
+                              rows={3}
+                              className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                              placeholder="Payment notes, reminders, etc."
+                            />
+                          </div>
+                          <div className="flex gap-3">
                       <button
-                        className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm"
-                        onClick={() =>
-                          setClubs((prev) =>
-                            prev.map((x) =>
-                              x.id === c.id
-                                ? { ...x, subscription: "killed" }
-                                : x
-                            )
-                          )
-                        }
-                      >
-                        Kill
+                              type="submit"
+                              className="bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-lg font-medium"
+                            >
+                              Save Changes
                       </button>
-                      {c.subscription === "active" ? (
-                        <button
-                          className="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-sm"
-                          onClick={() =>
-                            setClubs((prev) =>
-                              prev.map((x) =>
-                                x.id === c.id
-                                  ? { ...x, subscription: "paused" }
-                                  : x
-                              )
-                            )
-                          }
-                        >
-                          Pause
-                        </button>
+                      <button
+                              type="button"
+                              onClick={handleCancelEditSubscription}
+                              className="bg-slate-600 hover:bg-slate-500 px-6 py-2 rounded-lg font-medium"
+                            >
+                              Cancel
+                      </button>
+                    </div>
+                        </form>
                       ) : (
-                        <button
-                          className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm"
-                          onClick={() =>
-                            setClubs((prev) =>
-                              prev.map((x) =>
-                                x.id === c.id
-                                  ? { ...x, subscription: "active" }
-                                  : x
-                              )
-                            )
-                          }
-                        >
-                          Activate
-                        </button>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-xl font-bold text-white">{club.name}</h3>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-700 text-gray-300">
+                                {club.code}
+                              </span>
+                    </div>
+                            <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                              <div>
+                                <span className="text-gray-400">Tenant:</span>
+                                <span className="text-white ml-2">{club.tenant.name}</span>
+                  </div>
+                              <div>
+                                <span className="text-gray-400">Created:</span>
+                                <span className="text-white ml-2">{new Date(club.createdAt).toLocaleDateString()}</span>
+                </div>
+                              <div>
+                                <span className="text-gray-400">Monthly Price:</span>
+                                <span className="text-emerald-400 ml-2 font-bold text-lg">₹{club.subscriptionPrice}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-400">Status:</span>
+                                <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                                  club.subscriptionStatus === 'active' ? 'bg-green-500/20 text-green-300' :
+                                  club.subscriptionStatus === 'paused' ? 'bg-yellow-500/20 text-yellow-300' :
+                                  'bg-red-500/20 text-red-300'
+                                }`}>
+                                  {club.subscriptionStatus}
+                                </span>
+                              </div>
+                            </div>
+                            {club.subscriptionNotes && (
+                              <div className="mt-3 text-sm text-gray-400">
+                                <span className="font-medium">Notes:</span> {club.subscriptionNotes}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleStartEditSubscription(club)}
+                            className="ml-4 bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap"
+                          >
+                            Edit Subscription
+                          </button>
+                      </div>
                       )}
+                      </div>
+                  ))}
+
+                  {clubs.length === 0 && (
+                    <div className="text-center py-12 text-gray-400">
+                      <p>No clubs found.</p>
+                    </div>
+                  )}
+                      </div>
+              </section>
+            )}
+
+            {/* REPORTS */}
+            {activeItem === "Reports" && (
+              <section className="p-6 bg-gradient-to-r from-slate-800/50 via-slate-900/50 to-black/50 rounded-xl border border-slate-700">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-white">Revenue Reports</h2>
+                  <button
+                    onClick={exportReportsToCSV}
+                    className="bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-lg font-medium text-white"
+                  >
+                    Export CSV
+                  </button>
+                      </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div className="p-6 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-lg border border-emerald-500/30">
+                    <div className="text-sm text-gray-300">Total Monthly Revenue</div>
+                    <div className="text-3xl font-bold text-emerald-400 mt-2">
+                      ₹{stats?.monthlyRevenue.toLocaleString('en-IN')}
+                        </div>
+                      </div>
+
+                  <div className="p-6 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-lg border border-blue-500/30">
+                    <div className="text-sm text-gray-300">Active Subscriptions</div>
+                    <div className="text-3xl font-bold text-blue-400 mt-2">
+                      {clubs.filter(c => c.subscriptionStatus === 'active').length}
+                      </div>
+                    </div>
+
+                  <div className="p-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-500/30">
+                    <div className="text-sm text-gray-300">Avg. Subscription</div>
+                    <div className="text-3xl font-bold text-purple-400 mt-2">
+                      ₹{clubs.length > 0 ? Math.round(stats?.monthlyRevenue / clubs.length).toLocaleString('en-IN') : 0}
                     </div>
                   </div>
+                </div>
+
+                  <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">Club Revenue Breakdown</h3>
+                  {clubs.map(club => (
+                    <div key={club.id} className="p-4 bg-slate-800/50 rounded-lg border border-slate-700 flex justify-between items-center">
+                    <div>
+                        <div className="font-medium text-white">{club.name}</div>
+                        <div className="text-sm text-gray-400">{club.tenant.name}</div>
+                    </div>
+                      <div className="text-right">
+                        <div className="text-xl font-bold text-emerald-400">
+                          ₹{club.subscriptionPrice}/mo
+                    </div>
+                        <div className="text-xs text-gray-400">{club.subscriptionStatus}</div>
+                    </div>
+                    </div>
                 ))}
               </div>
             </section>
           )}
-
-          {activeItem === "Branding & Media" && (
-            <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-purple-500/20 to-pink-700/30 rounded-xl shadow-md border border-indigo-800/40">
-              <h2 className="text-xl font-bold text-white mb-6">
-                Branding & Media (Per Club)
-              </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div
-                  className="bg-white/10 p-4 rounded-lg"
-                  key={selectedClubId}
-                >
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Media Settings
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-white text-sm mb-2 block">
-                        Select Club
-                      </label>
-                      <select
-                        value={selectedClubId}
-                        onChange={(e) => setSelectedClubId(e.target.value)}
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                      >
-                        {clubs.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-white text-sm mb-2 block">
-                        Logo URL
-                      </label>
-                      <input
-                        id="club-logo"
-                        type="url"
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="Logo URL (png)"
-                        defaultValue={selectedClub?.logoUrl || ""}
-                        key={`logo-${selectedClubId}`}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-white text-sm mb-2 block">
-                        Promo Video URL
-                      </label>
-                      <input
-                        id="club-video"
-                        type="url"
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="Promo Video URL (mp4)"
-                        defaultValue={selectedClub?.videoUrl || ""}
-                        key={`video-${selectedClubId}`}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-white text-sm mb-2 block">
-                        Skin Color
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          id="club-skin-color"
-                          type="color"
-                          className="w-20 h-10 bg-white/10 border border-white/20 rounded cursor-pointer"
-                          defaultValue={selectedClub?.skinColor || "#10b981"}
-                          key={`color-${selectedClubId}`}
-                          onChange={(e) => {
-                            const textInput = document.getElementById(
-                              "club-skin-color-text"
-                            );
-                            if (textInput) textInput.value = e.target.value;
-                          }}
-                        />
-                        <input
-                          id="club-skin-color-text"
-                          type="text"
-                          className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="#10b981"
-                          defaultValue={selectedClub?.skinColor || "#10b981"}
-                          key={`color-text-${selectedClubId}`}
-                          onChange={(e) => {
-                            const colorInput =
-                              document.getElementById("club-skin-color");
-                            if (
-                              colorInput &&
-                              /^#[0-9A-Fa-f]{6}$/.test(e.target.value)
-                            ) {
-                              colorInput.value = e.target.value;
-                            }
-                          }}
-                        />
-                      </div>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Primary theme color for the club
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-white text-sm mb-2 block">
-                        Gradient Selection
-                      </label>
-                      <select
-                        id="club-gradient"
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        defaultValue={
-                          selectedClub?.gradient ||
-                          "from-emerald-600 via-green-500 to-teal-500"
-                        }
-                        key={`gradient-${selectedClubId}`}
-                      >
-                        <option value="from-emerald-600 via-green-500 to-teal-500">
-                          Emerald → Green → Teal
-                        </option>
-                        <option value="from-teal-600 via-cyan-500 to-blue-500">
-                          Teal → Cyan → Blue
-                        </option>
-                        <option value="from-cyan-600 via-blue-500 to-indigo-500">
-                          Cyan → Blue → Indigo
-                        </option>
-                        <option value="from-blue-600 via-indigo-500 to-purple-500">
-                          Blue → Indigo → Purple
-                        </option>
-                        <option value="from-purple-600 via-pink-500 to-rose-500">
-                          Purple → Pink → Rose
-                        </option>
-                        <option value="from-pink-600 via-red-500 to-orange-500">
-                          Pink → Red → Orange
-                        </option>
-                        <option value="from-red-600 via-orange-500 to-yellow-500">
-                          Red → Orange → Yellow
-                        </option>
-                        <option value="from-orange-600 via-yellow-500 to-lime-500">
-                          Orange → Yellow → Lime
-                        </option>
-                        <option value="from-yellow-600 via-lime-500 to-green-500">
-                          Yellow → Lime → Green
-                        </option>
-                        <option value="from-indigo-600 via-purple-500 to-pink-500">
-                          Indigo → Purple → Pink
-                        </option>
-                        <option value="from-gray-600 via-slate-500 to-zinc-500">
-                          Gray → Slate → Zinc
-                        </option>
-                        <option value="from-slate-600 via-gray-500 to-neutral-500">
-                          Slate → Gray → Neutral
-                        </option>
-                      </select>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Gradient theme for club branding
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold"
-                        onClick={() => {
-                          const logo = document.getElementById("club-logo");
-                          const video = document.getElementById("club-video");
-                          const skinColor =
-                            document.getElementById("club-skin-color");
-                          const gradient =
-                            document.getElementById("club-gradient");
-                          const logoUrl =
-                            logo && "value" in logo ? logo.value : "";
-                          const videoUrl =
-                            video && "value" in video ? video.value : "";
-                          const skinColorValue =
-                            skinColor && "value" in skinColor
-                              ? skinColor.value
-                              : selectedClub?.skinColor || "#10b981";
-                          const gradientValue =
-                            gradient && "value" in gradient
-                              ? gradient.value
-                              : selectedClub?.gradient ||
-                                "from-emerald-600 via-green-500 to-teal-500";
-                          setClubs((prev) =>
-                            prev.map((c) =>
-                              c.id === selectedClubId
-                                ? {
-                                    ...c,
-                                    logoUrl,
-                                    videoUrl,
-                                    skinColor: skinColorValue,
-                                    gradient: gradientValue,
-                                  }
-                                : c
-                            )
-                          );
-                          alert(
-                            `Branding settings saved for ${selectedClub?.name}`
-                          );
-                        }}
-                      >
-                        Save Settings
-                      </button>
-                      <button
-                        className="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold"
-                        onClick={() => {
-                          if (
-                            !window.confirm(
-                              "Reset all player-facing data for this club?"
-                            )
-                          )
-                            return;
-                          setClubs((prev) =>
-                            prev.map((c) =>
-                              c.id === selectedClubId
-                                ? {
-                                    ...c,
-                                    terms: "",
-                                    logoUrl: "",
-                                    videoUrl: "",
-                                    skinColor: "#10b981",
-                                    gradient:
-                                      "from-emerald-600 via-green-500 to-teal-500",
-                                  }
-                                : c
-                            )
-                          );
-                          // Reset form inputs
-                          const logo = document.getElementById("club-logo");
-                          const video = document.getElementById("club-video");
-                          const skinColor =
-                            document.getElementById("club-skin-color");
-                          const gradient =
-                            document.getElementById("club-gradient");
-                          if (logo) logo.value = "";
-                          if (video) video.value = "";
-                          if (skinColor) skinColor.value = "#10b981";
-                          if (gradient)
-                            gradient.value =
-                              "from-emerald-600 via-green-500 to-teal-500";
-                        }}
-                      >
-                        Reset
-                      </button>
-                    </div>
-                    <div className="text-xs text-white/70 bg-white/5 p-2 rounded">
-                      Only Master Admin can change logo/video/skin/gradient.
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Live Preview
-                  </h3>
-                  <div
-                    className={`p-6 rounded-xl bg-gradient-to-r ${
-                      selectedClub?.gradient ||
-                      "from-emerald-600 via-green-500 to-teal-500"
-                    } border border-white/20 shadow-lg`}
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 rounded bg-white/20 border border-white/30 flex items-center justify-center text-xs">
-                        {selectedClub?.logoUrl ? "IMG" : "LOGO"}
-                      </div>
-                      <div className="text-white font-bold text-xl">
-                        {selectedClub?.name}
-                      </div>
-                    </div>
-                    <div className="space-y-2 text-sm text-white/90">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">Logo:</span>
-                        <span className="text-xs">
-                          {selectedClub?.logoUrl || "Not set"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">Video:</span>
-                        <span className="text-xs">
-                          {selectedClub?.videoUrl || "Not set"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">Skin Color:</span>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-6 h-6 rounded border-2 border-white/50"
-                            style={{
-                              backgroundColor:
-                                selectedClub?.skinColor || "#10b981",
-                            }}
-                          ></div>
-                          <span className="text-xs">
-                            {selectedClub?.skinColor || "#10b981"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">Gradient:</span>
-                        <span className="text-xs bg-white/20 px-2 py-1 rounded">
-                          {selectedClub?.gradient
-                            ?.replace(/from-|via-|to-/g, "")
-                            .replace(/-600|-500/g, "") || "Default"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-white/20">
-                      <p className="text-xs text-white/70">
-                        This preview shows how the branding will appear in the
-                        player portal and club dashboards.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {activeItem === "Clients Management" && (
-            <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
-              <h2 className="text-xl font-bold text-white mb-6">
-                Clients Management
-              </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Invite Client
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-white text-sm">Client Email</label>
-                      <input
-                        type="email"
-                        className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="client@example.com"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-white text-sm">Assign Club</label>
-                      <select className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
-                        <option>Emerald Poker Mumbai</option>
-                        <option>Teal Poker Bangalore</option>
-                        <option>Cyan Poker Delhi</option>
-                      </select>
-                    </div>
-                    <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-semibold shadow">
-                      Send Invite
-                    </button>
-                  </div>
-                </div>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Client Directory
-                  </h3>
-                  <div className="space-y-2">
-                    {[
-                      { name: "Rohit Sharma", club: "Emerald Poker Mumbai" },
-                      { name: "Ananya Rao", club: "Teal Poker Bangalore" },
-                      { name: "Aman Khan", club: "Cyan Poker Delhi" },
-                    ].map((client) => (
-                      <div
-                        key={client.name}
-                        className="bg-white/5 p-3 rounded border border-white/10 flex items-center justify-between"
-                      >
-                        <div className="text-white">
-                          <div className="font-semibold">{client.name}</div>
-                          <div className="text-xs text-gray-300">
-                            {client.club}
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm">
-                            Edit
-                          </button>
-                          <button className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded text-sm">
-                            Reassign
-                          </button>
-                          <button className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm">
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {activeItem === "Affiliates" && (
-            <div className="space-y-6">
-              <AffiliatesTable 
-                affiliates={[
-                  {
-                    id: "AFF001",
-                    name: "Agent X",
-                    email: "agent.x@example.com",
-                    referralCode: "AGTX-ALPHA",
-                    status: "Active",
-                    kycStatus: "Verified",
-                    totalReferrals: 12,
-                    earnings: 45000,
-                  },
-                  {
-                    id: "AFF002",
-                    name: "Agent Y",
-                    email: "agent.y@example.com",
-                    referralCode: "AGTY-BETA",
-                    status: "Active",
-                    kycStatus: "Pending",
-                    totalReferrals: 8,
-                    earnings: 28000,
-                  },
-                  {
-                    id: "AFF003",
-                    name: "Agent Z",
-                    email: "agent.z@example.com",
-                    referralCode: "AGTZ-GAMMA",
-                    status: "Inactive",
-                    kycStatus: "Rejected",
-                    totalReferrals: 3,
-                    earnings: 5000,
-                  },
-                ]}
-                userRole="masteradmin"
-              />
-            </div>
-          )}
-
-          {activeItem === "Reports" && (
-            <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-red-700/30 rounded-xl shadow-md border border-purple-800/40">
-              <h2 className="text-xl font-bold text-white mb-6">Reports</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Club Activity
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="bg-white/5 p-3 rounded">
-                      <div className="text-sm text-gray-300">
-                        Active Clubs Today: 9
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        New Clients This Week: 42
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Revenue
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="bg-white/5 p-3 rounded">
-                      <div className="text-sm text-gray-300">
-                        Today: ₹14,520
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        This Week: ₹92,330
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        This Month: ₹3,42,120
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Exports
-                  </h3>
-                  <div className="space-y-2">
-                    <button className="w-full bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded text-sm">
-                      Export CSV
-                    </button>
-                    <button className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded text-sm">
-                      Export PDF
-                    </button>
-                    <button className="w-full bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded text-sm">
-                      Generate Report
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => navigate("/manager")}
-                className="bg-green-600 hover:bg-green-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
-              >
-                Manager Portal
-              </button>
-              <button
-                onClick={() => navigate("/admin/signin")}
-                className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
-              >
-                System Admin
-              </button>
-            </div>
           </div>
         </main>
       </div>
+
+      {/* CREATE TENANT MODAL (Only Tenant, No Club) */}
+      {showCreateTenantModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-700">
+            <h2 className="text-2xl font-bold text-white mb-6">Create Tenant + Super Admin</h2>
+            
+            <form onSubmit={handleCreateTenant} className="space-y-6">
+                  <div className="space-y-4">
+                <h3 className="text-lg font-medium text-emerald-400">Tenant Information</h3>
+                <input
+                  type="text"
+                  placeholder="Tenant Name (e.g., Poker Group India)"
+                  value={tenantForm.tenantName}
+                  onChange={(e) => setTenantForm({...tenantForm, tenantName: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                  required
+              />
+            </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-blue-400">Super Admin</h3>
+                <input
+                  type="text"
+                  placeholder="Super Admin Name"
+                  value={tenantForm.superAdminName}
+                  onChange={(e) => setTenantForm({...tenantForm, superAdminName: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                  required
+                />
+                      <input
+                        type="email"
+                  placeholder="Super Admin Email"
+                  value={tenantForm.superAdminEmail}
+                  onChange={(e) => setTenantForm({...tenantForm, superAdminEmail: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                  required
+                />
+                <p className="text-sm text-gray-400">A temporary password will be generated automatically</p>
+                    </div>
+
+            <div className="flex gap-3">
+              <button
+                  type="submit"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-lg font-medium text-white"
+              >
+                  Create Tenant
+              </button>
+              <button
+                  type="button"
+                  onClick={() => setShowCreateTenantModal(false)}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium text-white"
+              >
+                  Cancel
+                    </button>
+                  </div>
+            </form>
+                </div>
+                          </div>
+      )}
+
+      {/* CREATE CLUB MODAL (With Full Branding & Live Preview) */}
+      {showCreateClubModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-slate-900 rounded-xl p-8 max-w-6xl w-full my-8 border border-slate-700">
+            <h2 className="text-2xl font-bold text-white mb-6">Create Club with Branding</h2>
+            
+            <form onSubmit={handleCreateClub}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left: Form */}
+                <div className="space-y-6">
+                  {/* Club Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-purple-400">Club Information</h3>
+                    <input
+                      type="text"
+                      placeholder="Club Name (e.g., Emerald Poker Mumbai)"
+                      value={clubForm.clubName}
+                      onChange={(e) => setClubForm({...clubForm, clubName: e.target.value})}
+                      className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                      required
+                    />
+                    <textarea
+                      placeholder="Club Description"
+                      value={clubForm.clubDescription}
+                      onChange={(e) => setClubForm({...clubForm, clubDescription: e.target.value})}
+                      className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                      rows={3}
+                    />
+                        </div>
+
+                  {/* Branding */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-pink-400">Club Branding</h3>
+                    
+                    {/* Logo Upload */}
+                    <div>
+                      <label className="block text-sm mb-2 text-gray-300">Club Logo (PNG)</label>
+                      <input
+                        type="file"
+                        accept="image/png"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            if (file.size > 5 * 1024 * 1024) {
+                              alert('Logo file size must be less than 5MB');
+                              e.target.value = '';
+                              return;
+                            }
+                            if (!file.type.includes('png')) {
+                              alert('Logo must be a PNG image');
+                              e.target.value = '';
+                              return;
+                            }
+                            setLogoFile(file);
+                          }
+                        }}
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 file:cursor-pointer"
+                      />
+                      {logoFile && (
+                        <p className="text-xs text-emerald-400 mt-2">✓ {logoFile.name} selected</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">Upload to Supabase branding bucket (max 5MB)</p>
+                    </div>
+
+                    {/* Promo Video URL */}
+                    <div>
+                      <label className="block text-sm mb-2 text-gray-300">Promo Video URL (mp4) - Optional</label>
+                      <input
+                        type="text"
+                        placeholder="Promo Video URL (mp4)"
+                        value={clubForm.videoUrl}
+                        onChange={(e) => setClubForm({...clubForm, videoUrl: e.target.value})}
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-gray-500"
+                      />
+                    </div>
+
+                    {/* Skin Color */}
+                    <div>
+                      <label className="block text-sm mb-2 text-gray-300">Skin Color</label>
+                        <div className="flex gap-2">
+                        <input
+                          type="color"
+                          value={clubForm.skinColor}
+                          onChange={(e) => setClubForm({...clubForm, skinColor: e.target.value})}
+                          className="w-16 h-12 bg-slate-800 border border-slate-600 rounded-lg cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={clubForm.skinColor}
+                          onChange={(e) => setClubForm({...clubForm, skinColor: e.target.value})}
+                          className="flex-1 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white font-mono"
+                        />
+                        </div>
+                      <p className="text-xs text-gray-400 mt-1">Primary theme color for the club</p>
+                      </div>
+
+                    {/* Gradient */}
+                    <div>
+                      <label className="block text-sm mb-2 text-gray-300">Gradient Selection</label>
+                      <select
+                        value={clubForm.gradient}
+                        onChange={(e) => setClubForm({...clubForm, gradient: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                      >
+                        {gradientOptions.map(option => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-400 mt-1">Gradient theme for club branding</p>
+                  </div>
+                </div>
+
+                  {/* Tenant Selection */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-cyan-400">Tenant Assignment</h3>
+                    
+                    <div className="flex items-center gap-4 mb-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                          type="radio"
+                          checked={!clubForm.createNewTenant}
+                          onChange={() => setClubForm({...clubForm, createNewTenant: false})}
+                          className="w-4 h-4"
+                        />
+                        <span>Assign to Existing Tenant</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={clubForm.createNewTenant}
+                          onChange={() => setClubForm({...clubForm, createNewTenant: true})}
+                          className="w-4 h-4"
+                        />
+                        <span>Create New Tenant</span>
+                      </label>
+              </div>
+
+                    {!clubForm.createNewTenant ? (
+                    <div>
+                        <label className="block text-sm mb-2">Select Tenant</label>
+                        <select
+                          value={clubForm.tenantId}
+                          onChange={(e) => setClubForm({...clubForm, tenantId: e.target.value})}
+                          className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                          required={!clubForm.createNewTenant}
+                        >
+                          <option value="">Choose a tenant...</option>
+                          {tenants.map(tenant => (
+                            <option key={tenant.id} value={tenant.id}>
+                              {tenant.name}
+                            </option>
+                          ))}
+                        </select>
+                  </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-emerald-400">New Tenant Details</h4>
+                        <input
+                          type="text"
+                          placeholder="Tenant Name"
+                          value={clubForm.newTenantName}
+                          onChange={(e) => setClubForm({...clubForm, newTenantName: e.target.value})}
+                          className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                          required={clubForm.createNewTenant}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Super Admin Name"
+                          value={clubForm.newSuperAdminName}
+                          onChange={(e) => setClubForm({...clubForm, newSuperAdminName: e.target.value})}
+                          className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                          required={clubForm.createNewTenant}
+                        />
+                        <input
+                          type="email"
+                          placeholder="Super Admin Email"
+                          value={clubForm.newSuperAdminEmail}
+                          onChange={(e) => setClubForm({...clubForm, newSuperAdminEmail: e.target.value})}
+                          className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                          required={clubForm.createNewTenant}
+              />
+            </div>
+          )}
+                  </div>
+
+                  <p className="text-sm text-gray-400 text-center">A unique 6-digit club code will be generated automatically</p>
+                      </div>
+
+                {/* Right: Live Preview */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-white">Live Preview</h3>
+                  <div className={`p-8 rounded-xl bg-gradient-to-br ${getGradientClass(clubForm.gradient)} min-h-[500px]`}>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="w-16 h-16 rounded-lg flex items-center justify-center text-white font-bold text-xs overflow-hidden" style={{ backgroundColor: clubForm.skinColor }}>
+                          {logoFile ? (
+                            <img src={URL.createObjectURL(logoFile)} alt="Logo Preview" className="w-full h-full object-cover rounded-lg" />
+                          ) : clubForm.logoUrl ? (
+                            <img src={clubForm.logoUrl} alt="Logo" className="w-full h-full object-contain rounded-lg" onError={(e) => e.target.style.display = 'none'} />
+                          ) : (
+                            'LOGO'
+                          )}
+                      </div>
+                        <div className="flex-1">
+                          <h4 className="text-2xl font-bold text-white">
+                            {clubForm.clubName || 'Club Name'}
+                          </h4>
+                          <p className="text-white/80 text-sm">
+                            {clubForm.clubDescription || 'Club description will appear here'}
+                          </p>
+                    </div>
+                  </div>
+
+                      <div className="space-y-3 text-white">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Logo:</span>
+                          <span className="text-white/80">
+                            {logoFile ? `${logoFile.name} (${(logoFile.size / 1024).toFixed(1)}KB)` : clubForm.logoUrl ? 'Set via URL' : 'Not set'}
+                          </span>
+                </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Video:</span>
+                          <span className="text-white/80">
+                            {clubForm.videoUrl ? 'Set' : 'Not set'}
+                          </span>
+                      </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Skin Color:</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded border-2 border-white" style={{ backgroundColor: clubForm.skinColor }}></div>
+                            <span className="text-white/80 font-mono text-sm">{clubForm.skinColor}</span>
+                      </div>
+                      </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Gradient:</span>
+                          <span className="text-white/80 text-sm">
+                            {gradientOptions.find(g => g.value === clubForm.gradient)?.label || clubForm.gradient}
+                          </span>
+                    </div>
+                  </div>
+
+                      <div className="mt-6 pt-6 border-t border-white/20">
+                        <p className="text-white/70 text-sm">
+                          This preview shows how the branding will appear in the player portal and club dashboards.
+                        </p>
+                </div>
+                  </div>
+                </div>
+              </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 mt-8">
+              <button
+                  type="submit"
+                  disabled={uploadingLogo}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-medium text-white"
+              >
+                  {uploadingLogo ? 'Uploading Logo...' : 'Create Club'}
+              </button>
+              <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateClubModal(false);
+                    setLogoFile(null);
+                  }}
+                  disabled={uploadingLogo}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:cursor-not-allowed rounded-lg font-medium text-white"
+                >
+                  Cancel
+              </button>
+            </div>
+            </form>
+          </div>
+      </div>
+      )}
     </div>
   );
 }
