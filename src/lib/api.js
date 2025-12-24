@@ -91,6 +91,15 @@ export const authAPI = {
       localStorage.setItem(STORAGE_KEYS.USER_ID, data.user.id);
       localStorage.setItem(STORAGE_KEYS.USER_EMAIL, data.user.email);
       
+      // Store full user object for profile display
+      localStorage.setItem('user', JSON.stringify({
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.displayName || data.user.email,
+        displayName: data.user.displayName,
+        isMasterAdmin: data.user.isMasterAdmin || false
+      }));
+      
       // Store club role if exists
       if (data.clubRoles && data.clubRoles.length > 0) {
         const primaryRole = data.clubRoles[0];
@@ -677,6 +686,18 @@ export const tenantsAPI = {
 // =============================================================================
 
 export const masterAdminAPI = {
+  /**
+   * Get current logged-in user info
+   */
+  getCurrentUser: async () => {
+    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+    if (!userId) {
+      throw new Error('User not logged in');
+    }
+    // Fetch user from backend
+    return await apiRequest(`/users/${userId}`);
+  },
+
   /**
    * Get all clubs with tenant info
    */
