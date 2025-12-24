@@ -9,6 +9,10 @@ export default function MasterAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
+  // User info from localStorage
+  const [userEmail, setUserEmail] = useState("");
+  const [userName, setUserName] = useState("");
+  
   // Real data from backend
   const [stats, setStats] = useState(null);
   const [clubs, setClubs] = useState([]);
@@ -85,6 +89,67 @@ export default function MasterAdminDashboard() {
     { value: "gray-slate-zinc", label: "Gray → Slate → Zinc", class: "from-gray-600 via-slate-500 to-zinc-500" },
     { value: "slate-gray-neutral", label: "Slate → Gray → Neutral", class: "from-slate-600 via-gray-500 to-neutral-500" },
   ];
+
+  // Load user info from localStorage or fetch from API
+  useEffect(() => {
+    const loadUserInfo = async () => {
+      // Try localStorage first
+      const storedUser = localStorage.getItem('user');
+      const storedEmail = localStorage.getItem('userEmail');
+      
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          setUserEmail(user.email || storedEmail || '');
+          setUserName(user.displayName || user.name || 'Master Admin');
+          return;
+        } catch (e) {
+          console.error('Failed to parse user data:', e);
+        }
+      }
+      
+      // Fallback to email from localStorage
+      if (storedEmail) {
+        setUserEmail(storedEmail);
+        setUserName('Master Admin');
+        return;
+      }
+      
+      // Fallback: use email from localStorage directly
+      if (storedEmail) {
+        setUserEmail(storedEmail);
+        setUserName('Master Admin');
+      }
+      
+      // If we have userId but no user object, fetch from API
+      const userId = localStorage.getItem('userId');
+      if (userId && !storedUser) {
+        try {
+          const userData = await masterAdminAPI.getCurrentUser();
+          if (userData && userData.email) {
+            setUserEmail(userData.email);
+            setUserName(userData.displayName || 'Master Admin');
+            // Store for next time
+            localStorage.setItem('user', JSON.stringify({
+              id: userData.id,
+              email: userData.email,
+              name: userData.displayName || userData.email,
+              displayName: userData.displayName
+            }));
+          }
+        } catch (err) {
+          console.error('Failed to fetch user info:', err);
+          // Still use email from localStorage if available
+          if (storedEmail) {
+            setUserEmail(storedEmail);
+            setUserName('Master Admin');
+          }
+        }
+      }
+    };
+    
+    loadUserInfo();
+  }, []);
 
   // Load all data from backend
   useEffect(() => {
@@ -427,6 +492,9 @@ export default function MasterAdminDashboard() {
           activeItem={activeItem}
           setActiveItem={setActiveItem}
           menuItems={menuItems}
+          onSignOut={handleSignOut}
+          userEmail={userEmail}
+          userName={userName}
         />
 
         {/* Main Section */}
