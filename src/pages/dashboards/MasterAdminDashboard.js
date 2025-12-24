@@ -56,6 +56,10 @@ export default function MasterAdminDashboard() {
 
   const [logoFile, setLogoFile] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successData, setSuccessData] = useState(null);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState(""); // 'success' or 'error'
 
   const [termsForm, setTermsForm] = useState({
     termsText: "",
@@ -181,6 +185,16 @@ export default function MasterAdminDashboard() {
     navigate("/master-admin/signin");
   };
 
+  // Show toast notification
+  const showToast = (message, type = 'success') => {
+    setToastMessage(message);
+    setToastType(type);
+    setTimeout(() => {
+      setToastMessage("");
+      setToastType("");
+    }, 5000);
+  };
+
   const handleCreateTenant = async (e) => {
     e.preventDefault();
     try {
@@ -203,13 +217,13 @@ export default function MasterAdminDashboard() {
     } catch (err) {
       const errorMsg = err.message || 'Unknown error';
       
-      // Show user-friendly error messages
+      // Show error toast
       if (errorMsg.includes('already exists') || errorMsg.includes('already used')) {
-        alert('❌ ' + errorMsg);
+        showToast(errorMsg, 'error');
       } else if (errorMsg.includes('Tenant name')) {
-        alert('❌ ' + errorMsg);
+        showToast(errorMsg, 'error');
       } else {
-        alert('❌ Failed to create tenant: ' + errorMsg);
+        showToast('Failed to create tenant: ' + errorMsg, 'error');
       }
     }
   };
@@ -220,10 +234,12 @@ export default function MasterAdminDashboard() {
     
     try {
       let result;
+      let finalLogoUrl = clubForm.logoUrl;
+      
       const gradientClass = gradientOptions.find(g => g.value === clubForm.gradient)?.class || clubForm.gradient;
       
       if (clubForm.createNewTenant) {
-        // Step 1: Create tenant + club together
+        // Create tenant + club together
         result = await masterAdminAPI.createTenantWithClub({
           tenantName: clubForm.newTenantName,
           superAdminName: clubForm.newSuperAdminName,
@@ -232,54 +248,41 @@ export default function MasterAdminDashboard() {
           clubDescription: clubForm.clubDescription,
           skinColor: clubForm.skinColor,
           gradient: gradientClass,
-          logoUrl: clubForm.logoUrl,
-          videoUrl: clubForm.videoUrl,
+          logoUrl: clubForm.logoUrl || undefined,
+          videoUrl: clubForm.videoUrl || undefined,
         });
         
-        // Step 2: Upload logo if file is selected
-        let finalLogoUrl = clubForm.logoUrl;
+        // Upload logo if file is selected
         if (logoFile && result.club && result.tenant) {
           try {
             const tenantId = result.tenant.id;
             const clubId = result.club.id;
             
-            // Get signed upload URL from backend
+            // Get signed URL
             const uploadData = await tenantsAPI.getLogoUploadUrl(tenantId, clubId);
             
-            // Upload file to Supabase
+            // Upload to Supabase
             await tenantsAPI.uploadLogo(uploadData.signedUrl, logoFile);
             
             // Get public URL
-            finalLogoUrl = tenantsAPI.getLogoPublicUrl(tenantId, clubId);
-            
-            // Update club with logo URL in database
-            await masterAdminAPI.updateClub(clubId, { logoUrl: finalLogoUrl });
+            finalLogoUrl = await tenantsAPI.getLogoPublicUrl(tenantId, clubId);
           } catch (uploadErr) {
             console.error('Logo upload failed:', uploadErr);
-            // Don't fail the whole operation, just warn
+            showToast('Club created but logo upload failed', 'error');
           }
         }
         
-        // Step 3: Show success message with all details
-        const message = `✅ SUCCESS! Club Created with New Tenant\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `📋 TENANT DETAILS\n` +
-          `Tenant Name: ${result.tenant.name}\n\n` +
-          `👤 SUPER ADMIN LOGIN\n` +
-          `Name: ${result.superAdmin.displayName || result.superAdmin.email}\n` +
-          `Email: ${result.superAdmin.email}\n` +
-          `Password: ${result.superAdmin.tempPassword}\n\n` +
-          `🎮 CLUB DETAILS\n` +
-          `Club Name: ${result.club.name}\n` +
-          `Club Code: ${result.club.code}\n` +
-          (finalLogoUrl ? `Logo: Uploaded ✓\n` : '') +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `⚠️ IMPORTANT: Save these credentials!\n` +
-          `Players will use club code "${result.club.code}" to sign up.`;
-        
-        alert(message);
+        // Show success modal
+        setSuccessData({
+          type: 'tenant-club',
+          tenant: result.tenant,
+          superAdmin: result.superAdmin,
+          club: result.club,
+          logoUrl: finalLogoUrl
+        });
+        setShowSuccessModal(true);
       } else {
-        // Step 1: Create club for existing tenant
+        // Create club for existing tenant
         result = await tenantsAPI.createClubWithBranding(clubForm.tenantId, {
           name: clubForm.clubName,
           description: clubForm.clubDescription || undefined,
@@ -289,41 +292,35 @@ export default function MasterAdminDashboard() {
           videoUrl: clubForm.videoUrl || undefined,
         });
         
-        // Step 2: Upload logo if file is selected
-        let finalLogoUrl = clubForm.logoUrl;
+        // Upload logo if file is selected
         if (logoFile && result.id) {
           try {
             const tenantId = clubForm.tenantId;
             const clubId = result.id;
             
-            // Get signed upload URL
+            // Get signed URL
             const uploadData = await tenantsAPI.getLogoUploadUrl(tenantId, clubId);
             
-            // Upload file to Supabase
+            // Upload to Supabase
             await tenantsAPI.uploadLogo(uploadData.signedUrl, logoFile);
             
             // Get public URL
-            finalLogoUrl = tenantsAPI.getLogoPublicUrl(tenantId, clubId);
-            
-            // Update club with logo URL
-            await masterAdminAPI.updateClub(clubId, { logoUrl: finalLogoUrl });
+            finalLogoUrl = await tenantsAPI.getLogoPublicUrl(tenantId, clubId);
           } catch (uploadErr) {
             console.error('Logo upload failed:', uploadErr);
-            // Don't fail the whole operation
+            showToast('Club created but logo upload failed', 'error');
           }
         }
         
-        // Step 3: Show success message
-        const message = `✅ SUCCESS! Club Created\n\n` +
-          `🎮 CLUB DETAILS\n` +
-          `Club Name: ${result.name}\n` +
-          `Club Code: ${result.code}\n` +
-          (finalLogoUrl ? `Logo: Uploaded ✓\n` : '') +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `Players will use club code "${result.code}" to sign up.`;
-        
-        alert(message);
+        // Show success modal
+        setSuccessData({
+          type: 'club',
+          club: result,
+          logoUrl: finalLogoUrl
+        });
+        setShowSuccessModal(true);
       }
+
       
       setShowCreateClubModal(false);
       setClubForm({
@@ -345,11 +342,11 @@ export default function MasterAdminDashboard() {
     } catch (err) {
       const errorMsg = err.message || 'Unknown error';
       
-      // Show user-friendly error messages
+      // Show error toast
       if (errorMsg.includes('already exists') || errorMsg.includes('already used')) {
-        alert('❌ ' + errorMsg);
+        showToast(errorMsg, 'error');
       } else {
-        alert('❌ Failed to create club: ' + errorMsg);
+        showToast('Failed to create club: ' + errorMsg, 'error');
       }
     } finally {
       setUploadingLogo(false);
@@ -1003,7 +1000,7 @@ export default function MasterAdminDashboard() {
                   {!selectedClubData && (
                     <div className="text-center py-12 text-gray-400">
                       <p>Select a club from the dropdown above to edit terms & conditions.</p>
-                    </div>
+                </div>
                   )}
               </div>
             </section>
@@ -1092,13 +1089,13 @@ export default function MasterAdminDashboard() {
                             >
                               Save Changes
                       </button>
-                      <button
+                        <button
                               type="button"
                               onClick={handleCancelEditSubscription}
                               className="bg-slate-600 hover:bg-slate-500 px-6 py-2 rounded-lg font-medium"
                             >
                               Cancel
-                      </button>
+                        </button>
                     </div>
                         </form>
                       ) : (
@@ -1140,25 +1137,25 @@ export default function MasterAdminDashboard() {
                               </div>
                             )}
                           </div>
-                          <button
+                        <button
                             onClick={() => handleStartEditSubscription(club)}
                             className="ml-4 bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap"
                           >
                             Edit Subscription
-                          </button>
+                        </button>
                       </div>
                       )}
-                      </div>
-                  ))}
+                  </div>
+                ))}
 
                   {clubs.length === 0 && (
                     <div className="text-center py-12 text-gray-400">
                       <p>No clubs found.</p>
                     </div>
                   )}
-                      </div>
-              </section>
-            )}
+              </div>
+            </section>
+          )}
 
             {/* REPORTS */}
             {activeItem === "Reports" && (
@@ -1212,7 +1209,7 @@ export default function MasterAdminDashboard() {
                     </div>
                     </div>
                 ))}
-              </div>
+                    </div>
             </section>
           )}
           </div>
@@ -1318,12 +1315,18 @@ export default function MasterAdminDashboard() {
                       <label className="block text-sm mb-2 text-gray-300">Club Logo (PNG)</label>
                       <input
                         type="file"
-                        accept="image/png,image/jpg,image/jpeg"
+                        accept="image/png"
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file) {
+                            // Validate file
                             if (file.size > 5 * 1024 * 1024) {
-                              alert('Logo file size must be less than 5MB');
+                              showToast('Logo file size must be less than 5MB', 'error');
+                              e.target.value = '';
+                              return;
+                            }
+                            if (!file.type.includes('png')) {
+                              showToast('Logo must be a PNG image', 'error');
                               e.target.value = '';
                               return;
                             }
@@ -1331,12 +1334,11 @@ export default function MasterAdminDashboard() {
                           }
                         }}
                         className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 file:cursor-pointer"
-                        disabled={uploadingLogo}
                       />
                       {logoFile && (
                         <p className="text-xs text-emerald-400 mt-2">✓ {logoFile.name} selected (will upload when club is created)</p>
                       )}
-                      <p className="text-xs text-gray-400 mt-1">Logo will be uploaded to Supabase after club creation (max 5MB)</p>
+                      <p className="text-xs text-gray-400 mt-1">Logo will be uploaded to Supabase when you create the club (max 5MB)</p>
                     </div>
 
                     {/* Promo Video URL */}
@@ -1354,7 +1356,7 @@ export default function MasterAdminDashboard() {
                     {/* Skin Color */}
                     <div>
                       <label className="block text-sm mb-2 text-gray-300">Skin Color</label>
-                        <div className="flex gap-2">
+                      <div className="flex gap-2">
                         <input
                           type="color"
                           value={clubForm.skinColor}
@@ -1367,9 +1369,9 @@ export default function MasterAdminDashboard() {
                           onChange={(e) => setClubForm({...clubForm, skinColor: e.target.value})}
                           className="flex-1 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white font-mono"
                         />
-                        </div>
-                      <p className="text-xs text-gray-400 mt-1">Primary theme color for the club</p>
                       </div>
+                      <p className="text-xs text-gray-400 mt-1">Primary theme color for the club</p>
+                    </div>
 
                     {/* Gradient */}
                     <div>
@@ -1386,7 +1388,7 @@ export default function MasterAdminDashboard() {
                         ))}
                       </select>
                       <p className="text-xs text-gray-400 mt-1">Gradient theme for club branding</p>
-                  </div>
+                    </div>
                 </div>
 
                   {/* Tenant Selection */}
@@ -1419,7 +1421,22 @@ export default function MasterAdminDashboard() {
                         <label className="block text-sm mb-2">Select Tenant</label>
                         <select
                           value={clubForm.tenantId}
-                          onChange={(e) => setClubForm({...clubForm, tenantId: e.target.value})}
+                          onChange={async (e) => {
+                            const tenantId = e.target.value;
+                            setClubForm({...clubForm, tenantId});
+                            
+                            // Auto-fetch super admin email for this tenant (not shown, but used by backend)
+                            if (tenantId) {
+                              try {
+                                const tenantData = await tenantsAPI.getTenant(tenantId);
+                                if (tenantData && tenantData.superAdmin) {
+                                  console.log('✅ Tenant has super admin:', tenantData.superAdmin.email);
+                                }
+                              } catch (err) {
+                                console.error('Failed to fetch tenant info:', err);
+                              }
+                            }
+                          }}
                           className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
                           required={!clubForm.createNewTenant}
                         >
@@ -1430,7 +1447,7 @@ export default function MasterAdminDashboard() {
                             </option>
                           ))}
                         </select>
-                  </div>
+                    </div>
                     ) : (
                       <div className="space-y-4">
                         <h4 className="text-sm font-medium text-emerald-400">New Tenant Details</h4>
@@ -1458,12 +1475,12 @@ export default function MasterAdminDashboard() {
                           className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
                           required={clubForm.createNewTenant}
               />
-            </div>
+                    </div>
           )}
                   </div>
 
                   <p className="text-sm text-gray-400 text-center">A unique 6-digit club code will be generated automatically</p>
-                      </div>
+                </div>
 
                 {/* Right: Live Preview */}
                 <div className="space-y-4">
@@ -1487,46 +1504,46 @@ export default function MasterAdminDashboard() {
                           <p className="text-white/80 text-sm">
                             {clubForm.clubDescription || 'Club description will appear here'}
                           </p>
+                      </div>
                     </div>
-                  </div>
 
                       <div className="space-y-3 text-white">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                           <span className="font-medium">Logo:</span>
                           <span className="text-white/80">
                             {logoFile ? `${logoFile.name} (${(logoFile.size / 1024).toFixed(1)}KB)` : clubForm.logoUrl ? 'Set via URL' : 'Not set'}
-                          </span>
-                </div>
-                        <div className="flex items-center gap-2">
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
                           <span className="font-medium">Video:</span>
                           <span className="text-white/80">
                             {clubForm.videoUrl ? 'Set' : 'Not set'}
-                          </span>
+                        </span>
                       </div>
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                           <span className="font-medium">Skin Color:</span>
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded border-2 border-white" style={{ backgroundColor: clubForm.skinColor }}></div>
                             <span className="text-white/80 font-mono text-sm">{clubForm.skinColor}</span>
+                        </div>
                       </div>
-                      </div>
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                           <span className="font-medium">Gradient:</span>
                           <span className="text-white/80 text-sm">
                             {gradientOptions.find(g => g.value === clubForm.gradient)?.label || clubForm.gradient}
-                          </span>
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
                       <div className="mt-6 pt-6 border-t border-white/20">
                         <p className="text-white/70 text-sm">
                           This preview shows how the branding will appear in the player portal and club dashboards.
-                        </p>
-                </div>
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-              </div>
+                    </div>
 
               {/* Buttons */}
               <div className="flex gap-3 mt-8">
@@ -1536,7 +1553,7 @@ export default function MasterAdminDashboard() {
                   className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-medium text-white"
               >
                   {uploadingLogo ? 'Uploading Logo...' : 'Create Club'}
-              </button>
+                    </button>
               <button
                   type="button"
                   onClick={() => {
@@ -1547,11 +1564,115 @@ export default function MasterAdminDashboard() {
                   className="px-6 py-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:cursor-not-allowed rounded-lg font-medium text-white"
                 >
                   Cancel
+                          </button>
+                        </div>
+            </form>
+                      </div>
+                  </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={`fixed top-4 right-4 z-[100] px-6 py-4 rounded-lg shadow-2xl border-2 ${
+          toastType === 'error' 
+            ? 'bg-red-900 border-red-500 text-red-100' 
+            : 'bg-emerald-900 border-emerald-500 text-emerald-100'
+        }`}>
+          <div className="flex items-center gap-3">
+            {toastType === 'error' ? (
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            )}
+            <p className="font-medium">{toastMessage}</p>
+                </div>
+              </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && successData && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-8 max-w-2xl w-full border-2 border-emerald-500 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500 rounded-full mb-4">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+              <h2 className="text-3xl font-bold text-white mb-2">
+                {successData.type === 'tenant-club' ? '🎉 Tenant & Club Created!' : '🎉 Club Created!'}
+              </h2>
+              <p className="text-emerald-400 text-sm">Save these credentials securely!</p>
+            </div>
+
+            <div className="space-y-6">
+              {successData.type === 'tenant-club' && (
+                <>
+                  <div className="bg-slate-800/50 rounded-lg p-4 border border-purple-500/30">
+                    <h3 className="text-purple-400 font-semibold mb-3 flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                      </svg>
+                      Tenant Details
+                  </h3>
+                    <p className="text-white"><span className="text-gray-400">Name:</span> {successData.tenant.name}</p>
+                      </div>
+
+                  <div className="bg-slate-800/50 rounded-lg p-4 border border-blue-500/30">
+                    <h3 className="text-blue-400 font-semibold mb-3 flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                      </svg>
+                      Super Admin Login
+                  </h3>
+                  <div className="space-y-2">
+                      <p className="text-white"><span className="text-gray-400">Name:</span> {successData.superAdmin.displayName || successData.superAdmin.email}</p>
+                      <p className="text-white"><span className="text-gray-400">Email:</span> {successData.superAdmin.email}</p>
+                      <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-3 mt-2">
+                        <p className="text-yellow-400 text-sm font-medium mb-1">⚠️ Temporary Password</p>
+                        <p className="text-yellow-100 font-mono text-lg font-bold">{successData.superAdmin.tempPassword}</p>
+                      </div>
+                      </div>
+                      </div>
+                </>
+              )}
+
+              <div className="bg-slate-800/50 rounded-lg p-4 border border-emerald-500/30">
+                <h3 className="text-emerald-400 font-semibold mb-3 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                  </svg>
+                  Club Details
+                  </h3>
+                  <div className="space-y-2">
+                  <p className="text-white"><span className="text-gray-400">Club Name:</span> {successData.club.name}</p>
+                  <div className="bg-emerald-900/30 border border-emerald-500/50 rounded-lg p-3 mt-2">
+                    <p className="text-emerald-400 text-sm font-medium mb-1">🎮 Unique Club Code</p>
+                    <p className="text-emerald-100 font-mono text-2xl font-bold tracking-wider">{successData.club.code}</p>
+                    <p className="text-emerald-300 text-xs mt-1">Players use this code to sign up</p>
+                  </div>
+                  {successData.logoUrl && (
+                    <p className="text-emerald-400 text-sm mt-2">✅ Logo uploaded successfully</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+              <button
+              onClick={() => {
+                setShowSuccessModal(false);
+                setSuccessData(null);
+              }}
+              className="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-lg font-bold text-white text-lg transition-colors"
+            >
+              Got it! Close
               </button>
             </div>
-            </form>
           </div>
-      </div>
       )}
     </div>
   );

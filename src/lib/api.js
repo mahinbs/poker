@@ -585,6 +585,15 @@ export const tenantsAPI = {
   },
 
   /**
+   * Get tenant by ID with super admin info
+   */
+  getTenant: async (tenantId) => {
+    return await apiRequest(`/tenants/${tenantId}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
    * Create tenant (only tenant + super admin, no club)
    */
   createTenant: async (data) => {
