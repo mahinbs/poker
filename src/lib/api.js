@@ -631,16 +631,20 @@ export const tenantsAPI = {
    * Create club with branding for existing tenant
    */
   createClubWithBranding: async (tenantId, clubData) => {
+    // Filter out empty/undefined values
+    const payload = {
+      name: clubData.name,
+    };
+    
+    if (clubData.description) payload.description = clubData.description;
+    if (clubData.skinColor) payload.skinColor = clubData.skinColor;
+    if (clubData.gradient) payload.gradient = clubData.gradient;
+    if (clubData.logoUrl) payload.logoUrl = clubData.logoUrl;
+    if (clubData.videoUrl) payload.videoUrl = clubData.videoUrl;
+    
     return await apiRequest(`/tenants/${tenantId}/clubs`, {
       method: 'POST',
-      body: JSON.stringify({
-        name: clubData.name,
-        description: clubData.description,
-        skinColor: clubData.skinColor,
-        gradient: clubData.gradient,
-        logoUrl: clubData.logoUrl,
-        videoUrl: clubData.videoUrl,
-      }),
+      body: JSON.stringify(payload),
     });
   },
 
@@ -739,32 +743,10 @@ export const masterAdminAPI = {
    * Create complete tenant setup (tenant + club + super admin)
    */
   createTenantWithClub: async (data) => {
-    // Step 1: Create tenant
-    const tenant = await tenantsAPI.createTenant(data.tenantName);
-    
-    // Step 2: Create club with branding
-    const club = await tenantsAPI.createClub(tenant.id, {
-      name: data.clubName,
-      description: data.clubDescription,
-      logoUrl: data.logoUrl,
-      videoUrl: data.videoUrl,
-      skinColor: data.skinColor,
-      gradient: data.gradient,
-      superAdminEmail: data.superAdminEmail,
+    return await apiRequest('/tenants/with-club', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
-
-    // Step 3: Create super admin
-    const superAdmin = await tenantsAPI.createSuperAdmin(
-      tenant.id,
-      data.superAdminEmail,
-      data.superAdminName
-    );
-
-    return {
-      tenant,
-      club,
-      superAdmin,
-    };
   },
 
   /**

@@ -201,20 +201,29 @@ export default function MasterAdminDashboard() {
       
       loadDashboardData();
     } catch (err) {
-      alert("Failed to create tenant: " + err.message);
+      const errorMsg = err.message || 'Unknown error';
+      
+      // Show user-friendly error messages
+      if (errorMsg.includes('already exists') || errorMsg.includes('already used')) {
+        alert('❌ ' + errorMsg);
+      } else if (errorMsg.includes('Tenant name')) {
+        alert('❌ ' + errorMsg);
+      } else {
+        alert('❌ Failed to create tenant: ' + errorMsg);
+      }
     }
   };
 
   const handleCreateClub = async (e) => {
     e.preventDefault();
+    setUploadingLogo(true);
+    
     try {
       let result;
-      let logoUrl = clubForm.logoUrl;
-      
       const gradientClass = gradientOptions.find(g => g.value === clubForm.gradient)?.class || clubForm.gradient;
       
       if (clubForm.createNewTenant) {
-        // Create tenant + club together
+        // Step 1: Create tenant + club together
         result = await masterAdminAPI.createTenantWithClub({
           tenantName: clubForm.newTenantName,
           superAdminName: clubForm.newSuperAdminName,
@@ -223,55 +232,67 @@ export default function MasterAdminDashboard() {
           clubDescription: clubForm.clubDescription,
           skinColor: clubForm.skinColor,
           gradient: gradientClass,
-          logoUrl: logoUrl,
+          logoUrl: clubForm.logoUrl,
           videoUrl: clubForm.videoUrl,
         });
         
-        // Upload logo if file is selected
-        if (logoFile && result.club) {
+        // Step 2: Upload logo if file is selected
+        let finalLogoUrl = clubForm.logoUrl;
+        if (logoFile && result.club && result.tenant) {
           try {
-            setUploadingLogo(true);
             const tenantId = result.tenant.id;
             const clubId = result.club.id;
             
-            // Get signed upload URL
+            // Get signed upload URL from backend
             const uploadData = await tenantsAPI.getLogoUploadUrl(tenantId, clubId);
             
             // Upload file to Supabase
             await tenantsAPI.uploadLogo(uploadData.signedUrl, logoFile);
             
             // Get public URL
-            logoUrl = tenantsAPI.getLogoPublicUrl(tenantId, clubId);
+            finalLogoUrl = tenantsAPI.getLogoPublicUrl(tenantId, clubId);
             
-            // Update club with logo URL
-            await tenantsAPI.createClubWithBranding(tenantId, {
-              ...result.club,
-              logoUrl: logoUrl,
-            });
+            // Update club with logo URL in database
+            await masterAdminAPI.updateClub(clubId, { logoUrl: finalLogoUrl });
           } catch (uploadErr) {
             console.error('Logo upload failed:', uploadErr);
-            alert('⚠️ Club created but logo upload failed. You can upload it later.');
-          } finally {
-            setUploadingLogo(false);
+            // Don't fail the whole operation, just warn
           }
         }
         
-        alert(`✅ Success!\n\nTenant: ${result.tenant.name}\nClub: ${result.club.name}\nClub Code: ${result.club.code}\n\nSuper Admin Email: ${result.superAdmin.email}\nTemporary Password: ${result.superAdmin.tempPassword}\n\n⚠️ Save these credentials!`);
+        // Step 3: Show success message with all details
+        const message = `✅ SUCCESS! Club Created with New Tenant\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `📋 TENANT DETAILS\n` +
+          `Tenant Name: ${result.tenant.name}\n\n` +
+          `👤 SUPER ADMIN LOGIN\n` +
+          `Name: ${result.superAdmin.displayName || result.superAdmin.email}\n` +
+          `Email: ${result.superAdmin.email}\n` +
+          `Password: ${result.superAdmin.tempPassword}\n\n` +
+          `🎮 CLUB DETAILS\n` +
+          `Club Name: ${result.club.name}\n` +
+          `Club Code: ${result.club.code}\n` +
+          (finalLogoUrl ? `Logo: Uploaded ✓\n` : '') +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `⚠️ IMPORTANT: Save these credentials!\n` +
+          `Players will use club code "${result.club.code}" to sign up.`;
+        
+        alert(message);
       } else {
-        // Create club for existing tenant
+        // Step 1: Create club for existing tenant
         result = await tenantsAPI.createClubWithBranding(clubForm.tenantId, {
           name: clubForm.clubName,
-          description: clubForm.clubDescription,
-          skinColor: clubForm.skinColor,
-          gradient: gradientClass,
-          logoUrl: logoUrl,
-          videoUrl: clubForm.videoUrl,
+          description: clubForm.clubDescription || undefined,
+          skinColor: clubForm.skinColor || undefined,
+          gradient: gradientClass || undefined,
+          logoUrl: clubForm.logoUrl || undefined,
+          videoUrl: clubForm.videoUrl || undefined,
         });
         
-        // Upload logo if file is selected
+        // Step 2: Upload logo if file is selected
+        let finalLogoUrl = clubForm.logoUrl;
         if (logoFile && result.id) {
           try {
-            setUploadingLogo(true);
             const tenantId = clubForm.tenantId;
             const clubId = result.id;
             
@@ -282,18 +303,26 @@ export default function MasterAdminDashboard() {
             await tenantsAPI.uploadLogo(uploadData.signedUrl, logoFile);
             
             // Get public URL
-            logoUrl = tenantsAPI.getLogoPublicUrl(tenantId, clubId);
+            finalLogoUrl = tenantsAPI.getLogoPublicUrl(tenantId, clubId);
             
-            alert(`✅ Club Created with Logo!\n\nClub: ${result.name}\nClub Code: ${result.code}\n\n6-digit code for player signup!`);
+            // Update club with logo URL
+            await masterAdminAPI.updateClub(clubId, { logoUrl: finalLogoUrl });
           } catch (uploadErr) {
             console.error('Logo upload failed:', uploadErr);
-            alert('⚠️ Club created but logo upload failed. You can upload it later.');
-          } finally {
-            setUploadingLogo(false);
+            // Don't fail the whole operation
           }
-        } else {
-          alert(`✅ Club Created!\n\nClub: ${result.name}\nClub Code: ${result.code}\n\n6-digit code for player signup!`);
         }
+        
+        // Step 3: Show success message
+        const message = `✅ SUCCESS! Club Created\n\n` +
+          `🎮 CLUB DETAILS\n` +
+          `Club Name: ${result.name}\n` +
+          `Club Code: ${result.code}\n` +
+          (finalLogoUrl ? `Logo: Uploaded ✓\n` : '') +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `Players will use club code "${result.code}" to sign up.`;
+        
+        alert(message);
       }
       
       setShowCreateClubModal(false);
@@ -314,7 +343,16 @@ export default function MasterAdminDashboard() {
       
       loadDashboardData();
     } catch (err) {
-      alert("Failed to create club: " + err.message);
+      const errorMsg = err.message || 'Unknown error';
+      
+      // Show user-friendly error messages
+      if (errorMsg.includes('already exists') || errorMsg.includes('already used')) {
+        alert('❌ ' + errorMsg);
+      } else {
+        alert('❌ Failed to create club: ' + errorMsg);
+      }
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -1280,7 +1318,7 @@ export default function MasterAdminDashboard() {
                       <label className="block text-sm mb-2 text-gray-300">Club Logo (PNG)</label>
                       <input
                         type="file"
-                        accept="image/png"
+                        accept="image/png,image/jpg,image/jpeg"
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file) {
@@ -1289,20 +1327,16 @@ export default function MasterAdminDashboard() {
                               e.target.value = '';
                               return;
                             }
-                            if (!file.type.includes('png')) {
-                              alert('Logo must be a PNG image');
-                              e.target.value = '';
-                              return;
-                            }
                             setLogoFile(file);
                           }
                         }}
                         className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 file:cursor-pointer"
+                        disabled={uploadingLogo}
                       />
                       {logoFile && (
-                        <p className="text-xs text-emerald-400 mt-2">✓ {logoFile.name} selected</p>
+                        <p className="text-xs text-emerald-400 mt-2">✓ {logoFile.name} selected (will upload when club is created)</p>
                       )}
-                      <p className="text-xs text-gray-400 mt-1">Upload to Supabase branding bucket (max 5MB)</p>
+                      <p className="text-xs text-gray-400 mt-1">Logo will be uploaded to Supabase after club creation (max 5MB)</p>
                     </div>
 
                     {/* Promo Video URL */}
