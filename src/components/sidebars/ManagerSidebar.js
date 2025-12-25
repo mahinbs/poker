@@ -4,10 +4,20 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { clubsAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
+const DEFAULT_MENU_ITEMS = [
+  "Dashboard",
+  "Player Management",
+  "Tables & Waitlist",
+  "Rake Collection",
+  "Push Notifications",
+  "Tournaments",
+  "Chat",
+];
+
 export default function ManagerSidebar({ 
   activeItem, 
   setActiveItem, 
-  menuItems = [],
+  menuItems = DEFAULT_MENU_ITEMS,
   onSignOut = null 
 }) {
   const [isOpen, setIsOpen] = useState(false);

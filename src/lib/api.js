@@ -211,6 +211,45 @@ export const clubsAPI = {
       body: JSON.stringify(clubData),
     });
   },
+
+  /**
+   * Get active tables for rake collection
+   */
+  getActiveTablesForRakeCollection: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/rake-collections/active-tables`);
+  },
+
+  /**
+   * Create rake collection
+   */
+  createRakeCollection: async (clubId, collectionData) => {
+    return await apiRequest(`/clubs/${clubId}/rake-collections`, {
+      method: 'POST',
+      body: JSON.stringify(collectionData),
+    });
+  },
+
+  /**
+   * Get rake collections with filters
+   */
+  getRakeCollections: async (clubId, query = {}) => {
+    // Remove empty string values from query
+    const cleanQuery = Object.fromEntries(
+      Object.entries(query).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    const queryString = new URLSearchParams(cleanQuery).toString();
+    return await apiRequest(`/clubs/${clubId}/rake-collections${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get rake collection stats
+   */
+  getRakeCollectionStats: async (clubId, startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return await apiRequest(`/clubs/${clubId}/rake-collections/stats${params.toString() ? `?${params.toString()}` : ''}`);
+  },
 };
 
 // =============================================================================

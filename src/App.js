@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import AuthenticatedRoute from './components/AuthenticatedRoute';
 import NotFound from './pages/NotFound';
-import DashboardPage from './pages/dashboards/ManagerDashboardPage';
+import ManagerDashboard from './pages/dashboards/ManagerDashboard';
 import GreSignIn from './pages/auth/GreSignIn';
 import GreDashboard from './pages/dashboards/GreDashboard';
 import HrSignIn from './pages/auth/HrSignIn';
@@ -117,7 +117,11 @@ function App() {
               </AuthenticatedRoute>
             } />
 
-            <Route path="/manager" element={<DashboardPage />} />
+            <Route path="/manager" element={
+              <AuthenticatedRoute requiredRole="MANAGER">
+                <ManagerDashboard />
+              </AuthenticatedRoute>
+            } />
             <Route path="/staff" element={<StaffDashboard />} />
             
             {/* 404 Page */}
