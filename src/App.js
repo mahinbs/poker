@@ -13,6 +13,7 @@ import CashierSignIn from './pages/auth/CashierSignIn';
 import CashierDashboard from './pages/dashboards/CashierDashboard';
 import FnbSignIn from './pages/auth/FnbSignIn';
 import FnbDashboard from './pages/dashboards/FnbDashboard';
+import CustomStaffDashboard from './pages/dashboards/CustomStaffDashboard';
 import StaffLogin from './pages/auth/StaffLogin';
 import AdminDashboard from './pages/dashboards/AdminDashboard';
 import MasterAdminSignIn from './pages/auth/MasterAdminSignIn';
@@ -20,6 +21,7 @@ import MasterAdminDashboard from './pages/dashboards/MasterAdminDashboard';
 import SuperAdminSignIn from './pages/auth/SuperAdminSignIn';
 import SuperAdminPortal from './pages/dashboards/SuperAdminPortal';
 import AffiliateDashboard from './pages/dashboards/AffiliateDashboard';
+import DealerDashboard from './pages/dashboards/DealerDashboard';
 import StaffDashboard from './pages/dashboards/StaffDashboard';
 
 // Create a client for React Query
@@ -122,7 +124,23 @@ function App() {
                 <ManagerDashboard />
               </AuthenticatedRoute>
             } />
-            <Route path="/staff" element={<StaffDashboard />} />
+            <Route path="/staff" element={
+              <AuthenticatedRoute requiredRole="STAFF">
+                <CustomStaffDashboard />
+              </AuthenticatedRoute>
+            } />
+            
+            <Route path="/dealer" element={
+              <AuthenticatedRoute requiredRole="DEALER">
+                <DealerDashboard />
+              </AuthenticatedRoute>
+            } />
+            
+            <Route path="/affiliate" element={
+              <AuthenticatedRoute requiredRole="AFFILIATE">
+                <AffiliateDashboard />
+              </AuthenticatedRoute>
+            } />
             
             {/* 404 Page */}
             <Route path="/404" element={<NotFound />} />
