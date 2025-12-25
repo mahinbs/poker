@@ -16,6 +16,8 @@ const ROLE_DASHBOARD_MAP = {
   'FNB': '/fnb',
   'MANAGER': '/manager',
   'STAFF': '/staff',
+  'DEALER': '/dealer',
+  'AFFILIATE': '/affiliate',
 };
 
 export default function StaffLogin() {
@@ -60,6 +62,24 @@ export default function StaffLogin() {
         throw new Error("No role assigned. Please contact administrator.");
       }
 
+      // For STAFF role, fetch custom role name from staff data
+      let customRoleName = null;
+      if (userRole === 'STAFF' && response.clubRoles?.[0]?.club?.id) {
+        try {
+          const { staffAPI } = await import('../../lib/api');
+          const clubId = response.clubRoles[0].club.id;
+          const allStaff = await staffAPI.getAllStaffMembers(clubId);
+          const staffList = allStaff?.staff || allStaff || [];
+          const currentStaff = staffList.find(s => s.email === credentials.email);
+          if (currentStaff?.customRoleName) {
+            customRoleName = currentStaff.customRoleName;
+          }
+        } catch (error) {
+          console.error('Error fetching custom role name:', error);
+          // Continue without custom role name
+        }
+      }
+
       // Store user info for persistence
       const userData = {
         id: response.user.id,
@@ -67,6 +87,7 @@ export default function StaffLogin() {
         displayName: response.user.displayName,
         role: userRole,
         mustResetPassword: response.user.mustResetPassword || false,
+        customRoleName: customRoleName,
       };
 
       // Store in role-specific key for ALL roles
@@ -77,6 +98,7 @@ export default function StaffLogin() {
         userId: response.user.id,
         displayName: response.user.displayName,
         mustResetPassword: response.user.mustResetPassword || false,
+        customRoleName: customRoleName,
       }));
 
       // Also store in 'user' key for ALL roles (for consistency and password reset check)

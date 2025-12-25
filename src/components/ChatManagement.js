@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { chatAPI, superAdminAPI } from '../lib/api';
 import { FaUser, FaComments, FaSearch, FaPaperPlane, FaCircle, FaTimes, FaPlus } from 'react-icons/fa';
 
-export default function ChatManagement({ clubId }) {
+export default function ChatManagement({ clubId, hidePlayerChat = false }) {
   const [activeTab, setActiveTab] = useState('staff');
 
   return (
@@ -12,40 +12,47 @@ export default function ChatManagement({ clubId }) {
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 rounded-lg mb-6">
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <FaComments className="text-4xl" />
-            Player & Staff Support Chat
+            {hidePlayerChat ? 'Staff Chat' : 'Player & Staff Support Chat'}
           </h1>
-          <p className="text-white/80 mt-2">Communicate with staff members and respond to player queries in real-time</p>
+          <p className="text-white/80 mt-2">
+            {hidePlayerChat 
+              ? 'Communicate with staff members in real-time'
+              : 'Communicate with staff members and respond to player queries in real-time'
+            }
+          </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={() => setActiveTab('staff')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-              activeTab === 'staff'
-                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105'
-                : 'bg-slate-700 text-white/70 hover:bg-slate-600'
-            }`}
-          >
-            <FaUser />
-            Staff Chat
-          </button>
-          <button
-            onClick={() => setActiveTab('player')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-              activeTab === 'player'
-                ? 'bg-gradient-to-r from-orange-600 to-pink-600 text-white shadow-lg scale-105'
-                : 'bg-slate-700 text-white/70 hover:bg-slate-600'
-            }`}
-          >
-            <FaComments />
-            Player Chat
-          </button>
-        </div>
+        {!hidePlayerChat && (
+          <div className="flex gap-4 mb-6">
+            <button
+              onClick={() => setActiveTab('staff')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
+                activeTab === 'staff'
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105'
+                  : 'bg-slate-700 text-white/70 hover:bg-slate-600'
+              }`}
+            >
+              <FaUser />
+              Staff Chat
+            </button>
+            <button
+              onClick={() => setActiveTab('player')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
+                activeTab === 'player'
+                  ? 'bg-gradient-to-r from-orange-600 to-pink-600 text-white shadow-lg scale-105'
+                  : 'bg-slate-700 text-white/70 hover:bg-slate-600'
+              }`}
+            >
+              <FaComments />
+              Player Chat
+            </button>
+          </div>
+        )}
 
         {/* Content */}
         {activeTab === 'staff' && <StaffChatTab clubId={clubId} />}
-        {activeTab === 'player' && <PlayerChatTab clubId={clubId} />}
+        {!hidePlayerChat && activeTab === 'player' && <PlayerChatTab clubId={clubId} />}
       </div>
     </div>
   );
