@@ -54,8 +54,8 @@ export default function UniversalSignIn({
         mustResetPassword: response.user.mustResetPassword || false,
       }));
 
-      // Also store in 'user' key for Super Admin (like Master Admin)
-      if (role === 'SUPER_ADMIN') {
+      // Also store in 'user' key for Super Admin and Admin (for consistency)
+      if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
         localStorage.setItem('user', JSON.stringify(userData));
       }
 

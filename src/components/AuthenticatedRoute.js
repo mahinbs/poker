@@ -17,25 +17,11 @@ export const AuthenticatedRoute = ({ children, requiredRole }) => {
     if (requiredRole === 'MASTER_ADMIN') {
       return <Navigate to="/master-admin/signin" state={{ from: location }} replace />;
     }
-    if (requiredRole === 'GRE') {
-      return <Navigate to="/gre/signin" state={{ from: location }} replace />;
-    }
-    if (requiredRole === 'CASHIER') {
-      return <Navigate to="/cashier/signin" state={{ from: location }} replace />;
-    }
-    if (requiredRole === 'ADMIN') {
-      return <Navigate to="/admin/signin" state={{ from: location }} replace />;
-    }
-    if (requiredRole === 'HR') {
-      return <Navigate to="/hr/signin" state={{ from: location }} replace />;
-    }
-    if (requiredRole === 'FNB_STAFF') {
-      return <Navigate to="/fnb/signin" state={{ from: location }} replace />;
-    }
     if (requiredRole === 'SUPER_ADMIN') {
       return <Navigate to="/super-admin/signin" state={{ from: location }} replace />;
     }
-    return <Navigate to="/" state={{ from: location }} replace />;
+    // All other staff roles (ADMIN, GRE, CASHIER, HR, FNB_STAFF, etc.) use /login
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Check role if specified - show 404 for unauthorized access

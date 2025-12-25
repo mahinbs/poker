@@ -1,10 +1,27 @@
 import React, { useState, useEffect } from "react";
 
+const DEFAULT_MENU_ITEMS = [
+  "Dashboard",
+  "Player Management",
+  "Staff Management",
+  "Payroll Management",
+  "Affiliates",
+  "Tables & Waitlist",
+  "VIP Store",
+  "Push Notifications",
+  "Tournaments",
+  "Bonus Management",
+  "FNB",
+  "Chat",
+  "Reports & Analytics",
+  "System Control",
+];
+
 export default function AdminSidebar({ 
   activeItem, 
   setActiveItem, 
-  menuItems = [],
-  onSignOut = null 
+  menuItems = DEFAULT_MENU_ITEMS,
+  onSignOut = null
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -22,7 +39,6 @@ export default function AdminSidebar({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Close sidebar when clicking outside on mobile
   useEffect(() => {
     if (isOpen && isMobile) {
       const handleClickOutside = (e) => {
@@ -35,9 +51,14 @@ export default function AdminSidebar({
     }
   }, [isOpen, isMobile]);
 
+  // Get user info from localStorage
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const adminUser = JSON.parse(localStorage.getItem('adminuser') || '{}');
+  const userEmail = user.email || adminUser.email || 'admin@pokerroom.com';
+  const displayName = user.displayName || adminUser.displayName || 'Admin';
+
   return (
     <>
-      {/* Toggle Button - Mobile Only */}
       {isMobile && (
         <button
           className="sidebar-toggle fixed top-4 left-4 z-50 bg-gradient-to-r from-red-500 to-purple-600 text-white p-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 lg:hidden"
@@ -69,7 +90,6 @@ export default function AdminSidebar({
         </button>
       )}
 
-      {/* Overlay - Mobile Only */}
       {isMobile && isOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 lg:hidden"
@@ -77,9 +97,8 @@ export default function AdminSidebar({
         />
       )}
 
-      {/* Sidebar */}
       <aside
-        className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-red-500/20 via-purple-600/30 to-blue-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${
+        className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-red-500/20 via-purple-600/30 to-indigo-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${
           isMobile
             ? isOpen
               ? "translate-x-0"
@@ -88,38 +107,27 @@ export default function AdminSidebar({
         }`}
       >
         <div className="p-5 h-full flex flex-col min-w-0">
-          {/* Header */}
           <div className="mb-6">
-            <div className="pt-11 lg:pt-0 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-blue-400 drop-shadow-lg mb-6">
+            <div className="pt-11 lg:pt-0 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-indigo-400 drop-shadow-lg mb-6">
               Admin
             </div>
-            <div className="flex items-center text-white min-w-0">
-              <div className="w-10 h-10 bg-gradient-to-r from-red-400 to-purple-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                <span className="text-gray-900 font-bold text-sm">A</span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-lg font-semibold truncate">
-                  System Administrator
-                </div>
-                <div className="text-sm opacity-80 truncate">
-                  admin@pokerroom.com
-                </div>
-              </div>
+            <div className="bg-white/10 rounded-xl p-4 mb-6 text-white shadow-inner">
+              <div className="text-lg font-semibold">{displayName}</div>
+              <div className="text-sm opacity-80">{userEmail}</div>
             </div>
           </div>
 
-          {/* Navigation Menu */}
           <nav className="space-y-3 flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar min-w-0">
-            {menuItems.map((item, idx) => (
+            {menuItems.map((item) => (
               <button
-                key={idx}
+                key={item}
                 onClick={() => {
                   setActiveItem(item);
                   if (isMobile) setIsOpen(false);
                 }}
                 className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md overflow-hidden ${
                   activeItem === item
-                    ? "bg-gradient-to-r from-red-400 to-purple-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
+                    ? "bg-gradient-to-r from-red-400 to-purple-600 text-white font-bold shadow-lg scale-[1.02]"
                     : "bg-white/5 hover:bg-gradient-to-r hover:from-red-400/20 hover:to-purple-500/20 text-white"
                 }`}
               >
@@ -128,7 +136,6 @@ export default function AdminSidebar({
             ))}
           </nav>
 
-          {/* Sign Out Button */}
           {onSignOut && (
             <div className="mt-6 pt-6 border-t border-white/10">
               <button
@@ -144,4 +151,3 @@ export default function AdminSidebar({
     </>
   );
 }
-
