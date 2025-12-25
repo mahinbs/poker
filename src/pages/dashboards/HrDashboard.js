@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import CustomSelect from "../../components/common/CustomSelect";
 import StaffManagement from "../../components/StaffManagement";
-import PlayerManagementSection from "../../components/PlayerManagementSection";
-import ChatSection from "../../components/ChatSection";
+import PlayerManagementHR from "../../components/PlayerManagementHR";
+import SalaryHistoryHR from "../../components/SalaryHistoryHR";
+import AttendanceManagement from "../../components/AttendanceManagement";
+import ChatManagementHR from "../../components/ChatManagementHR";
 import HrSidebar from "../../components/sidebars/HrSidebar";
 import toast from "react-hot-toast";
 
@@ -118,13 +119,21 @@ export default function HrDashboard() {
 
   const menuItems = [
     "Staff Management",
+    "Salary History",
     "Player Management",
-    "Attendance Management", 
-    "Staff Directory",
-    "Staff Requests",
-    "Performance Reviews",
+    "Attendance Management",
     "Chat",
   ];
+
+  // Get clubId from localStorage
+  const [clubId, setClubId] = useState(null);
+  
+  useEffect(() => {
+    const storedClubId = localStorage.getItem('clubId');
+    if (storedClubId) {
+      setClubId(storedClubId);
+    }
+  }, []);
 
   // Staff members data with documents
   const staffMembers = [
@@ -559,30 +568,27 @@ export default function HrDashboard() {
 
           {/* Dynamic Content Based on Active Item */}
           {activeItem === "Staff Management" && (
-            <>
-              <StaffManagement />
-            </>
+            <StaffManagement selectedClubId={clubId} />
           )}
 
-          {/* Player Management */}
+          {activeItem === "Salary History" && (
+            <SalaryHistoryHR selectedClubId={clubId} />
+          )}
+
           {activeItem === "Player Management" && (
-            <PlayerManagementSection
-              userRole="hr"
-              kycRequests={kycRequests}
-              setKycRequests={setKycRequests}
-              profileUpdates={profileUpdates}
-              setProfileUpdates={setProfileUpdates}
-              pendingApprovals={pendingApprovals}
-              setPendingApprovals={setPendingApprovals}
-              suspendedPlayers={suspendedPlayers}
-              setSuspendedPlayers={setSuspendedPlayers}
-              allPlayers={allPlayers}
-              setAllPlayers={setAllPlayers}
-            />
+            <PlayerManagementHR selectedClubId={clubId} />
           )}
 
-          {/* Attendance Management */}
           {activeItem === "Attendance Management" && (
+            <AttendanceManagement selectedClubId={clubId} />
+          )}
+
+          {activeItem === "Chat" && (
+            <ChatManagementHR clubId={clubId} />
+          )}
+
+          {/* OLD ATTENDANCE MANAGEMENT - REMOVED */}
+          {false && activeItem === "Attendance Management OLD" && (
             <div className="space-y-6">
               <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
                 <div className="flex items-center justify-between mb-6">
@@ -1275,16 +1281,6 @@ export default function HrDashboard() {
             </div>
           )}
 
-          {/* Chat */}
-          {activeItem === "Chat" && (
-            <ChatSection
-              userRole="hr"
-              playerChats={playerChats}
-              setPlayerChats={setPlayerChats}
-              staffChats={staffChats}
-              setStaffChats={setStaffChats}
-            />
-          )}
           </div>
         </main>
       </div>

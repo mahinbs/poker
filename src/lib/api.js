@@ -186,6 +186,13 @@ export const clubsAPI = {
   },
 
   /**
+   * Get player by ID
+   */
+  getPlayer: async (clubId, playerId) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}`);
+  },
+
+  /**
    * Get club revenue data (revenue, rake, tips)
    */
   getClubRevenue: async (clubId) => {
@@ -300,6 +307,48 @@ export const clubsAPI = {
    */
   rejectBuyInRequest: async (clubId, requestId, data) => {
     return await apiRequest(`/clubs/${clubId}/buyin-requests/${requestId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Get attendance records
+   */
+  getAttendanceRecords: async (clubId, startDate, endDate, staffId) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (staffId) params.append('staffId', staffId);
+    return await apiRequest(`/clubs/${clubId}/attendance${params.toString() ? `?${params.toString()}` : ''}`);
+  },
+
+  /**
+   * Get attendance stats
+   */
+  getAttendanceStats: async (clubId, startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return await apiRequest(`/clubs/${clubId}/attendance/stats${params.toString() ? `?${params.toString()}` : ''}`);
+  },
+
+  /**
+   * Get salary payments (for HR - read-only)
+   */
+  getSalaryPayments: async (clubId, query = {}) => {
+    const cleanQuery = Object.fromEntries(
+      Object.entries(query).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    const queryString = new URLSearchParams(cleanQuery).toString();
+    return await apiRequest(`/clubs/${clubId}/payroll/salary${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Create attendance record
+   */
+  createAttendanceRecord: async (clubId, data) => {
+    return await apiRequest(`/clubs/${clubId}/attendance`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
