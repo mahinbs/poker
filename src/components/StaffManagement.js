@@ -21,6 +21,10 @@ const STAFF_ROLES = [
 export default function StaffManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("staff"); // 'staff', 'shifts', or 'payroll'
+  
+  // Check if current user is HR
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isHR = user.role === 'HR';
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
@@ -475,44 +479,48 @@ export default function StaffManagement({ selectedClubId }) {
                     View
                   </button>
 
-                  <button
-                    onClick={() => handleEditStaff(member)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-                  >
-                    Edit
-                  </button>
+                  {!isHR && (
+                    <>
+                      <button
+                        onClick={() => handleEditStaff(member)}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                      >
+                        Edit
+                      </button>
 
-                  {member.status === "Active" && (
-                    <button
-                      onClick={() => handleSuspend(member)}
-                      className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-                    >
-                      Suspend
-                    </button>
+                      {member.status === "Active" && (
+                        <button
+                          onClick={() => handleSuspend(member)}
+                          className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                        >
+                          Suspend
+                        </button>
+                      )}
+
+                      {member.status === "Suspended" && (
+                        <button
+                          onClick={() => handleReactivate(member)}
+                          className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                        >
+                          Reactivate
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleResetPassword(member)}
+                        className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                      >
+                        Reset Password
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(member)}
+                        className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </>
                   )}
-
-                  {member.status === "Suspended" && (
-                    <button
-                      onClick={() => handleReactivate(member)}
-                      className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-                    >
-                      Reactivate
-                    </button>
-                  )}
-
-                <button
-                    onClick={() => handleResetPassword(member)}
-                    className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-                >
-                    Reset Password
-                </button>
-
-                <button
-                    onClick={() => handleDelete(member)}
-                    className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-                >
-                    Delete
-                </button>
                 </div>
               </div>
             </div>
