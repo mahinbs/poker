@@ -13,7 +13,7 @@ const ROLE_DASHBOARD_MAP = {
   'GRE': '/gre',
   'CASHIER': '/cashier',
   'HR': '/hr',
-  'FNB_STAFF': '/fnb',
+  'FNB': '/fnb',
   'MANAGER': '/manager',
   'STAFF': '/staff',
 };

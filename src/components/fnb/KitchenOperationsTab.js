@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fnbAPI, superAdminAPI } from '../../lib/api';
+import { fnbAPI, staffAPI } from '../../lib/api';
 
 export default function KitchenOperationsTab({ clubId }) {
   const [stations, setStations] = useState([]);
@@ -30,12 +30,24 @@ export default function KitchenOperationsTab({ clubId }) {
 
   const loadChefs = async () => {
     try {
-      // Load kitchen staff (chefs)
-      const allStaff = await superAdminAPI.getAllStaff(clubId);
-      const chefStaff = allStaff.filter((s) => s.role === 'KITCHEN_STAFF');
-      setDealers(chefStaff);
+      // Load staff members - only FNB role and custom Staff roles
+      // The API returns { success: true, staff: [...] }
+      const response = await staffAPI.getAllStaffMembers(clubId);
+      const staffList = response?.staff || response || [];
+      // Filter to show only active staff with FNB role OR custom Staff roles
+      const activeStaff = Array.isArray(staffList) 
+        ? staffList.filter(s => {
+            const isActive = s.status === 'Active' || !s.status;
+            const isFNB = s.role === 'FNB';
+            const isCustomStaff = s.role === 'Staff' && s.customRoleName;
+            return isActive && (isFNB || isCustomStaff);
+          })
+        : [];
+      setDealers(activeStaff);
     } catch (error) {
       console.error('Error loading chefs:', error);
+      // Don't show error to user, just log it - chefs are optional
+      setDealers([]);
     }
   };
 
@@ -333,12 +345,21 @@ function AddStationModal({ clubId, station, chefs, onClose, onSave }) {
                 className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
               >
                 <option value="">-- Optional --</option>
-                {chefs.map((chef) => (
-                  <option key={chef.id} value={chef.id}>
-                    {chef.name}
-                  </option>
-                ))}
+                {chefs.map((chef) => {
+                  // Show role in the dropdown, especially for custom Staff roles
+                  const roleDisplay = chef.role === 'Staff' && chef.customRoleName 
+                    ? `${chef.customRoleName} (Custom)` 
+                    : chef.role;
+                  return (
+                    <option key={chef.id} value={chef.id}>
+                      {chef.name} {roleDisplay ? `- ${roleDisplay}` : ''}
+                    </option>
+                  );
+                })}
               </select>
+              <p className="text-xs text-gray-400 mt-1">
+                Showing all active staff members including custom roles
+              </p>
             </div>
           )}
 

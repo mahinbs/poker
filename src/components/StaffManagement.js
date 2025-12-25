@@ -14,7 +14,7 @@ const STAFF_ROLES = [
   { value: "Cashier", label: "Cashier" },
   { value: "Affiliate", label: "Affiliate" },
   { value: "Dealer", label: "Dealer" },
-  { value: "Kitchen Staff", label: "Kitchen Staff" },
+  { value: "FNB", label: "FNB" },
   { value: "Staff", label: "Staff (Custom Role)" },
 ];
 
