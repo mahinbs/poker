@@ -204,7 +204,14 @@ export default function MasterAdminDashboard() {
         superAdminEmail: tenantForm.superAdminEmail,
       });
       
-      alert(`✅ Tenant Created!\n\nTenant: ${result.tenant.name}\n\nSuper Admin Email: ${result.superAdmin.email}\nTemporary Password: ${result.superAdmin.tempPassword}\n\n⚠️ Save these credentials!`);
+      // Show success modal with tenant details
+      setSuccessData({
+        type: 'tenant',
+        tenantName: result.tenant.name,
+        superAdminEmail: result.superAdmin.email,
+        tempPassword: result.superAdmin.tempPassword,
+      });
+      setShowSuccessModal(true);
       
       setShowCreateTenantModal(false);
       setTenantForm({
@@ -1604,12 +1611,42 @@ export default function MasterAdminDashboard() {
                 </svg>
             </div>
               <h2 className="text-3xl font-bold text-white mb-2">
-                {successData.type === 'tenant-club' ? '🎉 Tenant & Club Created!' : '🎉 Club Created!'}
+                {successData.type === 'tenant' ? '🎉 Tenant Created!' : successData.type === 'tenant-club' ? '🎉 Tenant & Club Created!' : '🎉 Club Created!'}
               </h2>
               <p className="text-emerald-400 text-sm">Save these credentials securely!</p>
             </div>
 
             <div className="space-y-6">
+              {successData.type === 'tenant' && (
+                <>
+                  <div className="bg-slate-800/50 rounded-lg p-4 border border-purple-500/30">
+                    <h3 className="text-purple-400 font-semibold mb-3 flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                      </svg>
+                      Tenant Details
+                    </h3>
+                    <p className="text-white"><span className="text-gray-400">Name:</span> {successData.tenantName}</p>
+            </div>
+
+                  <div className="bg-slate-800/50 rounded-lg p-4 border border-blue-500/30">
+                    <h3 className="text-blue-400 font-semibold mb-3 flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                      </svg>
+                      Super Admin Login
+                  </h3>
+                  <div className="space-y-2">
+                      <p className="text-white"><span className="text-gray-400">Email:</span> {successData.superAdminEmail}</p>
+                      <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-3 mt-2">
+                        <p className="text-yellow-400 text-sm font-medium mb-1">⚠️ Temporary Password</p>
+                        <p className="text-yellow-100 font-mono text-lg font-bold">{successData.tempPassword}</p>
+                      </div>
+                      </div>
+                    </div>
+                </>
+              )}
+              
               {successData.type === 'tenant-club' && (
                 <>
                   <div className="bg-slate-800/50 rounded-lg p-4 border border-purple-500/30">
@@ -1620,7 +1657,7 @@ export default function MasterAdminDashboard() {
                       Tenant Details
                   </h3>
                     <p className="text-white"><span className="text-gray-400">Name:</span> {successData.tenant.name}</p>
-                      </div>
+                  </div>
 
                   <div className="bg-slate-800/50 rounded-lg p-4 border border-blue-500/30">
                     <h3 className="text-blue-400 font-semibold mb-3 flex items-center gap-2">
@@ -1641,25 +1678,27 @@ export default function MasterAdminDashboard() {
                 </>
               )}
 
-              <div className="bg-slate-800/50 rounded-lg p-4 border border-emerald-500/30">
-                <h3 className="text-emerald-400 font-semibold mb-3 flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                  </svg>
-                  Club Details
+              {(successData.type === 'tenant-club' || successData.type === 'club') && (
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-emerald-500/30">
+                  <h3 className="text-emerald-400 font-semibold mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                    </svg>
+                    Club Details
                   </h3>
                   <div className="space-y-2">
-                  <p className="text-white"><span className="text-gray-400">Club Name:</span> {successData.club.name}</p>
-                  <div className="bg-emerald-900/30 border border-emerald-500/50 rounded-lg p-3 mt-2">
-                    <p className="text-emerald-400 text-sm font-medium mb-1">🎮 Unique Club Code</p>
-                    <p className="text-emerald-100 font-mono text-2xl font-bold tracking-wider">{successData.club.code}</p>
-                    <p className="text-emerald-300 text-xs mt-1">Players use this code to sign up</p>
+                    <p className="text-white"><span className="text-gray-400">Club Name:</span> {successData.club.name}</p>
+                    <div className="bg-emerald-900/30 border border-emerald-500/50 rounded-lg p-3 mt-2">
+                      <p className="text-emerald-400 text-sm font-medium mb-1">🎮 Unique Club Code</p>
+                      <p className="text-emerald-100 font-mono text-2xl font-bold tracking-wider">{successData.club.code}</p>
+                      <p className="text-emerald-300 text-xs mt-1">Players use this code to sign up</p>
                   </div>
-                  {successData.logoUrl && (
-                    <p className="text-emerald-400 text-sm mt-2">✅ Logo uploaded successfully</p>
-                  )}
+                    {successData.logoUrl && (
+                      <p className="text-emerald-400 text-sm mt-2">✅ Logo uploaded successfully</p>
+                    )}
                 </div>
               </div>
+          )}
             </div>
 
               <button

@@ -1,400 +1,364 @@
 import React, { useState } from 'react';
-import { 
-  ChartBarIcon, 
-  CalendarIcon, 
-  DocumentTextIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
-  CurrencyDollarIcon,
-  ShoppingCartIcon,
-  ClockIcon
-} from '@heroicons/react/24/outline';
+import { FaUser, FaChartBar, FaDollarSign, FaCoins, FaTable, FaCreditCard, FaReceipt, FaGift, FaWrench, FaDownload, FaFilePdf, FaFileExcel } from 'react-icons/fa';
+import { getAuthHeaders } from '../lib/api';
 
-const ReportsAnalytics = () => {
-  const [activeReport, setActiveReport] = useState('daily');
-  const [selectedPeriod, setSelectedPeriod] = useState('today');
+export default function ReportsAnalytics({ clubId }) {
+  const [selectedReport, setSelectedReport] = useState(null);
 
-  const dailyData = {
-    revenue: 1250.50,
-    orders: 45,
-    averageOrderValue: 27.79,
-    topSellingItems: [
-      { name: 'Chicken Burger', sold: 15, revenue: 194.85 },
-      { name: 'Caesar Salad', sold: 12, revenue: 107.88 },
-      { name: 'Pasta Carbonara', sold: 8, revenue: 119.92 },
-      { name: 'Fish & Chips', sold: 6, revenue: 101.94 },
-      { name: 'Chocolate Cake', sold: 4, revenue: 27.96 }
-    ],
-    hourlySales: [
-      { hour: '9:00', sales: 120.50 },
-      { hour: '10:00', sales: 85.25 },
-      { hour: '11:00', sales: 195.75 },
-      { hour: '12:00', sales: 320.00 },
-      { hour: '13:00', sales: 285.50 },
-      { hour: '14:00', sales: 180.25 },
-      { hour: '15:00', sales: 95.75 },
-      { hour: '16:00', sales: 45.50 }
-    ],
-    expenses: 245.50,
-    profit: 1005.00
-  };
+  const reportTypes = [
+    {
+      id: 'individual_player',
+      name: 'Individual Player Report',
+      icon: <FaUser className="text-5xl" />,
+      color: 'from-blue-500 to-cyan-500',
+      description: 'Detailed report for a specific player'
+    },
+    {
+      id: 'cumulative_player',
+      name: 'Cumulative Player Report',
+      icon: <FaChartBar className="text-5xl" />,
+      color: 'from-purple-500 to-pink-500',
+      description: 'Overall statistics for all players'
+    },
+    {
+      id: 'daily_transactions',
+      name: 'Daily Transactions Report',
+      icon: <FaDollarSign className="text-5xl" />,
+      color: 'from-yellow-500 to-orange-500',
+      description: 'All transactions for a date range'
+    },
+    {
+      id: 'daily_rake',
+      name: 'Daily Rake Report',
+      icon: <FaCoins className="text-5xl" />,
+      color: 'from-red-500 to-pink-500',
+      description: 'Rake collected per day'
+    },
+    {
+      id: 'per_table_transactions',
+      name: 'Per Table Transactions Report',
+      icon: <FaTable className="text-5xl" />,
+      color: 'from-green-500 to-teal-500',
+      description: 'Transactions by table'
+    },
+    {
+      id: 'credit_transactions',
+      name: 'Credit Transactions Report',
+      icon: <FaCreditCard className="text-5xl" />,
+      color: 'from-indigo-500 to-purple-500',
+      description: 'Credit requests and approvals'
+    },
+    {
+      id: 'expenses',
+      name: 'Expenses Report',
+      icon: <FaReceipt className="text-5xl" />,
+      color: 'from-orange-500 to-red-500',
+      description: 'Salaries, tips, and other expenses'
+    },
+    {
+      id: 'bonus',
+      name: 'Bonus Report',
+      icon: <FaGift className="text-5xl" />,
+      color: 'from-pink-500 to-rose-500',
+      description: 'Player and staff bonuses'
+    },
+    {
+      id: 'custom',
+      name: 'Custom Report',
+      icon: <FaWrench className="text-5xl" />,
+      color: 'from-gray-500 to-slate-500',
+      description: 'Compile multiple reports'
+    }
+  ];
 
-  const weeklyData = {
-    revenue: 8750.25,
-    orders: 315,
-    averageOrderValue: 27.78,
-    dailyBreakdown: [
-      { day: 'Monday', revenue: 1250.50, orders: 45 },
-      { day: 'Tuesday', revenue: 1180.25, orders: 42 },
-      { day: 'Wednesday', revenue: 1320.75, orders: 48 },
-      { day: 'Thursday', revenue: 1450.00, orders: 52 },
-      { day: 'Friday', revenue: 1680.50, orders: 58 },
-      { day: 'Saturday', revenue: 1890.25, orders: 65 },
-      { day: 'Sunday', revenue: 1878.00, orders: 65 }
-    ],
-    expenses: 1750.25,
-    profit: 7000.00
-  };
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 rounded-lg mb-6">
+          <h1 className="text-3xl font-bold text-white">Reports & Analytics</h1>
+          <p className="text-white/80 mt-2">Generate comprehensive reports with real-time data</p>
+        </div>
 
-  const monthlyData = {
-    revenue: 37500.75,
-    orders: 1350,
-    averageOrderValue: 27.78,
-    weeklyBreakdown: [
-      { week: 'Week 1', revenue: 8750.25, orders: 315 },
-      { week: 'Week 2', revenue: 9200.50, orders: 330 },
-      { week: 'Week 3', revenue: 8950.00, orders: 320 },
-      { week: 'Week 4', revenue: 10600.00, orders: 385 }
-    ],
-    expenses: 7500.15,
-    profit: 30000.60
-  };
+        {/* Report Type Cards */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">Available Report Types</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {reportTypes.map((report) => (
+              <button
+                key={report.id}
+                onClick={() => setSelectedReport(report)}
+                className={`bg-gradient-to-br ${report.color} p-6 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 text-white`}
+              >
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="p-4 bg-white/20 rounded-full">
+                    {report.icon}
+                  </div>
+                  <h3 className="text-xl font-bold">{report.name}</h3>
+                  <p className="text-sm text-white/80">{report.description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
 
-  const getCurrentData = () => {
-    switch (activeReport) {
-      case 'daily': return dailyData;
-      case 'weekly': return weeklyData;
-      case 'monthly': return monthlyData;
-      default: return dailyData;
+        {/* Report Configuration Modal */}
+        {selectedReport && (
+          <ReportConfigurationModal
+            report={selectedReport}
+            clubId={clubId}
+            onClose={() => setSelectedReport(null)}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Report Configuration Modal
+function ReportConfigurationModal({ report, clubId, onClose }) {
+  const [config, setConfig] = useState({
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+    format: 'excel',
+    playerId: '',
+    playerSearch: '',
+    tableNumber: '',
+    customReportTypes: []
+  });
+  const [generating, setGenerating] = useState(false);
+  const [players, setPlayers] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+
+  // Search for players (for Individual Player Report)
+  const handlePlayerSearch = async (searchTerm) => {
+    if (searchTerm.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      // Mock search - replace with actual API call
+      setSearchResults([
+        { id: '1', name: 'John Doe', email: 'john@example.com' },
+        { id: '2', name: 'Jane Smith', email: 'jane@example.com' }
+      ]);
+    } catch (error) {
+      console.error('Error searching players:', error);
     }
   };
 
-  const renderDailyReport = () => {
-    const data = getCurrentData();
-    return (
-      <div className="space-y-6">
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CurrencyDollarIcon className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Revenue</p>
-                <p className="text-2xl font-semibold text-gray-900">${data.revenue.toFixed(2)}</p>
-              </div>
-            </div>
-          </div>
+  const handleGenerate = async () => {
+    try {
+      setGenerating(true);
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <ShoppingCartIcon className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Orders</p>
-                <p className="text-2xl font-semibold text-gray-900">{data.orders}</p>
-              </div>
-            </div>
-          </div>
+      const payload = {
+        reportType: report.id,
+        startDate: config.startDate,
+        endDate: config.endDate,
+        format: config.format,
+        ...(report.id === 'individual_player' && { playerId: config.playerId }),
+        ...(report.id === 'per_table_transactions' && { tableNumber: config.tableNumber }),
+        ...(report.id === 'custom' && { customReportTypes: config.customReportTypes })
+      };
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <TrendingUpIcon className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
-                <p className="text-2xl font-semibold text-gray-900">${data.averageOrderValue.toFixed(2)}</p>
-              </div>
-            </div>
-          </div>
+      const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api';
+      const response = await fetch(`${API_BASE_URL}/clubs/${clubId}/reports/generate`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload)
+      });
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <TrendingUpIcon className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Profit</p>
-                <p className="text-2xl font-semibold text-gray-900">${data.profit.toFixed(2)}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      if (!response.ok) {
+        throw new Error('Failed to generate report');
+      }
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Sales Chart */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">
-                {activeReport === 'daily' ? 'Hourly Sales' : activeReport === 'weekly' ? 'Daily Sales' : 'Weekly Sales'}
-              </h3>
-            </div>
-            <div className="p-6">
-              <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <ChartBarIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">Chart visualization will be implemented here</p>
-                </div>
-              </div>
-            </div>
-          </div>
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${report.id}_report_${config.startDate}.${config.format === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
 
-          {/* Top Selling Items */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Top Selling Items</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {data.topSellingItems.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-sm font-medium text-gray-500">#{index + 1}</span>
-                      <span className="text-sm font-medium text-gray-900">{item.name}</span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">{item.sold} sold</p>
-                      <p className="text-xs text-gray-500">${item.revenue.toFixed(2)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Detailed Breakdown */}
-        {activeReport === 'weekly' && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Weekly Breakdown</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Order</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {data.dailyBreakdown.map((day, index) => (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{day.day}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${day.revenue.toFixed(2)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day.orders}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(day.revenue / day.orders).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeReport === 'monthly' && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Monthly Breakdown</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Week</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Order</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {data.weeklyBreakdown.map((week, index) => (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{week.week}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${week.revenue.toFixed(2)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{week.orders}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(week.revenue / week.orders).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-    );
+      alert('Report generated successfully!');
+      onClose();
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('Failed to generate report');
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Reports & Analytics</h2>
-          <p className="text-gray-600">Comprehensive reporting and analytics dashboard</p>
-        </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => {
-              const rows = [
-                ["Metric","Revenue","Orders","AvgOrder","Profit"],
-                [
-                  selectedPeriod,
-                  getCurrentData().revenue,
-                  getCurrentData().orders,
-                  getCurrentData().averageOrderValue,
-                  getCurrentData().profit
-                ]
-              ];
-              const csv = rows.map(r => r.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
-              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = `reports-${activeReport}.csv`;
-              link.click();
-              URL.revokeObjectURL(url);
-            }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
-          >
-            <DocumentTextIcon className="h-5 w-5" />
-            <span>Export CSV</span>
-          </button>
-          <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2">
-            <CalendarIcon className="h-5 w-5" />
-            <span>Schedule Report</span>
-          </button>
-        </div>
-      </div>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full my-8">
+        <h2 className="text-3xl font-bold text-white mb-6">Report Configuration</h2>
 
-      {/* Report Type Selector */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex space-x-4">
-          <button
-            onClick={() => setActiveReport('daily')}
-            className={`px-4 py-2 rounded-lg font-medium ${
-              activeReport === 'daily'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Daily Report
-          </button>
-          <button
-            onClick={() => setActiveReport('weekly')}
-            className={`px-4 py-2 rounded-lg font-medium ${
-              activeReport === 'weekly'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Weekly Report
-          </button>
-          <button
-            onClick={() => setActiveReport('monthly')}
-            className={`px-4 py-2 rounded-lg font-medium ${
-              activeReport === 'monthly'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Monthly Report
-          </button>
+        {/* Report Type Display */}
+        <div className={`bg-gradient-to-r ${report.color} p-4 rounded-lg mb-6 flex items-center gap-4`}>
+          <div className="text-white text-3xl">{report.icon}</div>
+          <div>
+            <h3 className="text-xl font-bold text-white">{report.name}</h3>
+            <p className="text-white/80 text-sm">{report.description}</p>
+          </div>
         </div>
-      </div>
 
-      {/* Report Content */}
-      {renderDailyReport()}
+        {/* Individual Player Search */}
+        {report.id === 'individual_player' && (
+          <div className="mb-6">
+            <label className="block text-white mb-2 font-semibold">
+              Search Player <span className="text-red-400">(Type at least 3 characters)</span>
+            </label>
+            <input
+              type="text"
+              value={config.playerSearch}
+              onChange={(e) => {
+                setConfig({ ...config, playerSearch: e.target.value });
+                handlePlayerSearch(e.target.value);
+              }}
+              placeholder="Search by name, ID, or email..."
+              className="w-full px-4 py-3 bg-slate-700 text-white rounded-lg"
+            />
+            {searchResults.length > 0 && (
+              <div className="mt-2 bg-slate-700 rounded-lg max-h-48 overflow-y-auto">
+                {searchResults.map((player) => (
+                  <button
+                    key={player.id}
+                    onClick={() => {
+                      setConfig({ ...config, playerId: player.id, playerSearch: player.name });
+                      setSearchResults([]);
+                    }}
+                    className="w-full text-left px-4 py-3 text-white hover:bg-slate-600 transition-colors"
+                  >
+                    <div className="font-semibold">{player.name}</div>
+                    <div className="text-sm text-white/60">{player.email}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-      {/* Additional Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Performance Metrics */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Performance Metrics</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Peak Hour</span>
-              <span className="font-medium">12:00 PM</span>
+        {/* Per Table Number Input */}
+        {report.id === 'per_table_transactions' && (
+          <div className="mb-6">
+            <label className="block text-white mb-2 font-semibold">
+              Table Number <span className="text-white/60 text-sm">(Optional - leave blank for all tables)</span>
+            </label>
+            <input
+              type="text"
+              value={config.tableNumber}
+              onChange={(e) => setConfig({ ...config, tableNumber: e.target.value })}
+              placeholder="e.g., Table 1, T-5"
+              className="w-full px-4 py-3 bg-slate-700 text-white rounded-lg"
+            />
+          </div>
+        )}
+
+        {/* Custom Report - Select Multiple */}
+        {report.id === 'custom' && (
+          <div className="mb-6">
+            <label className="block text-white mb-3 font-semibold">
+              Select Multiple Report Types to Compile
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {['cumulative_player', 'daily_transactions', 'daily_rake', 'credit_transactions', 'expenses', 'bonus'].map((type) => (
+                <label key={type} className="flex items-center gap-2 bg-slate-700 p-3 rounded-lg cursor-pointer hover:bg-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={config.customReportTypes.includes(type)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setConfig({ ...config, customReportTypes: [...config.customReportTypes, type] });
+                      } else {
+                        setConfig({ ...config, customReportTypes: config.customReportTypes.filter(t => t !== type) });
+                      }
+                    }}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-white text-sm capitalize">{type.replace(/_/g, ' ')}</span>
+                </label>
+              ))}
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Busiest Day</span>
-              <span className="font-medium">Saturday</span>
+          </div>
+        )}
+
+        {/* Date Range */}
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold text-white mb-3">Date Range</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-white mb-2">Start Date</label>
+              <input
+                type="date"
+                value={config.startDate}
+                onChange={(e) => setConfig({ ...config, startDate: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-700 text-white rounded-lg"
+              />
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Customer Satisfaction</span>
-              <span className="font-medium text-green-600">4.8/5</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Order Accuracy</span>
-              <span className="font-medium text-green-600">98.5%</span>
+            <div>
+              <label className="block text-white mb-2">End Date</label>
+              <input
+                type="date"
+                value={config.endDate}
+                onChange={(e) => setConfig({ ...config, endDate: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-700 text-white rounded-lg"
+              />
             </div>
           </div>
         </div>
 
-        {/* Financial Summary */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Financial Summary</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Revenue</span>
-              <span className="font-medium text-green-600">${getCurrentData().revenue.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Expenses</span>
-              <span className="font-medium text-red-600">${getCurrentData().expenses.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Net Profit</span>
-              <span className="font-medium text-green-600">${getCurrentData().profit.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Profit Margin</span>
-              <span className="font-medium text-green-600">{((getCurrentData().profit / getCurrentData().revenue) * 100).toFixed(1)}%</span>
-            </div>
+        {/* Format Selection */}
+        <div className="mb-8">
+          <h3 className="text-xl font-semibold text-white mb-3">Download Format</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => setConfig({ ...config, format: 'excel' })}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                config.format === 'excel'
+                  ? 'bg-green-600 border-green-400 text-white'
+                  : 'bg-slate-700 border-slate-600 text-white/70 hover:border-slate-500'
+              }`}
+            >
+              <FaFileExcel className="text-4xl mx-auto mb-2" />
+              <div className="font-semibold">Excel (.xlsx)</div>
+            </button>
+            <button
+              onClick={() => setConfig({ ...config, format: 'pdf' })}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                config.format === 'pdf'
+                  ? 'bg-red-600 border-red-400 text-white'
+                  : 'bg-slate-700 border-slate-600 text-white/70 hover:border-slate-500'
+              }`}
+            >
+              <FaFilePdf className="text-4xl mx-auto mb-2" />
+              <div className="font-semibold">PDF (.pdf)</div>
+            </button>
           </div>
         </div>
 
-        {/* Inventory Insights */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Inventory Insights</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Low Stock Items</span>
-              <span className="font-medium text-yellow-600">3</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Out of Stock</span>
-              <span className="font-medium text-red-600">1</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Inventory Value</span>
-              <span className="font-medium">$2,450.75</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Turnover Rate</span>
-              <span className="font-medium text-green-600">4.2x</span>
-            </div>
-          </div>
+        {/* Actions */}
+        <div className="flex gap-4">
+          <button
+            onClick={handleGenerate}
+            disabled={generating || (report.id === 'individual_player' && !config.playerId) || (report.id === 'custom' && config.customReportTypes.length === 0)}
+            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 py-4 rounded-lg font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            <FaDownload />
+            {generating ? 'Generating...' : 'Generate Report'}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-6 py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
   );
-};
-
-export default ReportsAnalytics;
+}

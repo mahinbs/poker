@@ -38,11 +38,26 @@ export default function UniversalSignIn({
       }
 
       // Store user info for persistence
-      localStorage.setItem(`${role.toLowerCase()}User`, JSON.stringify({ 
+      const userData = {
+        id: response.user.id,
+        email: credentials.email,
+        displayName: response.user.displayName,
+        role: role,
+        mustResetPassword: response.user.mustResetPassword || false,
+      };
+
+      // Store in role-specific key
+      localStorage.setItem(`${role.toLowerCase()}user`, JSON.stringify({ 
         email: credentials.email, 
         role: role,
         userId: response.user.id,
+        mustResetPassword: response.user.mustResetPassword || false,
       }));
+
+      // Also store in 'user' key for Super Admin (like Master Admin)
+      if (role === 'SUPER_ADMIN') {
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
 
       navigate(redirectPath);
     } catch (err) {

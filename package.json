@@ -12,8 +12,11 @@
     "clear-cache": "node -e \"const fs = require('fs'); const path = require('path'); const cacheFile = path.join('node_modules', '.cache', '.eslintcache'); try { fs.unlinkSync(cacheFile); console.log('Cache cleared!'); } catch(e) { console.log('Cache file not found or already cleared.'); }\""
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.12",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.6.0",
+    "react-icons": "^5.5.0",
     "react-router-dom": "^7.9.4",
     "react-scripts": "5.0.1",
     "socket.io-client": "^4.8.3"
