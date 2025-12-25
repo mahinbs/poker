@@ -51,6 +51,7 @@ export default function UniversalSignIn({
         email: credentials.email, 
         role: role,
         userId: response.user.id,
+        displayName: response.user.displayName,
         mustResetPassword: response.user.mustResetPassword || false,
       }));
 
