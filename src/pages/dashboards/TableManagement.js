@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { tablesAPI, waitlistAPI } from '../../lib/api';
+import { tablesAPI, waitlistAPI, clubsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
+import TableBuyOutManagement from '../../components/TableBuyOutManagement';
 
 /**
  * Comprehensive Table Management Component for Super Admin
@@ -1651,90 +1652,124 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
 // Table Buy-Out View Component
 // ============================================================================
 function TableBuyOutView({ selectedClubId, tables }) {
+  const [activeSubTab, setActiveSubTab] = useState("process-buyout");
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-orange-600/30 via-red-500/20 to-rose-700/30 rounded-xl p-6 border border-orange-800/40">
-        <h2 className="text-2xl font-bold mb-4">Table Buy-Out Approval</h2>
+        <h2 className="text-2xl font-bold mb-4">Table Buy-Out</h2>
         <p className="text-gray-300 text-sm mb-6">
-          Approve players leaving tables and move their table chip balance to their available balance for cash conversion.
+          Manage player buy-out requests and process manual buy-outs.
         </p>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Process Buy-Out */}
-          <div className="bg-white/10 p-5 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4">Process Buy-Out</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Select Seated Player</label>
-                <select className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white">
-                  <option value="">-- Select Player --</option>
-                  {/* TODO: Fetch seated players from backend */}
-                </select>
-              </div>
-              <div className="p-4 bg-blue-500/20 rounded-lg border border-blue-400/30">
-                <div className="text-sm text-white space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Player:</span>
-                    <span className="font-semibold">-</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Table:</span>
-                    <span className="font-semibold">-</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Current Table Balance:</span>
-                    <span className="font-semibold text-emerald-300">0 chips</span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Reason (Optional)</label>
-                <textarea
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-                  rows="3"
-                  placeholder="Enter reason for buy-out (optional)..."
-                />
-              </div>
-              <button className="w-full bg-orange-600 hover:bg-orange-500 px-4 py-3 rounded-lg font-semibold transition-colors">
-                Approve Buy-Out
-              </button>
-            </div>
-          </div>
-
-          {/* Buy-Out Information */}
-          <div className="bg-white/10 p-5 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4">Buy-Out Information</h3>
-            <div className="space-y-4">
-              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                <h4 className="text-white font-semibold mb-2">How Buy-Out Works:</h4>
-                <ul className="text-sm text-gray-300 space-y-2 list-disc list-inside">
-                  <li>Select a player who is currently seated at a table</li>
-                  <li>Their table chip balance will be moved to their available balance</li>
-                  <li>Player will be removed from the table (seat becomes available)</li>
-                  <li>Player can then convert chips to real money at the cashier counter</li>
-                </ul>
-              </div>
-
-              <div className="p-4 bg-yellow-500/20 rounded-lg border border-yellow-400/30">
-                <h4 className="text-yellow-300 font-semibold mb-2">⚠️ Important Notes:</h4>
-                <ul className="text-sm text-yellow-200 space-y-1 list-disc list-inside">
-                  <li>Buy-out approval is permanent and cannot be undone</li>
-                  <li>Table balance will be immediately transferred to player's available balance</li>
-                  <li>Player must go to cashier to convert chips to real money</li>
-                </ul>
-              </div>
-
-              <div className="p-4 bg-green-500/20 rounded-lg border border-green-400/30">
-                <div className="text-sm text-green-300">
-                  <div className="font-semibold mb-1">Currently Seated Players:</div>
-                  <div className="text-green-200">0 player(s) at tables</div>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Sub Tabs */}
+        <div className="flex gap-2 border-b border-orange-800/40 pb-4 mb-6">
+          <button
+            onClick={() => setActiveSubTab("process-buyout")}
+            className={`px-5 py-2 rounded-t-lg font-semibold transition-all ${
+              activeSubTab === "process-buyout"
+                ? "bg-gradient-to-r from-orange-600 to-red-700 text-white shadow-lg"
+                : "bg-slate-700 text-gray-400 hover:bg-slate-600"
+            }`}
+          >
+            Process Buy-Out
+          </button>
+          <button
+            onClick={() => setActiveSubTab("player-requests")}
+            className={`px-5 py-2 rounded-t-lg font-semibold transition-all ${
+              activeSubTab === "player-requests"
+                ? "bg-gradient-to-r from-orange-600 to-red-700 text-white shadow-lg"
+                : "bg-slate-700 text-gray-400 hover:bg-slate-600"
+            }`}
+          >
+            Player Requests
+          </button>
         </div>
+
+        {/* Sub Tab Content */}
+        {activeSubTab === "process-buyout" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Process Buy-Out */}
+            <div className="bg-white/10 p-5 rounded-lg">
+              <h3 className="text-lg font-semibold mb-4">Process Buy-Out</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Select Seated Player</label>
+                  <select className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white">
+                    <option value="">-- Select Player --</option>
+                    {/* TODO: Fetch seated players from backend */}
+                  </select>
+                </div>
+                <div className="p-4 bg-blue-500/20 rounded-lg border border-blue-400/30">
+                  <div className="text-sm text-white space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Player:</span>
+                      <span className="font-semibold">-</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Table:</span>
+                      <span className="font-semibold">-</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Current Table Balance:</span>
+                      <span className="font-semibold text-emerald-300">0 chips</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Reason (Optional)</label>
+                  <textarea
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    rows="3"
+                    placeholder="Enter reason for buy-out (optional)..."
+                  />
+                </div>
+                <button className="w-full bg-orange-600 hover:bg-orange-500 px-4 py-3 rounded-lg font-semibold transition-colors">
+                  Approve Buy-Out
+                </button>
+              </div>
+            </div>
+
+            {/* Buy-Out Information */}
+            <div className="bg-white/10 p-5 rounded-lg">
+              <h3 className="text-lg font-semibold mb-4">Buy-Out Information</h3>
+              <div className="space-y-4">
+                <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                  <h4 className="text-white font-semibold mb-2">How Buy-Out Works:</h4>
+                  <ul className="text-sm text-gray-300 space-y-2 list-disc list-inside">
+                    <li>Select a player who is currently seated at a table</li>
+                    <li>Their table chip balance will be moved to their available balance</li>
+                    <li>Player will be removed from the table (seat becomes available)</li>
+                    <li>Player can then convert chips to real money at the cashier counter</li>
+                  </ul>
+                </div>
+
+                <div className="p-4 bg-yellow-500/20 rounded-lg border border-yellow-400/30">
+                  <h4 className="text-yellow-300 font-semibold mb-2">⚠️ Important Notes:</h4>
+                  <ul className="text-sm text-yellow-200 space-y-1 list-disc list-inside">
+                    <li>Buy-out approval is permanent and cannot be undone</li>
+                    <li>Table balance will be immediately transferred to player's available balance</li>
+                    <li>Player must go to cashier to convert chips to real money</li>
+                  </ul>
+                </div>
+
+                <div className="p-4 bg-green-500/20 rounded-lg border border-green-400/30">
+                  <div className="text-sm text-green-300">
+                    <div className="font-semibold mb-1">Currently Seated Players:</div>
+                    <div className="text-green-200">0 player(s) at tables</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSubTab === "player-requests" && (
+          <TableBuyOutManagement clubId={selectedClubId} />
+        )}
       </div>
     </div>
   );
 }
+
 

@@ -250,6 +250,60 @@ export const clubsAPI = {
     if (endDate) params.append('endDate', endDate);
     return await apiRequest(`/clubs/${clubId}/rake-collections/stats${params.toString() ? `?${params.toString()}` : ''}`);
   },
+
+  /**
+   * Get buy-out requests
+   */
+  getBuyOutRequests: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/buyout-requests`);
+  },
+
+  /**
+   * Approve buy-out request
+   */
+  approveBuyOutRequest: async (clubId, requestId, data) => {
+    return await apiRequest(`/clubs/${clubId}/buyout-requests/${requestId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Reject buy-out request
+   */
+  rejectBuyOutRequest: async (clubId, requestId, data) => {
+    return await apiRequest(`/clubs/${clubId}/buyout-requests/${requestId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Get buy-in requests
+   */
+  getBuyInRequests: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/buyin-requests`);
+  },
+
+  /**
+   * Approve buy-in request
+   */
+  approveBuyInRequest: async (clubId, requestId, data) => {
+    return await apiRequest(`/clubs/${clubId}/buyin-requests/${requestId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Reject buy-in request
+   */
+  rejectBuyInRequest: async (clubId, requestId, data) => {
+    return await apiRequest(`/clubs/${clubId}/buyin-requests/${requestId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // =============================================================================
@@ -750,7 +804,9 @@ export const tournamentsAPI = {
    * Get all tournaments
    */
   getTournaments: async (clubId) => {
-    return await apiRequest(`/clubs/${clubId}/tournaments`);
+    const response = await apiRequest(`/clubs/${clubId}/tournaments`);
+    // Handle response structure: { success: true, tournaments: [...] }
+    return response.tournaments || response || [];
   },
 
   /**

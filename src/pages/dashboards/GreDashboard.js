@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
 import CustomSelect from "../../components/common/CustomSelect";
 import { useNavigate } from "react-router-dom";
 import TableManagementSection from "../../components/TableManagementSection";
@@ -8,10 +9,115 @@ import ChatSection from "../../components/ChatSection";
 import PushNotificationsSection from "../../components/PushNotificationsSection";
 import EmployeeSalaryProcessingSection from "../../components/EmployeeSalaryProcessingSection";
 import GreSidebar from "../../components/sidebars/GreSidebar";
+import toast from "react-hot-toast";
 
 export default function GreDashboard() {
   const [activeItem, setActiveItem] = useState("Monitoring");
   const navigate = useNavigate();
+  const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  // Check if user needs to reset password
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const greUser = JSON.parse(localStorage.getItem('greuser') || '{}');
+    
+    if (user.mustResetPassword || greUser.mustResetPassword) {
+      setShowPasswordResetModal(true);
+    }
+  }, []);
+
+  // Password reset mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data) => {
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api'}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to reset password');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success('Password reset successfully!');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      user.mustResetPassword = false;
+      localStorage.setItem('user', JSON.stringify(user));
+      const greUser = JSON.parse(localStorage.getItem('greuser') || '{}');
+      greUser.mustResetPassword = false;
+      localStorage.setItem('greuser', JSON.stringify(greUser));
+      setShowPasswordResetModal(false);
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to reset password');
+    },
+  });
+
+  const handlePasswordReset = (e) => {
+    e.preventDefault();
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const greUser = JSON.parse(localStorage.getItem('greuser') || '{}');
+    const email = user.email || greUser.email;
+    if (!email) {
+      toast.error('User email not found. Please login again.');
+      return;
+    }
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      toast.error('All fields are required');
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    if (passwordForm.newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    resetPasswordMutation.mutate({
+      email: email,
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword,
+    });
+  };
+
+  // PASSWORD RESET MODAL
+  const passwordResetModal = showPasswordResetModal && (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[200]">
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 max-w-md w-full border border-emerald-600 shadow-2xl">
+        <div className="text-center mb-6">
+          <div className="text-yellow-400 text-5xl mb-3">🔒</div>
+          <h2 className="text-2xl font-bold text-white">Password Reset Required</h2>
+          <p className="text-gray-400 mt-2">Please set a new password to continue</p>
+        </div>
+        <form onSubmit={handlePasswordReset} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Current Password</label>
+            <input type="password" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent" placeholder="Enter temporary password" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">New Password</label>
+            <input type="password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent" placeholder="Enter new password" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Confirm New Password</label>
+            <input type="password" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent" placeholder="Confirm new password" required />
+          </div>
+          <button type="submit" disabled={resetPasswordMutation.isLoading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50">
+            {resetPasswordMutation.isLoading ? 'Resetting...' : 'Reset Password'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 
   const menuItems = [
     "Monitoring",
@@ -1864,6 +1970,7 @@ export default function GreDashboard() {
           </div>
         </main>
       </div>
+      {passwordResetModal}
     </div>
   );
 }

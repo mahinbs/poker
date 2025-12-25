@@ -4,10 +4,22 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { clubsAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
+const DEFAULT_MENU_ITEMS = [
+  "Dashboard",
+  "Payroll Management",
+  "Bonus Management",
+  "Tables & Waitlist", // View-only live tables
+  "Club Buy-In",
+  "Push Notifications",
+  "Tournaments", // View-only
+  "Chat",
+  "Financial Overrides",
+];
+
 export default function CashierSidebar({ 
   activeItem, 
   setActiveItem, 
-  menuItems = [],
+  menuItems = DEFAULT_MENU_ITEMS,
   onSignOut = null 
 }) {
   const [isOpen, setIsOpen] = useState(false);
