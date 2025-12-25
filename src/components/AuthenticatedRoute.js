@@ -20,7 +20,7 @@ export const AuthenticatedRoute = ({ children, requiredRole }) => {
     if (requiredRole === 'SUPER_ADMIN') {
       return <Navigate to="/super-admin/signin" state={{ from: location }} replace />;
     }
-    // All other staff roles (ADMIN, GRE, CASHIER, HR, FNB_STAFF, etc.) use /login
+    // All other staff roles (ADMIN, GRE, CASHIER, HR, FNB, etc.) use /login
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

@@ -94,7 +94,7 @@ function App() {
             } />
             
             <Route path="/fnb" element={
-              <AuthenticatedRoute requiredRole="FNB_STAFF">
+              <AuthenticatedRoute requiredRole="FNB">
                 <FnbDashboard />
               </AuthenticatedRoute>
             } />
