@@ -13,7 +13,7 @@ import CashierSignIn from './pages/auth/CashierSignIn';
 import CashierDashboard from './pages/dashboards/CashierDashboard';
 import FnbSignIn from './pages/auth/FnbSignIn';
 import FnbDashboard from './pages/dashboards/FnbDashboard';
-import AdminSignIn from './pages/auth/AdminSignIn';
+import StaffLogin from './pages/auth/StaffLogin';
 import AdminDashboard from './pages/dashboards/AdminDashboard';
 import MasterAdminSignIn from './pages/auth/MasterAdminSignIn';
 import MasterAdminDashboard from './pages/dashboards/MasterAdminDashboard';
@@ -63,13 +63,16 @@ function App() {
           />
           <Routes>
             {/* Sign In Pages (Public) */}
-            <Route path="/gre/signin" element={<GreSignIn />} />
-            <Route path="/hr/signin" element={<HrSignIn />} />
-            <Route path="/cashier/signin" element={<CashierSignIn />} />
-            <Route path="/fnb/signin" element={<FnbSignIn />} />
-            <Route path="/admin/signin" element={<AdminSignIn />} />
+            <Route path="/login" element={<StaffLogin />} />
             <Route path="/master-admin/signin" element={<MasterAdminSignIn />} />
             <Route path="/super-admin/signin" element={<SuperAdminSignIn />} />
+            
+            {/* Legacy signin routes - redirect to /login */}
+            <Route path="/gre/signin" element={<Navigate to="/login" replace />} />
+            <Route path="/hr/signin" element={<Navigate to="/login" replace />} />
+            <Route path="/cashier/signin" element={<Navigate to="/login" replace />} />
+            <Route path="/fnb/signin" element={<Navigate to="/login" replace />} />
+            <Route path="/admin/signin" element={<Navigate to="/login" replace />} />
 
             {/* Protected Dashboard Routes */}
             <Route path="/gre" element={

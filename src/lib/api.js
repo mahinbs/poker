@@ -56,7 +56,16 @@ export const apiRequest = async (endpoint, options = {}) => {
     const response = await fetch(url, config);
     
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
+      let error;
+      try {
+        error = await response.json();
+      } catch (e) {
+        error = { message: response.statusText || `API Error: ${response.status}` };
+      }
+      // For 401 errors, show the actual error message from backend
+      if (response.status === 401) {
+        throw new Error(error.message || 'Invalid email or password');
+      }
       throw new Error(error.message || `API Error: ${response.status}`);
     }
 
@@ -177,6 +186,13 @@ export const clubsAPI = {
   },
 
   /**
+   * Get club revenue data (revenue, rake, tips)
+   */
+  getClubRevenue: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/revenue`);
+  },
+
+  /**
    * Create club
    */
   createClub: async (clubData) => {
@@ -252,6 +268,20 @@ export const playersAPI = {
   getKycPending: async (clubId) => {
     const players = await apiRequest(`/clubs/${clubId}/players`);
     return players.filter(p => p.kycStatus === 'pending');
+  },
+
+  /**
+   * Get pending approval players
+   */
+  getPendingApprovalPlayers: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/players-pending-approval`);
+  },
+
+  /**
+   * Get suspended players
+   */
+  getSuspendedPlayers: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/players-suspended`);
   },
 };
 
