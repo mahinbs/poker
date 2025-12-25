@@ -8,6 +8,7 @@ const DEFAULT_MENU_ITEMS = [
   "Dashboard",
   "Player Management",
   "Tables & Waitlist",
+  // "Table Buy-Out", // Commented out - now integrated into Tables & Waitlist as a sub-tab
   "Rake Collection",
   "Push Notifications",
   "Tournaments",

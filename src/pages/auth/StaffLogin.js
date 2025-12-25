@@ -69,26 +69,18 @@ export default function StaffLogin() {
         mustResetPassword: response.user.mustResetPassword || false,
       };
 
-      // Store in role-specific key
+      // Store in role-specific key for ALL roles
       const roleUserKey = `${userRole.toLowerCase()}user`;
       localStorage.setItem(roleUserKey, JSON.stringify({ 
         email: credentials.email, 
         role: userRole,
         userId: response.user.id,
+        displayName: response.user.displayName,
         mustResetPassword: response.user.mustResetPassword || false,
       }));
 
-      // Also store in 'user' key for Admin and Manager (for consistency)
-      if (userRole === 'ADMIN' || userRole === 'MANAGER') {
-        localStorage.setItem('user', JSON.stringify(userData));
-      }
-      
-      // Store mustResetPassword in userData for all roles
-      if (response.user.mustResetPassword) {
-        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        storedUser.mustResetPassword = true;
-        localStorage.setItem('user', JSON.stringify(storedUser));
-      }
+      // Also store in 'user' key for ALL roles (for consistency and password reset check)
+      localStorage.setItem('user', JSON.stringify(userData));
 
       // Store club ID if available
       if (response.clubRoles?.[0]?.club?.id) {

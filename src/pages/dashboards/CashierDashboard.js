@@ -1,1181 +1,530 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import CustomSelect from "../../components/common/CustomSelect";
-import TableView from "../../components/hologram/TableView";
-import TableManagementSection from "../../components/TableManagementSection";
-import TournamentManagementSection from "../../components/TournamentManagementSection";
-import ChatSection from "../../components/ChatSection";
-import PushNotificationsSection from "../../components/PushNotificationsSection";
-import EmployeeSalaryProcessingSection from "../../components/EmployeeSalaryProcessingSection";
-import BonusProcessingSection from "../../components/BonusProcessingSection";
-import ClubBuyInSection from "../../components/ClubBuyInSection";
-import CreditFeatureSection from "../../components/CreditFeatureSection";
-import ReportsAnalyticsSection from "../../components/ReportsAnalyticsSection";
-import TipsProcessing from "../../components/TipsProcessing";
-import RakeEntryToClub from "../../components/RakeEntryToClub";
-import AffiliatesTable from "../../components/AffiliatesTable";
-import FinancialOverrides from "../../components/FinancialOverrides";
-import DealerTips from "../../components/DealerTips";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import CashierSidebar from "../../components/sidebars/CashierSidebar";
+import { clubsAPI, playersAPI, tablesAPI, tournamentsAPI } from "../../lib/api";
+import toast from "react-hot-toast";
+import PayrollManagementCashier from "../../components/PayrollManagementCashier";
+import BonusManagement from "../../components/BonusManagement";
+import ClubBuyInCashOut from "./ClubBuyInCashOut";
+import PushNotifications from "./PushNotifications";
+import ChatManagement from "../../components/ChatManagement";
+import FinancialOverrides from "../../components/FinancialOverrides";
+import TableView from "../../components/hologram/TableView";
+import BuyInRequestManagement from "../../components/BuyInRequestManagement";
+
+// View-only Tables component for Cashier
+function TableManagementViewOnly({ selectedClubId }) {
+  const [selectedTable, setSelectedTable] = useState(null);
+  const [showTableView, setShowTableView] = useState(false);
+  const [activeTab, setActiveTab] = useState('tables'); // 'tables' or 'buyin-requests'
+  
+  const { data: tablesData, isLoading: tablesLoading } = useQuery({
+    queryKey: ['tables', selectedClubId],
+    queryFn: () => tablesAPI.getTables(selectedClubId),
+    enabled: !!selectedClubId,
+  });
+
+  const tables = tablesData || [];
+  const activeTables = tables.filter(t => t.status === 'AVAILABLE' || t.status === 'OCCUPIED');
+
+          return (
+    <div className="text-white space-y-6">
+      <h1 className="text-3xl font-bold">Tables & Waitlist</h1>
+      <p className="text-gray-400">View-only mode: You can only view live tables</p>
+
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-slate-700">
+            <button
+          onClick={() => setActiveTab('tables')}
+          className={`px-6 py-3 font-semibold transition-all ${
+            activeTab === 'tables'
+              ? 'text-blue-400 border-b-2 border-blue-400'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Live Tables
+            </button>
+        <button
+          onClick={() => setActiveTab('buyin-requests')}
+          className={`px-6 py-3 font-semibold transition-all ${
+            activeTab === 'buyin-requests'
+              ? 'text-blue-400 border-b-2 border-blue-400'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Buy-In Requests
+        </button>
+              </div>
+
+      {activeTab === 'buyin-requests' ? (
+        <BuyInRequestManagement clubId={selectedClubId} />
+      ) : (
+        <>
+
+      {!selectedClubId && (
+        <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 text-yellow-100">
+          <p className="font-medium">Please select a club to view tables.</p>
+                    </div>
+      )}
+
+      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+        <div className="flex justify-between items-center mb-6">
+                      <div>
+            <h2 className="text-2xl font-bold">Live Tables - View Only</h2>
+            <p className="text-gray-400 text-sm mt-1">View live tables and their status.</p>
+                      </div>
+          <div className="bg-slate-700 px-4 py-2 rounded-lg">
+            <div className="text-sm text-gray-300">Active Tables: {activeTables.length}</div>
+            <div className="text-sm text-gray-300">Total Players: {activeTables.reduce((sum, t) => sum + (t.currentSeats || 0), 0)}</div>
+                    </div>
+                  </div>
+
+        {tablesLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p>Loading tables...</p>
+                    </div>
+        ) : activeTables.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🎲</div>
+            <p className="text-xl text-gray-300">No active tables</p>
+                    </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {activeTables.map((table) => (
+              <div
+                key={table.id}
+                className="bg-slate-700 rounded-xl p-5 border border-slate-600 hover:border-blue-500 transition-all"
+              >
+                <div className="flex justify-between items-start mb-3">
+                      <div>
+                    <h3 className="text-lg font-bold text-white">Table {table.tableNumber || table.number}</h3>
+                    <p className="text-sm text-gray-400">{table.tableType || 'Cash Game'}</p>
+                      </div>
+                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                    table.status === 'OCCUPIED' ? 'bg-green-600/20 text-green-400' : 'bg-blue-600/20 text-blue-400'
+                  }`}>
+                    {table.status}
+                  </span>
+                  </div>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Stakes:</span>
+                    <span className="text-white font-medium">₹{table.minBuyIn || 0}/₹{table.maxBuyIn || 0}</span>
+                    </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Occupied Seats:</span>
+                    <span className="text-white font-medium">{table.currentSeats || 0} / {table.maxSeats || 8}</span>
+                    </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Available Seats:</span>
+                    <span className="text-green-400 font-medium">{table.maxSeats - (table.currentSeats || 0)}</span>
+                    </div>
+                  </div>
+
+                <button
+                                onClick={() => {
+                    setSelectedTable(table);
+                    setShowTableView(true);
+                                }}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+                              >
+                  <span>🎯</span>
+                  <span>View Table Hologram</span>
+                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                  </div>
+
+      {/* Table Hologram Modal */}
+      {showTableView && selectedTable && (
+        <div className="fixed inset-0 z-50 bg-black/90 overflow-y-auto">
+          <TableView
+            tableId={selectedTable.id}
+            onClose={() => {
+              setShowTableView(false);
+              setSelectedTable(null);
+            }}
+            isManagerMode={true}
+            isViewOnly={true}
+            tables={tables}
+          />
+                          </div>
+                        )}
+        </>
+                        )}
+                      </div>
+  );
+}
+
+// View-only Tournaments component for Cashier
+function TournamentManagementViewOnly({ selectedClubId }) {
+  const [selectedTournament, setSelectedTournament] = useState(null);
+  
+  const { data: tournamentsData, isLoading: tournamentsLoading } = useQuery({
+    queryKey: ['tournaments', selectedClubId],
+    queryFn: () => tournamentsAPI.getTournaments(selectedClubId),
+    enabled: !!selectedClubId,
+  });
+
+  // Handle both array and object responses
+  const tournaments = Array.isArray(tournamentsData) 
+    ? tournamentsData 
+    : (tournamentsData?.tournaments || tournamentsData?.data || []);
+  
+  // Ensure tournaments is always an array
+  const tournamentsArray = Array.isArray(tournaments) ? tournaments : [];
+
+  return (
+    <div className="text-white space-y-6">
+      <h1 className="text-3xl font-bold">Tournaments</h1>
+      <p className="text-gray-400">View-only mode: You can only view tournament information</p>
+
+      {!selectedClubId && (
+        <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 text-yellow-100">
+          <p className="font-medium">Please select a club to view tournaments.</p>
+                    </div>
+      )}
+
+      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+        <h2 className="text-2xl font-bold mb-6">Tournament List - View Only</h2>
+
+        {tournamentsLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p>Loading tournaments...</p>
+                      </div>
+        ) : tournamentsArray.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🏆</div>
+            <p className="text-xl text-gray-300">No tournaments found</p>
+                              </div>
+        ) : (
+          <div className="space-y-4">
+            {tournamentsArray.map((tournament) => (
+              <div key={tournament.id} className="bg-slate-700 rounded-xl p-5 border border-slate-600">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-white">{tournament.name || 'Tournament'}</h3>
+                    <p className="text-sm text-gray-400">Status: {tournament.status || 'Unknown'}</p>
+                    {tournament.buyIn && (
+                      <p className="text-sm text-gray-400">Buy-In: ₹{tournament.buyIn}</p>
+                    )}
+                    {tournament.startTime && (
+                      <p className="text-sm text-gray-400">Start: {new Date(tournament.startTime).toLocaleString()}</p>
+                    )}
+                    {tournament.prizePool && (
+                      <p className="text-sm text-gray-400">Prize Pool: ₹{tournament.prizePool}</p>
+                        )}
+                      </div>
+                      <button 
+                    onClick={() => setSelectedTournament(tournament)}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                  >
+                    <span>👁️</span>
+                    <span>View Details</span>
+                      </button>
+                    </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+      </div>
+
+      {/* Tournament Details Modal */}
+      {selectedTournament && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full border border-slate-700">
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-2xl font-bold text-white">{selectedTournament.name || 'Tournament'}</h2>
+                            <button 
+                onClick={() => setSelectedTournament(null)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                            </button>
+                          </div>
+            <div className="space-y-4">
+                          <div>
+                <p className="text-gray-400 text-sm">Status</p>
+                <p className="text-white font-semibold">{selectedTournament.status || 'Unknown'}</p>
+                          </div>
+              {selectedTournament.buyIn && (
+                          <div>
+                  <p className="text-gray-400 text-sm">Buy-In</p>
+                  <p className="text-white font-semibold">₹{selectedTournament.buyIn}</p>
+                        </div>
+                      )}
+              {selectedTournament.prizePool && (
+                      <div>
+                  <p className="text-gray-400 text-sm">Prize Pool</p>
+                  <p className="text-white font-semibold">₹{selectedTournament.prizePool}</p>
+                      </div>
+              )}
+              {selectedTournament.startTime && (
+                      <div>
+                  <p className="text-gray-400 text-sm">Start Time</p>
+                  <p className="text-white font-semibold">{new Date(selectedTournament.startTime).toLocaleString()}</p>
+                          </div>
+                        )}
+              {selectedTournament.description && (
+                              <div>
+                  <p className="text-gray-400 text-sm">Description</p>
+                  <p className="text-white">{selectedTournament.description}</p>
+                                </div>
+                                  )}
+                                </div>
+                                  </div>
+                                </div>
+                              )}
+                                </div>
+  );
+}
 
 export default function CashierDashboard() {
-  const [activeItem, setActiveItem] = useState("Transactions Dashboard");
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [activeItem, setActiveItem] = useState("Dashboard");
+  const [clubId, setClubId] = useState(null);
+  const [clubInfo, setClubInfo] = useState(null);
+  const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
+  // Get clubId from localStorage (cashier has only 1 club)
+  useEffect(() => {
+    const storedClubId = localStorage.getItem('clubId');
+    if (storedClubId) {
+      setClubId(storedClubId);
+      } else {
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  // Load club info
+  const { data: club, isLoading: clubLoading } = useQuery({
+    queryKey: ['club', clubId],
+    queryFn: () => clubsAPI.getClub(clubId),
+    enabled: !!clubId,
+  });
+
+  useEffect(() => {
+    if (club) {
+      setClubInfo(club);
+    }
+  }, [club]);
+
+  // Check authentication and password reset requirement
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const cashierUser = JSON.parse(localStorage.getItem('cashieruser') || '{}');
+    
+    // Check if user is logged in
+    if (!user.id && !cashierUser.userId) {
+      navigate('/login');
+                            return;
+                          }
+
+    // Check if user needs to reset password
+    if (user.mustResetPassword || cashierUser.mustResetPassword) {
+      setShowPasswordResetModal(true);
+    }
+  }, [navigate]);
+
+  // Load revenue data for club
+  const { data: revenueData, isLoading: revenueLoading } = useQuery({
+    queryKey: ['clubRevenue', clubId],
+    queryFn: () => clubsAPI.getClubRevenue(clubId),
+    enabled: !!clubId,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Handle sign out
+  const handleSignOut = () => {
+    localStorage.clear();
+    navigate('/login');
+  };
+
+  // Format currency
+  const formatCurrency = (value) => `₹${(value || 0).toLocaleString("en-IN")}`;
+
+  // Password reset mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data) => {
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api'}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to reset password');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success('Password reset successfully!');
+      
+      // Update localStorage to clear mustResetPassword flag
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      user.mustResetPassword = false;
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      const cashierUser = JSON.parse(localStorage.getItem('cashieruser') || '{}');
+      cashierUser.mustResetPassword = false;
+      localStorage.setItem('cashieruser', JSON.stringify(cashierUser));
+      
+      // Close modal and reset form
+      setShowPasswordResetModal(false);
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to reset password');
+    },
+  });
+
+  const handlePasswordReset = (e) => {
+    e.preventDefault();
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const cashierUser = JSON.parse(localStorage.getItem('cashieruser') || '{}');
+    const email = user.email || cashierUser.email;
+    
+    if (!email) {
+      toast.error('User email not found. Please login again.');
+      return;
+    }
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      toast.error('All fields are required');
+        return;
+      }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('New passwords do not match');
+        return;
+      }
+    if (passwordForm.newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+
+    resetPasswordMutation.mutate({
+      email: email,
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword,
+    });
+  };
+
+  // PASSWORD RESET MODAL
+  const passwordResetModal = showPasswordResetModal && (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[200]">
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 max-w-md w-full border border-emerald-600 shadow-2xl">
+        <div className="text-center mb-6">
+          <div className="text-yellow-400 text-5xl mb-3">🔒</div>
+          <h2 className="text-2xl font-bold text-white">Password Reset Required</h2>
+          <p className="text-gray-400 mt-2">Please set a new password to continue</p>
+                </div>
+
+        <form onSubmit={handlePasswordReset} className="space-y-4">
+                      <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Current Password
+                        </label>
+                        <input
+              type="password"
+              value={passwordForm.currentPassword}
+              onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              placeholder="Enter temporary password"
+              required
+            />
+                                  </div>
+
+                      <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              New Password
+                        </label>
+                        <input
+              type="password"
+              value={passwordForm.newPassword}
+              onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              placeholder="Enter new password"
+              required
+                        />
+                      </div>
+
+                      <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Confirm New Password
+                      </label>
+                        <input
+              type="password"
+              value={passwordForm.confirmPassword}
+              onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              placeholder="Confirm new password"
+              required
+                        />
+                      </div>
+
+                              <button
+            type="submit"
+            disabled={resetPasswordMutation.isLoading}
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {resetPasswordMutation.isLoading ? 'Resetting...' : 'Reset Password'}
+                      </button>
+        </form>
+                    </div>
+                  </div>
+  );
+
+  // Render loading state
+  if (clubLoading || !clubId) {
+    return (
+      <>
+        {passwordResetModal}
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 flex items-center justify-center">
+          <div className="text-white text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+            <p className="text-xl">Loading club data...</p>
+                      </div>
+                      </div>
+      </>
+    );
+  }
+
+  // Cashier menu items - matches Super Admin except restricted items
   const menuItems = [
-    "Transactions Dashboard",
-    "Balance Management",
-    "Table Management",
-    "Club Buy-In",
+    "Dashboard",
     "Payroll Management",
-    "Transaction History",
-    "Shift Reconciliation",
-    "Bonus Processing",
-    "Credit Disbursement",
-    "Rake Entry to Club",
-    "Tournaments",
+    "Bonus Management",
+    "Tables & Waitlist", // View-only live tables
+    "Club Buy-In",
     "Push Notifications",
+    "Tournaments", // View-only
     "Chat",
-    "Reports & Analytics",
-    "Affiliates",
     "Financial Overrides",
   ];
 
-  const handleSignOut = () => {
-    navigate("/cashier/signin");
-  };
+                            return (
+    <>
+      {/* Password Reset Modal */}
+      {passwordResetModal}
 
-  // Mock players data with balances (connected across all portals)
-  const [playerBalances, setPlayerBalances] = useState({
-    P101: {
-      id: "P101",
-      name: "Alex Johnson",
-      email: "alex.johnson@example.com",
-      availableBalance: 25000,
-      tableBalance: 5000,
-      tableId: 1,
-      seatNumber: 3,
-    },
-    P102: {
-      id: "P102",
-      name: "Maria Garcia",
-      email: "maria.garcia@example.com",
-      availableBalance: 15000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P103: {
-      id: "P103",
-      name: "Rajesh Kumar",
-      email: "rajesh.kumar@example.com",
-      availableBalance: 45000,
-      tableBalance: 10000,
-      tableId: 1,
-      seatNumber: 5,
-    },
-    P104: {
-      id: "P104",
-      name: "Priya Sharma",
-      email: "priya.sharma@example.com",
-      availableBalance: 32000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P105: {
-      id: "P105",
-      name: "Amit Patel",
-      email: "amit.patel@example.com",
-      availableBalance: 18000,
-      tableBalance: 7500,
-      tableId: 2,
-      seatNumber: 2,
-    },
-    P106: {
-      id: "P106",
-      name: "John Doe",
-      email: "john.doe@example.com",
-      availableBalance: 28000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P107: {
-      id: "P107",
-      name: "Jane Smith",
-      email: "jane.smith@example.com",
-      availableBalance: 35000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P108: {
-      id: "P108",
-      name: "Sarah Connor",
-      email: "sarah.connor@example.com",
-      availableBalance: 55000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P109: {
-      id: "P109",
-      name: "Michael Chen",
-      email: "michael.chen@example.com",
-      availableBalance: 42000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P110: {
-      id: "P110",
-      name: "Emma Wilson",
-      email: "emma.wilson@example.com",
-      availableBalance: 38000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P111: {
-      id: "P111",
-      name: "David Brown",
-      email: "david.brown@example.com",
-      availableBalance: 62000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P112: {
-      id: "P112",
-      name: "Lisa Anderson",
-      email: "lisa.anderson@example.com",
-      availableBalance: 29000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P113: {
-      id: "P113",
-      name: "Robert Taylor",
-      email: "robert.taylor@example.com",
-      availableBalance: 48000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-  });
-
-  // Mock players data for search (for backward compatibility)
-  const mockPlayers = Object.values(playerBalances).map(
-    ({ availableBalance, tableBalance, tableId, seatNumber, ...player }) =>
-      player
-  );
-
-  // Registered players for Push Notifications (mapped from playerBalances)
-  const registeredPlayers = Object.values(playerBalances).map(
-    ({ availableBalance, tableBalance, tableId, seatNumber, ...player }) => ({
-      ...player,
-      kycStatus: "approved",
-      accountStatus: "Active",
-      phone: player.email ? player.email.replace("@example.com", "") : "",
-      registrationDate: "2024-01-01",
-      documentType: "PAN Card",
-      verifiedDate: "2024-01-01",
-    })
-  );
-
-  // Table balances tracking
-  const [tableBalances, setTableBalances] = useState({
-    1: {
-      id: 1,
-      name: "Table 1 - Texas Hold'em",
-      totalBalance: 15000,
-      players: ["P101", "P103"],
-    },
-    2: {
-      id: 2,
-      name: "Table 2 - Omaha",
-      totalBalance: 7500,
-      players: ["P105"],
-    },
-    3: { id: 3, name: "Table 3 - Stud", totalBalance: 0, players: [] },
-  });
-
-  // Mock table data for hologram view
-  const tables = [
-    {
-      id: 1,
-      name: "Table 1 - Texas Hold'em",
-      status: "Active",
-      gameType: "Texas Hold'em",
-      stakes: "₹1000.00/10000.00",
-      maxPlayers: 6,
-    },
-    {
-      id: 2,
-      name: "Table 2 - Omaha",
-      status: "Active",
-      gameType: "Omaha",
-      stakes: "₹5000.00/50000.00",
-      maxPlayers: 9,
-    },
-    {
-      id: 3,
-      name: "Table 3 - Stud",
-      status: "Active",
-      gameType: "Seven Card Stud",
-      stakes: "₹10000.00/100000.00",
-      maxPlayers: 6,
-    },
-  ];
-
-  // Track occupied seats by table (tableId -> array of occupied seat numbers)
-  const [occupiedSeats, setOccupiedSeats] = useState({
-    1: [3, 5], // Table 1 has seats 3, 5 occupied (based on playerBalances)
-    2: [2], // Table 2 has seat 2 occupied
-    3: [], // Table 3 is empty
-  });
-
-  // State for table view modal (cashier mode - similar to manager mode)
-  const [showTableView, setShowTableView] = useState(false);
-  const [selectedPlayerForSeating, setSelectedPlayerForSeating] =
-    useState(null);
-  const [selectedTableForSeating, setSelectedTableForSeating] = useState(null);
-  const [buyInAmount, setBuyInAmount] = useState("");
-
-  // Chat/Support System State
-  const [chatType, setChatType] = useState("player");
-  const [selectedChat, setSelectedChat] = useState(null);
-  const [newMessage, setNewMessage] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-
-  // Player chats
-  const [playerChats, setPlayerChats] = useState([
-    {
-      id: "PC001",
-      playerId: "P101",
-      playerName: "Alex Johnson",
-      status: "open",
-      lastMessage: "I need help with withdrawal.",
-      lastMessageTime: new Date(Date.now() - 180000).toISOString(),
-      messages: [
-        {
-          id: "M1",
-          sender: "player",
-          senderName: "Alex Johnson",
-          text: "I need help with withdrawal.",
-          timestamp: new Date(Date.now() - 180000).toISOString(),
-        },
-        {
-          id: "M2",
-          sender: "staff",
-          senderName: "Cashier",
-          text: "Sure, I can help you with that.",
-          timestamp: new Date(Date.now() - 120000).toISOString(),
-        },
-      ],
-      createdAt: new Date(Date.now() - 600000).toISOString(),
-    },
-    {
-      id: "PC002",
-      playerId: "P102",
-      playerName: "Maria Garcia",
-      status: "in_progress",
-      lastMessage: "Thank you for processing my deposit.",
-      lastMessageTime: new Date(Date.now() - 3600000).toISOString(),
-      messages: [
-        {
-          id: "M3",
-          sender: "player",
-          senderName: "Maria Garcia",
-          text: "I want to deposit money.",
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: "M4",
-          sender: "staff",
-          senderName: "Cashier",
-          text: "Please come to the cashier desk.",
-          timestamp: new Date(Date.now() - 3500000).toISOString(),
-        },
-        {
-          id: "M5",
-          sender: "player",
-          senderName: "Maria Garcia",
-          text: "Thank you for processing my deposit.",
-          timestamp: new Date(Date.now() - 3400000).toISOString(),
-        },
-      ],
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-    },
-  ]);
-
-  // Staff chats
-  const [staffChats, setStaffChats] = useState([
-    {
-      id: "SC001",
-      staffId: "ST001",
-      staffName: "Sarah Johnson",
-      staffRole: "Dealer",
-      status: "open",
-      lastMessage: "Need cash for Table 3",
-      lastMessageTime: new Date(Date.now() - 300000).toISOString(),
-      messages: [
-        {
-          id: "M6",
-          sender: "staff",
-          senderName: "Sarah Johnson",
-          text: "Need cash for Table 3",
-          timestamp: new Date(Date.now() - 300000).toISOString(),
-        },
-        {
-          id: "M7",
-          sender: "cashier",
-          senderName: "Cashier",
-          text: "I'll prepare it now.",
-          timestamp: new Date(Date.now() - 240000).toISOString(),
-        },
-      ],
-      createdAt: new Date(Date.now() - 300000).toISOString(),
-    },
-  ]);
-
-  const filteredChats =
-    chatType === "player"
-      ? playerChats.filter(
-          (chat) => statusFilter === "all" || chat.status === statusFilter
-        )
-      : staffChats.filter(
-          (chat) => statusFilter === "all" || chat.status === statusFilter
-        );
-
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedChat) return;
-
-    const message = {
-      id: `M${Date.now()}`,
-      sender: chatType === "player" ? "staff" : "cashier",
-      senderName: "Cashier",
-      text: newMessage.trim(),
-      timestamp: new Date().toISOString(),
-    };
-
-    if (chatType === "player") {
-      setPlayerChats((prev) =>
-        prev.map((chat) =>
-          chat.id === selectedChat.id
-            ? {
-                ...chat,
-                messages: [...chat.messages, message],
-                lastMessage: message.text,
-                lastMessageTime: message.timestamp,
-                status: chat.status === "closed" ? "in_progress" : chat.status,
-              }
-            : chat
-        )
-      );
-    } else {
-      setStaffChats((prev) =>
-        prev.map((chat) =>
-          chat.id === selectedChat.id
-            ? {
-                ...chat,
-                messages: [...chat.messages, message],
-                lastMessage: message.text,
-                lastMessageTime: message.timestamp,
-                status: chat.status === "closed" ? "in_progress" : chat.status,
-              }
-            : chat
-        )
-      );
-    }
-    setNewMessage("");
-  };
-
-  const handleStatusChange = (chatId, newStatus) => {
-    if (chatType === "player") {
-      setPlayerChats((prev) =>
-        prev.map((chat) =>
-          chat.id === chatId ? { ...chat, status: newStatus } : chat
-        )
-      );
-      if (selectedChat && selectedChat.id === chatId) {
-        const updatedChat = playerChats.find((c) => c.id === chatId);
-        if (updatedChat) setSelectedChat({ ...updatedChat, status: newStatus });
-      }
-    } else {
-      setStaffChats((prev) =>
-        prev.map((chat) =>
-          chat.id === chatId ? { ...chat, status: newStatus } : chat
-        )
-      );
-      if (selectedChat && selectedChat.id === chatId) {
-        const updatedChat = staffChats.find((c) => c.id === chatId);
-        if (updatedChat) setSelectedChat({ ...updatedChat, status: newStatus });
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (selectedChat) {
-      const currentChats = chatType === "player" ? playerChats : staffChats;
-      const updatedChat = currentChats.find((c) => c.id === selectedChat.id);
-      if (updatedChat) {
-        setSelectedChat(updatedChat);
-      } else {
-        setSelectedChat(null);
-      }
-    }
-  }, [chatType, playerChats, staffChats]);
-
-  // Transaction tracking (buy-in, cash-out, withdrawals)
-  const [balanceTransactions, setBalanceTransactions] = useState([
-    {
-      id: 1,
-      type: "buy-in",
-      playerId: "P101",
-      playerName: "Alex Johnson",
-      amount: 5000,
-      tableId: 1,
-      tableName: "Table 1 - Texas Hold'em",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      status: "completed",
-    },
-    {
-      id: 2,
-      type: "buy-in",
-      playerId: "P103",
-      playerName: "Rajesh Kumar",
-      amount: 10000,
-      tableId: 1,
-      tableName: "Table 1 - Texas Hold'em",
-      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-      status: "completed",
-    },
-    {
-      id: 3,
-      type: "buy-in",
-      playerId: "P105",
-      playerName: "Amit Patel",
-      amount: 7500,
-      tableId: 2,
-      tableName: "Table 2 - Omaha",
-      timestamp: new Date(Date.now() - 30 * 60 * 1000),
-      status: "completed",
-    },
-    {
-      id: 4,
-      type: "cash-out",
-      playerId: "P102",
-      playerName: "Maria Garcia",
-      amount: 8000,
-      tableId: 1,
-      tableName: "Table 1 - Texas Hold'em",
-      chipCount: 8000,
-      timestamp: new Date(Date.now() - 45 * 60 * 1000),
-      status: "completed",
-      managerVerified: true,
-    },
-    {
-      id: 5,
-      type: "withdrawal",
-      playerId: "P104",
-      playerName: "Priya Sharma",
-      amount: 5000,
-      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
-      status: "completed",
-    },
-  ]);
-
-  // Credit Disbursement state
-  const [creditDisbursements, setCreditDisbursements] = useState([
-    {
-      id: "CD-001",
-      playerId: "P101",
-      player: "Alex Johnson",
-      approvedLimit: 50000,
-      currentBalance: 0,
-      requestedAmount: 10000,
-      status: "Pending",
-      requestedDate: "2024-01-22",
-      notes: "",
-    },
-    {
-      id: "CD-002",
-      playerId: "P103",
-      player: "Rajesh Kumar",
-      approvedLimit: 25000,
-      currentBalance: 5000,
-      requestedAmount: 15000,
-      status: "Pending",
-      requestedDate: "2024-01-22",
-      notes: "",
-    },
-    {
-      id: "CD-003",
-      playerId: "P105",
-      player: "Amit Patel",
-      approvedLimit: 30000,
-      currentBalance: 10000,
-      requestedAmount: 20000,
-      status: "Pending",
-      requestedDate: "2024-01-22",
-      notes: "",
-    },
-  ]);
-
-  // Player search for Live Tables seating
-  const [liveTablePlayerSearch, setLiveTablePlayerSearch] = useState("");
-  const [selectedLiveTablePlayer, setSelectedLiveTablePlayer] = useState(null);
-  const filteredLiveTablePlayers =
-    liveTablePlayerSearch.length >= 3
-      ? mockPlayers.filter((player) => {
-          const searchLower = liveTablePlayerSearch.toLowerCase();
-          return (
-            player.name.toLowerCase().includes(searchLower) ||
-            player.id.toLowerCase().includes(searchLower) ||
-            player.email.toLowerCase().includes(searchLower)
-          );
-        })
-      : [];
-
-  // Player search states - multiple instances for different sections
-  const [depositPlayerSearch, setDepositPlayerSearch] = useState("");
-  const [selectedDepositPlayer, setSelectedDepositPlayer] = useState(null);
-  const [depositChipCount, setDepositChipCount] = useState("");
-  const filteredDepositPlayers =
-    depositPlayerSearch.length >= 3
-      ? mockPlayers.filter((player) => {
-          const searchLower = depositPlayerSearch.toLowerCase();
-          return (
-            player.name.toLowerCase().includes(searchLower) ||
-            player.id.toLowerCase().includes(searchLower) ||
-            player.email.toLowerCase().includes(searchLower)
-          );
-        })
-      : [];
-
-  const [withdrawalPlayerSearch, setWithdrawalPlayerSearch] = useState("");
-  const [selectedWithdrawalPlayer, setSelectedWithdrawalPlayer] =
-    useState(null);
-  const [withdrawalChipCount, setWithdrawalChipCount] = useState("");
-  const filteredWithdrawalPlayers =
-    withdrawalPlayerSearch.length >= 3
-      ? mockPlayers.filter((player) => {
-          const searchLower = withdrawalPlayerSearch.toLowerCase();
-          return (
-            player.name.toLowerCase().includes(searchLower) ||
-            player.id.toLowerCase().includes(searchLower) ||
-            player.email.toLowerCase().includes(searchLower)
-          );
-        })
-      : [];
-
-  const [adjustmentPlayerSearch, setAdjustmentPlayerSearch] = useState("");
-  const [selectedAdjustmentPlayer, setSelectedAdjustmentPlayer] =
-    useState(null);
-  const filteredAdjustmentPlayers =
-    adjustmentPlayerSearch.length >= 3
-      ? mockPlayers.filter((player) => {
-          const searchLower = adjustmentPlayerSearch.toLowerCase();
-          return (
-            player.name.toLowerCase().includes(searchLower) ||
-            player.id.toLowerCase().includes(searchLower) ||
-            player.email.toLowerCase().includes(searchLower)
-          );
-        })
-      : [];
-
-  const [creditPlayerSearch, setCreditPlayerSearch] = useState("");
-  const [selectedCreditPlayer, setSelectedCreditPlayer] = useState(null);
-  const filteredCreditPlayers =
-    creditPlayerSearch.length >= 3
-      ? mockPlayers.filter((player) => {
-          const searchLower = creditPlayerSearch.toLowerCase();
-          return (
-            player.name.toLowerCase().includes(searchLower) ||
-            player.id.toLowerCase().includes(searchLower) ||
-            player.email.toLowerCase().includes(searchLower)
-          );
-        })
-      : [];
-
-  const [bonusPlayerSearch, setBonusPlayerSearch] = useState("");
-  const [selectedBonusPlayer, setSelectedBonusPlayer] = useState(null);
-  const filteredBonusPlayers =
-    bonusPlayerSearch.length >= 3
-      ? mockPlayers.filter((player) => {
-          const searchLower = bonusPlayerSearch.toLowerCase();
-          return (
-            player.name.toLowerCase().includes(searchLower) ||
-            player.id.toLowerCase().includes(searchLower) ||
-            player.email.toLowerCase().includes(searchLower)
-          );
-        })
-      : [];
-
-  // Balance Management search states
-  const [balancePlayerSearch, setBalancePlayerSearch] = useState("");
-  const [selectedBalancePlayer, setSelectedBalancePlayer] = useState(null);
-  const filteredBalancePlayers =
-    balancePlayerSearch.length >= 3
-      ? mockPlayers.filter((player) => {
-          const searchLower = balancePlayerSearch.toLowerCase();
-          return (
-            player.name.toLowerCase().includes(searchLower) ||
-            player.id.toLowerCase().includes(searchLower) ||
-            player.email.toLowerCase().includes(searchLower)
-          );
-        })
-      : [];
-
-  // Mock registered cashiers data (not players)
-  const registeredCashiers = [
-    {
-      id: "C001",
-      name: "Sarah Williams",
-      email: "sarah.williams@example.com",
-      status: "Active",
-    },
-    {
-      id: "C002",
-      name: "Michael Chen",
-      email: "michael.chen@example.com",
-      status: "Active",
-    },
-    {
-      id: "C003",
-      name: "Emily Davis",
-      email: "emily.davis@example.com",
-      status: "Active",
-    },
-    {
-      id: "C004",
-      name: "David Brown",
-      email: "david.brown@example.com",
-      status: "Active",
-    },
-    {
-      id: "C005",
-      name: "Lisa Anderson",
-      email: "lisa.anderson@example.com",
-      status: "Active",
-    },
-  ];
-
-  // Cashier search state for Shift Reconciliation
-  const [cashierSearch, setCashierSearch] = useState("");
-  const [selectedCashier, setSelectedCashier] = useState(null);
-  const filteredCashiers =
-    cashierSearch.length >= 3
-      ? registeredCashiers.filter((cashier) => {
-          const searchLower = cashierSearch.toLowerCase();
-          return (
-            cashier.name.toLowerCase().includes(searchLower) ||
-            cashier.id.toLowerCase().includes(searchLower) ||
-            cashier.email.toLowerCase().includes(searchLower)
-          );
-        })
-      : [];
-
-  // Reports & Analytics State
-  const [selectedReportType, setSelectedReportType] = useState("");
-  const [reportDateRange, setReportDateRange] = useState({
-    start: "",
-    end: "",
-  });
-  const [selectedPlayerForReport, setSelectedPlayerForReport] = useState(null);
-  const [selectedTableForReport, setSelectedTableForReport] = useState("");
-  const [customReportSelection, setCustomReportSelection] = useState([]);
-  const [reportData, setReportData] = useState(null);
-  const [savedReports, setSavedReports] = useState([
-    {
-      id: 1,
-      name: "Daily Revenue - Jan 2024",
-      type: "daily_transactions",
-      dateRange: "2024-01-01 to 2024-01-31",
-      created: "2024-01-15",
-    },
-    {
-      id: 2,
-      name: "Player Report - Alex Johnson",
-      type: "individual_player",
-      player: "P101",
-      created: "2024-01-20",
-    },
-  ]);
-
-  // Available report types
-  const reportTypes = [
-    { id: "individual_player", name: "Individual Player Report", icon: "👤" },
-    { id: "cumulative_player", name: "Cumulative Player Report", icon: "📊" },
-    { id: "daily_transactions", name: "Daily Transactions Report", icon: "💰" },
-    { id: "daily_rake", name: "Daily Rake Report", icon: "🎰" },
-    {
-      id: "per_table_transactions",
-      name: "Per Table Transactions Report",
-      icon: "🃏",
-    },
-    {
-      id: "credit_transactions",
-      name: "Credit Transactions Report",
-      icon: "💳",
-    },
-    { id: "expenses", name: "Expenses Report", icon: "📉" },
-    { id: "bonus", name: "Bonus Report", icon: "🎁" },
-    { id: "custom", name: "Custom Report", icon: "🔧" },
-  ];
-
-  // Player search for reports
-  const [playerReportSearch, setPlayerReportSearch] = useState("");
-  const filteredPlayersForReport =
-    playerReportSearch.length >= 3
-      ? mockPlayers.filter((player) => {
-          const searchLower = playerReportSearch.toLowerCase();
-          return (
-            player.name.toLowerCase().includes(searchLower) ||
-            player.id.toLowerCase().includes(searchLower) ||
-            player.email.toLowerCase().includes(searchLower)
-          );
-        })
-      : [];
-
-  // Handle export CSV for reports
-  const handleExportReportCSV = (reportType, data) => {
-    const csvContent = [
-      ["Report Type", "Date Range", "Generated Date"],
-      [
-        reportType,
-        `${reportDateRange.start} to ${reportDateRange.end}`,
-        new Date().toLocaleString("en-IN"),
-      ],
-      [],
-      ...(data || []).map((row) =>
-        Array.isArray(row) ? row : Object.values(row)
-      ),
-    ]
-      .map((row) =>
-        row
-          .map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`)
-          .join(",")
-      )
-      .join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${reportType}_${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // Handle export PDF for reports (print-friendly view)
-  const handleExportReportPDF = (reportType) => {
-    const printWindow = window.open("", "_blank");
-    const reportTitle =
-      reportTypes.find((t) => t.id === reportType)?.name || reportType;
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${reportTitle}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { color: #333; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #4CAF50; color: white; }
-            tr:nth-child(even) { background-color: #f2f2f2; }
-            .header { margin-bottom: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>${reportTitle}</h1>
-            <p><strong>Date Range:</strong> ${reportDateRange.start} to ${
-      reportDateRange.end
-    }</p>
-            <p><strong>Generated:</strong> ${new Date().toLocaleString(
-              "en-IN"
-            )}</p>
-          </div>
-          <table>
-            ${
-              reportData
-                ? `
-              <thead>
-                <tr>
-                  ${reportData[0]
-                    ?.map((header) => `<th>${header}</th>`)
-                    .join("")}
-                </tr>
-              </thead>
-              <tbody>
-                ${reportData
-                  .slice(1)
-                  .map(
-                    (row) => `
-                  <tr>
-                    ${row.map((cell) => `<td>${cell}</td>`).join("")}
-                  </tr>
-                `
-                  )
-                  .join("")}
-              </tbody>
-            `
-                : "<tr><td>No data available</td></tr>"
-            }
-          </table>
-          <script>window.onload = () => window.print();</script>
-        </body>
-      </html>
-    `;
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-  };
-
-  // Generate report data (mock)
-  const generateReport = () => {
-    if (!selectedReportType) {
-      alert("Please select a report type");
-      return;
-    }
-    if (!reportDateRange.start || !reportDateRange.end) {
-      alert("Please select date range");
-      return;
-    }
-
-    let mockData = [];
-    switch (selectedReportType) {
-      case "individual_player":
-        if (!selectedPlayerForReport) {
-          alert("Please select a player for individual report");
-          return;
-        }
-        mockData = [
-          [
-            "Player ID",
-            "Name",
-            "Total Games",
-            "Total Revenue",
-            "Total Rake",
-            "Win/Loss",
-          ],
-          [
-            selectedPlayerForReport.id,
-            selectedPlayerForReport.name,
-            "45",
-            "₹12,500",
-            "₹1,250",
-            "₹-5,000",
-          ],
-        ];
-        break;
-      case "cumulative_player":
-        mockData = [
-          [
-            "Player ID",
-            "Name",
-            "Total Games",
-            "Total Revenue",
-            "Average Session",
-            "Total Rake",
-          ],
-          ["P101", "Alex Johnson", "125", "₹45,000", "₹360", "₹4,500"],
-          ["P102", "Maria Garcia", "89", "₹32,500", "₹365", "₹3,250"],
-          ["P103", "Rajesh Kumar", "156", "₹67,800", "₹435", "₹6,780"],
-        ];
-        break;
-      case "daily_transactions":
-        mockData = [
-          ["Date", "Total Transactions", "Revenue", "Deposits", "Withdrawals"],
-          ["2024-01-20", "45", "₹12,450", "₹25,000", "₹10,000"],
-          ["2024-01-19", "38", "₹11,200", "₹22,500", "₹8,500"],
-        ];
-        break;
-      case "daily_rake":
-        mockData = [
-          [
-            "Date",
-            "Total Rake",
-            "Tables",
-            "Average Rake per Table",
-            "Top Table",
-          ],
-          ["2024-01-20", "₹1,245", "8", "₹155.63", "Table 1"],
-          ["2024-01-19", "₹1,120", "8", "₹140.00", "Table 2"],
-        ];
-        break;
-      case "per_table_transactions":
-        mockData = [
-          ["Table", "Date", "Transactions", "Revenue", "Rake", "Players"],
-          ["Table 1", "2024-01-20", "12", "₹5,200", "₹520", "8"],
-          ["Table 2", "2024-01-20", "10", "₹4,100", "₹410", "6"],
-          ["Table 3", "2024-01-20", "8", "₹3,150", "₹315", "5"],
-        ];
-        break;
-      case "credit_transactions":
-        mockData = [
-          [
-            "Date",
-            "Player",
-            "Type",
-            "Amount",
-            "Balance Before",
-            "Balance After",
-          ],
-          ["2024-01-20", "P101", "Credit Granted", "₹50,000", "₹0", "₹50,000"],
-          [
-            "2024-01-20",
-            "P102",
-            "Credit Adjustment",
-            "₹25,000",
-            "₹25,000",
-            "₹50,000",
-          ],
-        ];
-        break;
-      case "expenses":
-        mockData = [
-          ["Date", "Category", "Description", "Amount", "Approved By"],
-          ["2024-01-20", "Operations", "Staff Payment", "₹15,000", "Admin"],
-          ["2024-01-19", "Maintenance", "Equipment Repair", "₹8,500", "Admin"],
-        ];
-        break;
-      case "bonus":
-        mockData = [
-          ["Date", "Player", "Bonus Type", "Amount", "Status", "Expiry"],
-          [
-            "2024-01-20",
-            "P101",
-            "Welcome Bonus",
-            "₹1,000",
-            "Active",
-            "2024-02-20",
-          ],
-          ["2024-01-19", "P102", "Referral Bonus", "₹500", "Used", "N/A"],
-        ];
-        break;
-      case "custom":
-        if (customReportSelection.length === 0) {
-          alert("Please select at least one report type for custom report");
-          return;
-        }
-        mockData = [
-          ["Custom Report", "Compiled from multiple reports"],
-          ["Report Types", customReportSelection.join(", ")],
-          ["Generated", new Date().toLocaleString("en-IN")],
-        ];
-        break;
-    }
-    setReportData(mockData);
-    alert(`Report generated successfully! Preview below.`);
-  };
-
-  // Helper function to get date/time strings
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    return {
-      date: now.toLocaleDateString("en-IN", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      }),
-      time: now.toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      }),
-      full: now.toLocaleString("en-IN", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-  };
-
-  const getPreviousDayDateTime = () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return {
-      date: yesterday.toLocaleDateString("en-IN", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      }),
-      time: yesterday.toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      }),
-      full: yesterday.toLocaleString("en-IN", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-  };
-
-  // Revenue and Rake data with date/time
-  const currentDateTime = getCurrentDateTime();
-  const previousDateTime = getPreviousDayDateTime();
-
-  const TIP_HOLD_PERCENT = 0.15;
-
-  const formatCurrency = (value) => `₹${value.toLocaleString("en-IN")}`;
-
-  const calculateTipShares = (amount) => ({
-    club: Math.round(amount * TIP_HOLD_PERCENT),
-    staff: Math.round(amount * (1 - TIP_HOLD_PERCENT)),
-  });
-
-  const revenueData = {
-    previousDay: {
-      revenue: 125000,
-      rake: 12500,
-      tips: 3200,
-      date: previousDateTime.date,
-      time: previousDateTime.time,
-      lastUpdated: previousDateTime.full,
-    },
-    currentDay: {
-      revenue: 78500,
-      rake: 7850,
-      tips: 1680,
-      date: currentDateTime.date,
-      time: currentDateTime.time,
-      lastUpdated: currentDateTime.full,
-    },
-  };
-
-  const previousDayTipShares = calculateTipShares(revenueData.previousDay.tips);
-  const currentDayTipShares = calculateTipShares(revenueData.currentDay.tips);
-
-  // Check if a seat is available
-  const isSeatAvailable = (tableId, seatNumber) => {
-    const occupied = occupiedSeats[tableId] || [];
-    return !occupied.includes(seatNumber);
-  };
-
-  // Handle seat assignment from table view with buy-in
-  const handleSeatAssign = ({ playerId, playerName, tableId, seatNumber }) => {
-    const tableIdNum = parseInt(tableId);
-    const seatNum = parseInt(seatNumber);
-
-    if (!isSeatAvailable(tableIdNum, seatNum)) {
-      alert(`Seat ${seatNum} at Table ${tableIdNum} is already occupied`);
-      return;
-    }
-
-    // If buy-in amount is provided, update player balance
-    if (buyInAmount && parseFloat(buyInAmount) > 0) {
-      const amount = parseFloat(buyInAmount);
-      const player = playerBalances[playerId];
-
-      if (!player) {
-        alert(`Player ${playerId} not found`);
-        return;
-      }
-
-      if (player.availableBalance < amount) {
-        alert(
-          `Insufficient balance. Available: ₹${player.availableBalance.toLocaleString(
-            "en-IN"
-          )}`
-        );
-        return;
-      }
-
-      // Update player balance
-      setPlayerBalances((prev) => ({
-        ...prev,
-        [playerId]: {
-          ...prev[playerId],
-          availableBalance: prev[playerId].availableBalance - amount,
-          tableBalance: (prev[playerId].tableBalance || 0) + amount,
-          tableId: tableIdNum,
-          seatNumber: seatNum,
-        },
-      }));
-
-      // Update table balance
-      setTableBalances((prev) => ({
-        ...prev,
-        [tableIdNum]: {
-          ...prev[tableIdNum],
-          totalBalance: (prev[tableIdNum].totalBalance || 0) + amount,
-          players: prev[tableIdNum].players.includes(playerId)
-            ? prev[tableIdNum].players
-            : [...prev[tableIdNum].players, playerId],
-        },
-      }));
-
-      // Add transaction record
-      setBalanceTransactions((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          type: "buy-in",
-          playerId: playerId,
-          playerName: playerName,
-          amount: amount,
-          tableId: tableIdNum,
-          tableName:
-            tables.find((t) => t.id === tableIdNum)?.name ||
-            `Table ${tableIdNum}`,
-          timestamp: Date.now(),
-          status: "completed",
-        },
-      ]);
-    } else {
-      // Update player seat info even without buy-in
-      if (playerBalances[playerId]) {
-        setPlayerBalances((prev) => ({
-          ...prev,
-          [playerId]: {
-            ...prev[playerId],
-            tableId: tableIdNum,
-            seatNumber: seatNum,
-          },
-        }));
-      }
-    }
-
-    // Assign seat
-    setOccupiedSeats((prev) => ({
-      ...prev,
-      [tableIdNum]: [...(prev[tableIdNum] || []), seatNum],
-    }));
-
-    alert(
-      `Assigned ${playerName} to Table ${tableIdNum}, Seat ${seatNum}${
-        buyInAmount && parseFloat(buyInAmount) > 0
-          ? ` with buy-in of ₹${parseFloat(buyInAmount).toLocaleString(
-              "en-IN"
-            )}`
-          : ""
-      }`
-    );
-
-    // Close table view and reset
-    setShowTableView(false);
-    setSelectedPlayerForSeating(null);
-    setSelectedTableForSeating(null);
-    setBuyInAmount("");
-    setSelectedLiveTablePlayer(null);
-    setLiveTablePlayerSearch("");
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
-      <div className="flex">
-        {/* Sidebar */}
+      <div className="flex min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900">
         <CashierSidebar
           activeItem={activeItem}
           setActiveItem={setActiveItem}
@@ -1183,1397 +532,130 @@ export default function CashierDashboard() {
           onSignOut={handleSignOut}
         />
 
-        {/* Main Section */}
-        <main className="flex-1 lg:ml-0 min-w-0">
-          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 sm:py-10 space-y-8">
-          {/* Header */}
-          <header className="bg-gradient-to-r from-green-600 via-emerald-500 to-teal-400 p-6 rounded-xl shadow-md flex justify-between items-center mt-16 lg:mt-0">
-            <div>
-              <h1 className="text-2xl font-bold text-white">
-                Cashier Portal - {activeItem}
-              </h1>
-              <p className="text-gray-200 mt-1">
-                Manage financial transactions, payroll, and bonuses
-              </p>
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
-            >
-              Sign Out
-            </button>
-          </header>
+        <main className="flex-1 p-8 overflow-y-auto">
+          {/* Dashboard */}
+          {activeItem === "Dashboard" && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-white">
+                  Dashboard - {clubInfo?.name || club?.name || 'Loading...'}
+                </h1>
+                      </div>
 
-          {/* Dynamic Content Based on Active Item */}
-          {activeItem === "Transactions Dashboard" && (
-            <>
-              {/* Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                {[
-                  {
-                    title: "Today's Transactions",
-                    value: "₹45,250",
-                    color: "from-green-400 via-emerald-500 to-teal-500",
-                  },
-                  {
-                    title: "Pending Deposits",
-                    value: "₹12,500",
-                    color: "from-blue-400 via-indigo-500 to-violet-500",
-                  },
-                  {
-                    title: "Cash on Hand",
-                    value: "₹125,000",
-                    color: "from-yellow-400 via-orange-500 to-red-500",
-                  },
-                  {
-                    title: "System Status",
-                    value: "Online",
-                    color: "from-emerald-400 via-green-500 to-teal-500",
-                  },
-                ].map((card, i) => (
-                  <div
-                    key={i}
-                    className={`p-6 rounded-xl bg-gradient-to-br ${card.color} text-gray-900 shadow-lg transition-transform transform hover:scale-105`}
-                  >
-                    <div className="text-sm opacity-90 text-white/90">
-                      {card.title}
+              {/* Revenue Cards */}
+              {revenueLoading ? (
+                <div className="text-white text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+                  <p>Loading revenue data...</p>
                     </div>
-                    <div className="text-3xl font-bold mt-2 text-white">
-                      {card.value}
-                    </div>
-                    <div className="text-xs mt-1 text-white/70">
-                      Real-time data
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Revenue, Rake & Tips Section */}
-              <section className="p-6 bg-gradient-to-r from-purple-600/30 via-pink-500/20 to-rose-700/30 rounded-xl shadow-md border border-purple-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">
-                  Revenue, Rake & Tips Overview
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Previous Day Revenue */}
-                  <div className="bg-white/10 p-4 rounded-lg border border-purple-400/30">
-                    <div className="text-sm text-gray-300 mb-1">
-                      Previous Day Revenue
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-2">
-                      {formatCurrency(revenueData.previousDay.revenue)}
-                    </div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      <div>Date: {revenueData.previousDay.date}</div>
-                      <div>
-                        Last Updated: {revenueData.previousDay.lastUpdated}
-                      </div>
-                    </div>
-                    <div className="text-xs text-purple-300 font-semibold mt-2">
-                      Yesterday's Sessions
-                    </div>
+                  <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                    <h3 className="text-gray-400 text-sm mb-2">Previous Day Revenue</h3>
+                    <p className="text-3xl font-bold text-white">
+                      {formatCurrency(revenueData?.previousDay?.revenue || 0)}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2">{revenueData?.previousDay?.date || '-'}</p>
                   </div>
 
-                  {/* Current Day Revenue */}
-                  <div className="bg-white/10 p-4 rounded-lg border border-green-400/30">
-                    <div className="text-sm text-gray-300 mb-1">
-                      Current Day Revenue
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-2">
-                      {formatCurrency(revenueData.currentDay.revenue)}
-                    </div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      <div>Date: {revenueData.currentDay.date}</div>
-                      <div>
-                        Last Updated: {revenueData.currentDay.lastUpdated}
-                      </div>
-                    </div>
-                    <div className="text-xs text-green-300 font-semibold mt-2">
-                      Today's Sessions
-                    </div>
-                  </div>
+                  {/* Today's Revenue */}
+                  <div className="bg-slate-800 rounded-xl p-6 border border-emerald-600">
+                    <h3 className="text-gray-400 text-sm mb-2">Today's Revenue</h3>
+                    <p className="text-3xl font-bold text-emerald-400">
+                      {formatCurrency(revenueData?.currentDay?.revenue || 0)}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2">{revenueData?.currentDay?.date || '-'}</p>
+                </div>
+
+                  {/* Today's Rake */}
+                  <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                    <h3 className="text-gray-400 text-sm mb-2">Today's Rake</h3>
+                    <p className="text-3xl font-bold text-white">
+                      {formatCurrency(revenueData?.currentDay?.rake || 0)}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2">10% of revenue</p>
+                        </div>
 
                   {/* Previous Day Rake */}
-                  <div className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
-                    <div className="text-sm text-gray-300 mb-1">
-                      Previous Day Rake
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-2">
-                      {formatCurrency(revenueData.previousDay.rake)}
-                    </div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      <div>Date: {revenueData.previousDay.date}</div>
-                      <div>
-                        Last Updated: {revenueData.previousDay.lastUpdated}
+                  <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                    <h3 className="text-gray-400 text-sm mb-2">Previous Day Rake</h3>
+                    <p className="text-3xl font-bold text-white">
+                      {formatCurrency(revenueData?.previousDay?.rake || 0)}
+                    </p>
                       </div>
-                    </div>
-                    <div className="text-xs text-blue-300 font-semibold mt-2">
-                      Yesterday's Sessions
-                    </div>
-                  </div>
-
-                  {/* Current Day Rake */}
-                  <div className="bg-white/10 p-4 rounded-lg border border-yellow-400/30">
-                    <div className="text-sm text-gray-300 mb-1">
-                      Current Day Rake
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-2">
-                      {formatCurrency(revenueData.currentDay.rake)}
-                    </div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      <div>Date: {revenueData.currentDay.date}</div>
-                      <div>
-                        Last Updated: {revenueData.currentDay.lastUpdated}
-                      </div>
-                    </div>
-                    <div className="text-xs text-yellow-300 font-semibold mt-2">
-                      Today's Sessions
-                    </div>
-                  </div>
 
                   {/* Previous Day Tips */}
-                  <div className="bg-white/10 p-4 rounded-lg border border-cyan-400/30">
-                    <div className="text-sm text-gray-300 mb-1">
-                      Previous Day Tips
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-2">
-                      {formatCurrency(revenueData.previousDay.tips)}
-                    </div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      <div>
-                        Club Share: {formatCurrency(previousDayTipShares.club)}
-                      </div>
-                      <div>
-                        Staff Share:{" "}
-                        {formatCurrency(previousDayTipShares.staff)}
-                      </div>
-                    </div>
-                    <div className="text-xs text-cyan-300 font-semibold mt-2">
-                      Hold {Math.round(TIP_HOLD_PERCENT * 100)}% • Staff{" "}
-                      {Math.round((1 - TIP_HOLD_PERCENT) * 100)}%
-                    </div>
-                  </div>
+                  <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                    <h3 className="text-gray-400 text-sm mb-2">Previous Day Tips</h3>
+                    <p className="text-3xl font-bold text-white">
+                      {formatCurrency(revenueData?.previousDay?.tips || 0)}
+                    </p>
+                </div>
 
-                  {/* Current Day Tips */}
-                  <div className="bg-white/10 p-4 rounded-lg border border-orange-400/30">
-                    <div className="text-sm text-gray-300 mb-1">
-                      Current Day Tips
-                    </div>
-                    <div className="text-2xl font-bold text-white mb-2">
-                      {formatCurrency(revenueData.currentDay.tips)}
-                    </div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      <div>
-                        Club Share: {formatCurrency(currentDayTipShares.club)}
-                      </div>
-                      <div>
-                        Staff Share: {formatCurrency(currentDayTipShares.staff)}
-                      </div>
-                    </div>
-                    <div className="text-xs text-orange-300 font-semibold mt-2">
-                      Hold {Math.round(TIP_HOLD_PERCENT * 100)}% • Staff{" "}
-                      {Math.round((1 - TIP_HOLD_PERCENT) * 100)}%
-                    </div>
+                  {/* Today's Tips */}
+                  <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                    <h3 className="text-gray-400 text-sm mb-2">Today's Tips</h3>
+                    <p className="text-3xl font-bold text-white">
+                      {formatCurrency(revenueData?.currentDay?.tips || 0)}
+                    </p>
                   </div>
                 </div>
-              </section>
-
-              {/* Transaction Management */}
-              {/* <section className="p-6 bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-700/30 rounded-xl shadow-md border border-green-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Transaction Management</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Deposit Processing</h3>
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Search by name, ID, or email..." 
-                          value={depositPlayerSearch}
-                          onChange={(e) => {
-                            setDepositPlayerSearch(e.target.value);
-                            setSelectedDepositPlayer(null);
-                            setDepositChipCount("");
-                          }}
-                        />
-                        {depositPlayerSearch.length >= 3 && filteredDepositPlayers.length > 0 && !selectedDepositPlayer && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredDepositPlayers.map(player => (
-                              <div
-                                key={player.id}
-                                onClick={() => {
-                                  setSelectedDepositPlayer(player);
-                                  setDepositPlayerSearch(`${player.name} (${player.id})`);
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                              >
-                                <div className="text-white font-medium">{player.name}</div>
-                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {selectedDepositPlayer && (
-                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                            <span className="text-green-300">Selected: {selectedDepositPlayer.name} ({selectedDepositPlayer.id})</span>
-                            <button 
-                              onClick={() => {
-                                setSelectedDepositPlayer(null);
-                                setDepositPlayerSearch("");
-                                setDepositChipCount("");
-                              }}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                            >
-                              X
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Available Balance</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-green-500/20 border border-green-400/30 rounded text-white font-semibold" 
-                          value={selectedDepositPlayer && playerBalances[selectedDepositPlayer.id] ? `₹${playerBalances[selectedDepositPlayer.id].availableBalance.toLocaleString('en-IN')}` : "₹0.00"} 
-                          readOnly 
-                        />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Amount</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Chip Count</label>
-                        <input 
-                          type="number" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Enter chip count" 
-                          value={depositChipCount}
-                          onChange={(e) => setDepositChipCount(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Reference Number</label>
-                        <input type="text" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Transaction reference" />
-                      </div>
-                      <button 
-                        onClick={() => {
-                          if (!selectedDepositPlayer) {
-                            alert("Please select a player first");
-                            return;
-                          }
-                          alert(`Processing deposit for ${selectedDepositPlayer.name} (${selectedDepositPlayer.id})`);
-                          setDepositChipCount("");
-                        }}
-                        className="w-full bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold"
-                      >
-                        Process Deposit
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Withdrawal Processing</h3>
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Search by name, ID, or email..." 
-                          value={withdrawalPlayerSearch}
-                          onChange={(e) => {
-                            setWithdrawalPlayerSearch(e.target.value);
-                            setSelectedWithdrawalPlayer(null);
-                            setWithdrawalChipCount("");
-                          }}
-                        />
-                        {withdrawalPlayerSearch.length >= 3 && filteredWithdrawalPlayers.length > 0 && !selectedWithdrawalPlayer && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredWithdrawalPlayers.map(player => (
-                              <div
-                                key={player.id}
-                                onClick={() => {
-                                  setSelectedWithdrawalPlayer(player);
-                                  setWithdrawalPlayerSearch(`${player.name} (${player.id})`);
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                              >
-                                <div className="text-white font-medium">{player.name}</div>
-                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {selectedWithdrawalPlayer && (
-                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                            <span className="text-green-300">Selected: {selectedWithdrawalPlayer.name} ({selectedWithdrawalPlayer.id})</span>
-                            <button 
-                              onClick={() => {
-                                setSelectedWithdrawalPlayer(null);
-                                setWithdrawalPlayerSearch("");
-                                setWithdrawalChipCount("");
-                              }}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                            >
-                              X
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Available Balance</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-blue-500/20 border border-blue-400/30 rounded text-white font-semibold" 
-                          value={selectedWithdrawalPlayer && playerBalances[selectedWithdrawalPlayer.id] ? `₹${playerBalances[selectedWithdrawalPlayer.id].availableBalance.toLocaleString('en-IN')}` : "₹0.00"} 
-                          readOnly 
-                        />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Withdrawal Amount</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Chip Count</label>
-                        <input 
-                          type="number" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Enter chip count" 
-                          value={withdrawalChipCount}
-                          onChange={(e) => setWithdrawalChipCount(e.target.value)}
-                        />
-                      </div>
-                      <button 
-                        onClick={() => {
-                          if (!selectedWithdrawalPlayer) {
-                            alert("Please select a player first");
-                            return;
-                          }
-                          alert(`Processing withdrawal for ${selectedWithdrawalPlayer.name} (${selectedWithdrawalPlayer.id})`);
-                          setWithdrawalChipCount("");
-                        }}
-                        className="w-full bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold"
-                      >
-                        Process Withdrawal
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section> */}
-
-              {/* Cash-in/Cash-out */}
-              {/* <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Cash-in/Cash-out Operations</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Cash-in to Table</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Table ID</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option>Table 1 - Texas Hold'em</option>
-                          <option>Table 2 - Omaha</option>
-                          <option>Table 3 - Stud</option>
-                        </CustomSelect>
-                      </div>
-                      <div className="relative">
-                        <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Search by name, ID, or email..." 
-                          value={adjustmentPlayerSearch}
-                          onChange={(e) => {
-                            setAdjustmentPlayerSearch(e.target.value);
-                            setSelectedAdjustmentPlayer(null);
-                          }}
-                        />
-                        {adjustmentPlayerSearch.length >= 3 && filteredAdjustmentPlayers.length > 0 && !selectedAdjustmentPlayer && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredAdjustmentPlayers.map(player => (
-                              <div
-                                key={player.id}
-                                onClick={() => {
-                                  setSelectedAdjustmentPlayer(player);
-                                  setAdjustmentPlayerSearch(`${player.name} (${player.id})`);
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                              >
-                                <div className="text-white font-medium">{player.name}</div>
-                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {selectedAdjustmentPlayer && (
-                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                            <span className="text-green-300">Selected: {selectedAdjustmentPlayer.name} ({selectedAdjustmentPlayer.id})</span>
-                            <button 
-                              onClick={() => {
-                                setSelectedAdjustmentPlayer(null);
-                                setAdjustmentPlayerSearch("");
-                              }}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                            >
-                              X
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      {selectedAdjustmentPlayer && playerBalances[selectedAdjustmentPlayer.id] && (
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-white text-sm">Available Balance</label>
-                            <input 
-                              type="text" 
-                              className="w-full mt-1 px-3 py-2 bg-green-500/20 border border-green-400/30 rounded text-white font-semibold" 
-                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].availableBalance.toLocaleString('en-IN')}`} 
-                              readOnly 
-                            />
-                          </div>
-                          <div>
-                            <label className="text-white text-sm">Current Table Balance</label>
-                            <input 
-                              type="text" 
-                              className="w-full mt-1 px-3 py-2 bg-yellow-500/20 border border-yellow-400/30 rounded text-white font-semibold" 
-                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].tableBalance.toLocaleString('en-IN')}`} 
-                              readOnly 
-                            />
-                          </div>
-                        </div>
-                      )}
-                      <div>
-                        <label className="text-white text-sm">Buy-in Amount</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="₹0.00" />
-                        <p className="text-xs text-gray-400 mt-1">This will deduct from available balance and add to table balance</p>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          if (!selectedAdjustmentPlayer) {
-                            alert("Please select a player first");
-                            return;
-                          }
-                          alert(`Cash-in to table for ${selectedAdjustmentPlayer.name} (${selectedAdjustmentPlayer.id})`);
-                        }}
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold"
-                      >
-                        Cash-in to Table (Buy-in)
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Cash-out from Table</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">Table ID</label>
-                        <CustomSelect className="w-full mt-1">
-                          <option>Table 1 - Texas Hold'em</option>
-                          <option>Table 2 - Omaha</option>
-                          <option>Table 3 - Stud</option>
-                        </CustomSelect>
-                      </div>
-                      <div className="relative">
-                        <label className="text-white text-sm">Search Player (Type at least 3 characters)</label>
-                        <input 
-                          type="text" 
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" 
-                          placeholder="Search by name, ID, or email..." 
-                          value={adjustmentPlayerSearch}
-                          onChange={(e) => {
-                            setAdjustmentPlayerSearch(e.target.value);
-                            setSelectedAdjustmentPlayer(null);
-                          }}
-                        />
-                        {adjustmentPlayerSearch.length >= 3 && filteredAdjustmentPlayers.length > 0 && !selectedAdjustmentPlayer && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredAdjustmentPlayers.map(player => (
-                              <div
-                                key={player.id}
-                                onClick={() => {
-                                  setSelectedAdjustmentPlayer(player);
-                                  setAdjustmentPlayerSearch(`${player.name} (${player.id})`);
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                              >
-                                <div className="text-white font-medium">{player.name}</div>
-                                <div className="text-gray-400 text-xs">ID: {player.id} | Email: {player.email}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {selectedAdjustmentPlayer && (
-                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                            <span className="text-green-300">Selected: {selectedAdjustmentPlayer.name} ({selectedAdjustmentPlayer.id})</span>
-                            <button 
-                              onClick={() => {
-                                setSelectedAdjustmentPlayer(null);
-                                setAdjustmentPlayerSearch("");
-                              }}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                            >
-                              X
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      {selectedAdjustmentPlayer && playerBalances[selectedAdjustmentPlayer.id] && (
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-white text-sm">Available Balance</label>
-                            <input 
-                              type="text" 
-                              className="w-full mt-1 px-3 py-2 bg-green-500/20 border border-green-400/30 rounded text-white font-semibold" 
-                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].availableBalance.toLocaleString('en-IN')}`} 
-                              readOnly 
-                            />
-                          </div>
-                          <div>
-                            <label className="text-white text-sm">Current Table Balance</label>
-                            <input 
-                              type="text" 
-                              className="w-full mt-1 px-3 py-2 bg-yellow-500/20 border border-yellow-400/30 rounded text-white font-semibold" 
-                              value={`₹${playerBalances[selectedAdjustmentPlayer.id].tableBalance.toLocaleString('en-IN')}`} 
-                              readOnly 
-                            />
-                          </div>
-                        </div>
-                      )}
-                      <div>
-                        <label className="text-white text-sm">Chip Count (Manager Verified)</label>
-                        <input type="number" className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white" placeholder="Enter chip count from manager" />
-                        <p className="text-xs text-gray-400 mt-1">Manager counts chips → Balance updated → Added to available balance</p>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          if (!selectedAdjustmentPlayer) {
-                            alert("Please select a player first");
-                            return;
-                          }
-                          alert(`Cash-out from table for ${selectedAdjustmentPlayer.name} (${selectedAdjustmentPlayer.id}). This will update player balance and show as withdrawal.`);
-                        }}
-                        className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold"
-                      >
-                        Cash-out from Table (Update Balance)
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section> */}
-
-              {/* Fund Moves & Batch Operations - removed as requested */}
-            </>
-          )}
-
-          {/* Balance Management */}
-          {activeItem === "Balance Management" && (
-            <div className="space-y-6">
-              {/* Player Balance Search & Overview */}
-              <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-purple-500/20 to-pink-700/30 rounded-xl shadow-md border border-indigo-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">
-                  Player Balance Management
-                </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2 bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      Search Player Balance
-                    </h3>
-                    <div className="relative">
-                      <label className="text-white text-sm">
-                        Search Player (Type at least 3 characters)
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        placeholder="Search by name, ID, or email..."
-                        value={balancePlayerSearch || ""}
-                        onChange={(e) => {
-                          setBalancePlayerSearch(e.target.value);
-                          setSelectedBalancePlayer(null);
-                        }}
-                      />
-                      {(balancePlayerSearch || "").length >= 3 &&
-                        filteredBalancePlayers.length > 0 &&
-                        !selectedBalancePlayer && (
-                          <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {filteredBalancePlayers.map((player) => (
-                              <div
-                                key={player.id}
-                                onClick={() => {
-                                  setSelectedBalancePlayer(player);
-                                  setBalancePlayerSearch(
-                                    `${player.name} (${player.id})`
-                                  );
-                                }}
-                                className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                              >
-                                <div className="text-white font-medium">
-                                  {player.name}
-                                </div>
-                                <div className="text-gray-400 text-xs">
-                                  ID: {player.id} | Balance: ₹
-                                  {playerBalances[
-                                    player.id
-                                  ]?.availableBalance?.toLocaleString(
-                                    "en-IN"
-                                  ) || 0}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      {selectedBalancePlayer &&
-                        playerBalances[selectedBalancePlayer.id] && (
-                          <div className="mt-4 p-4 bg-indigo-500/20 border border-indigo-400/30 rounded-lg">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-white font-semibold">
-                                {selectedBalancePlayer.name} (
-                                {selectedBalancePlayer.id})
-                              </span>
-                              <button
-                                onClick={() => {
-                                  setSelectedBalancePlayer(null);
-                                  setBalancePlayerSearch("");
-                                }}
-                                className="text-red-400 hover:text-red-300"
-                              >
-                                X
-                              </button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 mt-3">
-                              <div>
-                                <div className="text-xs text-gray-400">
-                                  Available Balance
-                                </div>
-                                <div className="text-xl font-bold text-green-400">
-                                  ₹
-                                  {playerBalances[
-                                    selectedBalancePlayer.id
-                                  ].availableBalance.toLocaleString("en-IN")}
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-xs text-gray-400">
-                                  Table Balance
-                                </div>
-                                <div className="text-xl font-bold text-yellow-400">
-                                  {playerBalances[selectedBalancePlayer.id]
-                                    .tableBalance > 0 ? (
-                                    <>
-                                      ₹
-                                      {playerBalances[
-                                        selectedBalancePlayer.id
-                                      ].tableBalance.toLocaleString("en-IN")}
-                                    </>
-                                  ) : (
-                                    <>₹0</>
-                                  )}
-                                </div>
-                              </div>
-                              {playerBalances[selectedBalancePlayer.id]
-                                .tableId && (
-                                <div className="col-span-2">
-                                  <div className="text-xs text-gray-400">
-                                    Playing At
-                                  </div>
-                                  <div className="text-sm font-medium text-blue-400">
-                                    {
-                                      tableBalances[
-                                        playerBalances[selectedBalancePlayer.id]
-                                          .tableId
-                                      ]?.name
-                                    }{" "}
-                                    - Seat{" "}
-                                    {
-                                      playerBalances[selectedBalancePlayer.id]
-                                        .seatNumber
-                                    }
-                                  </div>
-                                </div>
-                              )}
-                              <div className="col-span-2">
-                                <div className="text-xs text-gray-400">
-                                  Total Balance
-                                </div>
-                                <div className="text-lg font-semibold text-white">
-                                  ₹
-                                  {(
-                                    playerBalances[selectedBalancePlayer.id]
-                                      .availableBalance +
-                                    playerBalances[selectedBalancePlayer.id]
-                                      .tableBalance
-                                  ).toLocaleString("en-IN")}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      Total System Balances
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="bg-green-500/20 p-3 rounded-lg border border-green-400/30">
-                        <div className="text-xs text-gray-400">
-                          Total Player Balances
-                        </div>
-                        <div className="text-2xl font-bold text-green-400">
-                          ₹
-                          {Object.values(playerBalances)
-                            .reduce(
-                              (sum, p) => sum + (p.availableBalance || 0),
-                              0
-                            )
-                            .toLocaleString("en-IN")}
-                        </div>
-                      </div>
-                      <div className="bg-yellow-500/20 p-3 rounded-lg border border-yellow-400/30">
-                        <div className="text-xs text-gray-400">
-                          Total Table Balances
-                        </div>
-                        <div className="text-2xl font-bold text-yellow-400">
-                          ₹
-                          {Object.values(tableBalances)
-                            .reduce((sum, t) => sum + (t.totalBalance || 0), 0)
-                            .toLocaleString("en-IN")}
-                        </div>
-                      </div>
-                      <div className="bg-purple-500/20 p-3 rounded-lg border border-purple-400/30">
-                        <div className="text-xs text-gray-400">Grand Total</div>
-                        <div className="text-xl font-bold text-purple-400">
-                          ₹
-                          {(
-                            Object.values(playerBalances).reduce(
-                              (sum, p) => sum + (p.availableBalance || 0),
-                              0
-                            ) +
-                            Object.values(tableBalances).reduce(
-                              (sum, t) => sum + (t.totalBalance || 0),
-                              0
-                            )
-                          ).toLocaleString("en-IN")}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Table Balances */}
-              <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">
-                  Table Balances
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.values(tableBalances).map((table) => (
-                    <div
-                      key={table.id}
-                      className="bg-white/10 p-4 rounded-lg border border-cyan-400/30"
-                    >
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-lg font-semibold text-white">
-                          {table.name}
-                        </h3>
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-semibold ${
-                            table.totalBalance > 0
-                              ? "bg-green-500/30 text-green-300"
-                              : "bg-gray-500/30 text-gray-400"
-                          }`}
-                        >
-                          {table.players.length}{" "}
-                          {table.players.length === 1 ? "Player" : "Players"}
-                        </span>
-                      </div>
-                      <div className="text-2xl font-bold text-cyan-400 mb-3">
-                        ₹{table.totalBalance.toLocaleString("en-IN")}
-                      </div>
-                      {table.players.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-white/10">
-                          <div className="text-xs text-gray-400 mb-2">
-                            Active Players:
-                          </div>
-                          {table.players.map((playerId) => {
-                            const player = playerBalances[playerId];
-                            if (!player) return null;
-                            return (
-                              <div
-                                key={playerId}
-                                className="text-sm text-white mb-1"
-                              >
-                                <span>{player.name}</span> -
-                                <span className="text-yellow-400 ml-1">
-                                  ₹{player.tableBalance.toLocaleString("en-IN")}
-                                </span>
-                                {player.seatNumber && (
-                                  <span className="text-gray-400 ml-1">
-                                    (Seat {player.seatNumber})
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* Balance Transactions */}
-              <section className="p-6 bg-gradient-to-r from-teal-600/30 via-green-500/20 to-emerald-700/30 rounded-xl shadow-md border border-teal-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">
-                  Recent Balance Transactions
-                </h2>
-                <div className="bg-white/10 rounded-lg overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-white">
-                      <thead>
-                        <tr className="border-b border-white/20 bg-white/5">
-                          <th className="text-left py-3 px-4">Time</th>
-                          <th className="text-left py-3 px-4">Type</th>
-                          <th className="text-left py-3 px-4">Player</th>
-                          <th className="text-left py-3 px-4">Table</th>
-                          <th className="text-right py-3 px-4">Amount</th>
-                          <th className="text-left py-3 px-4">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {balanceTransactions
-                          .slice()
-                          .sort((a, b) => b.timestamp - a.timestamp)
-                          .map((transaction) => (
-                            <tr
-                              key={transaction.id}
-                              className="border-b border-white/10 hover:bg-white/5"
-                            >
-                              <td className="py-3 px-4 text-sm">
-                                {new Date(transaction.timestamp).toLocaleString(
-                                  "en-IN"
-                                )}
-                              </td>
-                              <td className="py-3 px-4">
-                                <span
-                                  className={`px-2 py-1 rounded text-xs font-semibold ${
-                                    transaction.type === "buy-in"
-                                      ? "bg-blue-500/30 text-blue-300"
-                                      : transaction.type === "cash-out"
-                                      ? "bg-green-500/30 text-green-300"
-                                      : "bg-red-500/30 text-red-300"
-                                  }`}
-                                >
-                                  {transaction.type === "buy-in"
-                                    ? "Buy-in"
-                                    : transaction.type === "cash-out"
-                                    ? "Cash-out"
-                                    : "Withdrawal"}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4">
-                                {transaction.playerName}
-                              </td>
-                              <td className="py-3 px-4 text-sm">
-                                {transaction.tableName || transaction.tableId
-                                  ? transaction.tableName ||
-                                    `Table ${transaction.tableId}`
-                                  : "-"}
-                                {transaction.chipCount && (
-                                  <span className="text-gray-400 ml-2">
-                                    ({transaction.chipCount} chips)
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-3 px-4 text-right font-semibold">
-                                {transaction.type === "withdrawal" ? "-" : ""}₹
-                                {transaction.amount.toLocaleString("en-IN")}
-                              </td>
-                              <td className="py-3 px-4">
-                                <span
-                                  className={`px-2 py-1 rounded text-xs font-semibold ${
-                                    transaction.status === "completed"
-                                      ? "bg-green-500/30 text-green-300"
-                                      : "bg-yellow-500/30 text-yellow-300"
-                                  }`}
-                                >
-                                  {transaction.status}
-                                  {transaction.managerVerified && (
-                                    <span className="ml-1">✓</span>
-                                  )}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </section>
-
-              {/* Buy-in / Cash-out Information */}
-              {/* <section className="p-6 bg-gradient-to-r from-amber-600/30 via-orange-500/20 to-red-700/30 rounded-xl shadow-md border border-amber-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">Balance Flow Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-3">Buy-in Process</h3>
-                    <div className="space-y-2 text-sm text-gray-300">
-                      <div className="flex items-start">
-                        <span className="text-blue-400 mr-2">1.</span>
-                        <span>Player buys in from their available balance</span>
-                      </div>
-                      <div className="flex items-start">
-                        <span className="text-blue-400 mr-2">2.</span>
-                        <span>Amount deducted from player's personal balance</span>
-                      </div>
-                      <div className="flex items-start">
-                        <span className="text-blue-400 mr-2">3.</span>
-                        <span>Amount added to table balance</span>
-                      </div>
-                      <div className="flex items-start">
-                        <span className="text-blue-400 mr-2">4.</span>
-                        <span>Player sits on table with chips</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-3">Cash-out Process</h3>
-                    <div className="space-y-2 text-sm text-gray-300">
-                      <div className="flex items-start">
-                        <span className="text-green-400 mr-2">1.</span>
-                        <span>Manager counts chips when player cashes out</span>
-                      </div>
-                      <div className="flex items-start">
-                        <span className="text-green-400 mr-2">2.</span>
-                        <span>Chip count verified and balance updated</span>
-                      </div>
-                      <div className="flex items-start">
-                        <span className="text-green-400 mr-2">3.</span>
-                        <span>Amount deducted from table balance</span>
-                      </div>
-                      <div className="flex items-start">
-                        <span className="text-green-400 mr-2">4.</span>
-                        <span>Amount added back to player's available balance</span>
-                      </div>
-                      <div className="flex items-start">
-                        <span className="text-green-400 mr-2">5.</span>
-                        <span>Withdrawal appears in cashier portal</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section> */}
+              )}
             </div>
-          )}
-
-          {/* Table Management */}
-          {activeItem === "Table Management" && (
-            <TableManagementSection
-              userRole="cashier"
-              tables={tables}
-              playerBalances={playerBalances}
-              tableBalances={tableBalances}
-              occupiedSeats={occupiedSeats}
-              mockPlayers={mockPlayers}
-              onSeatAssign={handleSeatAssign}
-              showTableView={showTableView}
-              setShowTableView={setShowTableView}
-              selectedPlayerForSeating={selectedPlayerForSeating}
-              setSelectedPlayerForSeating={setSelectedPlayerForSeating}
-              selectedTableForSeating={selectedTableForSeating}
-              setSelectedTableForSeating={setSelectedTableForSeating}
-              liveTablePlayerSearch={liveTablePlayerSearch}
-              setLiveTablePlayerSearch={setLiveTablePlayerSearch}
-              selectedLiveTablePlayer={selectedLiveTablePlayer}
-              setSelectedLiveTablePlayer={setSelectedLiveTablePlayer}
-              buyInAmount={buyInAmount}
-              setBuyInAmount={setBuyInAmount}
-            />
-          )}
-
-          {/* Club Buy-In */}
-          {activeItem === "Club Buy-In" && (
-            <ClubBuyInSection 
-              players={mockPlayers}
-              playerBalances={playerBalances}
-              setPlayerBalances={setPlayerBalances}
-            />
           )}
 
           {/* Payroll Management */}
           {activeItem === "Payroll Management" && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <EmployeeSalaryProcessingSection />
-                </div>
-                <div>
-                  <TipsProcessing />
-                </div>
-              </div>
-
-              <DealerTips userRole="cashier" forcedTab="cashout" />
-            </div>
+            <PayrollManagementCashier selectedClubId={clubId} />
           )}
 
-          {/* Bonus Processing */}
-          {activeItem === "Bonus Processing" && (
-            <BonusProcessingSection players={mockPlayers} />
+          {/* Bonus Management */}
+          {activeItem === "Bonus Management" && (
+            <BonusManagement selectedClubId={clubId} />
           )}
 
-          {activeItem === "Credit Disbursement" && (
-            <CreditFeatureSection
-              userRole="cashier"
-              creditDisbursements={creditDisbursements}
-              setCreditDisbursements={setCreditDisbursements}
-              forcedTab="disbursement"
-            />
+          {/* Tables & Waitlist - View Only */}
+          {activeItem === "Tables & Waitlist" && (
+            <TableManagementViewOnly selectedClubId={clubId} />
           )}
 
-          {/* Transaction History */}
-          {activeItem === "Transaction History" && (
-            <div className="space-y-6">
-              {/* Transaction History Table */}
-              <section className="p-6 bg-gradient-to-r from-indigo-600/30 via-purple-500/20 to-blue-700/30 rounded-xl shadow-md border border-indigo-800/40">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-white">
-                    Transaction History
-                  </h2>
-                  <button
-                    onClick={() =>
-                      handleExportReportCSV("transaction_history", [
-                        [
-                          "Date",
-                          "Type",
-                          "Player ID",
-                          "Amount",
-                          "Status",
-                          "Reference",
-                        ],
-                        [
-                          "2024-01-18",
-                          "Deposit",
-                          "P001",
-                          "+₹5,000",
-                          "Completed",
-                          "TXN001",
-                        ],
-                        [
-                          "2024-01-18",
-                          "Withdrawal",
-                          "P002",
-                          "-₹2,500",
-                          "Completed",
-                          "TXN002",
-                        ],
-                        [
-                          "2024-01-18",
-                          "Bonus",
-                          "P003",
-                          "+₹1,000",
-                          "Pending",
-                          "TXN003",
-                        ],
-                      ])
-                    }
-                    className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm"
-                  >
-                    📥 Export CSV
-                  </button>
-                </div>
-                <div className="bg-white/10 p-4 rounded-lg">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-white">
-                      <thead>
-                        <tr className="border-b border-white/20">
-                          <th className="text-left py-3 px-4">Date</th>
-                          <th className="text-left py-3 px-4">Type</th>
-                          <th className="text-left py-3 px-4">Player ID</th>
-                          <th className="text-left py-3 px-4">Amount</th>
-                          <th className="text-left py-3 px-4">Status</th>
-                          <th className="text-left py-3 px-4">Reference</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-white/10">
-                          <td className="py-3 px-4">2024-01-18</td>
-                          <td className="py-3 px-4">Deposit</td>
-                          <td className="py-3 px-4">P001</td>
-                          <td className="py-3 px-4 text-green-300">+₹5,000</td>
-                          <td className="py-3 px-4">
-                            <span className="bg-green-500/30 text-green-300 px-2 py-1 rounded text-sm">
-                              Completed
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">TXN001</td>
-                        </tr>
-                        <tr className="border-b border-white/10">
-                          <td className="py-3 px-4">2024-01-18</td>
-                          <td className="py-3 px-4">Withdrawal</td>
-                          <td className="py-3 px-4">P002</td>
-                          <td className="py-3 px-4 text-red-300">-₹2,500</td>
-                          <td className="py-3 px-4">
-                            <span className="bg-green-500/30 text-green-300 px-2 py-1 rounded text-sm">
-                              Completed
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">TXN002</td>
-                        </tr>
-                        <tr className="border-b border-white/10">
-                          <td className="py-3 px-4">2024-01-18</td>
-                          <td className="py-3 px-4">Bonus</td>
-                          <td className="py-3 px-4">P003</td>
-                          <td className="py-3 px-4 text-yellow-300">+₹1,000</td>
-                          <td className="py-3 px-4">
-                            <span className="bg-yellow-500/30 text-yellow-300 px-2 py-1 rounded text-sm">
-                              Pending
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">TXN003</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </section>
-            </div>
-          )}
-
-          {/* Shift Reconciliation */}
-          {activeItem === "Shift Reconciliation" && (
-            <div className="space-y-6">
-              <section className="p-6 bg-gradient-to-r from-teal-600/30 via-cyan-500/20 to-blue-700/30 rounded-xl shadow-md border border-teal-800/40">
-                <h2 className="text-xl font-bold text-white mb-6">
-                  Shift Reconciliation
-                </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      Start Shift
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <label className="text-white text-sm">
-                          Cashier ID (Type at least 3 characters to search)
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="Search by Cashier ID, name, or email..."
-                          value={cashierSearch}
-                          onChange={(e) => {
-                            setCashierSearch(e.target.value);
-                            setSelectedCashier(null);
-                          }}
-                        />
-                        {cashierSearch.length >= 3 &&
-                          filteredCashiers.length > 0 &&
-                          !selectedCashier && (
-                            <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                              {filteredCashiers.map((cashier) => (
-                                <div
-                                  key={cashier.id}
-                                  onClick={() => {
-                                    setSelectedCashier(cashier);
-                                    setCashierSearch(
-                                      `${cashier.name} (${cashier.id})`
-                                    );
-                                  }}
-                                  className="px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-0"
-                                >
-                                  <div className="text-white font-medium">
-                                    {cashier.name}
-                                  </div>
-                                  <div className="text-gray-400 text-xs">
-                                    ID: {cashier.id} | Email: {cashier.email}
-                                  </div>
-                                  <div className="text-gray-500 text-xs">
-                                    Status: {cashier.status}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        {selectedCashier && (
-                          <div className="mt-2 p-2 bg-green-500/20 border border-green-400/30 rounded text-sm">
-                            <span className="text-green-300">
-                              Selected: {selectedCashier.name} (
-                              {selectedCashier.id})
-                            </span>
-                            <button
-                              onClick={() => {
-                                setSelectedCashier(null);
-                                setCashierSearch("");
-                              }}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                            >
-                              X
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">
-                          Starting Cash
-                        </label>
-                        <input
-                          type="number"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="₹0.00"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Shift Date</label>
-                        <input
-                          type="date"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                        />
-                      </div>
-                      <button className="w-full bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        Start Shift
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                      End Shift
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-white text-sm">
-                          Ending Cash
-                        </label>
-                        <input
-                          type="number"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="₹0.00"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">
-                          Expected Cash
-                        </label>
-                        <input
-                          type="number"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="₹0.00"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-white text-sm">Variance</label>
-                        <input
-                          type="number"
-                          className="w-full mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                          placeholder="₹0.00"
-                          readOnly
-                        />
-                      </div>
-                      <button className="w-full bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg font-semibold">
-                        End Shift & Reconcile
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
-          )}
-
-          {/* Tournaments - View Only */}
-          {activeItem === "Tournaments" && (
-            <TournamentManagementSection userRole="cashier" />
+          {/* Club Buy-In */}
+          {activeItem === "Club Buy-In" && (
+            <ClubBuyInCashOut selectedClubId={clubId} onBack={() => setActiveItem("Dashboard")} />
           )}
 
           {/* Push Notifications */}
           {activeItem === "Push Notifications" && (
-            <PushNotificationsSection registeredPlayers={registeredPlayers} />
+            <PushNotifications selectedClubId={clubId} />
           )}
 
-          {/* Chat - Chat System */}
-          {activeItem === "Rake Entry to Club" && (
-            <RakeEntryToClub />
+          {/* Tournaments - View Only */}
+          {activeItem === "Tournaments" && (
+            <TournamentManagementViewOnly selectedClubId={clubId} />
           )}
 
-          {activeItem === "Chat" && (
-            <ChatSection
-              userRole="cashier"
-              playerChats={playerChats}
-              setPlayerChats={setPlayerChats}
-              staffChats={staffChats}
-              setStaffChats={setStaffChats}
-            />
+          {/* Chat Management */}
+          {activeItem === "Chat" && clubId && (
+            <ChatManagement clubId={clubId} />
           )}
 
-          {activeItem === "Reports & Analytics" && (
-            <ReportsAnalyticsSection
-              allPlayersForReport={mockPlayers}
-              registeredPlayers={registeredPlayers}
-            />
-          )}
-
-          {activeItem === "Affiliates" && (
-            <div className="space-y-6">
-              <AffiliatesTable 
-                affiliates={[
-                  {
-                    id: "AFF001",
-                    name: "Agent X",
-                    email: "agent.x@example.com",
-                    referralCode: "AGTX-ALPHA",
-                    status: "Active",
-                    kycStatus: "Verified",
-                    totalReferrals: 12,
-                    earnings: 45000,
-                  },
-                  {
-                    id: "AFF002",
-                    name: "Agent Y",
-                    email: "agent.y@example.com",
-                    referralCode: "AGTY-BETA",
-                    status: "Active",
-                    kycStatus: "Pending",
-                    totalReferrals: 8,
-                    earnings: 28000,
-                  },
-                ]}
-                userRole="cashier"
-              />
-            </div>
-          )}
-
+          {/* Financial Overrides */}
           {activeItem === "Financial Overrides" && (
-            <FinancialOverrides
-              userRole="cashier"
-            />
+            <FinancialOverrides userRole="cashier" />
           )}
-          </div>
 
-          {/* Table View Modal for Seat Assignment (Cashier Mode) */}
-          {showTableView && selectedTableForSeating && (
-            <div className="fixed inset-0 z-50 bg-black/90 overflow-y-auto hide-scrollbar">
-              <TableView
-                tableId={selectedTableForSeating}
-                onClose={() => {
-                  setShowTableView(false);
-                  setSelectedPlayerForSeating(null);
-                  setSelectedTableForSeating(null);
-                  setBuyInAmount("");
-                  setSelectedLiveTablePlayer(null);
-                  setLiveTablePlayerSearch("");
-                }}
-                isManagerMode={true}
-                selectedPlayerForSeating={selectedPlayerForSeating}
-                occupiedSeats={occupiedSeats}
-                onSeatAssign={handleSeatAssign}
-                tables={tables}
-              />
+          {/* Fallback for unknown menu items */}
+          {!["Dashboard", "Payroll Management", "Bonus Management", "Tables & Waitlist", "Club Buy-In", "Push Notifications", "Tournaments", "Chat", "Financial Overrides"].includes(activeItem) && (
+            <div className="text-white">
+              <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
+              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <p className="text-gray-400">This section is under development.</p>
+          </div>
             </div>
           )}
         </main>
       </div>
-    </div>
+    </>
   );
 }

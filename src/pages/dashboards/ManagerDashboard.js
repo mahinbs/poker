@@ -10,6 +10,7 @@ import PushNotifications from "./PushNotifications";
 import TournamentManagement from "../../components/TournamentManagement";
 import ChatManagement from "../../components/ChatManagement";
 import RakeCollection from "../../components/RakeCollection";
+import TableBuyOutManagement from "../../components/TableBuyOutManagement";
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
@@ -405,6 +406,11 @@ export default function ManagerDashboard() {
             <TableManagement selectedClubId={clubId} />
           )}
 
+          {/* Table Buy-Out Management - Commented out, now integrated into Tables & Waitlist */}
+          {/* {activeItem === "Table Buy-Out" && (
+            <TableBuyOutManagement clubId={clubId} />
+          )} */}
+
           {/* Rake Collection */}
           {activeItem === "Rake Collection" && (
             <RakeCollection clubId={clubId} />
@@ -426,7 +432,7 @@ export default function ManagerDashboard() {
           )}
 
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Player Management", "Tables & Waitlist", "Rake Collection", "Push Notifications", "Tournaments", "Chat"].includes(activeItem) && (
+          {!["Dashboard", "Player Management", "Tables & Waitlist", /* "Table Buy-Out", */ "Rake Collection", "Push Notifications", "Tournaments", "Chat"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
               <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
