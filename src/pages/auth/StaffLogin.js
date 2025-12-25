@@ -78,8 +78,8 @@ export default function StaffLogin() {
         mustResetPassword: response.user.mustResetPassword || false,
       }));
 
-      // Also store in 'user' key for Admin (for consistency)
-      if (userRole === 'ADMIN') {
+      // Also store in 'user' key for Admin and Manager (for consistency)
+      if (userRole === 'ADMIN' || userRole === 'MANAGER') {
         localStorage.setItem('user', JSON.stringify(userData));
       }
       
