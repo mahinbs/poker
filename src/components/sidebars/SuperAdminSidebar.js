@@ -1,13 +1,35 @@
 import React, { useState, useEffect } from "react";
 
+const DEFAULT_MENU_ITEMS = [
+  "Dashboard",
+  "Player Management",
+  "Staff Management",
+  "Payroll Management",
+  "Affiliates",
+  "Tables & Waitlist",
+  "Club Buy-In",
+  "Credit Management",
+  "VIP Store",
+  "Push Notifications",
+  "Tournaments",
+  "Bonus Management",
+  "FNB",
+  "Chat",
+  // "Financial Transactions", // Commented out - not needed for now
+  "Financial Overrides",
+  "Reports & Analytics",
+  "Audit Logs",
+  "System Control",
+];
+
 export default function SuperAdminSidebar({ 
   activeItem, 
   setActiveItem, 
-  menuItems = [],
+  menuItems = DEFAULT_MENU_ITEMS,
   onSignOut = null,
   clubs = [],
   selectedClubId = null,
-  setSelectedClubId = null
+  onClubChange = null
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -38,7 +60,7 @@ export default function SuperAdminSidebar({
     }
   }, [isOpen, isMobile]);
 
-  const selectedClub = clubs.find((c) => c.id === selectedClubId) || clubs[0];
+  const selectedClub = clubs.find((c) => c.clubId === selectedClubId) || clubs[0];
 
   return (
     <>
@@ -100,20 +122,20 @@ export default function SuperAdminSidebar({
             </div>
 
             {/* Club Selection Dropdown */}
-            {clubs.length > 0 && setSelectedClubId && (
+            {clubs.length > 0 && onClubChange && (
               <div className="mb-6 relative min-w-0">
-                <label className="text-white text-sm mb-2 block">Select Club</label>
+                <label className="text-white text-sm mb-2 block font-semibold">📍 Select Club</label>
                 <div className="relative min-w-0">
                   <button
                     type="button"
                     onClick={() => setIsClubDropdownOpen(!isClubDropdownOpen)}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-left flex items-center justify-between hover:bg-white/15 transition-colors overflow-hidden min-w-0"
+                    className="w-full px-4 py-3 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/40 rounded-lg text-white text-left flex items-center justify-between hover:from-emerald-600/30 hover:to-teal-600/30 transition-all overflow-hidden min-w-0 shadow-md"
                   >
-                    <span className="truncate min-w-0 flex-1">
-                      {selectedClub?.name || "Select Club"}
+                    <span className="truncate min-w-0 flex-1 font-medium">
+                      {selectedClub?.clubName || "Select Club"}
                     </span>
                     <svg
-                      className={`w-4 h-4 ml-2 transition-transform ${
+                      className={`w-5 h-5 ml-2 transition-transform ${
                         isClubDropdownOpen ? "rotate-180" : ""
                       }`}
                       fill="none"
@@ -135,29 +157,42 @@ export default function SuperAdminSidebar({
                         className="fixed inset-0 z-10"
                         onClick={() => setIsClubDropdownOpen(false)}
                       ></div>
-                      <div className="absolute z-20 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto overflow-x-hidden hide-scrollbar">
+                      <div className="absolute z-20 w-full mt-2 bg-slate-800 border border-emerald-500/40 rounded-lg shadow-2xl max-h-64 overflow-y-auto overflow-x-hidden hide-scrollbar">
                         {clubs.map((club) => (
                           <button
-                            key={club.id}
+                            key={club.clubId}
                             type="button"
                             onClick={() => {
-                              setSelectedClubId(club.id);
+                              onClubChange(club.clubId);
                               setIsClubDropdownOpen(false);
                             }}
-                            className={`w-full px-3 py-2 text-left text-white hover:bg-white/10 transition-colors overflow-hidden ${
-                              selectedClubId === club.id ? "bg-blue-600/30" : ""
+                            className={`w-full px-4 py-3 text-left text-white hover:bg-emerald-600/30 transition-colors overflow-hidden border-b border-slate-700 last:border-b-0 ${
+                              selectedClubId === club.clubId ? "bg-emerald-600/40 font-semibold" : ""
                             }`}
                           >
-                            <span className="block truncate">{club.name}</span>
+                            <span className="block truncate">{club.clubName}</span>
+                            <span className="block text-xs text-gray-400 truncate mt-0.5">
+                              {club.tenantName}
+                            </span>
                           </button>
                         ))}
                       </div>
                     </>
                   )}
                 </div>
-                <p className="text-xs text-gray-400 mt-1">
-                  Managing: {selectedClub?.name}
+                <p className="text-xs text-emerald-400 mt-2 font-medium">
+                  📊 {clubs.length} {clubs.length === 1 ? 'Club' : 'Clubs'} Available
                 </p>
+                {/* Show Club Code for Selected Club */}
+                {selectedClub && selectedClub.code && (
+                  <div className="mt-3 bg-emerald-900/30 border border-emerald-500/50 rounded-lg p-3">
+                    <div className="text-xs text-emerald-300 font-semibold mb-1">🎮 Club Code</div>
+                    <div className="text-emerald-100 font-mono text-lg font-bold tracking-wider text-center">
+                      {selectedClub.code}
+                    </div>
+                    <div className="text-xs text-emerald-400 mt-1 text-center">Players use this to sign up</div>
+                  </div>
+                )}
               </div>
             )}
           </div>

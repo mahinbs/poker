@@ -135,12 +135,17 @@ export const authAPI = {
    * Get current user data
    */
   getCurrentUser: () => {
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : {};
+    
     return {
       userId: localStorage.getItem(STORAGE_KEYS.USER_ID),
       email: localStorage.getItem(STORAGE_KEYS.USER_EMAIL),
       role: localStorage.getItem(STORAGE_KEYS.USER_ROLE),
       clubId: localStorage.getItem(STORAGE_KEYS.CLUB_ID),
       tenantId: localStorage.getItem(STORAGE_KEYS.TENANT_ID),
+      isMasterAdmin: user.isMasterAdmin || false,
+      displayName: user.displayName || null,
     };
   },
 
@@ -307,6 +312,43 @@ export const tablesAPI = {
       body: JSON.stringify(assignmentData),
     });
   },
+
+  /**
+   * Pause table session
+   */
+  pauseSession: async (clubId, tableId) => {
+    return await apiRequest(`/clubs/${clubId}/tables/${tableId}/pause-session`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Resume table session
+   */
+  resumeSession: async (clubId, tableId) => {
+    return await apiRequest(`/clubs/${clubId}/tables/${tableId}/resume-session`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * End table session
+   */
+  endSession: async (clubId, tableId) => {
+    return await apiRequest(`/clubs/${clubId}/tables/${tableId}/end-session`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Update session parameters
+   */
+  updateSessionParams: async (clubId, tableId, params) => {
+    return await apiRequest(`/clubs/${clubId}/tables/${tableId}/session-params`, {
+      method: 'PATCH',
+      body: JSON.stringify(params),
+    });
+  },
 };
 
 // =============================================================================
@@ -456,9 +498,12 @@ export const fnbAPI = {
   /**
    * Get all orders
    */
-  getOrders: async (clubId, status = null) => {
-    const query = status ? `?status=${status}` : '';
-    return await apiRequest(`/clubs/${clubId}/fnb/orders${query}`);
+  getOrders: async (clubId, status = null, page = 1, limit = 10) => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    return await apiRequest(`/clubs/${clubId}/fnb/orders?${params.toString()}`);
   },
 
   /**
@@ -480,6 +525,151 @@ export const fnbAPI = {
       body: JSON.stringify({ status, processedBy }),
     });
   },
+
+  // ==================== ENHANCED FNB ENDPOINTS ====================
+
+  /**
+   * Kitchen Stations
+   */
+  createKitchenStation: async (clubId, stationData) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/kitchen-stations`, {
+      method: 'POST',
+      body: JSON.stringify(stationData),
+    });
+  },
+
+  getKitchenStations: async (clubId, activeOnly = false) => {
+    const query = activeOnly ? '?activeOnly=true' : '';
+    return await apiRequest(`/clubs/${clubId}/fnb/kitchen-stations${query}`);
+  },
+
+  getKitchenStation: async (clubId, stationId) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/kitchen-stations/${stationId}`);
+  },
+
+  updateKitchenStation: async (clubId, stationId, stationData) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/kitchen-stations/${stationId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(stationData),
+    });
+  },
+
+  deleteKitchenStation: async (clubId, stationId) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/kitchen-stations/${stationId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getStationStatistics: async (clubId, stationId) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/kitchen-stations/${stationId}/statistics`);
+  },
+
+  /**
+   * Order Acceptance/Rejection
+   */
+  acceptOrder: async (clubId, orderId, stationId) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/orders/${orderId}/accept`, {
+      method: 'POST',
+      body: JSON.stringify({ stationId, isAccepted: true }),
+    });
+  },
+
+  rejectOrder: async (clubId, orderId, reason) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/orders/${orderId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ rejectedReason: reason, isAccepted: false }),
+    });
+  },
+
+  markOrderReady: async (clubId, orderId) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/orders/${orderId}/ready`, {
+      method: 'POST',
+    });
+  },
+
+  markOrderDelivered: async (clubId, orderId) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/orders/${orderId}/delivered`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Menu Categories (Enhanced)
+   */
+  getAllMenuCategories: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/categories/all`);
+  },
+
+  createMenuCategory: async (clubId, categoryName) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/categories`, {
+      method: 'POST',
+      body: JSON.stringify({ categoryName }),
+    });
+  },
+
+  deleteMenuCategory: async (clubId, categoryId) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/categories/${categoryId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Inventory Management
+   */
+  getInventory: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/inventory`);
+  },
+
+  createInventoryItem: async (clubId, inventoryData) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/inventory`, {
+      method: 'POST',
+      body: JSON.stringify(inventoryData),
+    });
+  },
+
+  updateInventory: async (clubId, itemId, inventoryData) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/inventory/${itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(inventoryData),
+    });
+  },
+
+  /**
+   * Suppliers
+   */
+  getSuppliers: async (clubId, activeOnly = false) => {
+    const query = activeOnly ? '?activeOnly=true' : '';
+    return await apiRequest(`/clubs/${clubId}/fnb/suppliers${query}`);
+  },
+
+  createSupplier: async (clubId, supplierData) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/suppliers`, {
+      method: 'POST',
+      body: JSON.stringify(supplierData),
+    });
+  },
+
+  updateSupplier: async (clubId, supplierId, supplierData) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/suppliers/${supplierId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(supplierData),
+    });
+  },
+
+  deleteSupplier: async (clubId, supplierId) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/suppliers/${supplierId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Delete menu item
+   */
+  deleteMenuItem: async (clubId, itemId) => {
+    return await apiRequest(`/clubs/${clubId}/fnb/menu/${itemId}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // =============================================================================
@@ -492,6 +682,13 @@ export const tournamentsAPI = {
    */
   getTournaments: async (clubId) => {
     return await apiRequest(`/clubs/${clubId}/tournaments`);
+  },
+
+  /**
+   * Get tournament by ID
+   */
+  getTournamentById: async (clubId, tournamentId) => {
+    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}`);
   },
 
   /**
@@ -512,6 +709,48 @@ export const tournamentsAPI = {
       method: 'PUT',
       body: JSON.stringify(tournamentData),
     });
+  },
+
+  /**
+   * Delete tournament
+   */
+  deleteTournament: async (clubId, tournamentId) => {
+    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Start tournament
+   */
+  startTournament: async (clubId, tournamentId) => {
+    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}/start`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * End tournament with winners
+   */
+  endTournament: async (clubId, tournamentId, winnersData) => {
+    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}/end`, {
+      method: 'POST',
+      body: JSON.stringify(winnersData),
+    });
+  },
+
+  /**
+   * Get tournament players
+   */
+  getTournamentPlayers: async (clubId, tournamentId) => {
+    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}/players`);
+  },
+
+  /**
+   * Get tournament winners
+   */
+  getTournamentWinners: async (clubId, tournamentId) => {
+    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}/winners`);
   },
 };
 
@@ -536,6 +775,85 @@ export const staffAPI = {
       body: JSON.stringify(staffData),
     });
   },
+  
+  /**
+   * Get all staff with filters (Enhanced)
+   */
+  getAllStaffMembers: async (clubId, filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.role) params.append('role', filters.role);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.sortBy) params.append('sortBy', filters.sortBy);
+    if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
+    
+    const queryString = params.toString();
+    return await apiRequest(`/clubs/${clubId}/staff-management${queryString ? '?' + queryString : ''}`);
+  },
+
+  /**
+   * Create staff member with KYC (Enhanced)
+   */
+  createStaffMember: async (clubId, staffData) => {
+    return await apiRequest(`/clubs/${clubId}/staff-management/create`, {
+      method: 'POST',
+      body: JSON.stringify(staffData),
+    });
+  },
+
+  /**
+   * Get staff member by ID
+   */
+  getStaffMember: async (clubId, staffId) => {
+    return await apiRequest(`/clubs/${clubId}/staff-management/${staffId}`);
+  },
+
+  /**
+   * Update staff member
+   */
+  updateStaffMember: async (clubId, staffId, staffData) => {
+    return await apiRequest(`/clubs/${clubId}/staff-management/${staffId}`, {
+      method: 'PUT',
+      body: JSON.stringify(staffData),
+    });
+  },
+
+  /**
+   * Suspend staff member
+   */
+  suspendStaffMember: async (clubId, staffId, reason) => {
+    return await apiRequest(`/clubs/${clubId}/staff-management/${staffId}/suspend`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  /**
+   * Reactivate staff member
+   */
+  reactivateStaffMember: async (clubId, staffId) => {
+    return await apiRequest(`/clubs/${clubId}/staff-management/${staffId}/reactivate`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Delete staff member
+   */
+  deleteStaffMember: async (clubId, staffId) => {
+    return await apiRequest(`/clubs/${clubId}/staff-management/${staffId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Reset staff password
+   */
+  resetStaffPassword: async (clubId, staffId) => {
+    return await apiRequest(`/clubs/${clubId}/staff-management/${staffId}/reset-password`, {
+      method: 'POST',
+    });
+  },
 
   /**
    * Update staff member
@@ -544,6 +862,247 @@ export const staffAPI = {
     return await apiRequest(`/clubs/${clubId}/staff/${staffId}`, {
       method: 'PUT',
       body: JSON.stringify(staffData),
+    });
+  },
+};
+
+// =============================================================================
+// SHIFT MANAGEMENT API
+// =============================================================================
+
+export const shiftsAPI = {
+  /**
+   * Get all shifts with optional filters
+   */
+  getShifts: async (clubId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/shifts${query ? '?' + query : ''}`);
+  },
+
+  /**
+   * Get shift by ID
+   */
+  getShiftById: async (clubId, shiftId) => {
+    return await apiRequest(`/clubs/${clubId}/shifts/${shiftId}`);
+  },
+
+  /**
+   * Create a new shift
+   */
+  createShift: async (clubId, shiftData) => {
+    return await apiRequest(`/clubs/${clubId}/shifts`, {
+      method: 'POST',
+      body: JSON.stringify(shiftData),
+    });
+  },
+
+  /**
+   * Update a shift
+   */
+  updateShift: async (clubId, shiftId, shiftData) => {
+    return await apiRequest(`/clubs/${clubId}/shifts/${shiftId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(shiftData),
+    });
+  },
+
+  /**
+   * Delete a shift
+   */
+  deleteShift: async (clubId, shiftId) => {
+    return await apiRequest(`/clubs/${clubId}/shifts/${shiftId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Copy shifts to new dates
+   */
+  copyShifts: async (clubId, copyData) => {
+    return await apiRequest(`/clubs/${clubId}/shifts/copy`, {
+      method: 'POST',
+      body: JSON.stringify(copyData),
+    });
+  },
+
+  /**
+   * Get all dealers for shift assignment
+   */
+  getDealers: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/shifts-dealers`);
+  },
+
+  /**
+   * Delete multiple shifts
+   */
+  deleteMultipleShifts: async (clubId, shiftIds) => {
+    return await apiRequest(`/clubs/${clubId}/shifts/delete-multiple`, {
+      method: 'POST',
+      body: JSON.stringify({ shiftIds }),
+    });
+  },
+};
+
+// =============================================================================
+// PAYROLL API
+// =============================================================================
+
+export const payrollAPI = {
+  // Salary Processing
+  processSalary: async (clubId, salaryData) => {
+    return await apiRequest(`/clubs/${clubId}/payroll/salary`, {
+      method: 'POST',
+      body: JSON.stringify(salaryData),
+    });
+  },
+
+  getSalaryPayments: async (clubId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/payroll/salary${query ? '?' + query : ''}`);
+  },
+
+  getSalaryPaymentById: async (clubId, paymentId) => {
+    return await apiRequest(`/clubs/${clubId}/payroll/salary/${paymentId}`);
+  },
+
+  getAllStaffForPayroll: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/payroll/staff`);
+  },
+
+  getDealersForPayroll: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/payroll/dealers`);
+  },
+
+  // Dealer Tips
+  getTipSettings: async (clubId, dealerId) => {
+    const query = dealerId ? `?dealerId=${dealerId}` : '';
+    return await apiRequest(`/clubs/${clubId}/payroll/tips/settings${query}`);
+  },
+
+  updateTipSettings: async (clubId, settings, dealerId) => {
+    const query = dealerId ? `?dealerId=${dealerId}` : '';
+    return await apiRequest(`/clubs/${clubId}/payroll/tips/settings${query}`, {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    });
+  },
+
+  processDealerTips: async (clubId, tipsData) => {
+    return await apiRequest(`/clubs/${clubId}/payroll/tips`, {
+      method: 'POST',
+      body: JSON.stringify(tipsData),
+    });
+  },
+
+  getDealerTips: async (clubId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/payroll/tips${query ? '?' + query : ''}`);
+  },
+
+  getDealerTipsSummary: async (clubId, dealerId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/payroll/tips/${dealerId}/summary${query ? '?' + query : ''}`);
+  },
+
+  // Dealer Cashouts
+  processDealerCashout: async (clubId, cashoutData) => {
+    return await apiRequest(`/clubs/${clubId}/payroll/cashout`, {
+      method: 'POST',
+      body: JSON.stringify(cashoutData),
+    });
+  },
+
+  getDealerCashouts: async (clubId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/payroll/cashout${query ? '?' + query : ''}`);
+  },
+};
+
+// =============================================================================
+// BONUS MANAGEMENT API
+// =============================================================================
+
+export const bonusAPI = {
+  // Player Bonuses
+  processPlayerBonus: async (clubId, bonusData) => {
+    return await apiRequest(`/clubs/${clubId}/bonuses/players`, {
+      method: 'POST',
+      body: JSON.stringify(bonusData),
+    });
+  },
+
+  getPlayerBonuses: async (clubId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/bonuses/players${query ? '?' + query : ''}`);
+  },
+
+  getPlayersForBonus: async (clubId, search) => {
+    const query = search ? `?search=${encodeURIComponent(search)}` : '';
+    return await apiRequest(`/clubs/${clubId}/bonuses/players/list${query}`);
+  },
+
+  // Staff Bonuses
+  processStaffBonus: async (clubId, bonusData) => {
+    return await apiRequest(`/clubs/${clubId}/bonuses/staff`, {
+      method: 'POST',
+      body: JSON.stringify(bonusData),
+    });
+  },
+
+  getStaffBonuses: async (clubId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/bonuses/staff${query ? '?' + query : ''}`);
+  },
+
+  getStaffForBonus: async (clubId, search) => {
+    const query = search ? `?search=${encodeURIComponent(search)}` : '';
+    return await apiRequest(`/clubs/${clubId}/bonuses/staff/list${query}`);
+  },
+};
+
+// Affiliate Management
+export const affiliateAPI = {
+  getAffiliates: async (clubId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/affiliates${query ? '?' + query : ''}`);
+  },
+
+  getAffiliateReferrals: async (clubId, affiliateId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/affiliates/${affiliateId}/referrals${query ? '?' + query : ''}`);
+  },
+
+  processAffiliatePayment: async (clubId, paymentData) => {
+    return await apiRequest(`/clubs/${clubId}/affiliates/payments`, {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    });
+  },
+
+  getAffiliateTransactions: async (clubId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/affiliates/transactions${query ? '?' + query : ''}`);
+  },
+};
+
+// Financial Overrides
+export const financialOverridesAPI = {
+  getAllTransactions: async (clubId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/financial-overrides/transactions${query ? '?' + query : ''}`);
+  },
+
+  editTransaction: async (clubId, transactionId, data) => {
+    return await apiRequest(`/clubs/${clubId}/financial-overrides/transactions/${transactionId}/edit`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  cancelTransaction: async (clubId, transactionId, data = {}) => {
+    return await apiRequest(`/clubs/${clubId}/financial-overrides/transactions/${transactionId}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 };
@@ -801,6 +1360,291 @@ export const masterAdminAPI = {
         tenants: [],
       };
     }
+  },
+};
+
+/**
+ * Super Admin APIs
+ */
+export const superAdminAPI = {
+  // Get all clubs for super admin
+  getClubs: async () => {
+    // Check both 'user' and 'superadminuser' storage keys
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const superAdminUser = JSON.parse(localStorage.getItem('superadminuser') || '{}');
+    const userId = user.id || superAdminUser.userId;
+    
+    if (!userId) {
+      throw new Error('User not logged in');
+    }
+    return await apiRequest(`/users/${userId}/clubs`);
+  },
+
+  // Get club details
+  getClub: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}`);
+  },
+
+  // Get club revenue data
+  getClubRevenue: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/revenue`);
+  },
+
+  // Player Management
+  getAllPlayers: async (clubId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/players?${queryString}`);
+  },
+
+  createPlayer: async (clubId, playerData) => {
+    return await apiRequest(`/clubs/${clubId}/players`, {
+      method: 'POST',
+      body: JSON.stringify(playerData),
+    });
+  },
+
+  getPendingApprovalPlayers: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/players-pending-approval`);
+  },
+
+  approvePlayer: async (clubId, playerId, notes) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ notes }),
+    });
+  },
+
+  rejectPlayer: async (clubId, playerId, reason) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  suspendPlayer: async (clubId, playerId, data) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}/suspend`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  unsuspendPlayer: async (clubId, playerId) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}/unsuspend`, {
+      method: 'POST',
+    });
+  },
+
+  getSuspendedPlayers: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/players-suspended`);
+  },
+
+  getPlayer: async (clubId, playerId) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}`);
+  },
+
+  // Get all players (alias for getAllPlayers)
+  getPlayers: async (clubId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/players?${queryString}`);
+  },
+
+  // Get player balance
+  getPlayerBalance: async (clubId, playerId) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}/balance`);
+  },
+
+  // Transactions
+  getTransactions: async (clubId, filters = {}) => {
+    const query = new URLSearchParams(filters).toString();
+    return await apiRequest(`/clubs/${clubId}/transactions${query ? '?' + query : ''}`);
+  },
+
+  createTransaction: async (clubId, transactionData) => {
+    return await apiRequest(`/clubs/${clubId}/transactions`, {
+      method: 'POST',
+      body: JSON.stringify(transactionData),
+    });
+  },
+
+  // Credit Management
+  getCreditRequests: async (clubId, status = null) => {
+    const query = status ? `?status=${status}` : '';
+    return await apiRequest(`/clubs/${clubId}/credit-requests${query}`);
+  },
+
+  approveCreditRequest: async (clubId, requestId, data = {}) => {
+    return await apiRequest(`/clubs/${clubId}/credit-requests/${requestId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  rejectCreditRequest: async (clubId, requestId, data) => {
+    return await apiRequest(`/clubs/${clubId}/credit-requests/${requestId}/deny`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  unlockCredit: async (clubId, playerId, data) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}/enable-credit`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateCreditLimit: async (clubId, playerId, data) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}/credit-limit`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // VIP Store Management
+  getVipProducts: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/vip-products`);
+  },
+
+  createVipProduct: async (clubId, productData) => {
+    return await apiRequest(`/clubs/${clubId}/vip-products`, {
+      method: 'POST',
+      body: JSON.stringify(productData),
+    });
+  },
+
+  updateVipProduct: async (clubId, productId, productData) => {
+    return await apiRequest(`/clubs/${clubId}/vip-products/${productId}`, {
+      method: 'PUT',
+      body: JSON.stringify(productData),
+    });
+  },
+
+  deleteVipProduct: async (clubId, productId) => {
+    return await apiRequest(`/clubs/${clubId}/vip-products/${productId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // VIP Product Image Upload
+  createVipProductImageUploadUrl: async (clubId, filename) => {
+    return await apiRequest(`/clubs/${clubId}/vip-products/upload-url`, {
+      method: 'POST',
+      body: JSON.stringify({ filename }),
+    });
+  },
+
+  uploadToSignedUrl: async (signedUrl, file) => {
+    const response = await fetch(signedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`);
+    }
+    return response;
+  },
+
+  // Push Notifications
+  getPushNotifications: async (clubId, notificationType = null) => {
+    const query = notificationType ? `?notificationType=${notificationType}` : '';
+    return await apiRequest(`/clubs/${clubId}/push-notifications${query}`);
+  },
+
+  createPushNotification: async (clubId, notificationData) => {
+    return await apiRequest(`/clubs/${clubId}/push-notifications`, {
+      method: 'POST',
+      body: JSON.stringify(notificationData),
+    });
+  },
+
+  updatePushNotification: async (clubId, notificationId, notificationData) => {
+    return await apiRequest(`/clubs/${clubId}/push-notifications/${notificationId}`, {
+      method: 'PUT',
+      body: JSON.stringify(notificationData),
+    });
+  },
+
+  deletePushNotification: async (clubId, notificationId) => {
+    return await apiRequest(`/clubs/${clubId}/push-notifications/${notificationId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  createPushNotificationUploadUrl: async (clubId, filename, isVideo = false) => {
+    return await apiRequest(`/clubs/${clubId}/push-notifications/upload-url`, {
+      method: 'POST',
+      body: JSON.stringify({ filename, isVideo }),
+    });
+  },
+};
+
+// =============================================================================
+// CHAT API
+// =============================================================================
+
+export const chatAPI = {
+  // Staff Chat
+  createStaffChatSession: async (clubId, recipientStaffId, subject) => {
+    return await apiRequest(`/clubs/${clubId}/chat/staff/sessions`, {
+      method: 'POST',
+      body: JSON.stringify({ recipientStaffId, subject }),
+    });
+  },
+
+  getStaffChatSessions: async (clubId, { page = 1, limit = 10, search, role } = {}) => {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    if (search) params.append('search', search);
+    if (role) params.append('role', role);
+    return await apiRequest(`/clubs/${clubId}/chat/staff/sessions?${params.toString()}`);
+  },
+
+  // Player Chat
+  createPlayerChatSession: async (clubId, playerId, subject) => {
+    return await apiRequest(`/clubs/${clubId}/chat/player/sessions`, {
+      method: 'POST',
+      body: JSON.stringify({ playerId, subject }),
+    });
+  },
+
+  getPlayerChatSessions: async (clubId, { page = 1, limit = 10, status, search } = {}) => {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    if (status) params.append('status', status);
+    if (search) params.append('search', search);
+    return await apiRequest(`/clubs/${clubId}/chat/player/sessions?${params.toString()}`);
+  },
+
+  // Messages
+  sendMessage: async (clubId, sessionId, message) => {
+    return await apiRequest(`/clubs/${clubId}/chat/sessions/${sessionId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  },
+
+  getSessionMessages: async (clubId, sessionId, { page = 1, limit = 50 } = {}) => {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    return await apiRequest(`/clubs/${clubId}/chat/sessions/${sessionId}/messages?${params.toString()}`);
+  },
+
+  // Session management
+  updateChatSession: async (clubId, sessionId, updates) => {
+    return await apiRequest(`/clubs/${clubId}/chat/sessions/${sessionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  },
+
+  getUnreadCounts: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/chat/unread-counts`);
   },
 };
 
