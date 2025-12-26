@@ -6,9 +6,11 @@ import toast from "react-hot-toast";
 export default function TournamentManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState(null);
+  const [editingTournament, setEditingTournament] = useState(null);
   const [viewMode, setViewMode] = useState("details"); // 'details' or 'players'
 
   // Tournament type options
@@ -129,6 +131,21 @@ export default function TournamentManagement({ selectedClubId }) {
     },
   });
 
+  // Update tournament mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ tournamentId, data }) => tournamentsAPI.updateTournament(selectedClubId, tournamentId, data),
+    onSuccess: () => {
+      toast.success("Tournament updated successfully!");
+      queryClient.invalidateQueries(["tournaments", selectedClubId]);
+      setShowEditModal(false);
+      setEditingTournament(null);
+      resetForm();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update tournament");
+    },
+  });
+
   // Delete tournament mutation
   const deleteMutation = useMutation({
     mutationFn: (tournamentId) => tournamentsAPI.deleteTournament(selectedClubId, tournamentId),
@@ -178,7 +195,37 @@ export default function TournamentManagement({ selectedClubId }) {
       return;
     }
 
-    createMutation.mutate(tournamentForm);
+    // Convert string values to proper types for DTO validation
+    const tournamentData = {
+      name: tournamentForm.name,
+      tournament_type: tournamentForm.tournament_type,
+      buy_in: parseFloat(tournamentForm.buy_in) || 0,
+      entry_fee: tournamentForm.entry_fee ? parseFloat(tournamentForm.entry_fee) : undefined,
+      starting_chips: parseInt(tournamentForm.starting_chips) || 0,
+      blind_structure: tournamentForm.blind_structure,
+      number_of_levels: parseInt(tournamentForm.number_of_levels) || 15,
+      minutes_per_level: parseInt(tournamentForm.minutes_per_level) || 15,
+      break_structure: tournamentForm.break_structure,
+      break_duration: parseInt(tournamentForm.break_duration) || 10,
+      late_registration: parseInt(tournamentForm.late_registration) || 60,
+      payout_structure: tournamentForm.payout_structure,
+      seat_draw_method: tournamentForm.seat_draw_method,
+      clock_pause_rules: tournamentForm.clock_pause_rules,
+      allow_rebuys: Boolean(tournamentForm.allow_rebuys),
+      allow_addon: Boolean(tournamentForm.allow_addon),
+      allow_reentry: Boolean(tournamentForm.allow_reentry),
+      bounty_amount: tournamentForm.bounty_amount ? parseFloat(tournamentForm.bounty_amount) : undefined,
+      max_players: parseInt(tournamentForm.max_players) || 100,
+      start_time: tournamentForm.start_time || undefined,
+      custom_tournament_type: tournamentForm.custom_tournament_type || undefined,
+      custom_blind_structure: tournamentForm.custom_blind_structure || undefined,
+      custom_break_structure: tournamentForm.custom_break_structure || undefined,
+      custom_payout_structure: tournamentForm.custom_payout_structure || undefined,
+      custom_seat_draw_method: tournamentForm.custom_seat_draw_method || undefined,
+      custom_clock_pause_rules: tournamentForm.custom_clock_pause_rules || undefined,
+    };
+
+    createMutation.mutate(tournamentData);
   };
 
   const handleStartTournament = (tournamentId) => {
@@ -214,6 +261,93 @@ export default function TournamentManagement({ selectedClubId }) {
     }
   };
 
+  const handleEditTournament = (tournament) => {
+    setEditingTournament(tournament);
+    // Parse structure if it's JSON
+    let structure = {};
+    if (tournament.structure && typeof tournament.structure === 'string') {
+      try {
+        structure = JSON.parse(tournament.structure);
+      } catch (e) {
+        structure = {};
+      }
+    } else if (tournament.structure) {
+      structure = tournament.structure;
+    }
+
+    setTournamentForm({
+      name: tournament.name || "",
+      tournament_type: structure.tournament_type || tournament.tournament_type || "No Limit Hold'em",
+      buy_in: tournament.buy_in?.toString() || "",
+      entry_fee: tournament.entry_fee?.toString() || structure.entry_fee?.toString() || "",
+      starting_chips: tournament.starting_chips?.toString() || structure.starting_chips?.toString() || "",
+      blind_structure: structure.blind_structure || tournament.blind_structure || "Standard",
+      number_of_levels: structure.number_of_levels || tournament.number_of_levels || 15,
+      minutes_per_level: structure.minutes_per_level || tournament.minutes_per_level || 15,
+      break_structure: structure.break_structure || tournament.break_structure || "Every 4 levels",
+      break_duration: structure.break_duration || tournament.break_duration || 10,
+      late_registration: structure.late_registration || tournament.late_registration || 60,
+      payout_structure: structure.payout_structure || tournament.payout_structure || "Top 15%",
+      seat_draw_method: structure.seat_draw_method || tournament.seat_draw_method || "Random",
+      clock_pause_rules: structure.clock_pause_rules || tournament.clock_pause_rules || "Standard (pause on breaks)",
+      allow_rebuys: structure.allow_rebuys || tournament.allow_rebuys || false,
+      allow_addon: structure.allow_addon || tournament.allow_addon || false,
+      allow_reentry: structure.allow_reentry || tournament.allow_reentry || false,
+      bounty_amount: tournament.bounty_amount?.toString() || structure.bounty_amount?.toString() || "",
+      max_players: tournament.max_players || 100,
+      start_time: tournament.start_time ? new Date(tournament.start_time).toISOString().slice(0, 16) : "",
+      custom_tournament_type: tournament.custom_tournament_type || "",
+      custom_blind_structure: tournament.custom_blind_structure || "",
+      custom_break_structure: tournament.custom_break_structure || "",
+      custom_payout_structure: tournament.custom_payout_structure || "",
+      custom_seat_draw_method: tournament.custom_seat_draw_method || "",
+      custom_clock_pause_rules: tournament.custom_clock_pause_rules || "",
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTournament = () => {
+    if (!tournamentForm.name || !tournamentForm.buy_in || !tournamentForm.starting_chips) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // Convert string values to proper types for DTO validation
+    const tournamentData = {
+      name: tournamentForm.name,
+      tournament_type: tournamentForm.tournament_type,
+      buy_in: parseFloat(tournamentForm.buy_in) || 0,
+      entry_fee: tournamentForm.entry_fee ? parseFloat(tournamentForm.entry_fee) : undefined,
+      starting_chips: parseInt(tournamentForm.starting_chips) || 0,
+      blind_structure: tournamentForm.blind_structure,
+      number_of_levels: parseInt(tournamentForm.number_of_levels) || 15,
+      minutes_per_level: parseInt(tournamentForm.minutes_per_level) || 15,
+      break_structure: tournamentForm.break_structure,
+      break_duration: parseInt(tournamentForm.break_duration) || 10,
+      late_registration: parseInt(tournamentForm.late_registration) || 60,
+      payout_structure: tournamentForm.payout_structure,
+      seat_draw_method: tournamentForm.seat_draw_method,
+      clock_pause_rules: tournamentForm.clock_pause_rules,
+      allow_rebuys: Boolean(tournamentForm.allow_rebuys),
+      allow_addon: Boolean(tournamentForm.allow_addon),
+      allow_reentry: Boolean(tournamentForm.allow_reentry),
+      bounty_amount: tournamentForm.bounty_amount ? parseFloat(tournamentForm.bounty_amount) : undefined,
+      max_players: parseInt(tournamentForm.max_players) || 100,
+      start_time: tournamentForm.start_time || undefined,
+      custom_tournament_type: tournamentForm.custom_tournament_type || undefined,
+      custom_blind_structure: tournamentForm.custom_blind_structure || undefined,
+      custom_break_structure: tournamentForm.custom_break_structure || undefined,
+      custom_payout_structure: tournamentForm.custom_payout_structure || undefined,
+      custom_seat_draw_method: tournamentForm.custom_seat_draw_method || undefined,
+      custom_clock_pause_rules: tournamentForm.custom_clock_pause_rules || undefined,
+    };
+
+    updateMutation.mutate({
+      tournamentId: editingTournament.id,
+      data: tournamentData,
+    });
+  };
+
   const addWinner = () => {
     setWinnersForm([
       ...winnersForm,
@@ -231,7 +365,7 @@ export default function TournamentManagement({ selectedClubId }) {
     setWinnersForm(updated);
   };
 
-  const tournaments = tournamentsData?.tournaments || [];
+  const tournaments = tournamentsData || [];
   const players = playersData?.players || [];
   const winners = winnersData?.winners || [];
 
@@ -330,12 +464,20 @@ export default function TournamentManagement({ selectedClubId }) {
                 </button>
 
                 {tournament.status === "scheduled" && (
-                  <button
-                    onClick={() => handleStartTournament(tournament.id)}
-                    className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-                  >
-                    Start
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleEditTournament(tournament)}
+                      className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleStartTournament(tournament.id)}
+                      className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                    >
+                      Start
+                    </button>
+                  </>
                 )}
 
                 {tournament.status === "active" && (
@@ -838,6 +980,469 @@ export default function TournamentManagement({ selectedClubId }) {
         </div>
       )}
 
+      {/* Edit Tournament Modal - Same form structure as Create */}
+      {showEditModal && editingTournament && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-4xl w-full border border-purple-600 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold text-white mb-6">Edit Tournament: {editingTournament.name}</h2>
+            
+            {/* Reuse the exact same form structure from Create Modal */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">
+                  Basic Information
+                </h3>
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">Tournament Name *</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    placeholder="Monday Night Hold'em"
+                    value={tournamentForm.name}
+                    onChange={(e) =>
+                      setTournamentForm({ ...tournamentForm, name: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">Tournament Type *</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    value={tournamentForm.tournament_type}
+                    onChange={(e) =>
+                      setTournamentForm({ ...tournamentForm, tournament_type: e.target.value })
+                    }
+                  >
+                    {tournamentTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {tournamentForm.tournament_type === "Custom" && (
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Custom Tournament Type</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="Enter custom type"
+                      value={tournamentForm.custom_tournament_type}
+                      onChange={(e) =>
+                        setTournamentForm({
+                          ...tournamentForm,
+                          custom_tournament_type: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Buy-in (₹) *</label>
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="1000"
+                      value={tournamentForm.buy_in}
+                      onChange={(e) =>
+                        setTournamentForm({ ...tournamentForm, buy_in: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Entry Fee (₹)</label>
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="100"
+                      value={tournamentForm.entry_fee}
+                      onChange={(e) =>
+                        setTournamentForm({ ...tournamentForm, entry_fee: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">Starting Chips *</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    placeholder="10000"
+                    value={tournamentForm.starting_chips}
+                    onChange={(e) =>
+                      setTournamentForm({ ...tournamentForm, starting_chips: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Start Time</label>
+                    <input
+                      type="datetime-local"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      value={tournamentForm.start_time}
+                      onChange={(e) =>
+                        setTournamentForm({ ...tournamentForm, start_time: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Max Players</label>
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="100"
+                      value={tournamentForm.max_players}
+                      onChange={(e) =>
+                        setTournamentForm({ ...tournamentForm, max_players: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tournament Rules */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">
+                  Tournament Rules
+                </h3>
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">Blind Structure *</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    value={tournamentForm.blind_structure}
+                    onChange={(e) =>
+                      setTournamentForm({ ...tournamentForm, blind_structure: e.target.value })
+                    }
+                  >
+                    {blindStructures.map((structure) => (
+                      <option key={structure} value={structure}>
+                        {structure}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {tournamentForm.blind_structure === "Custom" && (
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Custom Blind Structure</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="Enter custom structure"
+                      value={tournamentForm.custom_blind_structure}
+                      onChange={(e) =>
+                        setTournamentForm({
+                          ...tournamentForm,
+                          custom_blind_structure: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Number of Levels</label>
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="15"
+                      value={tournamentForm.number_of_levels}
+                      onChange={(e) =>
+                        setTournamentForm({
+                          ...tournamentForm,
+                          number_of_levels: parseInt(e.target.value) || 15,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Minutes per Level</label>
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="15"
+                      value={tournamentForm.minutes_per_level}
+                      onChange={(e) =>
+                        setTournamentForm({
+                          ...tournamentForm,
+                          minutes_per_level: parseInt(e.target.value) || 15,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">Break Structure</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    value={tournamentForm.break_structure}
+                    onChange={(e) =>
+                      setTournamentForm({ ...tournamentForm, break_structure: e.target.value })
+                    }
+                  >
+                    {breakStructures.map((structure) => (
+                      <option key={structure} value={structure}>
+                        {structure}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {tournamentForm.break_structure === "Custom" && (
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Custom Break Structure</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="Enter custom structure"
+                      value={tournamentForm.custom_break_structure}
+                      onChange={(e) =>
+                        setTournamentForm({
+                          ...tournamentForm,
+                          custom_break_structure: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">Break Duration (minutes)</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    placeholder="10"
+                    value={tournamentForm.break_duration}
+                    onChange={(e) =>
+                      setTournamentForm({
+                        ...tournamentForm,
+                        break_duration: parseInt(e.target.value) || 10,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">Late Registration (minutes)</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    placeholder="60"
+                    value={tournamentForm.late_registration}
+                    onChange={(e) =>
+                      setTournamentForm({
+                        ...tournamentForm,
+                        late_registration: parseInt(e.target.value) || 60,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">Payout Structure</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    value={tournamentForm.payout_structure}
+                    onChange={(e) =>
+                      setTournamentForm({ ...tournamentForm, payout_structure: e.target.value })
+                    }
+                  >
+                    {payoutStructures.map((structure) => (
+                      <option key={structure} value={structure}>
+                        {structure}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {tournamentForm.payout_structure === "Custom" && (
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Custom Payout Structure</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="Enter custom structure"
+                      value={tournamentForm.custom_payout_structure}
+                      onChange={(e) =>
+                        setTournamentForm({
+                          ...tournamentForm,
+                          custom_payout_structure: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">Seat Draw Method</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    value={tournamentForm.seat_draw_method}
+                    onChange={(e) =>
+                      setTournamentForm({ ...tournamentForm, seat_draw_method: e.target.value })
+                    }
+                  >
+                    {seatDrawMethods.map((method) => (
+                      <option key={method} value={method}>
+                        {method}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {tournamentForm.seat_draw_method === "Custom" && (
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Custom Seat Draw Method</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="Enter custom method"
+                      value={tournamentForm.custom_seat_draw_method}
+                      onChange={(e) =>
+                        setTournamentForm({
+                          ...tournamentForm,
+                          custom_seat_draw_method: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">Clock Pause Rules</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    value={tournamentForm.clock_pause_rules}
+                    onChange={(e) =>
+                      setTournamentForm({ ...tournamentForm, clock_pause_rules: e.target.value })
+                    }
+                  >
+                    {clockPauseRules.map((rule) => (
+                      <option key={rule} value={rule}>
+                        {rule}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {tournamentForm.clock_pause_rules === "Custom" && (
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Custom Clock Pause Rules</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="Enter custom rules"
+                      value={tournamentForm.custom_clock_pause_rules}
+                      onChange={(e) =>
+                        setTournamentForm({
+                          ...tournamentForm,
+                          custom_clock_pause_rules: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Rebuy, Add-on & Re-entry Options */}
+              <div className="col-span-2 space-y-4">
+                <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2">
+                  Rebuy, Add-on & Re-entry Options
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <label className="flex items-center space-x-3 text-white cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 rounded bg-slate-700 border-slate-600 text-purple-500 focus:ring-purple-500"
+                      checked={tournamentForm.allow_rebuys}
+                      onChange={(e) =>
+                        setTournamentForm({ ...tournamentForm, allow_rebuys: e.target.checked })
+                      }
+                    />
+                    <span>Allow Rebuys</span>
+                  </label>
+
+                  <label className="flex items-center space-x-3 text-white cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 rounded bg-slate-700 border-slate-600 text-purple-500 focus:ring-purple-500"
+                      checked={tournamentForm.allow_addon}
+                      onChange={(e) =>
+                        setTournamentForm({ ...tournamentForm, allow_addon: e.target.checked })
+                      }
+                    />
+                    <span>Allow Add-on</span>
+                  </label>
+
+                  <label className="flex items-center space-x-3 text-white cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 rounded bg-slate-700 border-slate-600 text-purple-500 focus:ring-purple-500"
+                      checked={tournamentForm.allow_reentry}
+                      onChange={(e) =>
+                        setTournamentForm({ ...tournamentForm, allow_reentry: e.target.checked })
+                      }
+                    />
+                    <span>Allow Re-entry</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">
+                    Bounty Amount (₹) - Leave blank for regular tournament
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    placeholder="0"
+                    value={tournamentForm.bounty_amount}
+                    onChange={(e) =>
+                      setTournamentForm({ ...tournamentForm, bounty_amount: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    If set, this becomes a knockout/bounty tournament
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleUpdateTournament}
+                disabled={updateMutation.isLoading}
+                className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
+              >
+                {updateMutation.isLoading ? "Updating..." : "Update Tournament"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingTournament(null);
+                  resetForm();
+                }}
+                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tournament Details Modal */}
       {showDetailsModal && selectedTournament && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -891,61 +1496,192 @@ export default function TournamentManagement({ selectedClubId }) {
               )}
             </div>
 
-            {/* Details View */}
+            {/* Details View - Table Hologram Style (Like Rummy) */}
             {viewMode === "details" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-400">Tournament ID</p>
-                    <p className="text-white font-mono">{selectedTournament.tournament_id}</p>
+              <div className="space-y-6">
+                {/* Table Hologram Visualization */}
+                <div className="relative w-full bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-8 border border-slate-700">
+                  {/* Prize Pool - Top of Table */}
+                  <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+                    <div className="bg-gradient-to-br from-emerald-600 via-green-500 to-emerald-500 border-2 border-emerald-400/80 px-6 py-3 rounded-lg text-center shadow-xl">
+                      <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider">
+                        Prize Pool
+                      </div>
+                      <div className="text-white text-2xl font-bold">
+                        ₹{(selectedTournament.prize_pool || (selectedTournament.buy_in * (players.length || selectedTournament.registered_players || 0))).toLocaleString()}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Type</p>
-                    <p className="text-white">{selectedTournament.tournament_type}</p>
+
+                  {/* Poker Table - Round Shape */}
+                  <div className="relative aspect-[1/1] max-w-md mx-auto mt-16 mb-8">
+                    {/* Table Background with Emerald Border */}
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-600 via-green-500 to-emerald-600 p-3 shadow-2xl">
+                      {/* Green Felt Surface */}
+                      <div className="absolute inset-3 rounded-full bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-800 shadow-inner">
+                        {/* Seats arranged in circle */}
+                        {Array.from(
+                          { length: selectedTournament.max_players || 9 },
+                          (_, index) => {
+                            const seatNumber = index + 1;
+                            const angle = (360 / (selectedTournament.max_players || 9)) * (index) - 90;
+                            const radius = 38;
+                            const x = 50 + radius * Math.cos((angle * Math.PI) / 180);
+                            const y = 50 + radius * Math.sin((angle * Math.PI) / 180);
+
+                            return (
+                              <div
+                                key={seatNumber}
+                                className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20"
+                                style={{ left: `${x}%`, top: `${y}%` }}
+                              >
+                                {/* Seat Circle */}
+                                <div className="w-12 h-12 rounded-full border-2 border-slate-500 bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center shadow-lg">
+                                  <span className="text-slate-400 text-xs font-bold">{seatNumber}</span>
+                                </div>
+                                {/* Seat Label */}
+                                <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-center">
+                                  <div className="text-xs text-slate-300 font-medium">
+                                    Seat {seatNumber}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                        )}
+
+                        {/* Center Logo Area */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-center">
+                            {/* Trophy/Logo */}
+                            <div className="w-32 h-32 bg-white/10 rounded-full border-2 border-white/20 flex items-center justify-center shadow-xl backdrop-blur-sm overflow-hidden">
+                              <div className="text-5xl font-bold text-white/80">
+                                🏆
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Buy-in</p>
-                    <p className="text-white">₹{selectedTournament.buy_in}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Entry Fee</p>
-                    <p className="text-white">₹{selectedTournament.entry_fee || 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Starting Chips</p>
-                    <p className="text-white">{selectedTournament.starting_chips}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Max Players</p>
-                    <p className="text-white">{selectedTournament.max_players}</p>
+
+                  {/* Tournament Info Below Table */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                    <div className="bg-slate-800/50 rounded-lg p-3 text-center border border-slate-700">
+                      <div className="text-slate-400 text-xs mb-1">Type</div>
+                      <div className="text-white font-semibold text-sm">{selectedTournament.tournament_type || 'Tournament'}</div>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-lg p-3 text-center border border-slate-700">
+                      <div className="text-slate-400 text-xs mb-1">Buy-In</div>
+                      <div className="text-white font-semibold text-sm">₹{selectedTournament.buy_in}</div>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-lg p-3 text-center border border-slate-700">
+                      <div className="text-slate-400 text-xs mb-1">Players</div>
+                      <div className="text-white font-semibold text-sm">{players.length || selectedTournament.registered_players || 0}/{selectedTournament.max_players}</div>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-lg p-3 text-center border border-slate-700">
+                      <div className="text-slate-400 text-xs mb-1">Status</div>
+                      <div className="text-white font-semibold text-sm">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          selectedTournament.status === 'active' ? 'bg-green-500/20 text-green-300' :
+                          selectedTournament.status === 'completed' ? 'bg-gray-500/20 text-gray-300' :
+                          'bg-yellow-500/20 text-yellow-300'
+                        }`}>
+                          {selectedTournament.status}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-400">Blind Structure</p>
-                    <p className="text-white">{selectedTournament.blind_structure}</p>
+                {/* Additional Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-400">Tournament ID</p>
+                      <p className="text-white font-mono">{selectedTournament.id?.substring(0, 8) || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Starting Chips</p>
+                      <p className="text-white">{selectedTournament.starting_chips?.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Entry Fee</p>
+                      <p className="text-white">₹{selectedTournament.entry_fee || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Blind Structure</p>
+                      <p className="text-white">{selectedTournament.blind_structure}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Number of Levels</p>
+                      <p className="text-white">{selectedTournament.number_of_levels}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Number of Levels</p>
-                    <p className="text-white">{selectedTournament.number_of_levels}</p>
+
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-400">Minutes per Level</p>
+                      <p className="text-white">{selectedTournament.minutes_per_level} minutes</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Break Structure</p>
+                      <p className="text-white">{selectedTournament.break_structure}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Break Duration</p>
+                      <p className="text-white">{selectedTournament.break_duration || 'N/A'} minutes</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Payout Structure</p>
+                      <p className="text-white">{selectedTournament.payout_structure}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Late Registration</p>
+                      <p className="text-white">{selectedTournament.late_registration} minutes</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Minutes per Level</p>
-                    <p className="text-white">{selectedTournament.minutes_per_level}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Break Structure</p>
-                    <p className="text-white">{selectedTournament.break_structure}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Payout Structure</p>
-                    <p className="text-white">{selectedTournament.payout_structure}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Seat Draw Method</p>
-                    <p className="text-white">{selectedTournament.seat_draw_method}</p>
-                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="mt-6 flex gap-4 pt-4 border-t border-slate-700">
+                  <button
+                    onClick={() => {
+                      setShowDetailsModal(false);
+                      setSelectedTournament(null);
+                    }}
+                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded-lg"
+                  >
+                    Close
+                  </button>
+                  {selectedTournament.status === 'scheduled' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setShowDetailsModal(false);
+                          handleEditTournament(selectedTournament);
+                        }}
+                        className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-lg"
+                      >
+                        Edit Tournament
+                      </button>
+                      <button
+                        onClick={() => handleStartTournament(selectedTournament.id)}
+                        disabled={startMutation.isLoading}
+                        className="flex-1 bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg disabled:opacity-50"
+                      >
+                        Start Tournament
+                      </button>
+                    </>
+                  )}
+                  {selectedTournament.status === 'active' && (
+                    <button
+                      onClick={() => setShowEndModal(true)}
+                      className="flex-1 bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg"
+                    >
+                      End Tournament
+                    </button>
+                  )}
                 </div>
               </div>
             )}

@@ -202,7 +202,16 @@ function SearchablePlayerDropdown({
 
 export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("buy-in"); // 'buy-in' or 'cash-out'
+  const [activeTab, setActiveTab] = useState("buy-in"); // 'buy-in', 'cash-out', or 'history'
+  
+  // Transaction History States
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyFilters, setHistoryFilters] = useState({
+    type: '', // '', 'Deposit', 'Cashout'
+    playerName: '',
+    startDate: '',
+    endDate: '',
+  });
 
   // Buy-In States
   const [selectedPlayerBuyIn, setSelectedPlayerBuyIn] = useState(null);
@@ -236,6 +245,63 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
         .slice(0, 10);
     },
     enabled: !!selectedClubId,
+  });
+
+  // Get transaction history with filters and pagination
+  const { data: transactionHistory, isLoading: historyLoading } = useQuery({
+    queryKey: ["transactionHistory", selectedClubId, historyPage, historyFilters],
+    queryFn: async () => {
+      const allTransactions = await superAdminAPI.getTransactions(selectedClubId);
+      
+      // Apply filters
+      let filtered = allTransactions.filter(t => 
+        t.type === 'Deposit' || t.type === 'Cashout' || t.type === 'Buy In'
+      );
+
+      // Filter by type
+      if (historyFilters.type) {
+        filtered = filtered.filter(t => t.type === historyFilters.type);
+      }
+
+      // Filter by player name
+      if (historyFilters.playerName) {
+        const searchTerm = historyFilters.playerName.toLowerCase();
+        filtered = filtered.filter(t => 
+          t.playerName?.toLowerCase().includes(searchTerm) ||
+          t.playerId?.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      // Filter by date range
+      if (historyFilters.startDate) {
+        const startDate = new Date(historyFilters.startDate);
+        filtered = filtered.filter(t => new Date(t.createdAt) >= startDate);
+      }
+
+      if (historyFilters.endDate) {
+        const endDate = new Date(historyFilters.endDate);
+        endDate.setHours(23, 59, 59, 999); // End of day
+        filtered = filtered.filter(t => new Date(t.createdAt) <= endDate);
+      }
+
+      // Sort by date (newest first)
+      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      // Pagination
+      const perPage = 10;
+      const startIndex = (historyPage - 1) * perPage;
+      const endIndex = startIndex + perPage;
+      const paginatedData = filtered.slice(startIndex, endIndex);
+
+      return {
+        transactions: paginatedData,
+        total: filtered.length,
+        totalPages: Math.ceil(filtered.length / perPage),
+        currentPage: historyPage,
+        perPage: perPage,
+      };
+    },
+    enabled: !!selectedClubId && activeTab === 'history',
   });
 
   // Get players with available balance for cash-out (only approved KYC verified)
@@ -514,6 +580,19 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
           }`}
         >
           Cash Out
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab("history");
+            setHistoryPage(1);
+          }}
+          className={`px-6 py-3 font-semibold transition-colors ${
+            activeTab === "history"
+              ? "text-white border-b-2 border-purple-500 bg-purple-500/10"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          Transaction History
         </button>
       </div>
 
@@ -863,6 +942,269 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
                 {playersWithBalance.length} player(s) have chips available for cash out
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transaction History Tab Content */}
+      {activeTab === "history" && (
+        <div className="space-y-6">
+          {/* Filters */}
+          <div className="bg-slate-800 rounded-lg p-6 shadow-xl">
+            <h2 className="text-xl font-bold text-white mb-4">Filter Transactions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Transaction Type Filter */}
+              <div>
+                <label className="block text-gray-300 mb-2 text-sm">Transaction Type</label>
+                <select
+                  value={historyFilters.type}
+                  onChange={(e) => {
+                    setHistoryFilters({ ...historyFilters, type: e.target.value });
+                    setHistoryPage(1);
+                  }}
+                  className="w-full px-3 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">All Types</option>
+                  <option value="Deposit">Buy-In</option>
+                  <option value="Cashout">Cash-Out</option>
+                </select>
+              </div>
+
+              {/* Player Name Filter */}
+              <div>
+                <label className="block text-gray-300 mb-2 text-sm">Player Name/ID</label>
+                <input
+                  type="text"
+                  value={historyFilters.playerName}
+                  onChange={(e) => {
+                    setHistoryFilters({ ...historyFilters, playerName: e.target.value });
+                    setHistoryPage(1);
+                  }}
+                  placeholder="Search by name or ID..."
+                  className="w-full px-3 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* Start Date Filter */}
+              <div>
+                <label className="block text-gray-300 mb-2 text-sm">Start Date</label>
+                <input
+                  type="date"
+                  value={historyFilters.startDate}
+                  onChange={(e) => {
+                    setHistoryFilters({ ...historyFilters, startDate: e.target.value });
+                    setHistoryPage(1);
+                  }}
+                  className="w-full px-3 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* End Date Filter */}
+              <div>
+                <label className="block text-gray-300 mb-2 text-sm">End Date</label>
+                <input
+                  type="date"
+                  value={historyFilters.endDate}
+                  onChange={(e) => {
+                    setHistoryFilters({ ...historyFilters, endDate: e.target.value });
+                    setHistoryPage(1);
+                  }}
+                  className="w-full px-3 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            {(historyFilters.type || historyFilters.playerName || historyFilters.startDate || historyFilters.endDate) && (
+              <button
+                onClick={() => {
+                  setHistoryFilters({ type: '', playerName: '', startDate: '', endDate: '' });
+                  setHistoryPage(1);
+                }}
+                className="mt-4 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+              >
+                Clear All Filters
+              </button>
+            )}
+          </div>
+
+          {/* Transaction List */}
+          <div className="bg-slate-800 rounded-lg p-6 shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-white">Transaction History</h2>
+              {transactionHistory && (
+                <div className="text-gray-400 text-sm">
+                  Showing {((historyPage - 1) * 10) + 1} - {Math.min(historyPage * 10, transactionHistory.total)} of {transactionHistory.total} transactions
+                </div>
+              )}
+            </div>
+
+            {historyLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading transactions...</p>
+              </div>
+            ) : !transactionHistory || transactionHistory.transactions.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">📊</div>
+                <p className="text-xl text-gray-300">No transactions found</p>
+                <p className="text-gray-400 mt-2">Try adjusting your filters</p>
+              </div>
+            ) : (
+              <>
+                {/* Transaction Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-700">
+                        <th className="text-left py-3 px-4 text-gray-400 font-semibold">Date & Time</th>
+                        <th className="text-left py-3 px-4 text-gray-400 font-semibold">Type</th>
+                        <th className="text-left py-3 px-4 text-gray-400 font-semibold">Player</th>
+                        <th className="text-right py-3 px-4 text-gray-400 font-semibold">Amount</th>
+                        <th className="text-left py-3 px-4 text-gray-400 font-semibold">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transactionHistory.transactions.map((txn) => (
+                        <tr key={txn.id} className="border-b border-slate-700 hover:bg-slate-700/50 transition-colors">
+                          <td className="py-4 px-4">
+                            <div className="text-white text-sm">
+                              {new Date(txn.createdAt).toLocaleDateString()}
+                            </div>
+                            <div className="text-gray-400 text-xs">
+                              {new Date(txn.createdAt).toLocaleTimeString()}
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                txn.type === 'Deposit' || txn.type === 'Buy In'
+                                  ? 'bg-green-500/20 text-green-400'
+                                  : 'bg-blue-500/20 text-blue-400'
+                              }`}
+                            >
+                              {txn.type === 'Deposit' || txn.type === 'Buy In' ? 'Buy-In' : 'Cash-Out'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="text-white font-medium">{txn.playerName}</div>
+                            <div className="text-gray-400 text-xs">{txn.playerId}</div>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <div
+                              className={`font-bold ${
+                                txn.type === 'Deposit' || txn.type === 'Buy In'
+                                  ? 'text-green-400'
+                                  : 'text-blue-400'
+                              }`}
+                            >
+                              {txn.type === 'Deposit' || txn.type === 'Buy In' ? '+' : '-'}₹{Number(txn.amount).toLocaleString()}
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            {txn.notes ? (
+                              <div className="text-gray-400 text-sm max-w-xs">
+                                {txn.notes.split('|').map((note, idx) => (
+                                  <div key={idx} className="truncate">{note.trim()}</div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-gray-500 text-sm">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {transactionHistory.totalPages > 1 && (
+                  <div className="mt-6 flex justify-between items-center">
+                    <button
+                      onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                      disabled={historyPage === 1}
+                      className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+
+                    <div className="flex gap-2">
+                      {Array.from({ length: Math.min(5, transactionHistory.totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (transactionHistory.totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (historyPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (historyPage >= transactionHistory.totalPages - 2) {
+                          pageNum = transactionHistory.totalPages - 4 + i;
+                        } else {
+                          pageNum = historyPage - 2 + i;
+                        }
+
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setHistoryPage(pageNum)}
+                            className={`px-4 py-2 rounded-lg transition-colors ${
+                              historyPage === pageNum
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-slate-700 hover:bg-slate-600 text-white'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => setHistoryPage(p => Math.min(transactionHistory.totalPages, p + 1))}
+                      disabled={historyPage === transactionHistory.totalPages}
+                      className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+
+                {/* Summary Stats */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-green-500/10 border border-green-500 rounded-lg p-4">
+                    <div className="text-green-400 text-sm mb-1">Total Buy-Ins</div>
+                    <div className="text-white text-2xl font-bold">
+                      ₹{transactionHistory.transactions
+                        .filter(t => t.type === 'Deposit' || t.type === 'Buy In')
+                        .reduce((sum, t) => sum + Number(t.amount), 0)
+                        .toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-500/10 border border-blue-500 rounded-lg p-4">
+                    <div className="text-blue-400 text-sm mb-1">Total Cash-Outs</div>
+                    <div className="text-white text-2xl font-bold">
+                      ₹{transactionHistory.transactions
+                        .filter(t => t.type === 'Cashout')
+                        .reduce((sum, t) => sum + Number(t.amount), 0)
+                        .toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="bg-purple-500/10 border border-purple-500 rounded-lg p-4">
+                    <div className="text-purple-400 text-sm mb-1">Net Flow</div>
+                    <div className="text-white text-2xl font-bold">
+                      ₹{(transactionHistory.transactions
+                        .filter(t => t.type === 'Deposit' || t.type === 'Buy In')
+                        .reduce((sum, t) => sum + Number(t.amount), 0) -
+                        transactionHistory.transactions
+                        .filter(t => t.type === 'Cashout')
+                        .reduce((sum, t) => sum + Number(t.amount), 0)
+                      ).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

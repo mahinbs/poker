@@ -855,7 +855,7 @@ export const tournamentsAPI = {
   getTournaments: async (clubId) => {
     const response = await apiRequest(`/clubs/${clubId}/tournaments`);
     // Handle response structure: { success: true, tournaments: [...] }
-    return response.tournaments || response || [];
+    return response?.tournaments || response || [];
   },
 
   /**
