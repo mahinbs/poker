@@ -10,9 +10,11 @@ import toast from "react-hot-toast";
 export default function RummyTournamentManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState(null);
+  const [editingTournament, setEditingTournament] = useState(null);
   const [viewMode, setViewMode] = useState("details"); // 'details' or 'players'
 
   // Rummy-specific tournament type options
@@ -265,6 +267,66 @@ export default function RummyTournamentManagement({ selectedClubId }) {
     }
   };
 
+  const handleEditTournament = (tournament) => {
+    setEditingTournament(tournament);
+    setTournamentForm({
+      name: tournament.name || "",
+      rummy_variant: tournament.rummy_variant || "Points Rummy",
+      custom_variant: tournament.custom_variant || "",
+      entry_fee: tournament.entry_fee?.toString() || tournament.buy_in?.toString() || "",
+      prize_pool: tournament.prize_pool?.toString() || "",
+      number_of_deals: tournament.number_of_deals || 1,
+      points_per_deal: tournament.points_per_deal?.toString() || "0",
+      drop_points: tournament.drop_points?.toString() || "20",
+      max_points: tournament.max_points?.toString() || "80",
+      min_players: tournament.min_players || 2,
+      max_players: tournament.max_players || 6,
+      start_time: tournament.start_time ? new Date(tournament.start_time).toISOString().slice(0, 16) : "",
+      deal_duration: tournament.deal_duration || 5,
+      break_duration: tournament.break_duration || 5,
+      payout_structure: tournament.payout_structure || "Winner takes all",
+      allow_reentry: tournament.allow_reentry || false,
+      late_registration: tournament.late_registration || 60,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTournament = () => {
+    if (!tournamentForm.name || !tournamentForm.entry_fee) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // Convert string values to proper types for DTO validation (same as create)
+    const tournamentData = {
+      name: tournamentForm.name,
+      tournament_type: `Rummy - ${tournamentForm.rummy_variant === 'Custom' ? tournamentForm.custom_variant : tournamentForm.rummy_variant}`,
+      buy_in: parseFloat(tournamentForm.entry_fee) || 0,
+      entry_fee: parseFloat(tournamentForm.entry_fee) || 0,
+      max_players: parseInt(tournamentForm.max_players) || 6,
+      min_players: parseInt(tournamentForm.min_players) || 2,
+      start_time: tournamentForm.start_time || undefined,
+      prize_pool: tournamentForm.prize_pool ? parseFloat(tournamentForm.prize_pool) : undefined,
+      payout_structure: tournamentForm.payout_structure || 'Winner takes all',
+      allow_reentry: Boolean(tournamentForm.allow_reentry),
+      late_registration: parseInt(tournamentForm.late_registration) || 60,
+      // Rummy-specific fields
+      rummy_variant: tournamentForm.rummy_variant,
+      custom_variant: tournamentForm.rummy_variant === 'Custom' ? tournamentForm.custom_variant : undefined,
+      number_of_deals: parseInt(tournamentForm.number_of_deals) || 1,
+      points_per_deal: parseFloat(tournamentForm.points_per_deal) || 0,
+      drop_points: parseFloat(tournamentForm.drop_points) || 20,
+      max_points: parseFloat(tournamentForm.max_points) || 80,
+      deal_duration: parseInt(tournamentForm.deal_duration) || 5,
+      break_duration: parseInt(tournamentForm.break_duration) || 5,
+    };
+
+    updateMutation.mutate({
+      tournamentId: editingTournament.id,
+      data: tournamentData,
+    });
+  };
+
   const addWinner = () => {
     setWinnersForm([
       ...winnersForm,
@@ -371,28 +433,37 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                   View Details
                 </button>
                 {tournament.status === 'scheduled' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleStartTournament(tournament.id);
-                    }}
-                    className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm"
-                  >
-                    Start
-                  </button>
-                )}
-                {tournament.status === 'scheduled' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm("Delete this tournament?")) {
-                        deleteMutation.mutate(tournament.id);
-                      }
-                    }}
-                    className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded text-sm"
-                  >
-                    Delete
-                  </button>
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditTournament(tournament);
+                      }}
+                      className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded text-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartTournament(tournament.id);
+                      }}
+                      className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm"
+                    >
+                      Start
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm("Delete this tournament?")) {
+                          deleteMutation.mutate(tournament.id);
+                        }
+                      }}
+                      className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded text-sm"
+                    >
+                      Delete
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -635,6 +706,239 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                 className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg disabled:opacity-50"
               >
                 {createMutation.isLoading ? 'Creating...' : 'Create Tournament'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Tournament Modal - Same form structure as Create */}
+      {showEditModal && editingTournament && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => {
+          setShowEditModal(false);
+          setEditingTournament(null);
+          resetForm();
+        }}>
+          <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-purple-700" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold mb-6">Edit Rummy Tournament: {editingTournament.name}</h2>
+            
+            {/* Reuse the exact same form structure from Create Modal */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Tournament Name *</label>
+                <input
+                  type="text"
+                  value={tournamentForm.name}
+                  onChange={(e) => setTournamentForm({...tournamentForm, name: e.target.value})}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Rummy Variant *</label>
+                <select
+                  value={tournamentForm.rummy_variant}
+                  onChange={(e) => setTournamentForm({...tournamentForm, rummy_variant: e.target.value})}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                >
+                  {rummyVariants.map((variant) => (
+                    <option key={variant} value={variant}>{variant}</option>
+                  ))}
+                </select>
+              </div>
+
+              {tournamentForm.rummy_variant === 'Custom' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Custom Variant</label>
+                  <input
+                    type="text"
+                    value={tournamentForm.custom_variant}
+                    onChange={(e) => setTournamentForm({...tournamentForm, custom_variant: e.target.value})}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Entry Fee (₹) *</label>
+                  <input
+                    type="number"
+                    value={tournamentForm.entry_fee}
+                    onChange={(e) => setTournamentForm({...tournamentForm, entry_fee: e.target.value})}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Prize Pool (₹)</label>
+                  <input
+                    type="number"
+                    value={tournamentForm.prize_pool}
+                    onChange={(e) => setTournamentForm({...tournamentForm, prize_pool: e.target.value})}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Min Players</label>
+                  <input
+                    type="number"
+                    value={tournamentForm.min_players}
+                    onChange={(e) => setTournamentForm({...tournamentForm, min_players: parseInt(e.target.value)})}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    min="2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Max Players</label>
+                  <input
+                    type="number"
+                    value={tournamentForm.max_players}
+                    onChange={(e) => setTournamentForm({...tournamentForm, max_players: parseInt(e.target.value)})}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    min="2"
+                  />
+                </div>
+              </div>
+
+              {tournamentForm.rummy_variant === 'Points Rummy' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Points Per Deal</label>
+                    <input
+                      type="number"
+                      value={tournamentForm.points_per_deal}
+                      onChange={(e) => setTournamentForm({...tournamentForm, points_per_deal: parseInt(e.target.value)})}
+                      className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Drop Points</label>
+                      <input
+                        type="number"
+                        value={tournamentForm.drop_points}
+                        onChange={(e) => setTournamentForm({...tournamentForm, drop_points: parseInt(e.target.value)})}
+                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Max Points</label>
+                      <input
+                        type="number"
+                        value={tournamentForm.max_points}
+                        onChange={(e) => setTournamentForm({...tournamentForm, max_points: parseInt(e.target.value)})}
+                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {tournamentForm.rummy_variant === 'Deals Rummy' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Number of Deals</label>
+                  <input
+                    type="number"
+                    value={tournamentForm.number_of_deals}
+                    onChange={(e) => setTournamentForm({...tournamentForm, number_of_deals: parseInt(e.target.value)})}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    min="1"
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Deal Duration (minutes)</label>
+                  <input
+                    type="number"
+                    value={tournamentForm.deal_duration}
+                    onChange={(e) => setTournamentForm({...tournamentForm, deal_duration: parseInt(e.target.value)})}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Break Duration (minutes)</label>
+                  <input
+                    type="number"
+                    value={tournamentForm.break_duration}
+                    onChange={(e) => setTournamentForm({...tournamentForm, break_duration: parseInt(e.target.value)})}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Start Time</label>
+                <input
+                  type="datetime-local"
+                  value={tournamentForm.start_time}
+                  onChange={(e) => setTournamentForm({...tournamentForm, start_time: e.target.value})}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Payout Structure</label>
+                <select
+                  value={tournamentForm.payout_structure}
+                  onChange={(e) => setTournamentForm({...tournamentForm, payout_structure: e.target.value})}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                >
+                  <option value="Winner takes all">Winner takes all</option>
+                  <option value="Top 2">Top 2</option>
+                  <option value="Top 3">Top 3</option>
+                  <option value="Top 50%">Top 50%</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="edit_allow_reentry"
+                  checked={tournamentForm.allow_reentry}
+                  onChange={(e) => setTournamentForm({...tournamentForm, allow_reentry: e.target.checked})}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="edit_allow_reentry" className="text-sm text-gray-300">Allow Re-entry</label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Late Registration (minutes)</label>
+                <input
+                  type="number"
+                  value={tournamentForm.late_registration}
+                  onChange={(e) => setTournamentForm({...tournamentForm, late_registration: parseInt(e.target.value)})}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-4 mt-6">
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingTournament(null);
+                  resetForm();
+                }}
+                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateTournament}
+                disabled={updateMutation.isLoading}
+                className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-lg disabled:opacity-50"
+              >
+                {updateMutation.isLoading ? 'Updating...' : 'Update Tournament'}
               </button>
             </div>
           </div>
@@ -1004,15 +1308,27 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                 Close
               </button>
               {selectedTournament.status === 'scheduled' && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleStartTournament(selectedTournament.id);
-                  }}
-                  className="flex-1 bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg"
-                >
-                  Start Tournament
-                </button>
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDetailsModal(false);
+                      handleEditTournament(selectedTournament);
+                    }}
+                    className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-lg"
+                  >
+                    Edit Tournament
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStartTournament(selectedTournament.id);
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg"
+                  >
+                    Start Tournament
+                  </button>
+                </>
               )}
               {selectedTournament.status === 'active' && (
                 <button
