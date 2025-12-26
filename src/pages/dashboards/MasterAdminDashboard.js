@@ -449,21 +449,39 @@ export default function MasterAdminDashboard() {
   };
 
   const handleUpdateTerms = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    
     if (!selectedClubId) {
-      alert("Please select a club first");
+      alert('Please select a club first');
       return;
     }
-    
+
+    if (!termsForm.termsText || termsForm.termsText.trim() === '') {
+      alert('Terms & Conditions text cannot be empty');
+      return;
+    }
+
     try {
       await masterAdminAPI.updateClubTerms(selectedClubId, termsForm.termsText);
-      alert("✅ Terms & Conditions updated successfully!");
+      alert('✅ Terms & Conditions updated successfully!');
+      
+      // Reload clubs to get updated data
       loadDashboardData();
+      
+      // Update the form with the saved data
+      const updatedClub = clubs.find(c => c.id === selectedClubId);
+      if (updatedClub) {
+        setTermsForm({
+          ...termsForm,
+          termsText: updatedClub.termsAndConditions || termsForm.termsText,
+        });
+      }
     } catch (err) {
-      alert("Failed to update terms: " + err.message);
+      alert('Failed to update Terms & Conditions: ' + err.message);
     }
   };
 
+  // Get selected club data
   // Filter and sort clubs
   const filteredClubs = clubs
     .filter(club => {
@@ -488,7 +506,8 @@ export default function MasterAdminDashboard() {
     return 0;
   });
 
-  const selectedClubData = clubs.find(c => c.id === selectedClubId);
+  // Get selected club data for Terms & Conditions
+  const selectedClubData = selectedClubId ? clubs.find(c => c.id === selectedClubId) : null;
 
   // Get gradient class for preview
   const getGradientClass = (gradientValue) => {
@@ -954,11 +973,17 @@ export default function MasterAdminDashboard() {
                     <select
                       value={selectedClubId || ''}
                       onChange={(e) => {
-                        setSelectedClubId(e.target.value);
-                        const club = clubs.find(c => c.id === e.target.value);
+                        const clubId = e.target.value;
+                        setSelectedClubId(clubId);
+                        const club = clubs.find(c => c.id === clubId);
                         if (club) {
                           setTermsForm({
                             termsText: club.termsAndConditions || '',
+                            publicUrl: '',
+                          });
+                        } else {
+                          setTermsForm({
+                            termsText: '',
                             publicUrl: '',
                           });
                         }
@@ -968,7 +993,7 @@ export default function MasterAdminDashboard() {
                       <option value="">Choose a club...</option>
                       {clubs.map(club => (
                         <option key={club.id} value={club.id}>
-                          {club.name} ({club.code}) - {club.tenant.name}
+                          {club.name} ({club.code}) - {club.tenant?.name || 'No Tenant'}
                       </option>
                     ))}
                     </select>
@@ -988,26 +1013,52 @@ export default function MasterAdminDashboard() {
                   </button>
                 </div>
 
-                  {selectedClubData && (
-                    <form onSubmit={handleUpdateTerms}>
-                <textarea
+                  {selectedClubData ? (
+                    <form onSubmit={handleUpdateTerms} className="space-y-4">
+                      <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-lg font-semibold text-white">
+                            Editing T&C for: <span className="text-emerald-400">{selectedClubData.name}</span>
+                          </h3>
+                          <span className="text-xs text-gray-400">
+                            Club Code: <span className="font-mono text-emerald-400">{selectedClubData.code}</span>
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-400">
+                          Tenant: {selectedClubData.tenant?.name || 'N/A'}
+                        </p>
+                      </div>
+                      
+                      <textarea
                         name="terms"
                         value={termsForm.termsText}
                         onChange={(e) => setTermsForm({...termsForm, termsText: e.target.value})}
                         rows={15}
-                        className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white font-mono text-sm"
-                  placeholder="Paste Terms & Conditions here..."
+                        className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white font-mono text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="Paste Terms & Conditions here... Each club can have different T&C stored separately in the database."
                       />
-                      <p className="text-xs text-gray-400 mt-2">
-                  Only Master Admin can manage club T&C.
-                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-400">
+                          ⚠️ Only Master Admin can manage club T&C. Each club's T&C is stored separately in the database.
+                        </p>
+                        <button
+                          type="submit"
+                          className="bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-lg font-medium text-white transition-colors"
+                        >
+                          Save Terms & Conditions
+                        </button>
+                      </div>
                     </form>
-                  )}
-
-                  {!selectedClubData && (
+                  ) : (
                     <div className="text-center py-12 text-gray-400">
-                      <p>Select a club from the dropdown above to edit terms & conditions.</p>
-                </div>
+                      <div className="text-4xl mb-4">📄</div>
+                      <p className="text-lg mb-2">Select a club from the dropdown above</p>
+                      <p className="text-sm">to edit terms & conditions for that specific club.</p>
+                      <p className="text-xs mt-4 text-gray-500">
+                        Each club can have different Terms & Conditions stored separately in the database.
+                      </p>
+                    </div>
                   )}
               </div>
             </section>
