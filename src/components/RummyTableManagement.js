@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { tablesAPI, waitlistAPI } from '../lib/api';
+import { tablesAPI, waitlistAPI, staffAPI } from '../lib/api';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from './TableBuyOutManagement';
 
@@ -133,6 +133,13 @@ function LiveTablesView({ selectedClubId, tables, tablesLoading }) {
 
   const activeTables = tables.filter(t => t.status === 'AVAILABLE' || t.status === 'OCCUPIED');
 
+  // Helper function to extract dealer name from notes
+  const getDealerName = (table) => {
+    if (!table.notes) return null;
+    const dealerMatch = table.notes.match(/Dealer:.*?\(([^)]+)\)/i);
+    return dealerMatch ? dealerMatch[1] : null;
+  };
+
   const handleEditSession = (table) => {
     setSelectedTableForControl(table);
     setShowSessionControl(true);
@@ -234,6 +241,12 @@ function LiveTablesView({ selectedClubId, tables, tablesLoading }) {
                     <span className="text-gray-400">Available Seats:</span>
                     <span className="text-emerald-400 font-medium">{table.maxSeats - (table.currentSeats || 0)}</span>
                   </div>
+                  {getDealerName(table) && (
+                    <div className="flex justify-between text-sm pt-1 border-t border-slate-600">
+                      <span className="text-gray-400">👤 Dealer:</span>
+                      <span className="text-purple-400 font-semibold">{getDealerName(table)}</span>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -593,20 +606,65 @@ function TableSessionControl({
 // Table Hologram Modal Component
 // ============================================================================
 function TableHologramModal({ table, onClose, clubId }) {
+  const queryClient = useQueryClient();
   const [clubData, setClubData] = useState(null);
   const [sessionTime, setSessionTime] = useState('00:00:00');
+  
+  // Extract dealer info from table notes
+  const getDealerInfo = () => {
+    if (!table.notes) return null;
+    const dealerMatch = table.notes.match(/Dealer:\s*([a-f0-9-]{36})\s*\(([^)]+)\)/i);
+    if (dealerMatch) {
+      return { id: dealerMatch[1], name: dealerMatch[2] };
+    }
+    return null;
+  };
+
+  const dealerInfo = getDealerInfo();
+
+  // Unassign dealer mutation
+  const unassignDealerMutation = useMutation({
+    mutationFn: async () => {
+      if (!table || !dealerInfo) return;
+      
+      // Remove dealer info from notes
+      const existingNotes = table.notes || '';
+      const updatedNotes = existingNotes.replace(/\s*\|\s*Dealer:.*$/i, '').trim();
+      
+      return tablesAPI.updateTable(clubId, table.id, {
+        notes: updatedNotes
+      });
+    },
+    onSuccess: () => {
+      toast.success('Dealer unassigned successfully');
+      queryClient.invalidateQueries(['rummy-tables', clubId]);
+      queryClient.invalidateQueries(['all-tables', clubId]);
+      onClose(); // Close modal to refresh
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to unassign dealer');
+    },
+  });
+
+  const handleUnassignDealer = () => {
+    if (window.confirm(`Are you sure you want to unassign dealer "${dealerInfo.name}" from this table?`)) {
+      unassignDealerMutation.mutate();
+    }
+  };
   
   // Fetch club data to get logo
   useEffect(() => {
     const fetchClubData = async () => {
       try {
         const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
         const tenantId = localStorage.getItem('tenantId');
         
         const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3333/api'}/clubs/${clubId}`, {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
+            'x-user-id': userId || '',
             'x-tenant-id': tenantId || '',
             'x-club-id': clubId,
           },
@@ -770,7 +828,25 @@ function TableHologramModal({ table, onClose, clubId }) {
           </div>
 
           {/* Dealer Position */}
-          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+            {dealerInfo && (
+              <div className="mb-2 bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
+                <span>👤 {dealerInfo.name}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUnassignDealer();
+                  }}
+                  disabled={unassignDealerMutation.isLoading}
+                  className="hover:bg-purple-700 rounded-full p-0.5 transition-colors disabled:opacity-50"
+                  title="Unassign Dealer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
             <div className="bg-emerald-600 text-white px-3 py-1 rounded-full text-sm font-bold">
               D
             </div>
@@ -863,7 +939,80 @@ function RummyTableManagementView({ selectedClubId, tables, tablesLoading }) {
   const [subTab, setSubTab] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTable, setEditingTable] = useState(null);
+  const [selectedTableForDealer, setSelectedTableForDealer] = useState("");
+  const [selectedDealer, setSelectedDealer] = useState("");
   const queryClient = useQueryClient();
+
+  // Fetch dealers (staff with 'Dealer' role - case sensitive!)
+  const { data: staffData, isLoading: dealersLoading } = useQuery({
+    queryKey: ['staff', selectedClubId],
+    queryFn: () => staffAPI.getStaff(selectedClubId),
+    enabled: !!selectedClubId,
+  });
+
+  // Filter to get all active dealers (role is 'Dealer' not 'DEALER')
+  const allDealers = staffData?.filter(staff => staff.role === 'Dealer' && staff.status === 'Active') || [];
+
+  // Get dealers that are already assigned to active tables (check ALL tables in system)
+  const { data: allTablesData } = useQuery({
+    queryKey: ['all-tables', selectedClubId],
+    queryFn: () => tablesAPI.getTables(selectedClubId),
+    enabled: !!selectedClubId,
+  });
+
+  const assignedDealerIds = new Set(
+    (allTablesData || [])
+      .filter(table => (table.status === 'OCCUPIED' || table.status === 'RESERVED') && table.notes)
+      .map(table => {
+        const dealerMatch = table.notes?.match(/Dealer:\s*([a-f0-9-]{36})/i);
+        return dealerMatch ? dealerMatch[1] : null;
+      })
+      .filter(Boolean)
+  );
+
+  const availableDealers = allDealers.filter(dealer => !assignedDealerIds.has(dealer.id));
+
+  // Assign dealer mutation
+  const assignDealerMutation = useMutation({
+    mutationFn: async ({ tableId, dealerId }) => {
+      const table = tables.find(t => t.id === tableId);
+      const dealer = allDealers.find(d => d.id === dealerId);
+      
+      if (!table || !dealer) {
+        throw new Error('Table or dealer not found');
+      }
+
+      const existingNotes = table.notes || '';
+      const notesWithoutDealer = existingNotes.replace(/\s*\|\s*Dealer:.*$/i, '');
+      const updatedNotes = `${notesWithoutDealer} | Dealer: ${dealer.id} (${dealer.name})`.trim();
+
+      return tablesAPI.updateTable(selectedClubId, tableId, {
+        notes: updatedNotes
+      });
+    },
+    onSuccess: () => {
+      toast.success('Dealer assigned successfully');
+      setSelectedTableForDealer("");
+      setSelectedDealer("");
+      queryClient.invalidateQueries(['rummy-tables', selectedClubId]);
+      queryClient.invalidateQueries(['all-tables', selectedClubId]);
+      queryClient.invalidateQueries(['staff', selectedClubId]);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to assign dealer');
+    },
+  });
+
+  const handleAssignDealer = () => {
+    if (!selectedTableForDealer || !selectedDealer) {
+      toast.error('Please select both table and dealer');
+      return;
+    }
+    assignDealerMutation.mutate({
+      tableId: selectedTableForDealer,
+      dealerId: selectedDealer,
+    });
+  };
 
   // Rummy-specific variants
   const rummyVariants = [
@@ -1409,23 +1558,62 @@ function RummyTableManagementView({ selectedClubId, tables, tablesLoading }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Select Table</label>
-            <select className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white">
+            <select 
+              value={selectedTableForDealer}
+              onChange={(e) => setSelectedTableForDealer(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+              disabled={!selectedClubId}
+            >
               <option value="">-- Select Table --</option>
               {tables.map((table) => (
-                <option key={table.id} value={table.id}>Table {table.tableNumber}</option>
+                <option key={table.id} value={table.id}>
+                  Table {table.tableNumber} - {table.rummyVariant || 'Rummy'} ({table.status})
+                </option>
               ))}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Assign Dealer</label>
-            <select className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white">
+            <select 
+              value={selectedDealer}
+              onChange={(e) => setSelectedDealer(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+              disabled={!selectedClubId || dealersLoading}
+            >
               <option value="">-- Select Dealer --</option>
+              {dealersLoading ? (
+                <option disabled>Loading dealers...</option>
+              ) : availableDealers.length === 0 ? (
+                <option disabled>
+                  {allDealers.length > 0 ? 'All dealers are assigned' : 'No active dealers found'}
+                </option>
+              ) : (
+                availableDealers.map((dealer) => (
+                  <option key={dealer.id} value={dealer.id}>
+                    {dealer.name} ({dealer.employeeId || 'No ID'})
+                  </option>
+                ))
+              )}
             </select>
           </div>
         </div>
-        <button className="mt-4 bg-purple-600 hover:bg-purple-500 px-6 py-2 rounded-lg font-semibold transition-colors">
-          Assign Dealer
+        <button 
+          onClick={handleAssignDealer}
+          disabled={!selectedTableForDealer || !selectedDealer || assignDealerMutation.isLoading || !selectedClubId}
+          className="mt-4 bg-purple-600 hover:bg-purple-500 px-6 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {assignDealerMutation.isLoading ? 'Assigning...' : 'Assign Dealer'}
         </button>
+        {allDealers.length === 0 && !dealersLoading && selectedClubId && (
+          <p className="mt-2 text-sm text-yellow-400">
+            ⚠️ No active dealers found. Please create dealer staff members first.
+          </p>
+        )}
+        {availableDealers.length === 0 && allDealers.length > 0 && !dealersLoading && (
+          <p className="mt-2 text-sm text-amber-400">
+            ℹ️ All dealers are currently assigned to active tables. Free up a dealer by ending a table session.
+          </p>
+        )}
       </div>
     </div>
   );
