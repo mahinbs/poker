@@ -275,7 +275,7 @@ function AddMenuItemModal({ clubId, categories, item, onClose, onSave }) {
     name: item?.name || '',
     category: item?.category || '',
     isCustomCategory: item?.isCustomCategory || false,
-    price: item?.price || '',
+    price: item?.price || 0,
     stock: item?.stock || 0,
     description: item?.description || '',
     availability: item?.availability || 'available',
@@ -303,10 +303,18 @@ function AddMenuItemModal({ clubId, categories, item, onClose, onSave }) {
     e.preventDefault();
     try {
       setSaving(true);
+      
+      // Convert string values to proper types for backend validation
+      const dataToSend = {
+        ...formData,
+        price: parseFloat(formData.price) || 0,
+        stock: parseInt(formData.stock) || 0,
+      };
+      
       if (item) {
-        await fnbAPI.updateMenuItem(clubId, item.id, formData);
+        await fnbAPI.updateMenuItem(clubId, item.id, dataToSend);
       } else {
-        await fnbAPI.createMenuItem(clubId, formData);
+        await fnbAPI.createMenuItem(clubId, dataToSend);
       }
       onSave();
     } catch (error) {

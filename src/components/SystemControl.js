@@ -88,16 +88,19 @@ export default function SystemControl({ clubId }) {
                   <p className="font-semibold mb-2">⚠️ WARNING: This action is irreversible!</p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
                     <li>All players will be permanently deleted</li>
-                    <li>All staff members will be removed</li>
+                    <li>All staff (except Super Admin & Admin) will be removed</li>
                     <li>All financial records will be wiped</li>
                     <li>All transactions, bonuses, and credit data will be lost</li>
                     <li>All tables, waitlists, and tournaments will be deleted</li>
                     <li>All FNB orders, inventory, and suppliers will be removed</li>
                     <li>All chat history will be erased</li>
-                    <li>The club will be reset to a completely blank state</li>
+                    <li>The club will be reset to a fresh state</li>
                   </ul>
-                  <p className="mt-3 font-semibold">
-                    This operation cannot be undone. All data will be permanently lost!
+                  <p className="mt-3 font-semibold text-green-300">
+                    ✓ Super Admin and Admin accounts will be preserved!
+                  </p>
+                  <p className="mt-2 font-semibold text-red-300">
+                    This operation cannot be undone. All other data will be permanently lost!
                   </p>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { payrollAPI } from "../lib/api";
 import toast from "react-hot-toast";
@@ -58,16 +58,18 @@ export default function DealerTips({ selectedClubId }) {
     queryKey: ["tip-settings", selectedClubId, selectedDealer?.id],
     queryFn: () => payrollAPI.getTipSettings(selectedClubId, selectedDealer?.id),
     enabled: !!selectedClubId && !!selectedDealer && showTipsModal,
-    onSuccess: (data) => {
-      if (data?.settings) {
-        setTipSettings({
-          clubHoldPercentage: Number(data.settings.clubHoldPercentage),
-          dealerSharePercentage: Number(data.settings.dealerSharePercentage),
-          floorManagerPercentage: Number(data.settings.floorManagerPercentage),
-        });
-      }
-    },
   });
+
+  // Update tipSettings when data changes
+  useEffect(() => {
+    if (settingsData?.settings) {
+      setTipSettings({
+        clubHoldPercentage: Number(settingsData.settings.clubHoldPercentage),
+        dealerSharePercentage: Number(settingsData.settings.dealerSharePercentage),
+        floorManagerPercentage: Number(settingsData.settings.floorManagerPercentage),
+      });
+    }
+  }, [settingsData]);
 
   // Get dealer tips with pagination
   const { data: tipsData, isLoading: tipsLoading } = useQuery({
@@ -95,7 +97,15 @@ export default function DealerTips({ selectedClubId }) {
 
   // Update tip settings mutation
   const updateSettingsMutation = useMutation({
-    mutationFn: (data) => payrollAPI.updateTipSettings(selectedClubId, data, selectedDealer?.id),
+    mutationFn: (data) => {
+      // Convert string values to numbers before sending
+      const settingsToSend = {
+        clubHoldPercentage: parseFloat(data.clubHoldPercentage) || 0,
+        dealerSharePercentage: parseFloat(data.dealerSharePercentage) || 0,
+        floorManagerPercentage: parseFloat(data.floorManagerPercentage) || 0,
+      };
+      return payrollAPI.updateTipSettings(selectedClubId, settingsToSend, selectedDealer?.id);
+    },
     onSuccess: () => {
       toast.success("Tip settings updated successfully!");
       queryClient.invalidateQueries(["tip-settings", selectedClubId, selectedDealer?.id]);

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { superAdminAPI } from "../../lib/api";
+import { storageService } from "../../lib/storage";
 import toast from "react-hot-toast";
 
 export default function VIPStore({ selectedClubId }) {
@@ -28,16 +29,17 @@ export default function VIPStore({ selectedClubId }) {
   // Create product mutation
   const createProductMutation = useMutation({
     mutationFn: async (data) => {
-      // Upload images first
+      // Upload images first - USE SAME METHOD AS FNB!
       const uploadedImageUrls = [];
       for (let i = 0; i < 3; i++) {
         if (data.imageFiles[i]) {
           try {
-            const { signedUrl, publicUrl } = await superAdminAPI.createVipProductImageUploadUrl(
+            // Use storageService.uploadDocument (same as FNB)
+            const publicUrl = await storageService.uploadDocument(
+              data.imageFiles[i],
               selectedClubId,
-              data.imageFiles[i].name
+              'vip-store'
             );
-            await superAdminAPI.uploadToSignedUrl(signedUrl, data.imageFiles[i]);
             uploadedImageUrls.push({ url: publicUrl });
           } catch (error) {
             console.error(`Failed to upload image ${i + 1}:`, error);
@@ -72,16 +74,17 @@ export default function VIPStore({ selectedClubId }) {
   // Update product mutation
   const updateProductMutation = useMutation({
     mutationFn: async ({ productId, data }) => {
-      // Upload new images first
+      // Upload new images first - USE SAME METHOD AS FNB!
       const uploadedImageUrls = [];
       for (let i = 0; i < 3; i++) {
         if (data.imageFiles[i]) {
           try {
-            const { signedUrl, publicUrl } = await superAdminAPI.createVipProductImageUploadUrl(
+            // Use storageService.uploadDocument (same as FNB)
+            const publicUrl = await storageService.uploadDocument(
+              data.imageFiles[i],
               selectedClubId,
-              data.imageFiles[i].name
+              'vip-store'
             );
-            await superAdminAPI.uploadToSignedUrl(signedUrl, data.imageFiles[i]);
             uploadedImageUrls.push({ url: publicUrl });
           } catch (error) {
             console.error(`Failed to upload image ${i + 1}:`, error);

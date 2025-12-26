@@ -249,8 +249,16 @@ export default function FinancialOverrides({ selectedClubId }) {
                           {transaction.type}
                         </span>
                         {transaction.isOverridden && (
-                          <span className="ml-2 px-2 py-1 rounded text-xs bg-orange-900/30 text-orange-400 border border-orange-700">
-                            Overridden
+                          <span 
+                            onClick={() => {
+                              if (transaction.overrideReason) {
+                                alert(`Override Reason:\n\n${transaction.overrideReason}`);
+                              }
+                            }}
+                            className="ml-2 px-2 py-1 rounded text-xs bg-orange-900/30 text-orange-400 border border-orange-700 cursor-pointer hover:bg-orange-900/50 transition-colors"
+                            title="Click to view override reason"
+                          >
+                            ✏️ Overridden
                           </span>
                         )}
                       </td>
