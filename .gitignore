@@ -1,70 +1,15 @@
-# Dependencies
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Build outputs
-build/
-dist/
-
-# Cache directories
-.cache/
-**/.cache/
-.npm/
-.eslintcache
-.stylelintcache
-.parcel-cache/
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env*.local
-
-# IDE and editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# OS files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-
-# Testing
-coverage/
-.nyc_output/
-*.lcov
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-
-# Large files and packs
-*.pack
-*.idx
-*.keep
-
-# Keep source code and public assets
-!src/
-!public/
-!package.json
-!package-lock.json
-!README.md
+/node_modules
+/dist
+/build
+/public
+/src
+/package-lock.json
+/package.json
+/README.md
+/LICENSE
+/CONTRIBUTING.md
+/CHANGELOG.md
+/CODE_OF_CONDUCT.md
+/SECURITY.md
+/CODEOWNERS
+/.env
