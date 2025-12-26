@@ -317,6 +317,7 @@ export default function SuperAdminPortal() {
           clubs={clubs}
           selectedClubId={selectedClubId}
           onClubChange={setSelectedClubId}
+          onSignOut={handleSignOut}
         />
 
         <main className="flex-1 p-8 overflow-y-auto">

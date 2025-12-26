@@ -3,7 +3,7 @@
  * All staff members (except Super Admin and Master Admin) login here
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { authAPI } from "../../lib/api";
 
@@ -29,6 +29,28 @@ export default function StaffLogin() {
 
   // Get redirect path from location state or default
   const from = location.state?.from?.pathname || '/';
+
+  // Redirect if already logged in
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const adminUser = JSON.parse(localStorage.getItem('adminuser') || '{}');
+    const superAdminUser = JSON.parse(localStorage.getItem('superadminuser') || '{}');
+    const masterAdminUser = JSON.parse(localStorage.getItem('masteradminuser') || '{}');
+    
+    // Check if user is logged in
+    if (user.id || adminUser.userId || superAdminUser.userId || masterAdminUser.userId) {
+      const role = user.role || adminUser.role || superAdminUser.role || masterAdminUser.role;
+      
+      // Redirect based on role
+      if (role === 'SUPER_ADMIN' || superAdminUser.userId) {
+        navigate('/super-admin', { replace: true });
+      } else if (user.isMasterAdmin || masterAdminUser.userId) {
+        navigate('/master-admin', { replace: true });
+      } else if (role && ROLE_DASHBOARD_MAP[role]) {
+        navigate(ROLE_DASHBOARD_MAP[role], { replace: true });
+      }
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
