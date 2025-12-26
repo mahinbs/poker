@@ -12,6 +12,7 @@ import ChatManagement from "../../components/ChatManagement";
 import FinancialOverrides from "../../components/FinancialOverrides";
 import TableView from "../../components/hologram/TableView";
 import BuyInRequestManagement from "../../components/BuyInRequestManagement";
+import NotificationsInbox from "../../components/NotificationsInbox";
 
 // View-only Tables component for Cashier
 function TableManagementViewOnly({ selectedClubId }) {
@@ -636,6 +637,7 @@ export default function CashierDashboard() {
   // Cashier menu items - matches Super Admin except restricted items
   const baseMenuItems = [
     "Dashboard",
+    "Notifications",
     "Payroll Management",
     "Bonus Management",
     "Tables & Waitlist", // View-only live tables
@@ -782,13 +784,15 @@ export default function CashierDashboard() {
             <RummyTournamentManagementViewOnly selectedClubId={clubId} />
           )}
 
+          {/* Notifications */}
+          {activeItem === "Notifications" && clubId && (
+            <NotificationsInbox selectedClubId={clubId} recipientType="staff" />
+          )}
+
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Payroll Management", "Bonus Management", "Tables & Waitlist", "Club Buy-In", "Push Notifications", "Tournaments", "Chat", "Financial Overrides", "Rummy"].includes(activeItem) && (
+          {!["Dashboard", "Payroll Management", "Bonus Management", "Tables & Waitlist", "Club Buy-In", "Push Notifications", "Tournaments", "Chat", "Financial Overrides", "Rummy", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <p className="text-gray-400">This section is under development.</p>
-          </div>
             </div>
           )}
         </main>

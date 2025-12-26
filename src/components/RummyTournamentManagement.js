@@ -443,26 +443,26 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                     >
                       Edit
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartTournament(tournament.id);
-                      }}
-                      className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm"
-                    >
-                      Start
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm("Delete this tournament?")) {
-                          deleteMutation.mutate(tournament.id);
-                        }
-                      }}
-                      className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded text-sm"
-                    >
-                      Delete
-                    </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStartTournament(tournament.id);
+                    }}
+                    className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm"
+                  >
+                    Start
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm("Delete this tournament?")) {
+                        deleteMutation.mutate(tournament.id);
+                      }
+                    }}
+                    className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded text-sm"
+                  >
+                    Delete
+                  </button>
                   </>
                 )}
               </div>
@@ -1319,15 +1319,15 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                   >
                     Edit Tournament
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleStartTournament(selectedTournament.id);
-                    }}
-                    className="flex-1 bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg"
-                  >
-                    Start Tournament
-                  </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStartTournament(selectedTournament.id);
+                  }}
+                  className="flex-1 bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg"
+                >
+                  Start Tournament
+                </button>
                 </>
               )}
               {selectedTournament.status === 'active' && (

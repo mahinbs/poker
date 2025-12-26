@@ -1,0 +1,11 @@
+Sidebars to update:
+1. ManagerSidebar.js - DONE (imports added)
+2. DealerSidebar.js - DONE (imports added)
+3. HrSidebar.js - DONE (imports added)
+4. FnbSidebar.js - DONE (imports added)
+5. GreSidebar.js - DONE (imports added)
+6. CustomStaffSidebar.js - DONE (imports added)
+7. StaffSidebar.js - DONE (imports added)
+8. SuperAdminSidebar.js - needs import
+
+Now adding badge display to all...

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { clubsAPI } from "../../lib/api";
+import { clubsAPI, superAdminAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
 const DEFAULT_MENU_ITEMS = [
   "Dashboard",
+  "Notifications",
   "Player Management",
   "Staff Management",
   "Payroll Management",
@@ -44,6 +45,15 @@ export default function AdminSidebar({
     ? [...menuItems, "Rummy"]
     : menuItems;
 
+  // Get clubId and fetch unread notification count
+  const clubId = localStorage.getItem('clubId');
+  const { data: unreadData } = useQuery({
+    queryKey: ["unreadNotificationCount", clubId, "staff"],
+    queryFn: () => superAdminAPI.getUnreadNotificationCount(clubId, "staff"),
+    enabled: !!clubId,
+    refetchInterval: 30000,
+  });
+
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 1024;
@@ -75,9 +85,6 @@ export default function AdminSidebar({
   const userEmail = user.email || adminUser.email || 'admin@pokerroom.com';
   const displayName = user.displayName || adminUser.displayName || 'Admin';
   const userRole = user.role || adminUser.role || 'ADMIN';
-  
-  // Get clubId from localStorage
-  const clubId = localStorage.getItem('clubId');
   
   // Fetch club info to get club code
   const { data: club } = useQuery({
@@ -322,7 +329,14 @@ export default function AdminSidebar({
                     : "bg-white/5 hover:bg-gradient-to-r hover:from-red-400/20 hover:to-purple-500/20 text-white"
                 }`}
               >
-                <span className="block truncate">{item}</span>
+                <span className="flex items-center justify-between">
+                  <span className="block truncate">{item}</span>
+                  {item === "Notifications" && unreadData?.unreadCount > 0 && (
+                    <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
+                      {unreadData.unreadCount > 9 ? "9+" : unreadData.unreadCount}
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
           </nav>

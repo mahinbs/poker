@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { clubsAPI } from "../../lib/api";
+import { clubsAPI, superAdminAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
 const DEFAULT_MENU_ITEMS = [
   "Dashboard",
+  "Notifications",
   "Player Management",
   "Tables & Waitlist",
   // "Table Buy-Out", // Commented out - now integrated into Tables & Waitlist as a sub-tab
@@ -38,6 +39,15 @@ export default function ManagerSidebar({
     ? [...menuItems, "Rummy"]
     : menuItems;
 
+  // Get clubId and fetch unread notification count
+  const clubId = localStorage.getItem('clubId');
+  const { data: unreadData } = useQuery({
+    queryKey: ["unreadNotificationCount", clubId, "staff"],
+    queryFn: () => superAdminAPI.getUnreadNotificationCount(clubId, "staff"),
+    enabled: !!clubId,
+    refetchInterval: 30000,
+  });
+
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 1024;
@@ -62,9 +72,6 @@ export default function ManagerSidebar({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen, isMobile]);
-
-  // Get clubId from localStorage
-  const clubId = localStorage.getItem('clubId');
   
   // Fetch club info to get club code
   const { data: club } = useQuery({
@@ -257,7 +264,14 @@ export default function ManagerSidebar({
                     : "bg-white/5 hover:bg-gradient-to-r hover:from-yellow-400/20 hover:to-green-500/20 text-white"
                 }`}
               >
-                <span className="block truncate">{item}</span>
+                <span className="flex items-center justify-between">
+                  <span className="block truncate">{item}</span>
+                  {item === "Notifications" && unreadData?.unreadCount > 0 && (
+                    <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
+                      {unreadData.unreadCount > 9 ? "9+" : unreadData.unreadCount}
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
           </nav>

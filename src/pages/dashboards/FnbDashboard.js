@@ -8,6 +8,7 @@ import KitchenOperationsTab from "../../components/fnb/KitchenOperationsTab";
 import ChatManagement from "../../components/ChatManagement";
 import FnbSidebar from "../../components/sidebars/FnbSidebar";
 import toast from "react-hot-toast";
+import NotificationsInbox from "../../components/NotificationsInbox";
 
 export default function FnbDashboard() {
   const [activeItem, setActiveItem] = useState("Menu & Inventory");
@@ -131,6 +132,7 @@ export default function FnbDashboard() {
 
   const menuItems = [
     "Menu & Inventory",
+    "Notifications",
     "Order Management", 
     "Supplier Management",
     "Kitchen Operations",
@@ -194,6 +196,11 @@ export default function FnbDashboard() {
             {activeItem === "Chat" && clubId && (
               <ChatManagement clubId={clubId} />
           )}
+
+            {/* Notifications */}
+            {activeItem === "Notifications" && clubId && (
+              <NotificationsInbox selectedClubId={clubId} recipientType="staff" />
+            )}
           </div>
         </main>
       </div>

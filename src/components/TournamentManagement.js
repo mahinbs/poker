@@ -471,12 +471,12 @@ export default function TournamentManagement({ selectedClubId }) {
                     >
                       Edit
                     </button>
-                    <button
-                      onClick={() => handleStartTournament(tournament.id)}
-                      className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-                    >
-                      Start
-                    </button>
+                  <button
+                    onClick={() => handleStartTournament(tournament.id)}
+                    className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                  >
+                    Start
+                  </button>
                   </>
                 )}
 
@@ -1595,51 +1595,51 @@ export default function TournamentManagement({ selectedClubId }) {
                 </div>
 
                 {/* Additional Details Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-400">Tournament ID</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-400">Tournament ID</p>
                       <p className="text-white font-mono">{selectedTournament.id?.substring(0, 8) || 'N/A'}</p>
-                    </div>
-                    <div>
+                  </div>
+                  <div>
                       <p className="text-sm text-gray-400">Starting Chips</p>
                       <p className="text-white">{selectedTournament.starting_chips?.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Entry Fee</p>
-                      <p className="text-white">₹{selectedTournament.entry_fee || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Blind Structure</p>
-                      <p className="text-white">{selectedTournament.blind_structure}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Number of Levels</p>
-                      <p className="text-white">{selectedTournament.number_of_levels}</p>
-                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Entry Fee</p>
+                    <p className="text-white">₹{selectedTournament.entry_fee || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Blind Structure</p>
+                    <p className="text-white">{selectedTournament.blind_structure}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Number of Levels</p>
+                    <p className="text-white">{selectedTournament.number_of_levels}</p>
+                  </div>
                   </div>
 
                   <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-400">Minutes per Level</p>
+                  <div>
+                    <p className="text-sm text-gray-400">Minutes per Level</p>
                       <p className="text-white">{selectedTournament.minutes_per_level} minutes</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Break Structure</p>
-                      <p className="text-white">{selectedTournament.break_structure}</p>
-                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Break Structure</p>
+                    <p className="text-white">{selectedTournament.break_structure}</p>
+                  </div>
                     <div>
                       <p className="text-sm text-gray-400">Break Duration</p>
                       <p className="text-white">{selectedTournament.break_duration || 'N/A'} minutes</p>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Payout Structure</p>
-                      <p className="text-white">{selectedTournament.payout_structure}</p>
-                    </div>
-                    <div>
+                  <div>
+                    <p className="text-sm text-gray-400">Payout Structure</p>
+                    <p className="text-white">{selectedTournament.payout_structure}</p>
+                  </div>
+                  <div>
                       <p className="text-sm text-gray-400">Late Registration</p>
                       <p className="text-white">{selectedTournament.late_registration} minutes</p>
-                    </div>
+                  </div>
                   </div>
                 </div>
 

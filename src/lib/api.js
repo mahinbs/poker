@@ -106,7 +106,8 @@ export const authAPI = {
         email: data.user.email,
         name: data.user.displayName || data.user.email,
         displayName: data.user.displayName,
-        isMasterAdmin: data.user.isMasterAdmin || false
+        isMasterAdmin: data.user.isMasterAdmin || false,
+        staffId: data.user.staffId // Store staff ID for notifications
       }));
       
       // Store club role if exists
@@ -1784,6 +1785,56 @@ export const superAdminAPI = {
     return await apiRequest(`/clubs/${clubId}/push-notifications/upload-url`, {
       method: 'POST',
       body: JSON.stringify({ filename, isVideo }),
+    });
+  },
+
+  sendPushNotification: async (clubId, notificationId) => {
+    return await apiRequest(`/clubs/${clubId}/push-notifications/${notificationId}/send`, {
+      method: 'POST',
+    });
+  },
+
+  getNotificationInbox: async (clubId, recipientType = 'staff', page = 1, limit = 10) => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    // Always use user.id (auth user ID) for both staff and players
+    const userId = user.id;
+    if (!userId) throw new Error('User ID not found');
+    return await apiRequest(`/clubs/${clubId}/notifications/inbox?recipientType=${recipientType}&page=${page}&limit=${limit}`, {
+      headers: { 'x-user-id': userId },
+    });
+  },
+
+  getUnreadNotificationCount: async (clubId, recipientType = 'staff') => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    // Always use user.id (auth user ID) for both staff and players
+    const userId = user.id;
+    if (!userId) throw new Error('User ID not found');
+    return await apiRequest(`/clubs/${clubId}/notifications/unread-count?recipientType=${recipientType}`, {
+      headers: { 'x-user-id': userId },
+    });
+  },
+
+  markNotificationAsRead: async (clubId, notificationId, recipientType = 'staff') => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    // Always use user.id (auth user ID) for both staff and players
+    const userId = user.id;
+    if (!userId) throw new Error('User ID not found');
+    return await apiRequest(`/clubs/${clubId}/notifications/${notificationId}/mark-read`, {
+      method: 'POST',
+      headers: { 'x-user-id': userId },
+      body: JSON.stringify({ recipientType }),
+    });
+  },
+
+  markAllNotificationsAsRead: async (clubId, recipientType = 'staff') => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    // Always use user.id (auth user ID) for both staff and players
+    const userId = user.id;
+    if (!userId) throw new Error('User ID not found');
+    return await apiRequest(`/clubs/${clubId}/notifications/mark-all-read`, {
+      method: 'POST',
+      headers: { 'x-user-id': userId },
+      body: JSON.stringify({ recipientType }),
     });
   },
 };

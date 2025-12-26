@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import ChatSection from "../../components/ChatSection";
 import StaffSidebar from "../../components/sidebars/StaffSidebar";
 import toast from "react-hot-toast";
+import NotificationsInbox from "../../components/NotificationsInbox";
 
 export default function StaffDashboard() {
   const [activeItem, setActiveItem] = useState("Chat");
@@ -114,6 +115,7 @@ export default function StaffDashboard() {
   );
 
   const menuItems = [
+    "Notifications",
     "Chat",
     "Affiliate Dashboard",
   ];
@@ -190,6 +192,13 @@ export default function StaffDashboard() {
               </button>
             </div>
           </header>
+
+          {activeItem === "Notifications" && (
+            <NotificationsInbox
+              selectedClubId={selectedClubId}
+              recipientType="staff"
+            />
+          )}
 
           {activeItem === "Chat" && (
             <ChatSection

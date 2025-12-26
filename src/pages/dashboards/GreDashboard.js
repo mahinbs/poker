@@ -8,6 +8,7 @@ import UnifiedPlayerManagement from "./UnifiedPlayerManagement";
 import PushNotifications from "./PushNotifications";
 import ChatManagement from "../../components/ChatManagement";
 import TableView from "../../components/hologram/TableView";
+import NotificationsInbox from "../../components/NotificationsInbox";
 
 // View-only Tables component for GRE (without buy-in requests)
 function TableManagementViewOnly({ selectedClubId }) {
@@ -542,6 +543,7 @@ export default function GreDashboard() {
   // GRE menu items
   const baseMenuItems = [
     "Player Management",
+    "Notifications",
     "Tables & Waitlist",
     "Tournaments",
     "Chat",
@@ -597,6 +599,11 @@ export default function GreDashboard() {
             <ChatManagement clubId={clubId} />
           )}
 
+          {/* Notifications */}
+          {activeItem === "Notifications" && clubId && (
+            <NotificationsInbox selectedClubId={clubId} recipientType="staff" />
+          )}
+
           {/* Push Notifications */}
           {activeItem === "Push Notifications" && (
             <PushNotifications selectedClubId={clubId} />
@@ -608,7 +615,7 @@ export default function GreDashboard() {
           )}
 
           {/* Fallback for unknown menu items */}
-          {!["Player Management", "Tables & Waitlist", "Tournaments", "Chat", "Push Notifications", "Rummy"].includes(activeItem) && (
+          {!["Player Management", "Tables & Waitlist", "Tournaments", "Chat", "Notifications", "Push Notifications", "Rummy"].includes(activeItem) && (
             <div className="text-white text-center py-12">
               <h2 className="text-2xl font-bold mb-4">Welcome to GRE Portal</h2>
               <p className="text-gray-400">Select an option from the sidebar to get started.</p>

@@ -8,6 +8,7 @@ import AttendanceManagement from "../../components/AttendanceManagement";
 import ChatManagementHR from "../../components/ChatManagementHR";
 import HrSidebar from "../../components/sidebars/HrSidebar";
 import toast from "react-hot-toast";
+import NotificationsInbox from "../../components/NotificationsInbox";
 
 export default function HrDashboard() {
   const [activeItem, setActiveItem] = useState("Staff Management");
@@ -119,6 +120,7 @@ export default function HrDashboard() {
 
   const menuItems = [
     "Staff Management",
+    "Notifications",
     "Salary History",
     "Player Management",
     "Attendance Management",
@@ -588,6 +590,11 @@ export default function HrDashboard() {
 
           {activeItem === "Chat" && (
             <ChatManagementHR clubId={clubId} />
+          )}
+
+          {/* Notifications */}
+          {activeItem === "Notifications" && clubId && (
+            <NotificationsInbox selectedClubId={clubId} recipientType="staff" />
           )}
 
           {/* OLD ATTENDANCE MANAGEMENT - REMOVED */}

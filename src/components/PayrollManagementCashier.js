@@ -38,7 +38,7 @@ export default function PayrollManagementCashier({ selectedClubId }) {
 
       {/* Tab Content */}
       {activeTab === 'salary' ? (
-        <EmployeeSalary selectedClubId={selectedClubId} />
+      <EmployeeSalary selectedClubId={selectedClubId} />
       ) : (
         <DealerTips selectedClubId={selectedClubId} />
       )}
