@@ -774,7 +774,7 @@ export default function CashierDashboard() {
 
           {/* Financial Overrides */}
           {activeItem === "Financial Overrides" && (
-            <FinancialOverrides userRole="cashier" />
+            <FinancialOverrides selectedClubId={clubId} />
           )}
 
           {/* Rummy Tournaments - View Only */}
