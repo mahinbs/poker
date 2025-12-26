@@ -1085,20 +1085,40 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
                             >
                               {txn.type === 'Deposit' || txn.type === 'Buy In' ? 'Buy-In' : 'Cash-Out'}
                             </span>
+                            {txn.isOverridden && (
+                              <span 
+                                onClick={() => {
+                                  if (txn.overrideReason) {
+                                    alert(`Override Reason:\n\n${txn.overrideReason}`);
+                                  }
+                                }}
+                                className="ml-2 px-2 py-1 rounded text-xs bg-orange-900/30 text-orange-400 border border-orange-700 cursor-pointer hover:bg-orange-900/50 transition-colors inline-block"
+                                title="Click to view override reason"
+                              >
+                                ✏️ Overridden
+                              </span>
+                            )}
                           </td>
                           <td className="py-4 px-4">
                             <div className="text-white font-medium">{txn.playerName}</div>
                             <div className="text-gray-400 text-xs">{txn.playerId}</div>
                           </td>
                           <td className="py-4 px-4 text-right">
-                            <div
-                              className={`font-bold ${
-                                txn.type === 'Deposit' || txn.type === 'Buy In'
-                                  ? 'text-green-400'
-                                  : 'text-blue-400'
-                              }`}
-                            >
-                              {txn.type === 'Deposit' || txn.type === 'Buy In' ? '+' : '-'}₹{Number(txn.amount).toLocaleString()}
+                            <div className="flex flex-col items-end">
+                              <div
+                                className={`font-bold ${
+                                  txn.type === 'Deposit' || txn.type === 'Buy In'
+                                    ? 'text-green-400'
+                                    : 'text-blue-400'
+                                }`}
+                              >
+                                {txn.type === 'Deposit' || txn.type === 'Buy In' ? '+' : '-'}₹{Number(txn.amount).toLocaleString()}
+                              </div>
+                              {txn.originalAmount && (
+                                <div className="text-xs text-gray-400 line-through mt-1">
+                                  {txn.type === 'Deposit' || txn.type === 'Buy In' ? '+' : '-'}₹{Number(txn.originalAmount).toLocaleString()}
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="py-4 px-4">

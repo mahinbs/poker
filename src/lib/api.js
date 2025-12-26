@@ -662,7 +662,7 @@ export const fnbAPI = {
    */
   updateMenuItem: async (clubId, itemId, itemData) => {
     return await apiRequest(`/clubs/${clubId}/fnb/menu/${itemId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(itemData),
     });
   },
@@ -1725,17 +1725,33 @@ export const superAdminAPI = {
   },
 
   uploadToSignedUrl: async (signedUrl, file) => {
-    const response = await fetch(signedUrl, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': file.type || 'application/octet-stream',
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`Upload failed: ${response.statusText}`);
+    try {
+      // Supabase signed URLs require specific handling
+      const response = await fetch(signedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type || 'image/png',
+          'Cache-Control': '3600',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error('Upload failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+          url: signedUrl.substring(0, 100) + '...',
+        });
+        throw new Error(`Upload failed (${response.status}): ${response.statusText}`);
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
     }
-    return response;
   },
 
   // Push Notifications

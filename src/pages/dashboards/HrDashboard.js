@@ -535,6 +535,9 @@ export default function HrDashboard() {
   }, [selectedStaffDetails]);
 
   const handleSignOut = () => {
+    // Clear all localStorage
+    localStorage.clear();
+    sessionStorage.clear();
     navigate("/hr/signin");
   };
 
