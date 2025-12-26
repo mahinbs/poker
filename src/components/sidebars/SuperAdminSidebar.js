@@ -70,6 +70,7 @@ export default function SuperAdminSidebar({
   }, [isOpen, isMobile]);
 
   const selectedClub = clubs.find((c) => c.clubId === selectedClubId) || clubs[0];
+  const isRummyEnabled = selectedClub?.rummyEnabled || false;
 
   // Get user info from localStorage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -77,6 +78,11 @@ export default function SuperAdminSidebar({
   const userEmail = user.email || superAdminUser.email || 'super@admin.com';
   const displayName = user.displayName || superAdminUser.displayName || 'Root Administrator';
   const userRole = user.role || superAdminUser.role || 'SUPER_ADMIN';
+
+  // Add Rummy to menu items if enabled
+  const finalMenuItems = isRummyEnabled 
+    ? [...menuItems, "Rummy"]
+    : menuItems;
 
   // Password reset mutation
   const resetPasswordMutation = useMutation({
@@ -363,7 +369,7 @@ export default function SuperAdminSidebar({
           </div>
 
           <nav className="space-y-3 flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar min-w-0">
-            {menuItems.map((item) => (
+            {finalMenuItems.map((item) => (
               <button
                 key={item}
                 onClick={() => {

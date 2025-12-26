@@ -287,6 +287,133 @@ function TournamentManagementViewOnly({ selectedClubId }) {
   );
 }
 
+// View-only Rummy Tournaments component for Cashier
+function RummyTournamentManagementViewOnly({ selectedClubId }) {
+  const [selectedTournament, setSelectedTournament] = useState(null);
+  
+  const { data: tournamentsData, isLoading: tournamentsLoading } = useQuery({
+    queryKey: ['rummy-tournaments', selectedClubId],
+    queryFn: () => tournamentsAPI.getTournaments(selectedClubId),
+    enabled: !!selectedClubId,
+    select: (data) => {
+      // Filter for Rummy tournaments only
+      return Array.isArray(data) ? data.filter(t => t.tableType === 'RUMMY') : [];
+    }
+  });
+
+  const tournamentsArray = tournamentsData || [];
+
+  return (
+    <div className="text-white space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Rummy Tournaments</h1>
+          <p className="text-gray-400">View-only mode: You can only view rummy tournament details</p>
+        </div>
+      </div>
+
+      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+        <h2 className="text-2xl font-bold mb-6">All Rummy Tournaments</h2>
+
+        {tournamentsLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+            <p>Loading rummy tournaments...</p>
+          </div>
+        ) : tournamentsArray.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🃏</div>
+            <p className="text-xl text-gray-300">No rummy tournaments found</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {tournamentsArray.map((tournament) => (
+              <div key={tournament.id} className="bg-slate-700 rounded-xl p-5 border border-slate-600">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-white">{tournament.name || 'Rummy Tournament'}</h3>
+                    <p className="text-sm text-gray-400">Status: {tournament.status || 'Unknown'}</p>
+                    <p className="text-sm text-emerald-400">Variant: {tournament.rummyVariant || 'Points Rummy'}</p>
+                    {tournament.buyIn && (
+                      <p className="text-sm text-gray-400">Buy-In: ₹{tournament.buyIn}</p>
+                    )}
+                    {tournament.startTime && (
+                      <p className="text-sm text-gray-400">Start: {new Date(tournament.startTime).toLocaleString()}</p>
+                    )}
+                    {tournament.prizePool && (
+                      <p className="text-sm text-gray-400">Prize Pool: ₹{tournament.prizePool}</p>
+                    )}
+                  </div>
+                  <button 
+                    onClick={() => setSelectedTournament(tournament)}
+                    className="bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                  >
+                    <span>👁️</span>
+                    <span>View Details</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Tournament Details Modal */}
+      {selectedTournament && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full border border-slate-700">
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-2xl font-bold text-white">{selectedTournament.name || 'Rummy Tournament'}</h2>
+              <button 
+                onClick={() => setSelectedTournament(null)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-gray-400 text-sm">Status</p>
+                <p className="text-white font-semibold">{selectedTournament.status || 'Unknown'}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Rummy Variant</p>
+                <p className="text-emerald-400 font-semibold">{selectedTournament.rummyVariant || 'Points Rummy'}</p>
+              </div>
+              {selectedTournament.buyIn && (
+                <div>
+                  <p className="text-gray-400 text-sm">Buy-In</p>
+                  <p className="text-white font-semibold">₹{selectedTournament.buyIn}</p>
+                </div>
+              )}
+              {selectedTournament.prizePool && (
+                <div>
+                  <p className="text-gray-400 text-sm">Prize Pool</p>
+                  <p className="text-white font-semibold">₹{selectedTournament.prizePool}</p>
+                </div>
+              )}
+              {selectedTournament.startTime && (
+                <div>
+                  <p className="text-gray-400 text-sm">Start Time</p>
+                  <p className="text-white font-semibold">{new Date(selectedTournament.startTime).toLocaleString()}</p>
+                </div>
+              )}
+              {selectedTournament.description && (
+                <div>
+                  <p className="text-gray-400 text-sm">Description</p>
+                  <p className="text-white">{selectedTournament.description}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CashierDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -507,7 +634,7 @@ export default function CashierDashboard() {
   }
 
   // Cashier menu items - matches Super Admin except restricted items
-  const menuItems = [
+  const baseMenuItems = [
     "Dashboard",
     "Payroll Management",
     "Bonus Management",
@@ -518,6 +645,11 @@ export default function CashierDashboard() {
     "Chat",
     "Financial Overrides",
   ];
+
+  // Add Rummy if enabled for this club
+  const menuItems = club?.rummyEnabled 
+    ? [...baseMenuItems, "Rummy"]
+    : baseMenuItems;
 
                             return (
     <>
@@ -645,8 +777,13 @@ export default function CashierDashboard() {
             <FinancialOverrides userRole="cashier" />
           )}
 
+          {/* Rummy Tournaments - View Only */}
+          {activeItem === "Rummy" && (
+            <RummyTournamentManagementViewOnly selectedClubId={clubId} />
+          )}
+
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Payroll Management", "Bonus Management", "Tables & Waitlist", "Club Buy-In", "Push Notifications", "Tournaments", "Chat", "Financial Overrides"].includes(activeItem) && (
+          {!["Dashboard", "Payroll Management", "Bonus Management", "Tables & Waitlist", "Club Buy-In", "Push Notifications", "Tournaments", "Chat", "Financial Overrides", "Rummy"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
               <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminSidebar from "../../components/sidebars/AdminSidebar";
-import { clubsAPI, playersAPI } from "../../lib/api";
+import { clubsAPI, playersAPI, authAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 import UnifiedPlayerManagement from "./UnifiedPlayerManagement";
 import TableManagement from "./TableManagement";
@@ -17,6 +17,7 @@ import FNBManagement from "../../components/FNBManagement";
 import ChatManagement from "../../components/ChatManagement";
 import ReportsAnalytics from "../../components/ReportsAnalytics";
 import SystemControl from "../../components/SystemControl";
+import RummyManagement from "../../components/RummyManagement";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -59,10 +60,37 @@ export default function AdminDashboard() {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const adminUser = JSON.parse(localStorage.getItem('adminuser') || '{}');
+    const currentUser = authAPI.getCurrentUser();
     
     // Check if user is logged in
     if (!user.id && !adminUser.userId) {
       navigate('/login');
+      return;
+    }
+
+    // Check if user is actually an Admin - redirect if not
+    const isAdmin = user.role === 'ADMIN' || adminUser.userId || adminUser.role === 'ADMIN' || currentUser?.role === 'ADMIN';
+    const isSuperAdmin = user.role === 'SUPER_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+    const isMasterAdmin = user.isMasterAdmin || currentUser?.isMasterAdmin;
+    
+    if (!isAdmin && !isSuperAdmin && !isMasterAdmin) {
+      // User is not Admin - redirect to their correct portal
+      const role = currentUser?.role || user.role || adminUser.role;
+      const roleDashboardMap = {
+        'MASTER_ADMIN': '/master-admin',
+        'SUPER_ADMIN': '/super-admin',
+        'MANAGER': '/manager',
+        'GRE': '/gre',
+        'CASHIER': '/cashier',
+        'HR': '/hr',
+        'FNB': '/fnb',
+        'STAFF': '/staff',
+        'DEALER': '/dealer',
+        'AFFILIATE': '/affiliate',
+      };
+      
+      const redirectPath = role && roleDashboardMap[role] ? roleDashboardMap[role] : '/login';
+      navigate(redirectPath, { replace: true });
       return;
     }
 
@@ -288,6 +316,7 @@ export default function AdminDashboard() {
           setActiveItem={setActiveItem}
           menuItems={menuItems}
           onSignOut={handleSignOut}
+          clubInfo={clubInfo || club}
         />
 
         <main className="flex-1 p-8 overflow-y-auto">
@@ -492,8 +521,13 @@ export default function AdminDashboard() {
             <SystemControl clubId={clubId} />
           )}
 
+          {/* Rummy Management */}
+          {activeItem === "Rummy" && clubId && (
+            <RummyManagement selectedClubId={clubId} />
+          )}
+
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Player Management", "Tables & Waitlist", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "FNB", "Chat", "Reports & Analytics", "System Control"].includes(activeItem) && (
+          {!["Dashboard", "Player Management", "Tables & Waitlist", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "FNB", "Chat", "Reports & Analytics", "System Control", "Rummy"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
               <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
