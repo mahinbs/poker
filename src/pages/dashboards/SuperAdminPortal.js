@@ -95,6 +95,10 @@ export default function SuperAdminPortal() {
 
   const selectedClub = clubs.find((c) => c.clubId === selectedClubId);
 
+  // Check if selected club is suspended or killed
+  const isClubSuspended = selectedClub?.status === 'suspended';
+  const isClubKilled = selectedClub?.status === 'killed';
+
   // Handle sign out
   const handleSignOut = () => {
     localStorage.clear();
@@ -301,6 +305,56 @@ export default function SuperAdminPortal() {
                         </button>
                       </div>
                     </div>
+      </>
+    );
+  }
+
+  // Render club suspended/killed screen for Super Admin
+  if (isClubKilled) {
+    return (
+      <>
+        {passwordResetModal}
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-red-900 flex items-center justify-center p-8">
+          <div className="bg-slate-800 rounded-xl p-12 text-center border border-red-600 max-w-2xl w-full">
+            <div className="text-red-400 text-6xl mb-4">🚫</div>
+            <h1 className="text-3xl font-bold text-white mb-4">Club Not Found</h1>
+            <p className="text-gray-400 mb-8">This club has been removed by Master Admin.</p>
+            <button
+              onClick={handleSignOut}
+              className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (isClubSuspended) {
+    return (
+      <>
+        {passwordResetModal}
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-orange-900 flex items-center justify-center p-8">
+          <div className="bg-slate-800 rounded-xl p-12 text-center border border-orange-600 max-w-2xl w-full">
+            <div className="text-orange-400 text-6xl mb-4">🔒</div>
+            <h1 className="text-3xl font-bold text-white mb-4">Club Suspended</h1>
+            <p className="text-gray-400 mb-4">This club has been temporarily suspended by Master Admin.</p>
+            {selectedClub?.subscriptionNotes && (
+              <div className="bg-orange-900/30 border border-orange-700 rounded-lg p-4 mb-8">
+                <p className="text-sm text-orange-300 font-semibold mb-2">Suspension Reason:</p>
+                <p className="text-gray-300">{selectedClub.subscriptionNotes}</p>
+              </div>
+            )}
+            <p className="text-sm text-gray-500 mb-8">Please contact Master Admin for more information.</p>
+            <button
+              onClick={handleSignOut}
+              className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
       </>
     );
   }
