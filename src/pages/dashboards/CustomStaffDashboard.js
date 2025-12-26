@@ -5,6 +5,7 @@ import ChatManagement from "../../components/ChatManagement";
 import CustomStaffSidebar from "../../components/sidebars/CustomStaffSidebar";
 import { payrollAPI, bonusAPI, staffAPI } from "../../lib/api";
 import toast from "react-hot-toast";
+import NotificationsInbox from "../../components/NotificationsInbox";
 
 export default function CustomStaffDashboard() {
   const [activeItem, setActiveItem] = useState("Chat");
@@ -142,6 +143,7 @@ export default function CustomStaffDashboard() {
   );
 
   const menuItems = [
+    "Notifications",
     "Chat",
     "Salary History",
     "Bonus History",
@@ -197,6 +199,11 @@ export default function CustomStaffDashboard() {
             {/* Salary History */}
             {activeItem === "Salary History" && clubId && staffId && (
               <SalaryHistoryView clubId={clubId} staffId={staffId} />
+            )}
+
+            {/* Notifications */}
+            {activeItem === "Notifications" && clubId && (
+              <NotificationsInbox selectedClubId={clubId} recipientType="staff" />
             )}
 
             {/* Bonus History */}

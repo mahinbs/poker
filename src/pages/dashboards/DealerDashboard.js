@@ -5,6 +5,7 @@ import ChatManagement from "../../components/ChatManagement";
 import DealerSidebar from "../../components/sidebars/DealerSidebar";
 import { payrollAPI, bonusAPI, staffAPI, shiftsAPI, financialOverridesAPI } from "../../lib/api";
 import toast from "react-hot-toast";
+import NotificationsInbox from "../../components/NotificationsInbox";
 
 export default function DealerDashboard() {
   const [activeItem, setActiveItem] = useState("Shift Timings");
@@ -136,6 +137,7 @@ export default function DealerDashboard() {
 
   const menuItems = [
     "Shift Timings",
+    "Notifications",
     "Transactions",
     "Tips",
     "Tip Settings",
@@ -206,6 +208,11 @@ export default function DealerDashboard() {
             {/* Chat */}
             {activeItem === "Chat" && clubId && (
               <ChatManagement clubId={clubId} hidePlayerChat={true} />
+            )}
+
+            {/* Notifications */}
+            {activeItem === "Notifications" && clubId && (
+              <NotificationsInbox selectedClubId={clubId} recipientType="staff" />
             )}
           </div>
         </main>

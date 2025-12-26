@@ -21,6 +21,7 @@ import ChatManagement from "../../components/ChatManagement";
 import ReportsAnalytics from "../../components/ReportsAnalytics";
 import AuditLogsBackups from "../../components/AuditLogsBackups";
 import RummyManagement from "../../components/RummyManagement";
+import NotificationsInbox from "../../components/NotificationsInbox";
 
 
 export default function SuperAdminPortal() {
@@ -593,12 +594,14 @@ export default function SuperAdminPortal() {
           <RummyManagement selectedClubId={selectedClubId} />
         )}
 
-        {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Financial Overrides", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control"].includes(activeItem) && (
+        {/* Notifications Inbox */}
+        {activeItem === "Notifications" && selectedClubId && (
+          <NotificationsInbox selectedClubId={selectedClubId} recipientType="staff" />
+        )}
+
+        {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Financial Overrides", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <p className="text-gray-400">This section is under development and will use real data from the backend.</p>
-                        </div>
             </div>
           )}
         </main>

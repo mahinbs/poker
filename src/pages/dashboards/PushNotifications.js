@@ -11,6 +11,37 @@ const NOTIFICATION_TARGETS = {
   WAITLIST_PLAYERS: 'waitlist_players',
   CUSTOM_GROUP: 'custom_group',
   ALL_STAFF: 'all_staff',
+  STAFF_ADMIN: 'staff_admin',
+  STAFF_MANAGER: 'staff_manager',
+  STAFF_CASHIER: 'staff_cashier',
+  STAFF_DEALER: 'staff_dealer',
+  STAFF_HR: 'staff_hr',
+  STAFF_FNB: 'staff_fnb',
+  STAFF_GRE: 'staff_gre',
+  STAFF_CUSTOM: 'staff_custom',
+};
+
+// Helper function to sanitize filename
+const sanitizeFilename = (filename) => {
+  if (!filename) return filename;
+  
+  // Get file extension
+  const lastDotIndex = filename.lastIndexOf('.');
+  const name = lastDotIndex !== -1 ? filename.substring(0, lastDotIndex) : filename;
+  const ext = lastDotIndex !== -1 ? filename.substring(lastDotIndex) : '';
+  
+  // Remove all special characters, spaces, and Unicode characters
+  // Keep only alphanumeric, hyphens, and underscores
+  const sanitizedName = name
+    .normalize('NFD') // Normalize Unicode
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[^\w\s-]/g, '') // Remove special chars except spaces, hyphens, underscores
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+    .toLowerCase(); // Convert to lowercase
+  
+  return sanitizedName + ext;
 };
 
 export default function PushNotifications({ selectedClubId }) {
@@ -29,6 +60,7 @@ export default function PushNotifications({ selectedClubId }) {
     videoFile: null,
     videoUrl: "",
     customPlayerIds: [],
+    customStaffIds: [],
     scheduledAt: "",
     isActive: true,
   });
@@ -84,6 +116,18 @@ export default function PushNotifications({ selectedClubId }) {
     enabled: !!selectedClubId && notificationForm.targetType === NOTIFICATION_TARGETS.CUSTOM_GROUP,
   });
 
+  // Fetch all staff for custom staff selection
+  const { data: allStaff = [] } = useQuery({
+    queryKey: ["allStaffForGroup", selectedClubId],
+    queryFn: async () => {
+      if (!selectedClubId) return [];
+      const response = await superAdminAPI.getStaff(selectedClubId);
+      // Exclude affiliates
+      return (response || []).filter(s => s.status === 'Active' && s.role !== 'AFFILIATE');
+    },
+    enabled: !!selectedClubId && notificationForm.targetType === NOTIFICATION_TARGETS.STAFF_CUSTOM,
+  });
+
   // Create notification mutation
   const createNotificationMutation = useMutation({
     mutationFn: async (data) => {
@@ -93,32 +137,36 @@ export default function PushNotifications({ selectedClubId }) {
       // Upload image if file provided
       if (data.imageFile) {
         try {
+          const sanitizedFilename = sanitizeFilename(data.imageFile.name);
           const { signedUrl, publicUrl } = await superAdminAPI.createPushNotificationUploadUrl(
             selectedClubId,
-            data.imageFile.name,
+            sanitizedFilename,
             false
           );
           await superAdminAPI.uploadToSignedUrl(signedUrl, data.imageFile);
           imageUrl = publicUrl;
         } catch (error) {
           console.error("Failed to upload image:", error);
-          toast.error("Failed to upload image");
+          toast.error("Failed to upload image: " + (error.message || "Unknown error"));
+          return; // Stop if image upload fails
         }
       }
 
       // Upload video if file provided
       if (data.videoFile) {
         try {
+          const sanitizedFilename = sanitizeFilename(data.videoFile.name);
           const { signedUrl, publicUrl } = await superAdminAPI.createPushNotificationUploadUrl(
             selectedClubId,
-            data.videoFile.name,
+            sanitizedFilename,
             true
           );
           await superAdminAPI.uploadToSignedUrl(signedUrl, data.videoFile);
           videoUrl = publicUrl;
         } catch (error) {
           console.error("Failed to upload video:", error);
-          toast.error("Failed to upload video");
+          toast.error("Failed to upload video: " + (error.message || "Unknown error"));
+          return; // Stop if video upload fails
         }
       }
 
@@ -129,6 +177,7 @@ export default function PushNotifications({ selectedClubId }) {
         videoUrl: videoUrl || undefined,
         targetType: data.targetType,
         customPlayerIds: data.targetType === NOTIFICATION_TARGETS.CUSTOM_GROUP ? data.customPlayerIds : undefined,
+        customStaffIds: data.targetType === NOTIFICATION_TARGETS.STAFF_CUSTOM ? data.customStaffIds : undefined,
         notificationType: activeTab,
         scheduledAt: data.scheduledAt || undefined,
         isActive: data.isActive,
@@ -142,6 +191,20 @@ export default function PushNotifications({ selectedClubId }) {
     },
     onError: (error) => {
       toast.error(error.message || "Failed to create notification");
+    },
+  });
+
+  // Send notification mutation
+  const sendNotificationMutation = useMutation({
+    mutationFn: async (notificationId) => {
+      return await superAdminAPI.sendPushNotification(selectedClubId, notificationId);
+    },
+    onSuccess: (data) => {
+      toast.success(`Notification sent to ${data.recipientCount} recipient(s)!`);
+      queryClient.invalidateQueries(["pushNotifications", selectedClubId]);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to send notification");
     },
   });
 
@@ -169,6 +232,7 @@ export default function PushNotifications({ selectedClubId }) {
       videoFile: null,
       videoUrl: "",
       customPlayerIds: [],
+      customStaffIds: [],
       scheduledAt: "",
       isActive: true,
     });
@@ -184,7 +248,17 @@ export default function PushNotifications({ selectedClubId }) {
       toast.error("Please select at least one player for custom group");
       return;
     }
+    if (notificationForm.targetType === NOTIFICATION_TARGETS.STAFF_CUSTOM && notificationForm.customStaffIds.length === 0) {
+      toast.error("Please select at least one staff member for custom group");
+      return;
+    }
     createNotificationMutation.mutate(notificationForm);
+  };
+
+  const handleSend = (notificationId, title) => {
+    if (window.confirm(`Are you sure you want to send "${title}" to all recipients?`)) {
+      sendNotificationMutation.mutate(notificationId);
+    }
   };
 
   const handleDelete = (notificationId, title) => {
@@ -280,6 +354,14 @@ export default function PushNotifications({ selectedClubId }) {
                       {notification.targetType === NOTIFICATION_TARGETS.WAITLIST_PLAYERS && "Waitlist Players"}
                       {notification.targetType === NOTIFICATION_TARGETS.CUSTOM_GROUP && "Custom Group"}
                       {notification.targetType === NOTIFICATION_TARGETS.ALL_STAFF && "All Staff"}
+                      {notification.targetType === NOTIFICATION_TARGETS.STAFF_ADMIN && "Admin Staff"}
+                      {notification.targetType === NOTIFICATION_TARGETS.STAFF_MANAGER && "Manager Staff"}
+                      {notification.targetType === NOTIFICATION_TARGETS.STAFF_CASHIER && "Cashier Staff"}
+                      {notification.targetType === NOTIFICATION_TARGETS.STAFF_DEALER && "Dealer Staff"}
+                      {notification.targetType === NOTIFICATION_TARGETS.STAFF_HR && "HR Staff"}
+                      {notification.targetType === NOTIFICATION_TARGETS.STAFF_FNB && "F&B Staff"}
+                      {notification.targetType === NOTIFICATION_TARGETS.STAFF_GRE && "GRE Staff"}
+                      {notification.targetType === NOTIFICATION_TARGETS.STAFF_CUSTOM && "Custom Staff Group"}
                     </span>
                     <span className={`px-3 py-1 text-sm font-semibold rounded ${
                       notification.isActive
@@ -313,13 +395,24 @@ export default function PushNotifications({ selectedClubId }) {
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => handleDelete(notification.id, notification.title)}
-                  disabled={deleteNotificationMutation.isPending}
-                  className="ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
-                >
-                  Delete
-                </button>
+                <div className="ml-4 flex flex-col gap-2">
+                  {!notification.sentAt && (
+                    <button
+                      onClick={() => handleSend(notification.id, notification.title)}
+                      disabled={sendNotificationMutation.isPending}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                      <span>📤</span> Send
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(notification.id, notification.title)}
+                    disabled={deleteNotificationMutation.isPending}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -340,6 +433,7 @@ export default function PushNotifications({ selectedClubId }) {
           isLoading={createNotificationMutation.isPending}
           activeTab={activeTab}
           allPlayers={allPlayers}
+          allStaff={allStaff}
           showCustomGroupModal={showCustomGroupModal}
           setShowCustomGroupModal={setShowCustomGroupModal}
         />
@@ -358,6 +452,7 @@ function NotificationModal({
   isLoading,
   activeTab,
   allPlayers,
+  allStaff,
   showCustomGroupModal,
   setShowCustomGroupModal,
 }) {
@@ -403,7 +498,7 @@ function NotificationModal({
             </label>
             <select
               value={form.targetType}
-              onChange={(e) => setForm({ ...form, targetType: e.target.value, customPlayerIds: [] })}
+              onChange={(e) => setForm({ ...form, targetType: e.target.value, customPlayerIds: [], customStaffIds: [] })}
               className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {activeTab === "player" ? (
@@ -416,7 +511,17 @@ function NotificationModal({
                   <option value={NOTIFICATION_TARGETS.CUSTOM_GROUP}>Custom Group</option>
                 </>
               ) : (
-                <option value={NOTIFICATION_TARGETS.ALL_STAFF}>All Staff</option>
+                <>
+                  <option value={NOTIFICATION_TARGETS.ALL_STAFF}>All Staff</option>
+                  <option value={NOTIFICATION_TARGETS.STAFF_ADMIN}>Admin Staff</option>
+                  <option value={NOTIFICATION_TARGETS.STAFF_MANAGER}>Manager Staff</option>
+                  <option value={NOTIFICATION_TARGETS.STAFF_CASHIER}>Cashier Staff</option>
+                  <option value={NOTIFICATION_TARGETS.STAFF_DEALER}>Dealer Staff</option>
+                  <option value={NOTIFICATION_TARGETS.STAFF_HR}>HR Staff</option>
+                  <option value={NOTIFICATION_TARGETS.STAFF_FNB}>F&B Staff</option>
+                  <option value={NOTIFICATION_TARGETS.STAFF_GRE}>GRE Staff</option>
+                  <option value={NOTIFICATION_TARGETS.STAFF_CUSTOM}>Custom Staff Group</option>
+                </>
               )}
             </select>
             {form.targetType === NOTIFICATION_TARGETS.CUSTOM_GROUP && (
@@ -428,6 +533,17 @@ function NotificationModal({
                 {form.customPlayerIds.length > 0
                   ? `Selected ${form.customPlayerIds.length} players`
                   : "Select Players"}
+              </button>
+            )}
+            {form.targetType === NOTIFICATION_TARGETS.STAFF_CUSTOM && (
+              <button
+                type="button"
+                onClick={() => setShowCustomGroupModal(true)}
+                className="mt-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
+              >
+                {form.customStaffIds.length > 0
+                  ? `Selected ${form.customStaffIds.length} staff members`
+                  : "Select Staff Members"}
               </button>
             )}
           </div>
@@ -561,12 +677,23 @@ function NotificationModal({
       </div>
 
       {/* Custom Group Selection Modal */}
-      {showCustomGroupModal && (
+      {showCustomGroupModal && form.targetType === NOTIFICATION_TARGETS.CUSTOM_GROUP && (
         <CustomGroupModal
           allPlayers={allPlayers}
           selectedPlayerIds={form.customPlayerIds}
           onSelect={(playerIds) => {
             setForm({ ...form, customPlayerIds: playerIds });
+            setShowCustomGroupModal(false);
+          }}
+          onClose={() => setShowCustomGroupModal(false)}
+        />
+      )}
+      {showCustomGroupModal && form.targetType === NOTIFICATION_TARGETS.STAFF_CUSTOM && (
+        <CustomStaffModal
+          allStaff={allStaff}
+          selectedStaffIds={form.customStaffIds}
+          onSelect={(staffIds) => {
+            setForm({ ...form, customStaffIds: staffIds });
             setShowCustomGroupModal(false);
           }}
           onClose={() => setShowCustomGroupModal(false)}
@@ -639,6 +766,82 @@ function CustomGroupModal({ allPlayers, selectedPlayerIds, onSelect, onClose }) 
             className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors"
           >
             Select {selectedIds.size} Players
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Custom Staff Selection Modal
+function CustomStaffModal({ allStaff, selectedStaffIds, onSelect, onClose }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedIds, setSelectedIds] = useState(new Set(selectedStaffIds));
+
+  const filteredStaff = allStaff.filter(s => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      s.name.toLowerCase().includes(searchLower) ||
+      s.email.toLowerCase().includes(searchLower) ||
+      (s.employeeId && s.employeeId.toLowerCase().includes(searchLower)) ||
+      (s.role && s.role.toLowerCase().includes(searchLower))
+    );
+  });
+
+  const toggleStaff = (staffId) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(staffId)) {
+      newSet.delete(staffId);
+    } else {
+      newSet.add(staffId);
+    }
+    setSelectedIds(newSet);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-800 rounded-xl p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto border border-slate-700">
+        <h3 className="text-2xl font-bold text-white mb-4">Select Staff Members for Custom Group</h3>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by name, email, employee ID, or role..."
+          className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
+        <div className="space-y-2 max-h-96 overflow-y-auto mb-4">
+          {filteredStaff.map((staff) => (
+            <div
+              key={staff.id}
+              className="flex items-center gap-3 p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors cursor-pointer"
+              onClick={() => toggleStaff(staff.id)}
+            >
+              <input
+                type="checkbox"
+                checked={selectedIds.has(staff.id)}
+                onChange={() => toggleStaff(staff.id)}
+                className="w-5 h-5 text-purple-600"
+              />
+              <div className="flex-1">
+                <div className="text-white font-semibold">{staff.name}</div>
+                <div className="text-gray-400 text-sm">{staff.email} • {staff.role}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => onSelect(Array.from(selectedIds))}
+            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors"
+          >
+            Select {selectedIds.size} Staff Members
           </button>
           <button
             onClick={onClose}

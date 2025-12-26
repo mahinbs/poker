@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { clubsAPI } from "../../lib/api";
+import { clubsAPI, superAdminAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
 export default function DealerSidebar({ 
@@ -17,6 +17,15 @@ export default function DealerSidebar({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
+  });
+
+  // Get clubId and fetch unread notification count
+  const clubId = localStorage.getItem('clubId');
+  const { data: unreadData } = useQuery({
+    queryKey: ["unreadNotificationCount", clubId, "staff"],
+    queryFn: () => superAdminAPI.getUnreadNotificationCount(clubId, "staff"),
+    enabled: !!clubId,
+    refetchInterval: 30000,
   });
 
   useEffect(() => {
@@ -43,9 +52,6 @@ export default function DealerSidebar({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen, isMobile]);
-
-  // Get clubId from localStorage
-  const clubId = localStorage.getItem('clubId');
   
   // Fetch club info to get club code
   const { data: club } = useQuery({
@@ -234,7 +240,14 @@ export default function DealerSidebar({
                         : "text-gray-300 hover:bg-slate-700 hover:text-white"
                     }`}
                 >
-                  {item}
+                  <span className="flex items-center justify-between w-full">
+                    <span>{item}</span>
+                    {item === "Notifications" && unreadData?.unreadCount > 0 && (
+                      <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
+                        {unreadData.unreadCount > 9 ? "9+" : unreadData.unreadCount}
+                      </span>
+                    )}
+                  </span>
                 </button>
               ))}
             </nav>

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { superAdminAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
 const DEFAULT_MENU_ITEMS = [
   "Dashboard",
+  "Notifications",
   "Player Management",
   "Staff Management",
   "Payroll Management",
@@ -42,6 +44,15 @@ export default function SuperAdminSidebar({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
+  });
+
+  // Get clubId and fetch unread notification count
+  const clubId = selectedClubId || localStorage.getItem('clubId');
+  const { data: unreadData } = useQuery({
+    queryKey: ["unreadNotificationCount", clubId, "staff"],
+    queryFn: () => superAdminAPI.getUnreadNotificationCount(clubId, "staff"),
+    enabled: !!clubId,
+    refetchInterval: 30000,
   });
 
   useEffect(() => {
@@ -382,7 +393,14 @@ export default function SuperAdminSidebar({
                     : "bg-white/5 hover:bg-gradient-to-r hover:from-red-400/20 hover:to-purple-500/20 text-white"
                 }`}
               >
-                <span className="block truncate">{item}</span>
+                <span className="flex items-center justify-between">
+                  <span className="block truncate">{item}</span>
+                  {item === "Notifications" && unreadData?.unreadCount > 0 && (
+                    <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
+                      {unreadData.unreadCount > 9 ? "9+" : unreadData.unreadCount}
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
           </nav>

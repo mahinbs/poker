@@ -12,6 +12,7 @@ import ChatManagement from "../../components/ChatManagement";
 import RakeCollection from "../../components/RakeCollection";
 import TableBuyOutManagement from "../../components/TableBuyOutManagement";
 import RummyManagement from "../../components/RummyManagement";
+import NotificationsInbox from "../../components/NotificationsInbox";
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
@@ -466,13 +467,15 @@ export default function ManagerDashboard() {
             <RummyManagement selectedClubId={clubId} />
           )}
 
+          {/* Notifications Inbox */}
+          {activeItem === "Notifications" && clubId && (
+            <NotificationsInbox selectedClubId={clubId} recipientType="staff" />
+          )}
+
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Player Management", "Tables & Waitlist", /* "Table Buy-Out", */ "Rake Collection", "Push Notifications", "Tournaments", "Chat", "Rummy"].includes(activeItem) && (
+          {!["Dashboard", "Player Management", "Tables & Waitlist", /* "Table Buy-Out", */ "Rake Collection", "Push Notifications", "Tournaments", "Chat", "Rummy", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <p className="text-gray-400">This section is under development and will use real data from the backend.</p>
-              </div>
             </div>
           )}
         </main>

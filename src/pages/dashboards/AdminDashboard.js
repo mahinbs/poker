@@ -18,6 +18,7 @@ import ChatManagement from "../../components/ChatManagement";
 import ReportsAnalytics from "../../components/ReportsAnalytics";
 import SystemControl from "../../components/SystemControl";
 import RummyManagement from "../../components/RummyManagement";
+import NotificationsInbox from "../../components/NotificationsInbox";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -290,6 +291,7 @@ export default function AdminDashboard() {
   // Menu items for Admin (excluding restricted items)
   const menuItems = [
     "Dashboard",
+    "Notifications",
     "Player Management",
     "Staff Management",
     "Payroll Management",
@@ -320,6 +322,14 @@ export default function AdminDashboard() {
         />
 
         <main className="flex-1 p-8 overflow-y-auto">
+          {/* Notifications */}
+          {activeItem === "Notifications" && (
+            <NotificationsInbox
+              selectedClubId={clubId}
+              recipientType="staff"
+            />
+          )}
+
           {/* Dashboard */}
           {activeItem === "Dashboard" && (
             <div className="space-y-6">
@@ -526,13 +536,15 @@ export default function AdminDashboard() {
             <RummyManagement selectedClubId={clubId} />
           )}
 
+          {/* Notifications Inbox */}
+          {activeItem === "Notifications" && clubId && (
+            <NotificationsInbox selectedClubId={clubId} recipientType="staff" />
+          )}
+
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Player Management", "Tables & Waitlist", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "FNB", "Chat", "Reports & Analytics", "System Control", "Rummy"].includes(activeItem) && (
+          {!["Dashboard", "Player Management", "Tables & Waitlist", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "FNB", "Chat", "Reports & Analytics", "System Control", "Rummy", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <p className="text-gray-400">This section is under development and will use real data from the backend.</p>
-            </div>
             </div>
           )}
         </main>
