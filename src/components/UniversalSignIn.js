@@ -3,7 +3,7 @@
  * Reusable authentication form for all staff roles
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from "../lib/api";
 
@@ -19,6 +19,23 @@ export default function UniversalSignIn({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const roleUserKey = `${role.toLowerCase()}user`;
+    const roleUser = JSON.parse(localStorage.getItem(roleUserKey) || '{}');
+    
+    // Check if user is already logged in with this role
+    if (user.id || roleUser.userId) {
+      const userRole = user.role || roleUser.role;
+      
+      // If user has the matching role, redirect to their dashboard
+      if (userRole === role || (role === 'MASTER_ADMIN' && user.isMasterAdmin)) {
+        navigate(redirectPath, { replace: true });
+      }
+    }
+  }, [navigate, role, redirectPath]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
