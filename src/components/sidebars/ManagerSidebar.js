@@ -19,7 +19,8 @@ export default function ManagerSidebar({
   activeItem, 
   setActiveItem, 
   menuItems = DEFAULT_MENU_ITEMS,
-  onSignOut = null 
+  onSignOut = null,
+  clubInfo = null
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -29,6 +30,13 @@ export default function ManagerSidebar({
     newPassword: "",
     confirmPassword: "",
   });
+
+  const isRummyEnabled = clubInfo?.rummyEnabled || false;
+
+  // Add Rummy to menu items if enabled
+  const finalMenuItems = isRummyEnabled 
+    ? [...menuItems, "Rummy"]
+    : menuItems;
 
   useEffect(() => {
     const handleResize = () => {
@@ -236,7 +244,7 @@ export default function ManagerSidebar({
           </div>
 
           <nav className="space-y-3 flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar min-w-0">
-            {menuItems.map((item, idx) => (
+            {finalMenuItems.map((item, idx) => (
               <button
                 key={idx}
                 onClick={() => {

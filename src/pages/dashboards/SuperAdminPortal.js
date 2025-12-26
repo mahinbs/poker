@@ -20,7 +20,7 @@ import FNBManagement from "../../components/FNBManagement";
 import ChatManagement from "../../components/ChatManagement";
 import ReportsAnalytics from "../../components/ReportsAnalytics";
 import AuditLogsBackups from "../../components/AuditLogsBackups";
-import SystemControl from "../../components/SystemControl";
+import RummyManagement from "../../components/RummyManagement";
 
 
 export default function SuperAdminPortal() {
@@ -317,7 +317,6 @@ export default function SuperAdminPortal() {
           clubs={clubs}
           selectedClubId={selectedClubId}
           onClubChange={setSelectedClubId}
-          onSignOut={handleSignOut}
         />
 
         <main className="flex-1 p-8 overflow-y-auto">
@@ -535,11 +534,12 @@ export default function SuperAdminPortal() {
           <AuditLogsBackups clubId={selectedClubId} />
         )}
 
-        {activeItem === "System Control" && selectedClubId && (
-          <SystemControl clubId={selectedClubId} />
+        {/* Rummy Management */}
+        {activeItem === "Rummy" && selectedClubId && (
+          <RummyManagement selectedClubId={selectedClubId} />
         )}
 
-        {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Financial Overrides", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "System Control"].includes(activeItem) && (
+        {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Financial Overrides", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
               <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">

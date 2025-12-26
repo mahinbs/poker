@@ -68,6 +68,36 @@ export default function MasterAdminDashboard() {
 
   const navigate = useNavigate();
 
+  // Check if user is actually a Master Admin - redirect if not
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const masterAdminUser = JSON.parse(localStorage.getItem('masteradminuser') || '{}');
+    const currentUser = authAPI.getCurrentUser();
+    
+    // Check if user is Master Admin
+    const isMasterAdmin = user.isMasterAdmin || masterAdminUser.userId || currentUser?.isMasterAdmin;
+    
+    if (!isMasterAdmin) {
+      // User is not Master Admin - redirect to their correct portal
+      const role = currentUser?.role || user.role || masterAdminUser.role;
+      const roleDashboardMap = {
+        'SUPER_ADMIN': '/super-admin',
+        'ADMIN': '/admin',
+        'MANAGER': '/manager',
+        'GRE': '/gre',
+        'CASHIER': '/cashier',
+        'HR': '/hr',
+        'FNB': '/fnb',
+        'STAFF': '/staff',
+        'DEALER': '/dealer',
+        'AFFILIATE': '/affiliate',
+      };
+      
+      const redirectPath = role && roleDashboardMap[role] ? roleDashboardMap[role] : '/login';
+      navigate(redirectPath, { replace: true });
+    }
+  }, [navigate]);
+
   const menuItems = [
     "Dashboard",
     "Tenants Management",
@@ -478,6 +508,20 @@ export default function MasterAdminDashboard() {
       }
     } catch (err) {
       alert('Failed to update Terms & Conditions: ' + err.message);
+    }
+  };
+
+  const handleUpdateRummyEnabled = async (clubId, enabled) => {
+    if (!confirm(`Are you sure you want to ${enabled ? 'enable' : 'disable'} Rummy mode for this club?`)) {
+      return;
+    }
+
+    try {
+      await masterAdminAPI.updateClubRummyEnabled(clubId, enabled);
+      showToast(`✅ Rummy mode ${enabled ? 'enabled' : 'disabled'} successfully!`, 'success');
+      loadDashboardData();
+    } catch (err) {
+      showToast('Failed to update Rummy mode: ' + err.message, 'error');
     }
   };
 
@@ -892,7 +936,9 @@ export default function MasterAdminDashboard() {
           )}
 
             {/* RUMMY SETTINGS */}
-          {activeItem === "Rummy Settings" && (
+          {activeItem === "Rummy Settings" && (() => {
+            const selectedClubData = clubs.find(c => c.id === selectedClubId);
+            return (
               <section className="p-6 bg-gradient-to-r from-slate-800/50 via-slate-900/50 to-black/50 rounded-xl border border-slate-700">
                 <h2 className="text-2xl font-bold text-white mb-6">Rummy Mode Settings</h2>
 
@@ -918,7 +964,7 @@ export default function MasterAdminDashboard() {
                     {selectedClubData && (
                       <div className="p-6 bg-slate-800/70 rounded-lg border border-slate-600">
                         <h4 className="font-bold text-lg mb-4 text-emerald-400">
-                          Enable Rummy Mode for {selectedClubData.name}
+                          {selectedClubData.rummyEnabled ? 'Disable' : 'Enable'} Rummy Mode for {selectedClubData.name}
                         </h4>
                         <p className="text-gray-300 text-sm mb-4">
                           When enabled, the club's backend dashboard and player portal will show Rummy-specific features:
@@ -929,12 +975,21 @@ export default function MasterAdminDashboard() {
                           <li>• Rummy variants become available in table creation</li>
                           <li>• Rummy-specific rules and gameplay features are enabled</li>
                         </ul>
-                    <button
-                          disabled
-                          className="w-full bg-slate-700 text-gray-400 px-6 py-3 rounded-lg font-medium cursor-not-allowed"
-                        >
-                          Disabled
-                    </button>
+                        {selectedClubData.rummyEnabled ? (
+                          <button
+                            onClick={() => handleUpdateRummyEnabled(selectedClubData.id, false)}
+                            className="w-full bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                          >
+                            Disable Rummy Mode
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleUpdateRummyEnabled(selectedClubData.id, true)}
+                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                          >
+                            Enable Rummy Mode
+                          </button>
+                        )}
                         <p className="text-xs text-gray-500 mt-3">
                           Note: Table creation and management is handled by club staff (Admin/Manager) in their respective portals, just like poker tables. This setting only enables/disables Rummy mode features for the club.
                         </p>
@@ -950,10 +1005,14 @@ export default function MasterAdminDashboard() {
                         <div key={club.id} className="p-4 bg-slate-800/70 rounded-lg border border-slate-600 flex justify-between items-center">
                         <div>
                             <div className="font-medium text-white">{club.name}</div>
-                            <div className="text-xs text-gray-400">Rummy Mode: Disabled</div>
+                            <div className="text-xs text-gray-400">Rummy Mode: {club.rummyEnabled ? 'Enabled' : 'Disabled'}</div>
                           </div>
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-300">
-                            Disabled
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            club.rummyEnabled
+                              ? 'bg-emerald-500/20 text-emerald-300'
+                              : 'bg-gray-500/20 text-gray-300'
+                          }`}>
+                            {club.rummyEnabled ? 'Enabled' : 'Disabled'}
                         </span>
                       </div>
                     ))}
@@ -961,7 +1020,8 @@ export default function MasterAdminDashboard() {
                 </div>
               </div>
             </section>
-          )}
+            );
+          })()}
 
             {/* TERMS & CONDITIONS */}
           {activeItem === "Terms & Conditions" && (

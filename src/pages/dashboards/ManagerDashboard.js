@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ManagerSidebar from "../../components/sidebars/ManagerSidebar";
-import { clubsAPI, playersAPI } from "../../lib/api";
+import { clubsAPI, playersAPI, authAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 import UnifiedPlayerManagement from "./UnifiedPlayerManagement";
 import TableManagement from "./TableManagement";
@@ -11,6 +11,7 @@ import TournamentManagement from "../../components/TournamentManagement";
 import ChatManagement from "../../components/ChatManagement";
 import RakeCollection from "../../components/RakeCollection";
 import TableBuyOutManagement from "../../components/TableBuyOutManagement";
+import RummyManagement from "../../components/RummyManagement";
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
@@ -52,10 +53,38 @@ export default function ManagerDashboard() {
   // Check authentication and password reset requirement
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const currentUser = authAPI.getCurrentUser();
     
     // Check if user is logged in
     if (!user.id) {
       navigate('/login');
+      return;
+    }
+
+    // Check if user is actually a Manager - redirect if not
+    const isManager = user.role === 'MANAGER' || currentUser?.role === 'MANAGER';
+    const isSuperAdmin = user.role === 'SUPER_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+    const isAdmin = user.role === 'ADMIN' || currentUser?.role === 'ADMIN';
+    const isMasterAdmin = user.isMasterAdmin || currentUser?.isMasterAdmin;
+    
+    if (!isManager && !isSuperAdmin && !isAdmin && !isMasterAdmin) {
+      // User is not Manager - redirect to their correct portal
+      const role = currentUser?.role || user.role;
+      const roleDashboardMap = {
+        'MASTER_ADMIN': '/master-admin',
+        'SUPER_ADMIN': '/super-admin',
+        'ADMIN': '/admin',
+        'GRE': '/gre',
+        'CASHIER': '/cashier',
+        'HR': '/hr',
+        'FNB': '/fnb',
+        'STAFF': '/staff',
+        'DEALER': '/dealer',
+        'AFFILIATE': '/affiliate',
+      };
+      
+      const redirectPath = role && roleDashboardMap[role] ? roleDashboardMap[role] : '/login';
+      navigate(redirectPath, { replace: true });
       return;
     }
 
@@ -257,6 +286,7 @@ export default function ManagerDashboard() {
           activeItem={activeItem}
           setActiveItem={setActiveItem}
           onSignOut={handleSignOut}
+          clubInfo={clubInfo || club}
         />
 
         <main className="flex-1 p-8 overflow-y-auto">
@@ -431,8 +461,13 @@ export default function ManagerDashboard() {
             <ChatManagement clubId={clubId} />
           )}
 
+          {/* Rummy Management */}
+          {activeItem === "Rummy" && clubId && (
+            <RummyManagement selectedClubId={clubId} />
+          )}
+
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Player Management", "Tables & Waitlist", /* "Table Buy-Out", */ "Rake Collection", "Push Notifications", "Tournaments", "Chat"].includes(activeItem) && (
+          {!["Dashboard", "Player Management", "Tables & Waitlist", /* "Table Buy-Out", */ "Rake Collection", "Push Notifications", "Tournaments", "Chat", "Rummy"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
               <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">

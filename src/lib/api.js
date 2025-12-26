@@ -1489,6 +1489,16 @@ export const masterAdminAPI = {
   },
 
   /**
+   * Update club rummy enabled status
+   */
+  updateClubRummyEnabled: async (clubId, rummyEnabled) => {
+    return await apiRequest(`/clubs/${clubId}/rummy-enabled`, {
+      method: 'PUT',
+      body: JSON.stringify({ rummyEnabled }),
+    });
+  },
+
+  /**
    * Create complete tenant setup (tenant + club + super admin)
    */
   createTenantWithClub: async (data) => {
