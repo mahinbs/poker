@@ -595,19 +595,24 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
           <div className="text-white/60 text-center py-8">No messages yet. Start the conversation!</div>
         ) : (
           messages.map((message) => {
-            // Get current user email
-            const currentUser = authAPI.getCurrentUser();
-            const currentUserEmail = currentUser.email?.toLowerCase();
+            // For player chat: player messages on left (green), staff messages on right (blue)
+            // For staff chat: own messages on right (blue), other's on left (green)
+            let isOwn = false;
             
-            // Check if message is from current user by comparing email
-            // For staff chat, compare senderStaff email with current user email
-            // Also check session initiator/recipient IDs as fallback
-            const senderEmail = message.senderStaff?.email?.toLowerCase();
-            const isOwn = currentUserEmail && (
-              senderEmail === currentUserEmail ||
-              (session.staffInitiator && message.senderStaff?.id === session.staffInitiator.id && session.staffInitiator.email?.toLowerCase() === currentUserEmail) ||
-              (session.staffRecipient && message.senderStaff?.id === session.staffRecipient.id && session.staffRecipient.email?.toLowerCase() === currentUserEmail)
-            );
+            if (isPlayerChat) {
+              // Player chat: staff messages are "own" (right side, blue)
+              isOwn = message.senderType === 'staff';
+            } else {
+              // Staff chat: check if message is from current user
+              const currentUser = authAPI.getCurrentUser();
+              const currentUserEmail = currentUser.email?.toLowerCase();
+              const senderEmail = message.senderStaff?.email?.toLowerCase();
+              isOwn = currentUserEmail && (
+                senderEmail === currentUserEmail ||
+                (session.staffInitiator && message.senderStaff?.id === session.staffInitiator.id && session.staffInitiator.email?.toLowerCase() === currentUserEmail) ||
+                (session.staffRecipient && message.senderStaff?.id === session.staffRecipient.id && session.staffRecipient.email?.toLowerCase() === currentUserEmail)
+              );
+            }
             
             return (
               <div
@@ -615,7 +620,12 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
                 className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
               >
                 <div className={`max-w-[70%] ${isOwn ? 'bg-blue-600' : 'bg-green-600'} rounded-lg p-3`}>
-                  <div className="text-white/80 text-xs mb-1">{message.senderName}</div>
+                  <div className="text-white/80 text-xs mb-1">
+                    {message.senderName}
+                    {isPlayerChat && message.senderType === 'staff' && message.senderStaff?.role && (
+                      <span className="text-white/60 ml-1">({message.senderStaff.role})</span>
+                    )}
+                  </div>
                   <div className="text-white">{message.message}</div>
                   <div className="text-white/50 text-xs mt-1">
                     {formatISTTime(message.createdAt)}
