@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { chatAPI, superAdminAPI } from '../lib/api';
+import { chatAPI, staffAPI, authAPI } from '../lib/api';
 import { FaUser, FaComments, FaSearch, FaPaperPlane, FaCircle, FaTimes, FaPlus } from 'react-icons/fa';
 
 export default function ChatManagement({ clubId, hidePlayerChat = false }) {
@@ -145,7 +145,15 @@ function StaffChatTab({ clubId }) {
         </div>
 
         {/* Sessions List */}
-        <div className="flex-1 overflow-y-auto space-y-2">
+        <div 
+          className="flex-1 overflow-y-auto space-y-2 min-h-0" 
+          style={{ 
+            maxHeight: 'calc(100vh - 450px)',
+            scrollBehavior: 'smooth',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#475569 #1e293b'
+          }}
+        >
           {loading && sessions.length === 0 ? (
             <div className="text-white/60 text-center py-8">Loading chats...</div>
           ) : sessions.length === 0 ? (
@@ -210,12 +218,16 @@ function StaffChatTab({ clubId }) {
       </div>
 
       {/* Chat Window */}
-      <div className="lg:col-span-2">
+      <div className="lg:col-span-2 flex flex-col min-h-0">
         {selectedSession ? (
           <ChatWindow
             clubId={clubId}
             session={selectedSession}
             onClose={() => setSelectedSession(null)}
+            onDelete={() => {
+              setSelectedSession(null);
+              loadSessions();
+            }}
           />
         ) : (
           <div className="bg-slate-800 rounded-lg p-8 h-full flex items-center justify-center">
@@ -231,6 +243,7 @@ function StaffChatTab({ clubId }) {
       {showNewChatModal && (
         <NewStaffChatModal
           clubId={clubId}
+          existingSessions={sessions}
           onClose={() => setShowNewChatModal(false)}
           onSuccess={(session) => {
             setShowNewChatModal(false);
@@ -326,7 +339,15 @@ function PlayerChatTab({ clubId }) {
         </div>
 
         {/* Sessions List */}
-        <div className="flex-1 overflow-y-auto space-y-2">
+        <div 
+          className="flex-1 overflow-y-auto space-y-2 min-h-0" 
+          style={{ 
+            maxHeight: 'calc(100vh - 450px)',
+            scrollBehavior: 'smooth',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#475569 #1e293b'
+          }}
+        >
           {loading && sessions.length === 0 ? (
             <div className="text-white/60 text-center py-8">Loading tickets...</div>
           ) : sessions.length === 0 ? (
@@ -394,7 +415,7 @@ function PlayerChatTab({ clubId }) {
       </div>
 
       {/* Chat Window */}
-      <div className="lg:col-span-2">
+      <div className="lg:col-span-2 flex flex-col min-h-0">
         {selectedSession ? (
           <ChatWindow
             clubId={clubId}
@@ -418,16 +439,17 @@ function PlayerChatTab({ clubId }) {
 
 // ==================== CHAT WINDOW ====================
 
-function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange }) {
+function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, onDelete }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     loadMessages();
-    const interval = setInterval(loadMessages, 3000); // Refresh every 3 seconds for real-time
+    const interval = setInterval(loadMessages, 5000); // Refresh every 5 seconds for better performance
     return () => clearInterval(interval);
   }, [session.id]);
 
@@ -445,6 +467,19 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange }) 
     } finally {
       setLoading(false);
     }
+  };
+
+  // Convert UTC to IST (UTC+5:30)
+  const formatISTTime = (utcDate) => {
+    const date = new Date(utcDate);
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    const istDate = new Date(date.getTime() + istOffset);
+    return istDate.toLocaleTimeString('en-IN', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false 
+    });
   };
 
   const handleSendMessage = async (e) => {
@@ -467,6 +502,25 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange }) 
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this chat? It will only be removed from your side.')) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      await chatAPI.archiveChatSession(clubId, session.id);
+      if (onDelete) {
+        onDelete();
+      }
+      onClose();
+    } catch (error) {
+      alert('Failed to delete chat: ' + (error.message || 'Unknown error'));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const getDisplayName = () => {
     if (isPlayerChat) {
       return session.player?.name || 'Player';
@@ -476,9 +530,9 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange }) 
   };
 
   return (
-    <div className="bg-slate-800 rounded-lg flex flex-col h-full">
+    <div className="bg-slate-800 rounded-lg flex flex-col h-full min-h-0 max-h-full overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-slate-700 flex items-center justify-between">
+      <div className="p-4 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
         <div>
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 bg-gradient-to-r ${
@@ -507,6 +561,16 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange }) 
               <option value="closed">Closed</option>
             </select>
           )}
+          {!isPlayerChat && (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm disabled:opacity-50"
+              title="Delete chat (only from your side)"
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </button>
+          )}
           <button
             onClick={onClose}
             className="text-white/60 hover:text-white"
@@ -517,24 +581,44 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange }) 
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div 
+        className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 flex-shrink" 
+        style={{ 
+          scrollBehavior: 'smooth',
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#475569 #1e293b'
+        }}
+      >
         {loading && messages.length === 0 ? (
           <div className="text-white/60 text-center py-8">Loading messages...</div>
         ) : messages.length === 0 ? (
           <div className="text-white/60 text-center py-8">No messages yet. Start the conversation!</div>
         ) : (
           messages.map((message) => {
-            const isOwn = message.senderType === 'staff';
+            // Get current user email
+            const currentUser = authAPI.getCurrentUser();
+            const currentUserEmail = currentUser.email?.toLowerCase();
+            
+            // Check if message is from current user by comparing email
+            // For staff chat, compare senderStaff email with current user email
+            // Also check session initiator/recipient IDs as fallback
+            const senderEmail = message.senderStaff?.email?.toLowerCase();
+            const isOwn = currentUserEmail && (
+              senderEmail === currentUserEmail ||
+              (session.staffInitiator && message.senderStaff?.id === session.staffInitiator.id && session.staffInitiator.email?.toLowerCase() === currentUserEmail) ||
+              (session.staffRecipient && message.senderStaff?.id === session.staffRecipient.id && session.staffRecipient.email?.toLowerCase() === currentUserEmail)
+            );
+            
             return (
               <div
                 key={message.id}
                 className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`max-w-[70%] ${isOwn ? 'bg-blue-600' : 'bg-slate-700'} rounded-lg p-3`}>
+                <div className={`max-w-[70%] ${isOwn ? 'bg-blue-600' : 'bg-green-600'} rounded-lg p-3`}>
                   <div className="text-white/80 text-xs mb-1">{message.senderName}</div>
                   <div className="text-white">{message.message}</div>
                   <div className="text-white/50 text-xs mt-1">
-                    {new Date(message.createdAt).toLocaleTimeString()}
+                    {formatISTTime(message.createdAt)}
                   </div>
                 </div>
               </div>
@@ -545,7 +629,7 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange }) 
       </div>
 
       {/* Message Input */}
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-700">
+      <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-700 flex-shrink-0">
         <div className="flex gap-3">
           <input
             type="text"
@@ -571,7 +655,7 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange }) 
 
 // ==================== NEW STAFF CHAT MODAL ====================
 
-function NewStaffChatModal({ clubId, onClose, onSuccess }) {
+function NewStaffChatModal({ clubId, existingSessions = [], onClose, onSuccess }) {
   const [staffMembers, setStaffMembers] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState('');
   const [subject, setSubject] = useState('');
@@ -579,16 +663,77 @@ function NewStaffChatModal({ clubId, onClose, onSuccess }) {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    loadStaffMembers();
-  }, []);
+    if (clubId) {
+      loadStaffMembers();
+    }
+  }, [clubId]);
 
   const loadStaffMembers = async () => {
     try {
       setLoading(true);
-      const result = await superAdminAPI.getAllStaff(clubId, 1, 1000);
-      setStaffMembers(result.staff);
+      
+      // Use the unified chatable users endpoint
+      const result = await chatAPI.getChatableUsers(clubId);
+      const usersList = result?.users || result || [];
+      
+      // Filter to only show active users
+      const activeUsers = Array.isArray(usersList)
+        ? usersList.filter(u => u.status === 'Active' || !u.status || u.status === 'active')
+        : [];
+      
+      // Remove duplicates by email (since same user might appear as staff and user)
+      const uniqueUsers = [];
+      const seenEmails = new Set();
+      
+      // Get IDs of staff members who already have active chats
+      const existingStaffIds = new Set();
+      existingSessions.forEach(session => {
+        if (session.staffInitiator?.id) existingStaffIds.add(session.staffInitiator.id);
+        if (session.staffRecipient?.id) existingStaffIds.add(session.staffRecipient.id);
+        // Also check by email for Super Admin/Admin users
+        if (session.staffInitiator?.email) existingStaffIds.add(session.staffInitiator.email.toLowerCase());
+        if (session.staffRecipient?.email) existingStaffIds.add(session.staffRecipient.email.toLowerCase());
+      });
+      
+      activeUsers.forEach(user => {
+        const email = user.email?.toLowerCase();
+        if (email && !seenEmails.has(email)) {
+          // Skip if user already has an active chat
+          const userChatId = user.chatId || user.id;
+          const hasExistingChat = existingStaffIds.has(userChatId) || existingStaffIds.has(email);
+          
+          if (!hasExistingChat) {
+            seenEmails.add(email);
+            
+            // Get actual role name (not "Super Admin/Admin" label)
+            let roleDisplay = user.role || user.customRoleName || 'Staff';
+            // If it's a role enum value, convert to readable format
+            if (roleDisplay === 'SUPER_ADMIN') roleDisplay = 'Super Admin';
+            else if (roleDisplay === 'ADMIN') roleDisplay = 'Admin';
+            else if (roleDisplay === 'MANAGER') roleDisplay = 'Manager';
+            else if (roleDisplay === 'HR') roleDisplay = 'HR';
+            else if (roleDisplay === 'GRE') roleDisplay = 'GRE';
+            else if (roleDisplay === 'CASHIER') roleDisplay = 'Cashier';
+            else if (roleDisplay === 'FNB') roleDisplay = 'FNB';
+            else if (roleDisplay === 'STAFF') roleDisplay = 'Staff';
+            else if (roleDisplay === 'DEALER') roleDisplay = 'Dealer';
+            else if (roleDisplay === 'AFFILIATE') roleDisplay = 'Affiliate';
+            
+            uniqueUsers.push({
+              ...user,
+              chatId: userChatId,
+              name: user.name || user.displayName || user.email,
+              role: roleDisplay
+            });
+          }
+        }
+      });
+      
+      setStaffMembers(uniqueUsers);
     } catch (error) {
-      alert('Failed to load staff members');
+      console.error('Error loading staff members:', error);
+      alert('Failed to load staff members: ' + (error.message || 'Unknown error'));
+      setStaffMembers([]);
     } finally {
       setLoading(false);
     }
@@ -620,19 +765,28 @@ function NewStaffChatModal({ clubId, onClose, onSuccess }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-white mb-2">Select Staff Member *</label>
-            <select
-              value={selectedStaff}
-              onChange={(e) => setSelectedStaff(e.target.value)}
-              required
-              className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
-            >
-              <option value="">Choose staff member...</option>
-              {staffMembers.map((staff) => (
-                <option key={staff.id} value={staff.id}>
-                  {staff.name} - {staff.role}
+            {loading ? (
+              <div className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg text-center">
+                Loading staff members...
+              </div>
+            ) : (
+              <select
+                value={selectedStaff}
+                onChange={(e) => setSelectedStaff(e.target.value)}
+                required
+                className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
+                disabled={loading || staffMembers.length === 0}
+              >
+              <option value="">
+                {staffMembers.length === 0 ? 'No staff members available' : 'Choose staff member...'}
+              </option>
+              {staffMembers.map((member) => (
+                <option key={member.chatId || member.id} value={member.chatId || member.id}>
+                  {member.name || member.displayName} - {member.role}
                 </option>
               ))}
-            </select>
+              </select>
+            )}
           </div>
 
           <div>
