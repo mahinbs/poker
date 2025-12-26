@@ -1038,6 +1038,13 @@ export const staffAPI = {
       body: JSON.stringify(staffData),
     });
   },
+
+  /**
+   * Get all chatable users for a club (staff + Super Admin + Admin users)
+   */
+  getAllChatableUsers: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/chat/chatable-users`);
+  },
 };
 
 // =============================================================================
@@ -1819,6 +1826,18 @@ export const chatAPI = {
 
   getUnreadCounts: async (clubId) => {
     return await apiRequest(`/clubs/${clubId}/chat/unread-counts`);
+  },
+
+  // Get all chatable users (staff + Super Admin + Admin)
+  getChatableUsers: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/chat/chatable-users`);
+  },
+
+  // Archive chat session (one-sided deletion)
+  archiveChatSession: async (clubId, sessionId) => {
+    return await apiRequest(`/clubs/${clubId}/chat/sessions/${sessionId}`, {
+      method: 'DELETE',
+    });
   },
 };
 
