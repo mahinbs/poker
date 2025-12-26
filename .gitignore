@@ -1,8 +1,5 @@
 /node_modules
-/dist
-/build
-/public
-/src
+/node_modules/.cache
 /package-lock.json
 /package.json
 /README.md
