@@ -22,6 +22,7 @@ import ReportsAnalytics from "../../components/ReportsAnalytics";
 import AuditLogsBackups from "../../components/AuditLogsBackups";
 import RummyManagement from "../../components/RummyManagement";
 import NotificationsInbox from "../../components/NotificationsInbox";
+import SystemControl from "../../components/SystemControl";
 
 
 export default function SuperAdminPortal() {
@@ -372,6 +373,7 @@ export default function SuperAdminPortal() {
           clubs={clubs}
           selectedClubId={selectedClubId}
           onClubChange={setSelectedClubId}
+          onSignOut={handleSignOut}
         />
 
         <main className="flex-1 p-8 overflow-y-auto">
@@ -597,6 +599,11 @@ export default function SuperAdminPortal() {
         {/* Notifications Inbox */}
         {activeItem === "Notifications" && selectedClubId && (
           <NotificationsInbox selectedClubId={selectedClubId} recipientType="staff" />
+        )}
+
+        {/* System Control */}
+        {activeItem === "System Control" && selectedClubId && (
+          <SystemControl clubId={selectedClubId} />
         )}
 
         {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Financial Overrides", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
