@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { superAdminAPI } from "../lib/api";
 import toast from "react-hot-toast";
+import { formatDateReadableIST, formatDateIST } from "../utils/dateUtils";
 
 export default function NotificationsInbox({ selectedClubId, recipientType = "staff" }) {
   const queryClient = useQueryClient();
@@ -158,10 +159,7 @@ export default function NotificationsInbox({ selectedClubId, recipientType = "st
                     {notification.isRead && notification.readAt && (
                       <span className="text-green-400">
                         ✓ Read on{" "}
-                        {new Date(notification.readAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
+                        {formatDateReadableIST(notification.readAt)}
                       </span>
                     )}
                   </div>
@@ -289,11 +287,7 @@ export default function NotificationsInbox({ selectedClubId, recipientType = "st
               {selectedNotification.isRead && selectedNotification.readAt && (
                 <span className="text-green-400">
                   ✓ Read on{" "}
-                  {new Date(selectedNotification.readAt).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  {formatDateIST(selectedNotification.readAt)}
                 </span>
               )}
             </div>

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { shiftsAPI } from "../lib/api";
 import toast from "react-hot-toast";
+import { formatDateIST, toDateIST, toDateTimeLocalIST } from "../utils/dateUtils";
 
 export default function ShiftManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
@@ -22,11 +23,18 @@ export default function ShiftManagement({ selectedClubId }) {
     notes: "",
   });
 
-  // Get dealers list
+  // Get dealers list (all dealers)
   const { data: dealersData } = useQuery({
     queryKey: ["dealers", selectedClubId],
     queryFn: () => shiftsAPI.getDealers(selectedClubId),
     enabled: !!selectedClubId,
+  });
+
+  // Get dealers filtered by date (for shift creation modal)
+  const { data: dealersForDate } = useQuery({
+    queryKey: ["dealers", selectedClubId, shiftForm.shiftDate],
+    queryFn: () => shiftsAPI.getDealers(selectedClubId, shiftForm.shiftDate),
+    enabled: !!selectedClubId && !!shiftForm.shiftDate,
   });
 
   // Get date range for current view
@@ -236,6 +244,11 @@ export default function ShiftManagement({ selectedClubId }) {
 
   const dealers = dealersData?.dealers || [];
   const shifts = shiftsData?.shifts || [];
+  
+  // Use filtered dealers for modal if date is selected, otherwise use all dealers
+  const dealersForModal = shiftForm.shiftDate && dealersForDate?.dealers 
+    ? dealersForDate.dealers 
+    : dealers;
 
   // Group shifts by date and dealer
   const getShiftsForDate = (date) => {
@@ -381,6 +394,11 @@ export default function ShiftManagement({ selectedClubId }) {
                                   {formatTime(shift.shiftStartTime)} - {formatTime(shift.shiftEndTime)}
                                 </div>
                                 {shift.notes && <div className="text-xs mt-1 opacity-80">{shift.notes}</div>}
+                                {shift.onLeave && (
+                                  <div className="text-xs mt-1 text-yellow-400 font-semibold bg-yellow-900/30 px-2 py-1 rounded">
+                                    ⚠️ Dealer on leave
+                                  </div>
+                                )}
                               </>
                             )}
                             <div className="flex gap-1 mt-2">
@@ -439,11 +457,14 @@ export default function ShiftManagement({ selectedClubId }) {
                   onChange={(e) => setShiftForm({ ...shiftForm, staffId: e.target.value })}
                 >
                   <option value="">Select Dealer</option>
-                  {dealers.map((dealer) => (
+                  {dealersForModal.map((dealer) => (
                     <option key={dealer.id} value={dealer.id}>
                       {dealer.name}
                     </option>
                   ))}
+                  {shiftForm.shiftDate && dealersForModal.length === 0 && dealers.length > 0 && (
+                    <option disabled>All dealers are on leave for this date</option>
+                  )}
                 </select>
               </div>
 

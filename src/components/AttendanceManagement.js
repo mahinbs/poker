@@ -2,11 +2,12 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { clubsAPI, staffAPI } from "../lib/api";
 import toast from "react-hot-toast";
+import { toDateIST, todayISTString } from "../utils/dateUtils";
 
 // Attendance Management Component for HR
 export default function AttendanceManagement({ selectedClubId }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISTString();
   const [attendanceForm, setAttendanceForm] = useState({
     staffId: "",
     loginDate: today,
