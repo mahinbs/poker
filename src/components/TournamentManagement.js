@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { tournamentsAPI } from "../lib/api";
+import { tournamentsAPI, clubsAPI } from "../lib/api";
 import toast from "react-hot-toast";
 
 export default function TournamentManagement({ selectedClubId }) {
@@ -12,6 +12,7 @@ export default function TournamentManagement({ selectedClubId }) {
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [editingTournament, setEditingTournament] = useState(null);
   const [viewMode, setViewMode] = useState("details"); // 'details' or 'players'
+  const [clubLogoUrl, setClubLogoUrl] = useState(null);
 
   // Tournament type options
   const tournamentTypes = [
@@ -60,6 +61,20 @@ export default function TournamentManagement({ selectedClubId }) {
   });
 
   const [winnersForm, setWinnersForm] = useState([]);
+
+  // Fetch club logo
+  useEffect(() => {
+    const fetchClubLogo = async () => {
+      if (!selectedClubId) return;
+      try {
+        const clubData = await clubsAPI.getClub(selectedClubId);
+        setClubLogoUrl(clubData?.logoUrl || null);
+      } catch (error) {
+        console.error('Error fetching club logo:', error);
+      }
+    };
+    fetchClubLogo();
+  }, [selectedClubId]);
 
   // Fetch tournaments
   const { data: tournamentsData, isLoading: tournamentsLoading } = useQuery({
@@ -1553,9 +1568,21 @@ export default function TournamentManagement({ selectedClubId }) {
                         {/* Center Logo Area */}
                         <div className="absolute inset-0 flex items-center justify-center">
                           <div className="text-center">
-                            {/* Trophy/Logo */}
+                            {/* Club Logo */}
                             <div className="w-32 h-32 bg-white/10 rounded-full border-2 border-white/20 flex items-center justify-center shadow-xl backdrop-blur-sm overflow-hidden">
-                              <div className="text-5xl font-bold text-white/80">
+                              {clubLogoUrl ? (
+                                <img
+                                  src={clubLogoUrl}
+                                  alt="Club Logo"
+                                  className="w-full h-full object-contain rounded-full p-2"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    const fallback = e.target.nextElementSibling;
+                                    if (fallback) fallback.style.display = 'flex';
+                                  }}
+                                />
+                              ) : null}
+                              <div className="text-4xl font-bold text-white/30 hidden items-center justify-center w-full h-full">
                                 🏆
                               </div>
                             </div>

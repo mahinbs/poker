@@ -20,6 +20,7 @@ const DEFAULT_MENU_ITEMS = [
   "Chat",
   "Reports & Analytics",
   "System Control",
+  "Leave Management",
 ];
 
 export default function AdminSidebar({ 

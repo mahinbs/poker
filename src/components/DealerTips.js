@@ -63,12 +63,12 @@ export default function DealerTips({ selectedClubId }) {
   // Update tipSettings when data changes
   useEffect(() => {
     if (settingsData?.settings) {
-      setTipSettings({
+        setTipSettings({
         clubHoldPercentage: Number(settingsData.settings.clubHoldPercentage),
         dealerSharePercentage: Number(settingsData.settings.dealerSharePercentage),
         floorManagerPercentage: Number(settingsData.settings.floorManagerPercentage),
-      });
-    }
+        });
+      }
   }, [settingsData]);
 
   // Get dealer tips with pagination

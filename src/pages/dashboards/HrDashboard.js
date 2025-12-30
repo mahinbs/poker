@@ -6,6 +6,7 @@ import PlayerManagementHR from "../../components/PlayerManagementHR";
 import SalaryHistoryHR from "../../components/SalaryHistoryHR";
 import AttendanceManagement from "../../components/AttendanceManagement";
 import ChatManagementHR from "../../components/ChatManagementHR";
+import LeaveManagement from "../../components/LeaveManagement";
 import HrSidebar from "../../components/sidebars/HrSidebar";
 import toast from "react-hot-toast";
 import NotificationsInbox from "../../components/NotificationsInbox";
@@ -124,6 +125,7 @@ export default function HrDashboard() {
     "Salary History",
     "Player Management",
     "Attendance Management",
+    "Leave Management",
     "Chat",
   ];
 
@@ -586,6 +588,10 @@ export default function HrDashboard() {
 
           {activeItem === "Attendance Management" && (
             <AttendanceManagement selectedClubId={clubId} />
+          )}
+
+          {activeItem === "Leave Management" && clubId && (
+            <LeaveManagement clubId={clubId} />
           )}
 
           {activeItem === "Chat" && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { tablesAPI, waitlistAPI, clubsAPI, staffAPI } from '../../lib/api';
+import { tablesAPI, waitlistAPI, clubsAPI, staffAPI, shiftsAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from '../../components/TableBuyOutManagement';
 
@@ -831,26 +831,26 @@ function TableHologramModal({ table, onClose, clubId }) {
         <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-green-800 to-green-900 rounded-[50%] border-8 border-yellow-600 shadow-2xl flex items-center justify-center">
           {/* Center Logo - Show club logo or default */}
           <div className="absolute inset-0 flex items-center justify-center">
-            {clubLogoUrl ? (
-              <div className="bg-white rounded-full p-2 shadow-lg flex items-center justify-center w-24 h-24">
-                <img 
-                  src={clubLogoUrl} 
-                  alt="Club Logo" 
-                  className="w-20 h-20 rounded-full object-contain"
-                  onError={(e) => {
-                    console.error('Failed to load club logo:', clubLogoUrl);
-                    e.target.style.display = 'none';
-                    const fallback = e.target.nextSibling;
-                    if (fallback) fallback.style.display = 'flex';
-                  }}
-                />
-                <div className="text-2xl font-bold text-gray-800 hidden items-center justify-center">♠️♥️</div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-full p-4 shadow-lg">
+            <div className="bg-white rounded-full p-2 shadow-lg flex items-center justify-center w-24 h-24">
+              {clubLogoUrl ? (
+                <>
+                  <img 
+                    src={clubLogoUrl} 
+                    alt="Club Logo" 
+                    className="w-20 h-20 object-contain"
+                    onError={(e) => {
+                      console.error('Failed to load club logo:', clubLogoUrl);
+                      e.target.style.display = 'none';
+                      const fallback = e.target.parentElement.querySelector('.logo-fallback');
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                  <div className="logo-fallback text-3xl font-bold text-gray-800 hidden items-center justify-center w-full h-full">♠️♥️</div>
+                </>
+              ) : (
                 <div className="text-3xl font-bold text-gray-800">♠️♥️</div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Dealer Position */}
@@ -999,6 +999,30 @@ function TableManagementView({ selectedClubId, tables, tablesLoading }) {
   // Filter to get all active dealers (role is 'Dealer' not 'DEALER')
   const allDealers = staffData?.filter(staff => staff.role === 'Dealer' && staff.status === 'Active') || [];
 
+  // Get dealers on leave for today
+  const today = new Date().toISOString().split('T')[0];
+  const { data: dealersOnLeaveData } = useQuery({
+    queryKey: ['dealersOnLeave', selectedClubId, today],
+    queryFn: () => shiftsAPI.getDealers(selectedClubId, today),
+    enabled: !!selectedClubId,
+  });
+
+  // Get dealers with shifts today (for assign dealer functionality)
+  const { data: availableDealersForToday } = useQuery({
+    queryKey: ['availableDealersForToday', selectedClubId, today],
+    queryFn: () => shiftsAPI.getAvailableDealersForDate(selectedClubId, today),
+    enabled: !!selectedClubId,
+  });
+
+  // Dealers on leave today (those NOT in the filtered list from API)
+  // The API returns dealers NOT on leave, so dealers missing from that list are on leave
+  const dealersNotOnLeave = dealersOnLeaveData?.dealers || [];
+  const dealersOnLeaveIds = new Set(
+    allDealers
+      .filter(dealer => !dealersNotOnLeave.find(d => d.id === dealer.id))
+      .map(d => d.id)
+  );
+
   // Get dealers that are already assigned to active tables (check all tables, not just regular)
   const assignedDealerIds = new Set(
     tables
@@ -1011,8 +1035,15 @@ function TableManagementView({ selectedClubId, tables, tablesLoading }) {
       .filter(Boolean)
   );
 
-  // Filter out assigned dealers - only show available dealers
-  const availableDealers = allDealers.filter(dealer => !assignedDealerIds.has(dealer.id));
+  // For assign dealer: Only show dealers who have shifts today AND are not on leave
+  const dealersForAssignment = (availableDealersForToday?.dealers || []).filter(
+    dealer => !assignedDealerIds.has(dealer.id)
+  );
+
+  // For general display: Filter out dealers on leave
+  const availableDealers = allDealers.filter(
+    dealer => !assignedDealerIds.has(dealer.id) && !dealersOnLeaveIds.has(dealer.id)
+  );
 
   // Assign dealer mutation
   const assignDealerMutation = useMutation({
@@ -1660,12 +1691,14 @@ function TableManagementView({ selectedClubId, tables, tablesLoading }) {
               <option value="">-- Select Dealer --</option>
               {dealersLoading ? (
                 <option disabled>Loading dealers...</option>
-              ) : availableDealers.length === 0 ? (
+              ) : dealersForAssignment.length === 0 ? (
                 <option disabled>
-                  {allDealers.length > 0 ? 'All dealers are assigned' : 'No active dealers found'}
+                  {allDealers.length > 0 
+                    ? 'No dealers available (all assigned, on leave, or no shift today)' 
+                    : 'No active dealers found'}
                 </option>
               ) : (
-                availableDealers.map((dealer) => (
+                dealersForAssignment.map((dealer) => (
                   <option key={dealer.id} value={dealer.id}>
                     {dealer.name} ({dealer.employeeId || 'No ID'})
                   </option>

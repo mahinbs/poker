@@ -1109,9 +1109,19 @@ export const shiftsAPI = {
 
   /**
    * Get all dealers for shift assignment
+   * @param {string} clubId - Club ID
+   * @param {string} date - Optional date (YYYY-MM-DD) to filter out dealers on leave
    */
-  getDealers: async (clubId) => {
-    return await apiRequest(`/clubs/${clubId}/shifts-dealers`);
+  getDealers: async (clubId, date) => {
+    const query = date ? `?date=${date}` : '';
+    return await apiRequest(`/clubs/${clubId}/shifts-dealers${query}`);
+  },
+
+  /**
+   * Get available dealers for a specific date (have shift and not on leave)
+   */
+  getAvailableDealersForDate: async (clubId, date) => {
+    return await apiRequest(`/clubs/${clubId}/shifts/available-dealers?date=${date}`);
   },
 
   /**
@@ -1466,6 +1476,16 @@ export const masterAdminAPI = {
     return await apiRequest(`/clubs/${clubId}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status, reason }),
+    });
+  },
+
+  /**
+   * Update club details (name, logo, branding)
+   */
+  updateClubDetails: async (clubId, details) => {
+    return await apiRequest(`/clubs/${clubId}/master-admin/details`, {
+      method: 'PUT',
+      body: JSON.stringify(details),
     });
   },
 
@@ -1914,6 +1934,132 @@ export const chatAPI = {
   archiveChatSession: async (clubId, sessionId) => {
     return await apiRequest(`/clubs/${clubId}/chat/sessions/${sessionId}`, {
       method: 'DELETE',
+    });
+  },
+};
+
+// =============================================================================
+// LEAVE MANAGEMENT API
+// =============================================================================
+
+export const leaveAPI = {
+  /**
+   * Get all leave policies
+   */
+  getLeavePolicies: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/leave-policies`);
+  },
+
+  /**
+   * Create leave policy
+   */
+  createLeavePolicy: async (clubId, policyData) => {
+    return await apiRequest(`/clubs/${clubId}/leave-policies`, {
+      method: 'POST',
+      body: JSON.stringify(policyData),
+    });
+  },
+
+  /**
+   * Update leave policy
+   */
+  updateLeavePolicy: async (clubId, role, policyData) => {
+    return await apiRequest(`/clubs/${clubId}/leave-policies/${encodeURIComponent(role)}`, {
+      method: 'PUT',
+      body: JSON.stringify(policyData),
+    });
+  },
+
+  /**
+   * Delete leave policy
+   */
+  deleteLeavePolicy: async (clubId, role) => {
+    return await apiRequest(`/clubs/${clubId}/leave-policies/${encodeURIComponent(role)}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Get my leave applications with filters and pagination
+   */
+  getMyLeaveApplications: async (clubId, filters = {}) => {
+    const queryParams = new URLSearchParams();
+    if (filters.status) queryParams.append('status', filters.status);
+    if (filters.startDate) queryParams.append('startDate', filters.startDate);
+    if (filters.endDate) queryParams.append('endDate', filters.endDate);
+    if (filters.page) queryParams.append('page', filters.page.toString());
+    if (filters.limit) queryParams.append('limit', filters.limit.toString());
+    
+    const query = queryParams.toString();
+    return await apiRequest(`/clubs/${clubId}/leave-applications/my-leaves${query ? '?' + query : ''}`);
+  },
+
+  /**
+   * Get leave balance
+   */
+  getLeaveBalance: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/leave-applications/balance`);
+  },
+
+  /**
+   * Get pending leave applications (for approvers)
+   */
+  getPendingLeaveApplications: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/leave-applications/pending`);
+  },
+
+  /**
+   * Get leave applications for approval with filters and pagination
+   */
+  getLeaveApplicationsForApproval: async (clubId, filters = {}) => {
+    const queryParams = new URLSearchParams();
+    if (filters.status) queryParams.append('status', filters.status);
+    if (filters.role) queryParams.append('role', filters.role);
+    if (filters.startDate) queryParams.append('startDate', filters.startDate);
+    if (filters.endDate) queryParams.append('endDate', filters.endDate);
+    if (filters.search) queryParams.append('search', filters.search);
+    if (filters.page) queryParams.append('page', filters.page.toString());
+    if (filters.limit) queryParams.append('limit', filters.limit.toString());
+    
+    const query = queryParams.toString();
+    return await apiRequest(`/clubs/${clubId}/leave-applications/for-approval${query ? '?' + query : ''}`);
+  },
+
+  /**
+   * Create leave application
+   */
+  createLeaveApplication: async (clubId, applicationData) => {
+    return await apiRequest(`/clubs/${clubId}/leave-applications`, {
+      method: 'POST',
+      body: JSON.stringify(applicationData),
+    });
+  },
+
+  /**
+   * Approve leave application
+   */
+  approveLeaveApplication: async (clubId, applicationId) => {
+    return await apiRequest(`/clubs/${clubId}/leave-applications/${applicationId}/approve`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Reject leave application
+   */
+  rejectLeaveApplication: async (clubId, applicationId, rejectionReason) => {
+    return await apiRequest(`/clubs/${clubId}/leave-applications/${applicationId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ rejectionReason }),
+    });
+  },
+
+  /**
+   * Cancel leave application (by employee)
+   */
+  cancelLeaveApplication: async (clubId, applicationId) => {
+    return await apiRequest(`/clubs/${clubId}/leave-applications/${applicationId}/cancel`, {
+      method: 'POST',
     });
   },
 };

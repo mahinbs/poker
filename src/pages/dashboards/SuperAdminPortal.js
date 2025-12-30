@@ -22,6 +22,7 @@ import ReportsAnalytics from "../../components/ReportsAnalytics";
 import AuditLogsBackups from "../../components/AuditLogsBackups";
 import RummyManagement from "../../components/RummyManagement";
 import NotificationsInbox from "../../components/NotificationsInbox";
+import LeaveManagement from "../../components/LeaveManagement";
 import SystemControl from "../../components/SystemControl";
 
 
@@ -606,7 +607,12 @@ export default function SuperAdminPortal() {
           <SystemControl clubId={selectedClubId} />
         )}
 
-        {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Financial Overrides", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
+        {/* Leave Management */}
+        {activeItem === "Leave Management" && selectedClubId && (
+          <LeaveManagement clubId={selectedClubId} />
+        )}
+
+        {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Financial Overrides", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications", "Leave Management"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
             </div>
