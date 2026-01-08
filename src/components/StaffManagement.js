@@ -4,6 +4,7 @@ import { staffAPI } from "../lib/api";
 import toast from "react-hot-toast";
 import { storageService } from "../lib/storage";
 import ShiftManagement from "./ShiftManagement";
+import LeaveManagement from "./LeaveManagement";
 
 const STAFF_ROLES = [
   { value: "Super Admin", label: "Super Admin" },
@@ -20,7 +21,7 @@ const STAFF_ROLES = [
 
 export default function StaffManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("staff"); // 'staff', 'shifts', or 'payroll'
+  const [activeTab, setActiveTab] = useState("staff"); // 'staff', 'shifts', or 'leave'
   
   // Check if current user is HR
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -328,11 +329,25 @@ export default function StaffManagement({ selectedClubId }) {
         >
           Shift Management
         </button>
+        <button
+          onClick={() => setActiveTab("leave")}
+          className={`px-6 py-3 font-semibold transition-colors ${
+            activeTab === "leave"
+              ? "text-white border-b-2 border-purple-500"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          Leave Management
+        </button>
       </div>
 
       {/* Tab Content */}
       {activeTab === "shifts" && (
         <ShiftManagement selectedClubId={selectedClubId} />
+      )}
+
+      {activeTab === "leave" && selectedClubId && (
+        <LeaveManagement clubId={selectedClubId} />
       )}
 
       {activeTab === "staff" && (

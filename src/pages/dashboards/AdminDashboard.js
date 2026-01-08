@@ -19,7 +19,6 @@ import ReportsAnalytics from "../../components/ReportsAnalytics";
 import SystemControl from "../../components/SystemControl";
 import RummyManagement from "../../components/RummyManagement";
 import NotificationsInbox from "../../components/NotificationsInbox";
-import LeaveManagement from "../../components/LeaveManagement";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -306,7 +305,6 @@ export default function AdminDashboard() {
     "Chat",
     "Reports & Analytics",
     "System Control",
-    "Leave Management",
   ];
 
   return (
@@ -543,13 +541,8 @@ export default function AdminDashboard() {
             <NotificationsInbox selectedClubId={clubId} recipientType="staff" />
           )}
 
-          {/* Leave Management */}
-          {activeItem === "Leave Management" && clubId && (
-            <LeaveManagement clubId={clubId} />
-          )}
-
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Player Management", "Tables & Waitlist", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "FNB", "Chat", "Reports & Analytics", "System Control", "Rummy", "Notifications", "Leave Management"].includes(activeItem) && (
+          {!["Dashboard", "Player Management", "Tables & Waitlist", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "FNB", "Chat", "Reports & Analytics", "System Control", "Rummy", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
             </div>

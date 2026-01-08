@@ -25,7 +25,6 @@ const DEFAULT_MENU_ITEMS = [
   "Reports & Analytics",
   "Audit Logs",
   "System Control",
-  "Leave Management",
 ];
 
 export default function SuperAdminSidebar({ 
