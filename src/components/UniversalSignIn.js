@@ -45,10 +45,28 @@ export default function UniversalSignIn({
     try {
       const response = await authAPI.login(credentials.email, credentials.password);
       
+      // SECURITY: Prevent club roles from logging in through Super Admin/Master Admin portals
+      // If user has ANY club role, they MUST use /login portal, not admin portals
+      const hasClubRole = response.clubRoles && response.clubRoles.length > 0;
+      if (hasClubRole && (role === 'SUPER_ADMIN' || role === 'MASTER_ADMIN')) {
+        throw new Error(`Club staff (${response.clubRoles.map(r => r.role).join(', ')}) should use /login portal, not ${roleDisplayName} portal.`);
+      }
+      
       // Check if user has the required role
-      const hasRole = response.clubRoles?.some(r => r.role === role) ||
-                      response.tenantRoles?.some(r => r.role === role) ||
-                      (role === 'MASTER_ADMIN' && response.user.isMasterAdmin);
+      // For SUPER_ADMIN: must have tenant role (NOT club role)
+      // For MASTER_ADMIN: must have isMasterAdmin flag (NOT club role)
+      let hasRole = false;
+      if (role === 'SUPER_ADMIN') {
+        // Super Admin must have tenant role AND no club roles
+        hasRole = response.tenantRoles?.some(r => r.role === 'SUPER_ADMIN') && !hasClubRole;
+      } else if (role === 'MASTER_ADMIN') {
+        // Master Admin must have isMasterAdmin flag AND no club roles
+        hasRole = response.user.isMasterAdmin && !hasClubRole;
+      } else {
+        // Other roles check normally
+        hasRole = response.clubRoles?.some(r => r.role === role) ||
+                  response.tenantRoles?.some(r => r.role === role);
+      }
       
       if (!hasRole) {
         throw new Error(`You don't have ${roleDisplayName} access. Please use the correct portal.`);

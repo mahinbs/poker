@@ -6,6 +6,7 @@ import CustomStaffSidebar from "../../components/sidebars/CustomStaffSidebar";
 import { payrollAPI, bonusAPI, staffAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 import NotificationsInbox from "../../components/NotificationsInbox";
+import LeaveManagement from "../../components/LeaveManagement";
 
 export default function CustomStaffDashboard() {
   const [activeItem, setActiveItem] = useState("Chat");
@@ -147,6 +148,7 @@ export default function CustomStaffDashboard() {
     "Chat",
     "Salary History",
     "Bonus History",
+    "Leave Management",
   ];
 
   const handleSignOut = () => {
@@ -209,6 +211,11 @@ export default function CustomStaffDashboard() {
             {/* Bonus History */}
             {activeItem === "Bonus History" && clubId && staffId && (
               <BonusHistoryView clubId={clubId} staffId={staffId} />
+            )}
+
+            {/* Leave Management */}
+            {activeItem === "Leave Management" && clubId && (
+              <LeaveManagement clubId={clubId} userRole="STAFF" />
             )}
           </div>
         </main>

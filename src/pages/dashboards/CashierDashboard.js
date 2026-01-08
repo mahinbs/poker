@@ -13,6 +13,7 @@ import FinancialOverrides from "../../components/FinancialOverrides";
 import TableView from "../../components/hologram/TableView";
 import BuyInRequestManagement from "../../components/BuyInRequestManagement";
 import NotificationsInbox from "../../components/NotificationsInbox";
+import LeaveManagement from "../../components/LeaveManagement";
 
 // View-only Tables component for Cashier
 function TableManagementViewOnly({ selectedClubId }) {
@@ -646,6 +647,7 @@ export default function CashierDashboard() {
     "Tournaments", // View-only
     "Chat",
     "Financial Overrides",
+    "Leave Management",
   ];
 
   // Add Rummy if enabled for this club
@@ -777,6 +779,11 @@ export default function CashierDashboard() {
           {/* Financial Overrides */}
           {activeItem === "Financial Overrides" && (
             <FinancialOverrides selectedClubId={clubId} />
+          )}
+
+          {/* Leave Management */}
+          {activeItem === "Leave Management" && clubId && (
+            <LeaveManagement clubId={clubId} userRole="CASHIER" />
           )}
 
           {/* Rummy Tournaments - View Only */}
