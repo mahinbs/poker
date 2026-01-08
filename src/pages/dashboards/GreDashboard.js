@@ -9,6 +9,7 @@ import PushNotifications from "./PushNotifications";
 import ChatManagement from "../../components/ChatManagement";
 import TableView from "../../components/hologram/TableView";
 import NotificationsInbox from "../../components/NotificationsInbox";
+import LeaveManagement from "../../components/LeaveManagement";
 
 // View-only Tables component for GRE (without buy-in requests)
 function TableManagementViewOnly({ selectedClubId }) {
@@ -548,6 +549,7 @@ export default function GreDashboard() {
     "Tournaments",
     "Chat",
     "Push Notifications",
+    "Leave Management",
   ];
 
   // Add Rummy if enabled for this club
@@ -607,6 +609,11 @@ export default function GreDashboard() {
           {/* Push Notifications */}
           {activeItem === "Push Notifications" && (
             <PushNotifications selectedClubId={clubId} />
+          )}
+
+          {/* Leave Management */}
+          {activeItem === "Leave Management" && clubId && (
+            <LeaveManagement clubId={clubId} userRole="GRE" />
           )}
 
           {/* Rummy Tournaments - View Only */}

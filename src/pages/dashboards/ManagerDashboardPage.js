@@ -11,6 +11,7 @@ import PushNotificationsSection from "../../components/PushNotificationsSection"
 import EmployeeSalaryProcessingSection from "../../components/EmployeeSalaryProcessingSection";
 import RakeCountAndCollection from "../../components/RakeCountAndCollection";
 import ManagerSidebar from "../../components/sidebars/ManagerSidebar";
+import LeaveManagement from "../../components/LeaveManagement";
 
 export default function ManagerDashboardPage() {
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -1042,6 +1043,7 @@ export default function ManagerDashboardPage() {
     "Chat",
     "KYC Review",
     "Push Notifications",
+    "Leave Management",
   ];
 
   return (
@@ -2780,6 +2782,11 @@ export default function ManagerDashboardPage() {
           {/* Push Notifications */}
           {activeItem === "Push Notifications" && (
             <PushNotificationsSection registeredPlayers={registeredPlayers} />
+          )}
+
+          {/* Leave Management */}
+          {activeItem === "Leave Management" && (
+            <LeaveManagement clubId={selectedClubId} userRole="MANAGER" />
           )}
 
           {/* Table View Modal for Seat Assignment (Manager Mode) */}

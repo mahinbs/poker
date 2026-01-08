@@ -6,6 +6,7 @@ import DealerSidebar from "../../components/sidebars/DealerSidebar";
 import { payrollAPI, bonusAPI, staffAPI, shiftsAPI, financialOverridesAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 import NotificationsInbox from "../../components/NotificationsInbox";
+import LeaveManagement from "../../components/LeaveManagement";
 
 export default function DealerDashboard() {
   const [activeItem, setActiveItem] = useState("Shift Timings");
@@ -141,6 +142,7 @@ export default function DealerDashboard() {
     "Transactions",
     "Tips",
     "Tip Settings",
+    "Leave Management",
     "Chat",
   ];
 
@@ -213,6 +215,11 @@ export default function DealerDashboard() {
             {/* Notifications */}
             {activeItem === "Notifications" && clubId && (
               <NotificationsInbox selectedClubId={clubId} recipientType="staff" />
+            )}
+
+            {/* Leave Management */}
+            {activeItem === "Leave Management" && clubId && (
+              <LeaveManagement clubId={clubId} userRole="DEALER" />
             )}
           </div>
         </main>

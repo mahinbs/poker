@@ -62,21 +62,27 @@ export default function StaffLogin() {
       
       console.log('Login response:', response); // Debug log
       
-      // Check if user is Master Admin or Super Admin (they have separate login pages)
-      if (response.user?.isMasterAdmin) {
+      // Check if user is Master Admin (they have separate login pages)
+      // BUT: Allow if they also have a club role (they can use club role)
+      if (response.user?.isMasterAdmin && (!response.clubRoles || response.clubRoles.length === 0)) {
         throw new Error("Master Admin should use /master-admin/signin");
       }
 
-      // Check if user has Super Admin role
+      // Check if user has ONLY Super Admin role (no club roles)
+      // If they have BOTH Super Admin AND club role, allow them to login with club role
       const hasSuperAdminRole = response.tenantRoles?.some(r => r.role === 'SUPER_ADMIN');
-      if (hasSuperAdminRole) {
+      const hasClubRole = response.clubRoles && response.clubRoles.length > 0;
+      
+      // Only block if they have SUPER_ADMIN but NO club roles
+      if (hasSuperAdminRole && !hasClubRole) {
         throw new Error("Super Admin should use /super-admin/signin");
       }
 
-      // Get user's role from clubRoles or tenantRoles
+      // Get user's role - PRIORITIZE club role over tenant role
+      // If user has both, they should use their club role
       const clubRole = response.clubRoles?.[0]?.role;
       const tenantRole = response.tenantRoles?.[0]?.role;
-      const userRole = clubRole || tenantRole;
+      const userRole = clubRole || tenantRole; // Club role takes priority
 
       console.log('Detected role:', userRole, 'clubRoles:', response.clubRoles, 'tenantRoles:', response.tenantRoles); // Debug log
 
