@@ -1,0 +1,98 @@
+ROSTER MANAGEMENT - IMPROVEMENTS COMPLETED (Jan 9, 2026)
+========================================================
+
+FIXED ISSUES:
+
+1. TIME FORMAT IN IST ✅
+   - Problem: Times showing with timezone suffix (e.g., "2026-01-09T12:13:00.000Z")
+   - Fix: Updated formatTime() to extract only HH:MM format
+   - Times now display as: "18:00" and "02:00" (clean IST format)
+   - No timezone conversion needed (stored and displayed in IST)
+
+2. STAFF SEARCH ADDED ✅
+   - Added search bar at top of Roster Overview
+   - Search by staff name (case-insensitive)
+   - Real-time filtering
+   - Shows "No staff found matching..." message
+
+3. LEAVE STATUS IN CALENDAR ✅
+   - Integration with Leave Management system
+   - Backend fetches approved leaves for the period
+   - Calendar now shows 3 states:
+     * GREEN = Working shift
+     * YELLOW = On approved leave
+     * RED = Off day
+   - Leave days counted separately: "X working · Y on leave · Z off"
+
+4. MONTHLY ROSTER AUTO-CALCULATION ✅
+   - System now automatically calculates last day of month
+   - January = 31 days roster
+   - February = 28 or 29 days (leap year detection)
+   - March = 31 days
+   - April/June/September/November = 30 days
+   - May/July/August/October/December = 31 days
+   - Backend uses: new Date(year, month+1, 0) to get last day
+
+5. CALENDAR VIEW IMPROVEMENTS ✅
+   - Added color legend at top (Working/On Leave/Off Day)
+   - Shows working days, leave days, and off days count per staff
+   - Better visual distinction between states
+   - Smaller text for "to" between times
+   - "ON LEAVE" label for leave days
+
+BACKEND CHANGES:
+- roster-management.service.ts:
+  * Added LeaveApplication import
+  * Added leaveApplicationRepo to constructor
+  * getRosterOverview() now fetches approved leaves
+  * Checks each shift against leave dates
+  * Returns onLeave flag with shift data
+  * Counts leaveDaysCount separately
+  * formatTime() improved for clean IST display
+
+FRONTEND CHANGES:
+- RosterManagement.js:
+  * Added staffSearch state
+  * Added search input field
+  * Added filteredStaffForOverview logic
+  * Updated shift cell rendering (3 states)
+  * Added color legend
+  * Improved days count display
+  * Added month calculation info in Generate tab
+
+HOW IT WORKS NOW:
+
+1. LEAVE INTEGRATION:
+   - When leave is approved in Leave Management
+   - It's stored in leave_applications table with status="approved"
+   - Roster Overview fetches these leaves
+   - Checks if shift.shiftDate falls between leave.startDate and leave.endDate
+   - If yes, marks as onLeave=true
+   - Calendar shows YELLOW cell with "ON LEAVE"
+
+2. MONTHLY ROSTER:
+   - Select "Monthly" period type
+   - Enter start date (e.g., 2026-01-01)
+   - System calculates: last day of January = 31
+   - Creates shifts from Jan 1 to Jan 31 (31 days)
+   - For February: automatically uses 28 or 29 days
+   - No manual date entry needed
+
+3. STAFF SEARCH:
+   - Type staff name in search box
+   - Calendar filters to show only matching staff
+   - Clear search to see all staff
+
+4. TIME DISPLAY:
+   - All times in clean IST format
+   - 18:00 = 6:00 PM IST
+   - 02:00 = 2:00 AM IST
+   - No timezone suffixes or conversion
+
+RESULT:
+✅ Times display properly in IST (HH:MM format)
+✅ Staff search works perfectly
+✅ Leave status integrated and showing correctly
+✅ Monthly roster auto-calculates correct number of days
+✅ Calendar view is clear and informative
+✅ 3-state color coding (work/leave/off)

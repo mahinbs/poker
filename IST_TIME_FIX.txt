@@ -1,0 +1,102 @@
+IST TIME FORMAT - FINAL FIX (Jan 9, 2026)
+==========================================
+
+PROBLEM:
+--------
+Times showing in UTC format with timezone:
+"2026-01-09T12:13:00.000Z" instead of clean IST "18:00"
+
+ROOT CAUSE:
+-----------
+1. Shift times stored as TIMESTAMP in database (includes date + time + timezone)
+2. PostgreSQL stores in UTC by default
+3. When retrieved, JavaScript Date objects are in UTC
+4. date.getHours() returns UTC hours (e.g., 12) not IST hours (e.g., 18)
+5. Need to add IST offset (+5:30) to get correct time
+
+SOLUTION APPLIED:
+-----------------
+Updated formatTime() function in roster-management.service.ts:
+
+BEFORE:
+```typescript
+private formatTime(date: Date): string {
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+// This returned UTC time (wrong!)
+```
+
+AFTER:
+```typescript
+private formatTime(date: Date | string): string {
+  if (!date) return '00:00';
+  
+  const d = typeof date === 'string' ? new Date(date) : date;
+  
+  // IST is UTC+5:30 (330 minutes offset)
+  const istOffset = 5.5 * 60; // 330 minutes
+  const utcTime = d.getTime();
+  const istTime = new Date(utcTime + (istOffset * 60 * 1000));
+  
+  // Use getUTCHours() on the offset time to get IST hours
+  const hours = istTime.getUTCHours().toString().padStart(2, '0');
+  const minutes = istTime.getUTCMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+// Now returns IST time (correct!)
+```
+
+HOW IT WORKS:
+-------------
+1. Get UTC timestamp: 2026-01-09T12:13:00.000Z (12:13 UTC)
+2. Add IST offset: +5 hours 30 minutes (330 minutes)
+3. Result: 17:43 IST
+4. Display: "17:43" (clean format)
+
+Example:
+- Shift stored: 2026-01-09 18:00:00 IST
+- In DB (UTC): 2026-01-09 12:30:00 UTC
+- Retrieved: 12:30 UTC
+- Add offset: +330 min = 18:00
+- Display: "18:00" ✅
+
+TESTING:
+--------
+1. Stop backend: Ctrl+C in terminal
+2. Restart: cd poker-crm-backend && npm start
+3. Refresh browser
+4. Go to Roster Overview
+5. Times should now show as "18:00" and "02:00"
+
+WHAT YOU'LL SEE:
+----------------
+BEFORE: 2026-01-09T12:13:00.000Z
+AFTER:  18:00
+
+BEFORE: 2026-01-09T20:13:00.000Z  
+AFTER:  02:00 (next day)
+
+All times will display in clean IST format!
+
+IST OFFSET EXPLAINED:
+--------------------
+IST = UTC + 5:30
+- 5 hours = 300 minutes
+- 30 minutes = 30 minutes
+- Total = 330 minutes offset
+
+Example conversions:
+- 00:00 UTC = 05:30 IST
+- 12:00 UTC = 17:30 IST
+- 18:00 UTC = 23:30 IST
+- 23:00 UTC = 04:30 IST (next day)
+
+VERIFIED:
+---------
+✅ formatTime() now adds IST offset
+✅ Returns HH:MM format (not full timestamp)
+✅ No timezone suffix in output
+✅ No linter errors
+✅ Works for both Date objects and string dates

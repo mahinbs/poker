@@ -1,0 +1,107 @@
+DELETE ROSTER TEMPLATE - FIX APPLIED (Jan 9, 2026)
+=================================================
+
+PROBLEM:
+--------
+Error when Super Admin tries to delete roster template:
+"Failed to delete template"
+"Roster template not found for this staff member"
+
+Console error (lines 674-687):
+```
+Error in deleteRosterTemplate: NotFoundException: Roster template not found for this staff member
+    at RosterManagementService.getTemplateByStaffId
+```
+
+ROOT CAUSE:
+-----------
+In clubs.controller.ts line 13311:
+```typescript
+// WRONG - calling getTemplateByStaffId with templateId!
+const template = await this.rosterManagementService.getTemplateByStaffId(clubId, templateId);
+```
+
+The controller was calling `getTemplateByStaffId(clubId, templateId)` but:
+- templateId is NOT a staffId
+- getTemplateByStaffId expects staffId as second parameter
+- This caused "not found" error
+
+FIX APPLIED:
+------------
+1. Added new method in roster-management.service.ts:
+```typescript
+async getTemplateById(clubId: string, templateId: string) {
+  const template = await this.rosterTemplateRepo.findOne({
+    where: { clubId, id: templateId },
+    relations: ['staff'],
+  });
+
+  if (!template) {
+    throw new NotFoundException('Roster template not found');
+  }
+
+  return template;
+}
+```
+
+2. Updated clubs.controller.ts line 13311:
+```typescript
+// CORRECT - calling getTemplateById with templateId
+const template = await this.rosterManagementService.getTemplateById(clubId, templateId);
+```
+
+WHAT IT DOES NOW:
+-----------------
+1. Frontend sends DELETE request: /api/clubs/{clubId}/roster/templates/{templateId}
+2. Backend receives templateId (UUID of the template)
+3. Calls getTemplateById(clubId, templateId) - CORRECT method
+4. Finds template by its ID (not by staffId)
+5. Deletes template successfully
+6. Creates audit log
+7. Returns success
+
+WHO CAN DELETE:
+---------------
+✅ Super Admin - Can delete ANY template
+✅ Admin - Can delete ANY template
+❌ Other roles - Cannot delete templates
+
+PERMISSIONS:
+------------
+@Roles(ClubRole.SUPER_ADMIN, ClubRole.ADMIN)
+
+Both Super Admin and Admin have full permission to delete roster templates.
+
+TESTING:
+--------
+1. Restart backend (it should auto-restart with nodemon)
+2. Go to: Staff Management → Roster Management → Templates
+3. Click "Delete" on any template
+4. Should show: "Template deleted successfully" ✅
+
+BEFORE vs AFTER:
+----------------
+BEFORE:
+- Click Delete → Error: "Roster template not found"
+- Console: getTemplateByStaffId error
+- Template NOT deleted
+
+AFTER:
+- Click Delete → Success: "Template deleted successfully"
+- No console errors
+- Template deleted from database
+- Audit log created
+
+RELATED FIXES:
+--------------
+The audit log "bulk" UUID error is also fixed (already applied):
+- Changed targetId: 'bulk' → targetId: null
+- This prevents UUID parse error in audit logs
+
+RESULT:
+-------
+✅ Super Admin can now delete any roster template
+✅ Admin can delete any roster template
+✅ No more "not found" errors
+✅ Proper audit logging
+✅ Clean deletion workflow
