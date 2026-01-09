@@ -1,0 +1,58 @@
+ROSTER MANAGEMENT - FIXES APPLIED (Jan 9, 2026)
+=================================================
+
+ISSUES FIXED:
+
+1. AUDIT LOG ERROR ✅
+   - Problem: "invalid input syntax for type uuid: bulk"
+   - Fix: Changed targetId from 'bulk' to null in generateRoster audit log
+   - File: poker-crm-backend/src/clubs/clubs.controller.ts (line 13386)
+
+2. WORKING DAYS COUNT BUG ✅  
+   - Problem: Showing "36 working days" when should be ~22
+   - Fix: Updated getRosterOverview to properly count only non-off-day shifts
+   - Added: workingDaysCount and offDaysCount fields
+   - File: poker-crm-backend/src/clubs/services/roster-management.service.ts
+
+3. SHIFT DATE LOGIC ✅
+   - Shifts counted by START DATE only (as requested)
+   - Shift starting 6 PM Jan 8 → ends 2 AM Jan 9 = counted as "Jan 8 shift"
+   - shiftDate field stores the START date
+   - When crossing midnight, endTime is next day but shiftDate remains start day
+
+4. CALENDAR VIEW ✅
+   - Added proper weekly calendar grid view in Roster Overview
+   - Shows Monday-Sunday layout
+   - Each day shows:
+     * Date number
+     * Shift times (start-end)
+     * OFF days highlighted in red
+     * Working days in green
+   - File: poker/src/components/RosterManagement.js
+
+5. WORKING DAYS DISPLAY ✅
+   - Now shows: "X working days" + "Y off days"
+   - Working days = shifts where isOffDay = false
+   - Off days = shifts where isOffDay = true
+
+CALENDAR VIEW FEATURES:
+- 7-column grid (Mon-Sun)
+- Green boxes = working shifts (shows times)
+- Red boxes = off days (shows "OFF")
+- Each staff member has their own calendar
+- Shows working/off days count at top
+- Default shift times shown at bottom
+
+HOW IT WORKS NOW:
+1. Shift stored with shiftDate = START date
+2. If crosses midnight: shiftStartTime = 18:00 on Jan 8, shiftEndTime = 02:00 on Jan 9
+3. Calendar shows Jan 8 cell with 18:00-02:00
+4. Working days count = number of non-off shifts
+5. Weekly view auto-organizes by day of week
+
+RESULT:
+- No more audit log errors
+- Correct working days count
+- Clear calendar view
+- Shifts properly organized by start date
+- IST timezone throughout (no conversion needed)

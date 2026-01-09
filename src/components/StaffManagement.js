@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { staffAPI } from "../lib/api";
 import toast from "react-hot-toast";
 import { storageService } from "../lib/storage";
-import ShiftManagement from "./ShiftManagement";
+import RosterManagement from "./RosterManagement";
 import LeaveManagement from "./LeaveManagement";
 
 const STAFF_ROLES = [
@@ -21,7 +21,7 @@ const STAFF_ROLES = [
 
 export default function StaffManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("staff"); // 'staff', 'shifts', or 'leave'
+  const [activeTab, setActiveTab] = useState("staff"); // 'staff', 'roster', or 'leave'
   
   // Check if current user is HR
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -320,14 +320,14 @@ export default function StaffManagement({ selectedClubId }) {
           Staff Members
         </button>
         <button
-          onClick={() => setActiveTab("shifts")}
+          onClick={() => setActiveTab("roster")}
           className={`px-6 py-3 font-semibold transition-colors ${
-            activeTab === "shifts"
+            activeTab === "roster"
               ? "text-white border-b-2 border-purple-500"
               : "text-gray-400 hover:text-white"
           }`}
         >
-          Shift Management
+          Roster Management
         </button>
         <button
           onClick={() => setActiveTab("leave")}
@@ -342,8 +342,8 @@ export default function StaffManagement({ selectedClubId }) {
       </div>
 
       {/* Tab Content */}
-      {activeTab === "shifts" && (
-        <ShiftManagement selectedClubId={selectedClubId} />
+      {activeTab === "roster" && (
+        <RosterManagement selectedClubId={selectedClubId} />
       )}
 
       {activeTab === "leave" && selectedClubId && (
