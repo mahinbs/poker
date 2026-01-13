@@ -27,7 +27,6 @@ export default function MyShifts({ selectedClubId, compact = false }) {
       const endDateStr = endDate.toISOString().split('T')[0];
 
       const response = await apiRequest(
-        'GET',
         `/clubs/${selectedClubId}/shifts?startDate=${startDateStr}&endDate=${endDateStr}`
       );
 
