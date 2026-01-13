@@ -7,6 +7,7 @@ import { payrollAPI, bonusAPI, staffAPI, shiftsAPI, financialOverridesAPI } from
 import toast from "react-hot-toast";
 import NotificationsInbox from "../../components/NotificationsInbox";
 import LeaveManagement from "../../components/LeaveManagement";
+import MyShiftsDashboard from "../../components/MyShiftsDashboard";
 
 export default function DealerDashboard() {
   const [activeItem, setActiveItem] = useState("Shift Timings");
@@ -189,7 +190,13 @@ export default function DealerDashboard() {
 
             {/* Shift Timings (Home Page) */}
             {activeItem === "Shift Timings" && clubId && dealerId && (
-              <ShiftTimingsView clubId={clubId} dealerId={dealerId} />
+              <div className="space-y-6">
+                {/* My Shifts Widget - Prominent Display */}
+                <MyShiftsDashboard selectedClubId={clubId} />
+                
+                {/* Detailed Shift Timings View */}
+                <ShiftTimingsView clubId={clubId} dealerId={dealerId} />
+              </div>
             )}
 
             {/* Transactions */}

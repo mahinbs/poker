@@ -14,6 +14,7 @@ import TableView from "../../components/hologram/TableView";
 import BuyInRequestManagement from "../../components/BuyInRequestManagement";
 import NotificationsInbox from "../../components/NotificationsInbox";
 import LeaveManagement from "../../components/LeaveManagement";
+import MyShiftsDashboard from "../../components/MyShiftsDashboard";
 
 // View-only Tables component for Cashier
 function TableManagementViewOnly({ selectedClubId }) {
@@ -677,6 +678,9 @@ export default function CashierDashboard() {
                   Dashboard - {clubInfo?.name || club?.name || 'Loading...'}
                 </h1>
                       </div>
+
+              {/* My Shifts Widget */}
+              {selectedClubId && <MyShiftsDashboard selectedClubId={selectedClubId} />}
 
               {/* Revenue Cards */}
               {revenueLoading ? (

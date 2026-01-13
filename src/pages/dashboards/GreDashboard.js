@@ -10,6 +10,7 @@ import ChatManagement from "../../components/ChatManagement";
 import TableView from "../../components/hologram/TableView";
 import NotificationsInbox from "../../components/NotificationsInbox";
 import LeaveManagement from "../../components/LeaveManagement";
+import MyShiftsDashboard from "../../components/MyShiftsDashboard";
 
 // View-only Tables component for GRE (without buy-in requests)
 function TableManagementViewOnly({ selectedClubId }) {
@@ -568,6 +569,9 @@ export default function GreDashboard() {
       />
       <main className="lg:pl-80 min-h-screen">
         <div className="p-6 space-y-6">
+          {/* My Shifts Widget - Always visible */}
+          {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
+
           {/* Player Management */}
           {activeItem === "Player Management" && (
             <UnifiedPlayerManagement

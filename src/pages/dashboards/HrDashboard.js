@@ -9,6 +9,7 @@ import ChatManagementHR from "../../components/ChatManagementHR";
 import HrSidebar from "../../components/sidebars/HrSidebar";
 import toast from "react-hot-toast";
 import NotificationsInbox from "../../components/NotificationsInbox";
+import MyShiftsDashboard from "../../components/MyShiftsDashboard";
 
 export default function HrDashboard() {
   const [activeItem, setActiveItem] = useState("Staff Management");
@@ -572,6 +573,9 @@ export default function HrDashboard() {
           </header>
 
           {/* Dynamic Content Based on Active Item */}
+          {/* My Shifts Widget - Always visible */}
+          {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
+
           {activeItem === "Staff Management" && (
             <StaffManagement selectedClubId={clubId} />
           )}

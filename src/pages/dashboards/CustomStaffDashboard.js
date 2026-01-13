@@ -7,6 +7,7 @@ import { payrollAPI, bonusAPI, staffAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 import NotificationsInbox from "../../components/NotificationsInbox";
 import LeaveManagement from "../../components/LeaveManagement";
+import MyShiftsDashboard from "../../components/MyShiftsDashboard";
 
 export default function CustomStaffDashboard() {
   const [activeItem, setActiveItem] = useState("Chat");
@@ -194,6 +195,9 @@ export default function CustomStaffDashboard() {
             )}
 
             {/* Chat */}
+            {/* My Shifts Widget - Always visible */}
+            {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
+
             {activeItem === "Chat" && clubId && (
               <ChatManagement clubId={clubId} hidePlayerChat={true} />
             )}
