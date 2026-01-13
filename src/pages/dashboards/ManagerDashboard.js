@@ -13,6 +13,7 @@ import RakeCollection from "../../components/RakeCollection";
 import TableBuyOutManagement from "../../components/TableBuyOutManagement";
 import RummyManagement from "../../components/RummyManagement";
 import NotificationsInbox from "../../components/NotificationsInbox";
+import MyShiftsDashboard from "../../components/MyShiftsDashboard";
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
@@ -299,6 +300,9 @@ export default function ManagerDashboard() {
                   Dashboard - {clubInfo?.name || club?.name || 'Loading...'}
                 </h1>
               </div>
+
+              {/* My Shifts Widget */}
+              {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
 
               {/* Revenue Cards */}
               {revenueLoading ? (

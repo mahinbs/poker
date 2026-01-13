@@ -10,6 +10,7 @@ import FnbSidebar from "../../components/sidebars/FnbSidebar";
 import toast from "react-hot-toast";
 import NotificationsInbox from "../../components/NotificationsInbox";
 import LeaveManagement from "../../components/LeaveManagement";
+import MyShiftsDashboard from "../../components/MyShiftsDashboard";
 
 export default function FnbDashboard() {
   const [activeItem, setActiveItem] = useState("Menu & Inventory");
@@ -178,6 +179,9 @@ export default function FnbDashboard() {
                 <p className="font-medium">Please select a club to view FNB management.</p>
               </div>
             )}
+
+          {/* My Shifts Widget - Always visible */}
+          {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
 
             {activeItem === "Menu & Inventory" && clubId && (
               <MenuInventoryTab clubId={clubId} />

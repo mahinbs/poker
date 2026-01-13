@@ -211,8 +211,18 @@ export default function StaffManagement({ selectedClubId }) {
 
     if (staffForm.role === "Staff" && !staffForm.customRoleName) {
       toast.error("Please enter a custom role name");
-            return;
-        }
+      return;
+    }
+
+    // Validate KYC documents - both are required
+    if (!staffForm.aadharDocumentUrl) {
+      toast.error("Aadhar document is required to create a staff member");
+      return;
+    }
+    if (!staffForm.panDocumentUrl) {
+      toast.error("PAN document is required to create a staff member");
+      return;
+    }
 
     createMutation.mutate(staffForm);
   };
@@ -235,8 +245,18 @@ export default function StaffManagement({ selectedClubId }) {
   const handleUpdateStaff = () => {
     if (!staffForm.name || !staffForm.email || !staffForm.phone) {
       toast.error("Please fill in all required fields");
-            return;
-        }
+      return;
+    }
+
+    // Validate KYC documents - both must be present
+    if (!staffForm.aadharDocumentUrl) {
+      toast.error("Aadhar document is required. Cannot remove Aadhar document.");
+      return;
+    }
+    if (!staffForm.panDocumentUrl) {
+      toast.error("PAN document is required. Cannot remove PAN document.");
+      return;
+    }
 
     updateMutation.mutate({ staffId: selectedStaff.id, data: staffForm });
   };
