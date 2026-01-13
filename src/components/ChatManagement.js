@@ -525,7 +525,25 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
     if (isPlayerChat) {
       return session.player?.name || 'Player';
     } else {
-      return session.otherStaff?.name || 'Staff Member';
+      // Try otherStaff first, then fallback to staffInitiator or staffRecipient
+      if (session.otherStaff?.name) {
+        return session.otherStaff.name;
+      }
+      // Fallback: determine which staff is the "other" one based on current user
+      const currentUser = authAPI.getCurrentUser();
+      const currentUserEmail = currentUser?.email?.toLowerCase();
+      if (session.staffInitiator && session.staffRecipient) {
+        const initiatorEmail = session.staffInitiator.email?.toLowerCase();
+        const recipientEmail = session.staffRecipient.email?.toLowerCase();
+        if (currentUserEmail === initiatorEmail) {
+          return session.staffRecipient.name || 'Staff Member';
+        } else if (currentUserEmail === recipientEmail) {
+          return session.staffInitiator.name || 'Staff Member';
+        }
+        // If we can't determine, show the recipient (most common case)
+        return session.staffRecipient.name || session.staffInitiator.name || 'Staff Member';
+      }
+      return 'Staff Member';
     }
   };
 
