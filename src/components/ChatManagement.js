@@ -229,6 +229,11 @@ function StaffChatTab({ clubId }) {
               setSelectedSession(null);
               loadSessions();
             }}
+            onSessionUpdate={(updatedSession) => {
+              // Update the session in the list if it was refreshed
+              setSessions(prev => prev.map(s => s.id === updatedSession.id ? updatedSession : s));
+              setSelectedSession(updatedSession);
+            }}
           />
         ) : (
           <div className="bg-slate-800 rounded-lg p-8 h-full flex items-center justify-center">
@@ -470,7 +475,7 @@ function PlayerChatTab({ clubId }) {
 
 // ==================== CHAT WINDOW ====================
 
-function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, onDelete }) {
+function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, onDelete, onSessionUpdate }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -479,8 +484,25 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
 
+  const refreshSession = async () => {
+    if (isPlayerChat || !session?.id) return;
+    try {
+      const result = await chatAPI.getStaffChatSessions(clubId, { page: 1, limit: 100 });
+      const updatedSession = result.sessions?.find(s => s.id === session.id);
+      if (updatedSession && updatedSession.otherStaff && onSessionUpdate) {
+        onSessionUpdate(updatedSession);
+      }
+    } catch (error) {
+      console.error('Error refreshing session:', error);
+    }
+  };
+
   useEffect(() => {
     loadMessages();
+    // Refresh session data to ensure otherStaff is populated
+    if (!isPlayerChat && session && (!session.otherStaff || !session.otherStaff.name)) {
+      refreshSession();
+    }
     // Set up polling as fallback (every 10 seconds)
     const interval = setInterval(loadMessages, 10000);
     
