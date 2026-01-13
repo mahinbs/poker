@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { chatAPI, staffAPI, authAPI } from '../lib/api';
 import { FaUser, FaComments, FaSearch, FaPaperPlane, FaCircle, FaTimes, FaPlus } from 'react-icons/fa';
+import { io } from 'socket.io-client';
 
 export default function ChatManagement({ clubId, hidePlayerChat = false }) {
   const [activeTab, setActiveTab] = useState('staff');
@@ -245,10 +246,40 @@ function StaffChatTab({ clubId }) {
           clubId={clubId}
           existingSessions={sessions}
           onClose={() => setShowNewChatModal(false)}
-          onSuccess={(session) => {
+          onSuccess={async (session) => {
             setShowNewChatModal(false);
-            setSelectedSession(session);
-            loadSessions();
+            // Reload sessions to get properly formatted session with otherStaff
+            await loadSessions();
+            // Wait a bit for state to update, then find and select the session
+            setTimeout(() => {
+              // Use a callback to access the latest sessions state
+              setSessions(currentSessions => {
+                const foundSession = currentSessions.find(s => s.id === session?.id);
+                if (foundSession) {
+                  setSelectedSession(foundSession);
+                } else {
+                  // Fallback: use the session as-is, but try to populate otherStaff
+                  const currentUser = authAPI.getCurrentUser();
+                  const currentUserEmail = currentUser?.email?.toLowerCase();
+                  let otherStaff = null;
+                  
+                  if (session.staffInitiator && session.staffRecipient) {
+                    const initiatorEmail = session.staffInitiator.email?.toLowerCase();
+                    if (currentUserEmail === initiatorEmail) {
+                      otherStaff = session.staffRecipient;
+                    } else {
+                      otherStaff = session.staffInitiator;
+                    }
+                  }
+                  
+                  setSelectedSession({
+                    ...session,
+                    otherStaff: otherStaff || session.staffRecipient || session.staffInitiator
+                  });
+                }
+                return currentSessions;
+              });
+            }, 200);
           }}
         />
       )}
@@ -446,12 +477,53 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
   const [sending, setSending] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
 
   useEffect(() => {
     loadMessages();
-    const interval = setInterval(loadMessages, 5000); // Refresh every 5 seconds for better performance
-    return () => clearInterval(interval);
-  }, [session.id]);
+    // Set up polling as fallback (every 10 seconds)
+    const interval = setInterval(loadMessages, 10000);
+    
+    // Set up WebSocket for real-time updates
+    const userId = localStorage.getItem('userId');
+    if (clubId && userId) {
+      const WEBSOCKET_URL = process.env.REACT_APP_WEBSOCKET_URL || process.env.REACT_APP_API_BASE_URL?.replace('/api', '') || 'http://localhost:3333';
+      const socket = io(`${WEBSOCKET_URL}/realtime`, {
+        auth: { clubId, userId },
+        transports: ['websocket', 'polling'],
+      });
+
+      socket.on('connect', () => {
+        socket.emit('subscribe:club', { clubId, userId });
+      });
+
+      // Listen for new chat messages
+      socket.on('chat:new-message', (data) => {
+        if (data.sessionId === session.id) {
+          // Add the new message to the list if it's not already there
+          setMessages(prev => {
+            const exists = prev.some(m => m.id === data.message.id);
+            if (!exists) {
+              return [...prev, data.message];
+            }
+            return prev;
+          });
+        }
+      });
+
+      socketRef.current = socket;
+
+      return () => {
+        clearInterval(interval);
+        if (socket) {
+          socket.emit('unsubscribe:club', { clubId });
+          socket.disconnect();
+        }
+      };
+    } else {
+      return () => clearInterval(interval);
+    }
+  }, [session.id, clubId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -525,24 +597,48 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
     if (isPlayerChat) {
       return session.player?.name || 'Player';
     } else {
-      // Try otherStaff first, then fallback to staffInitiator or staffRecipient
+      // Try otherStaff first
       if (session.otherStaff?.name) {
         return session.otherStaff.name;
       }
+      
       // Fallback: determine which staff is the "other" one based on current user
       const currentUser = authAPI.getCurrentUser();
+      const currentUserId = currentUser?.id;
       const currentUserEmail = currentUser?.email?.toLowerCase();
+      
       if (session.staffInitiator && session.staffRecipient) {
+        // Try to match by ID first (more reliable)
+        const initiatorId = session.staffInitiator.id;
+        const recipientId = session.staffRecipient.id;
+        
+        if (currentUserId === initiatorId) {
+          return session.staffRecipient.name || session.staffRecipient.email?.split('@')[0] || 'Staff Member';
+        } else if (currentUserId === recipientId) {
+          return session.staffInitiator.name || session.staffInitiator.email?.split('@')[0] || 'Staff Member';
+        }
+        
+        // Fallback to email matching
         const initiatorEmail = session.staffInitiator.email?.toLowerCase();
         const recipientEmail = session.staffRecipient.email?.toLowerCase();
-        if (currentUserEmail === initiatorEmail) {
-          return session.staffRecipient.name || 'Staff Member';
-        } else if (currentUserEmail === recipientEmail) {
-          return session.staffInitiator.name || 'Staff Member';
+        
+        if (currentUserEmail && initiatorEmail === currentUserEmail) {
+          return session.staffRecipient.name || session.staffRecipient.email?.split('@')[0] || 'Staff Member';
+        } else if (currentUserEmail && recipientEmail === currentUserEmail) {
+          return session.staffInitiator.name || session.staffInitiator.email?.split('@')[0] || 'Staff Member';
         }
+        
         // If we can't determine, show the recipient (most common case)
-        return session.staffRecipient.name || session.staffInitiator.name || 'Staff Member';
+        return session.staffRecipient.name || session.staffRecipient.email?.split('@')[0] || 
+               session.staffInitiator.name || session.staffInitiator.email?.split('@')[0] || 'Staff Member';
       }
+      
+      // Last resort fallbacks
+      if (session.staffRecipient?.name) return session.staffRecipient.name;
+      if (session.staffInitiator?.name) return session.staffInitiator.name;
+      if (session.staffRecipient?.email) return session.staffRecipient.email.split('@')[0];
+      if (session.staffInitiator?.email) return session.staffInitiator.email.split('@')[0];
+      
       return 'Staff Member';
     }
   };
