@@ -47,7 +47,7 @@ export default function BonusManagement({ selectedClubId }) {
         >
           Player Bonus
         </button>
-        <button
+        {/* <button
           onClick={() => {
             setActiveTab("staff");
             setActiveSubTab("process");
@@ -59,7 +59,7 @@ export default function BonusManagement({ selectedClubId }) {
           }`}
         >
           Staff Bonus
-        </button>
+        </button> */}
       </div>
 
       {/* Tab Content */}
