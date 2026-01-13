@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { clubsAPI, staffAPI } from "../lib/api";
 import toast from "react-hot-toast";
@@ -21,7 +21,7 @@ export default function AttendanceManagement({ selectedClubId }) {
   const [filters, setFilters] = useState({
     startDate: new Date().toISOString().split('T')[0], // Today by default
     endDate: new Date().toISOString().split('T')[0],
-    staffId: "",
+    searchTerm: "", // Changed from staffId to searchTerm for clarity
   });
 
   // Fetch staff members for dropdown
@@ -33,12 +33,28 @@ export default function AttendanceManagement({ selectedClubId }) {
 
   const staffMembers = staffData?.staff || [];
 
-  // Fetch attendance records
-  const { data: attendanceRecords = [], isLoading } = useQuery({
-    queryKey: ['attendance', selectedClubId, filters],
-    queryFn: () => clubsAPI.getAttendanceRecords(selectedClubId, filters.startDate, filters.endDate, filters.staffId),
+  // Fetch attendance records (without staffId filter - we'll filter client-side)
+  const { data: allAttendanceRecords = [], isLoading } = useQuery({
+    queryKey: ['attendance', selectedClubId, filters.startDate, filters.endDate],
+    queryFn: () => clubsAPI.getAttendanceRecords(selectedClubId, filters.startDate, filters.endDate),
     enabled: !!selectedClubId,
   });
+
+  // Filter attendance records client-side based on search term
+  const attendanceRecords = useMemo(() => {
+    if (!filters.searchTerm.trim()) {
+      return allAttendanceRecords;
+    }
+    
+    const searchLower = filters.searchTerm.toLowerCase().trim();
+    return allAttendanceRecords.filter(record => {
+      const staffName = (record.staffName || '').toLowerCase();
+      const staffEmail = (record.staffEmail || record.email || '').toLowerCase();
+      
+      return staffName.includes(searchLower) || 
+             staffEmail.includes(searchLower);
+    });
+  }, [allAttendanceRecords, filters.searchTerm]);
 
   // Fetch attendance stats
   const { data: stats } = useQuery({
@@ -60,7 +76,7 @@ export default function AttendanceManagement({ selectedClubId }) {
 
       // Use login date as the primary date for the record
       // Only include notes if it has a value
-      const payload: any = {
+      const payload = {
         staffId: data.staffId,
         date: data.loginDate,
         loginTime: loginDateTime,
@@ -140,6 +156,8 @@ export default function AttendanceManagement({ selectedClubId }) {
     return diffHours.toFixed(2);
   };
 
+  console.log({attendanceRecords})
+
   return (
     <div className="text-white space-y-6">
       <div className="flex justify-between items-center">
@@ -202,15 +220,15 @@ export default function AttendanceManagement({ selectedClubId }) {
           />
           <input
             type="text"
-            placeholder="Search by staff name or ID..."
-            value={filters.staffId}
-            onChange={(e) => setFilters({ ...filters, staffId: e.target.value })}
+            placeholder="Search by staff name or email..."
+            value={filters.searchTerm}
+            onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
             className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
           />
           <button
             onClick={() => {
               const today = new Date().toISOString().split('T')[0];
-              setFilters({ startDate: today, endDate: today, staffId: "" });
+              setFilters({ startDate: today, endDate: today, searchTerm: "" });
             }}
             className="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-lg text-white transition-colors"
           >
@@ -242,7 +260,6 @@ export default function AttendanceManagement({ selectedClubId }) {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Staff Name</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Role</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Employee ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Date</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Login Time</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Logout Time</th>
@@ -255,7 +272,6 @@ export default function AttendanceManagement({ selectedClubId }) {
                     <tr key={record.id} className="hover:bg-slate-750">
                       <td className="px-6 py-4 font-medium">{record.staffName}</td>
                       <td className="px-6 py-4 text-gray-400">{record.staffRole || '-'}</td>
-                      <td className="px-6 py-4 text-gray-400">{record.employeeId || '-'}</td>
                       <td className="px-6 py-4 text-gray-400">{formatDate(record.date)}</td>
                       <td className="px-6 py-4 text-green-400 font-medium">{formatTime(record.loginTime)}</td>
                       <td className="px-6 py-4 text-red-400 font-medium">

@@ -123,7 +123,7 @@ export default function HrDashboard() {
     "Staff Management",
     "Notifications",
     "Salary History",
-    "Player Management",
+    // "Player Management",
     "Attendance Management",
     "Chat",
   ];
@@ -584,9 +584,9 @@ export default function HrDashboard() {
             <SalaryHistoryHR selectedClubId={clubId} />
           )}
 
-          {activeItem === "Player Management" && (
+          {/* {activeItem === "Player Management" && (
             <PlayerManagementHR selectedClubId={clubId} />
-          )}
+          )} */}
 
           {activeItem === "Attendance Management" && (
             <AttendanceManagement selectedClubId={clubId} />
