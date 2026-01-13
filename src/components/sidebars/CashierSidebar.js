@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { clubsAPI, superAdminAPI } from "../../lib/api";
+import { clubsAPI, superAdminAPI, chatAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
 const DEFAULT_MENU_ITEMS = [
@@ -42,6 +42,16 @@ export default function CashierSidebar({
     enabled: !!clubId,
     refetchInterval: 30000,
   });
+
+  // Fetch unread chat counts
+  const { data: unreadChatData } = useQuery({
+    queryKey: ["unreadChatCounts", clubId],
+    queryFn: () => chatAPI.getUnreadCounts(clubId),
+    enabled: !!clubId,
+    refetchInterval: 10000, // Refresh every 10 seconds for real-time updates
+  });
+
+  const totalUnreadChats = (unreadChatData?.staffChats || 0) + (unreadChatData?.playerChats || 0);
 
   useEffect(() => {
     const handleResize = () => {
@@ -264,6 +274,11 @@ export default function CashierSidebar({
                   {item === "Notifications" && unreadData?.unreadCount > 0 && (
                     <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
                       {unreadData.unreadCount > 9 ? "9+" : unreadData.unreadCount}
+                    </span>
+                  )}
+                  {item === "Chat" && totalUnreadChats > 0 && (
+                    <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
+                      {totalUnreadChats > 9 ? "9+" : totalUnreadChats}
                     </span>
                   )}
                 </span>
