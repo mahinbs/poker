@@ -882,42 +882,42 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
             const currentUserId = localStorage.getItem('userId');
             
             return messages.map((message) => {
-              // For player chat: player messages on left (green), staff messages on right (blue)
-              // For staff chat: own messages on right (blue), other's on left (green)
-              let isOwn = false;
-              
-              if (isPlayerChat) {
-                // Player chat: staff messages are "own" (right side, blue)
-                isOwn = message.senderType === 'staff';
-              } else {
-                // Staff chat: check if message is from current user
+            // For player chat: player messages on left (green), staff messages on right (blue)
+            // For staff chat: own messages on right (blue), other's on left (green)
+            let isOwn = false;
+            
+            if (isPlayerChat) {
+              // Player chat: staff messages are "own" (right side, blue)
+              isOwn = message.senderType === 'staff';
+            } else {
+              // Staff chat: check if message is from current user
                 // Use userId first (most reliable), then fall back to email matching
                 const messageSenderUserId = message.senderStaff?.userId;
-                const senderEmail = message.senderStaff?.email?.toLowerCase();
+              const senderEmail = message.senderStaff?.email?.toLowerCase();
                 
                 isOwn = (currentUserId && messageSenderUserId === currentUserId) || 
                         (currentUserEmail && senderEmail === currentUserEmail);
-              }
-              
-              return (
-                <div
-                  key={message.id}
-                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[70%] ${isOwn ? 'bg-blue-600' : 'bg-green-600'} rounded-lg p-3`}>
-                    <div className="text-white/80 text-xs mb-1">
-                      {message.senderName}
-                      {isPlayerChat && message.senderType === 'staff' && message.senderStaff?.role && (
-                        <span className="text-white/60 ml-1">({message.senderStaff.role})</span>
-                      )}
-                    </div>
-                    <div className="text-white">{message.message}</div>
-                    <div className="text-white/50 text-xs mt-1">
-                      {formatISTTime(message.createdAt)}
-                    </div>
+            }
+            
+            return (
+              <div
+                key={message.id}
+                className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`max-w-[70%] ${isOwn ? 'bg-blue-600' : 'bg-green-600'} rounded-lg p-3`}>
+                  <div className="text-white/80 text-xs mb-1">
+                    {message.senderName}
+                    {isPlayerChat && message.senderType === 'staff' && message.senderStaff?.role && (
+                      <span className="text-white/60 ml-1">({message.senderStaff.role})</span>
+                    )}
+                  </div>
+                  <div className="text-white">{message.message}</div>
+                  <div className="text-white/50 text-xs mt-1">
+                    {formatISTTime(message.createdAt)}
                   </div>
                 </div>
-              );
+              </div>
+            );
             });
           })()
         )}
@@ -985,28 +985,28 @@ function NewStaffChatModal({ clubId, existingSessions = [], onClose, onSuccess }
       activeUsers.forEach(user => {
         const email = user.email?.toLowerCase();
         if (email && !seenEmails.has(email)) {
-          seenEmails.add(email);
-          
-          // Get actual role name (not "Super Admin/Admin" label)
-          let roleDisplay = user.role || user.customRoleName || 'Staff';
-          // If it's a role enum value, convert to readable format
-          if (roleDisplay === 'SUPER_ADMIN') roleDisplay = 'Super Admin';
-          else if (roleDisplay === 'ADMIN') roleDisplay = 'Admin';
-          else if (roleDisplay === 'MANAGER') roleDisplay = 'Manager';
-          else if (roleDisplay === 'HR') roleDisplay = 'HR';
-          else if (roleDisplay === 'GRE') roleDisplay = 'GRE';
-          else if (roleDisplay === 'CASHIER') roleDisplay = 'Cashier';
-          else if (roleDisplay === 'FNB') roleDisplay = 'FNB';
-          else if (roleDisplay === 'STAFF') roleDisplay = 'Staff';
-          else if (roleDisplay === 'DEALER') roleDisplay = 'Dealer';
-          else if (roleDisplay === 'AFFILIATE') roleDisplay = 'Affiliate';
-          
-          uniqueUsers.push({
-            ...user,
+            seenEmails.add(email);
+            
+            // Get actual role name (not "Super Admin/Admin" label)
+            let roleDisplay = user.role || user.customRoleName || 'Staff';
+            // If it's a role enum value, convert to readable format
+            if (roleDisplay === 'SUPER_ADMIN') roleDisplay = 'Super Admin';
+            else if (roleDisplay === 'ADMIN') roleDisplay = 'Admin';
+            else if (roleDisplay === 'MANAGER') roleDisplay = 'Manager';
+            else if (roleDisplay === 'HR') roleDisplay = 'HR';
+            else if (roleDisplay === 'GRE') roleDisplay = 'GRE';
+            else if (roleDisplay === 'CASHIER') roleDisplay = 'Cashier';
+            else if (roleDisplay === 'FNB') roleDisplay = 'FNB';
+            else if (roleDisplay === 'STAFF') roleDisplay = 'Staff';
+            else if (roleDisplay === 'DEALER') roleDisplay = 'Dealer';
+            else if (roleDisplay === 'AFFILIATE') roleDisplay = 'Affiliate';
+            
+            uniqueUsers.push({
+              ...user,
             chatId: user.chatId || user.id,
-            name: user.name || user.displayName || user.email,
-            role: roleDisplay
-          });
+              name: user.name || user.displayName || user.email,
+              role: roleDisplay
+            });
         }
       });
       
