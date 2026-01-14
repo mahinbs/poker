@@ -195,11 +195,12 @@ export default function CustomStaffDashboard() {
             )}
 
             {/* Chat */}
-            {/* My Shifts Widget - Always visible */}
-            {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
-
             {activeItem === "Chat" && clubId && (
-              <ChatManagement clubId={clubId} hidePlayerChat={true} />
+              <>
+                {/* My Shifts Widget - Only show on Chat (main page) */}
+                <MyShiftsDashboard selectedClubId={clubId} />
+                <ChatManagement clubId={clubId} hidePlayerChat={true} />
+              </>
             )}
 
             {/* Salary History */}

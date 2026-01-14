@@ -5,6 +5,13 @@ import { io } from 'socket.io-client';
 
 export default function ChatManagement({ clubId, hidePlayerChat = false }) {
   const [activeTab, setActiveTab] = useState('staff');
+  const [notification, setNotification] = useState(null);
+
+  // Show notification bubble
+  const showNotification = (message, senderName) => {
+    setNotification({ message, senderName });
+    setTimeout(() => setNotification(null), 5000); // Auto-hide after 5 seconds
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
@@ -52,8 +59,29 @@ export default function ChatManagement({ clubId, hidePlayerChat = false }) {
         )}
 
         {/* Content */}
-        {activeTab === 'staff' && <StaffChatTab clubId={clubId} />}
+        {activeTab === 'staff' && <StaffChatTab clubId={clubId} showNotification={showNotification} />}
         {!hidePlayerChat && activeTab === 'player' && <PlayerChatTab clubId={clubId} />}
+
+        {/* Notification Bubble */}
+        {notification && (
+          <div className="fixed top-20 right-6 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4 rounded-lg shadow-2xl z-50 animate-slide-in-right max-w-md">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <FaComments className="text-xl" />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold mb-1">{notification.senderName}</div>
+                <div className="text-sm text-white/90 line-clamp-2">{notification.message}</div>
+              </div>
+              <button
+                onClick={() => setNotification(null)}
+                className="text-white/60 hover:text-white"
+              >
+                <FaTimes />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -61,7 +89,7 @@ export default function ChatManagement({ clubId, hidePlayerChat = false }) {
 
 // ==================== STAFF CHAT TAB ====================
 
-function StaffChatTab({ clubId }) {
+function StaffChatTab({ clubId, showNotification }) {
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -70,12 +98,103 @@ function StaffChatTab({ clubId }) {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
   const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const socketRef = useRef(null);
+
+  console.log('StaffChatTab rendered - clubId:', clubId, 'showNewChatModal:', showNewChatModal);
 
   useEffect(() => {
     loadSessions();
-    const interval = setInterval(loadSessions, 5000); // Refresh every 5 seconds for real-time
-    return () => clearInterval(interval);
-  }, [clubId, currentPage, search, role]);
+    
+    // Set up WebSocket for real-time session updates
+    const userId = localStorage.getItem('userId');
+    if (clubId && userId) {
+      const WEBSOCKET_URL = process.env.REACT_APP_WEBSOCKET_URL || process.env.REACT_APP_API_BASE_URL?.replace('/api', '') || 'http://localhost:3333';
+      console.log('🔌 Connecting to WebSocket:', `${WEBSOCKET_URL}/realtime`, 'userId:', userId, 'clubId:', clubId);
+      const socket = io(`${WEBSOCKET_URL}/realtime`, {
+        auth: { clubId, userId },
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5,
+      });
+
+      socket.on('connect', () => {
+        console.log('✅ WebSocket connected for staff chat');
+        socket.emit('subscribe:club', { clubId, userId });
+        socket.emit('subscribe:staff', { staffId: userId, clubId });
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('❌ WebSocket connection error:', error);
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.warn('⚠️ WebSocket disconnected:', reason);
+      });
+
+      socket.on('error', (error) => {
+        console.error('❌ WebSocket error:', error);
+      });
+
+      // Listen for new messages to update unread counts and last message
+      socket.on('chat:new-message', (data) => {
+        // Update the session in the list
+        setSessions(prev => prev.map(session => {
+          if (session.id === data.sessionId) {
+            return {
+              ...session,
+              lastMessageAt: data.message.createdAt,
+              unreadCount: (session.unreadCount || 0) + (selectedSession?.id !== session.id ? 1 : 0)
+            };
+          }
+          return session;
+        }));
+      });
+
+      // Listen for direct messages (notification bubble)
+      socket.on('chat:new-message-direct', (data) => {
+        const currentUserId = localStorage.getItem('userId');
+        console.log('📨 Received chat:new-message-direct:', {
+          recipientStaffUserId: data.recipientStaffUserId,
+          currentUserId,
+          sessionId: data.sessionId,
+          senderName: data.message?.senderName
+        });
+        // Only show notification if this message is for the current user
+        if (data.recipientStaffUserId === currentUserId) {
+          console.log('✅ Notification matches current user, showing bubble');
+          // Show notification if not currently viewing this chat
+          if (!selectedSession || selectedSession.id !== data.sessionId) {
+            // Show notification bubble
+            if (showNotification) {
+              showNotification(data.message.message, data.message.senderName);
+            }
+          } else {
+            console.log('ℹ️ User is viewing this chat, skipping notification');
+          }
+          // Reload sessions to update unread count
+          loadSessions();
+        } else {
+          console.log('❌ Notification not for current user, ignoring');
+        }
+      });
+
+      // Listen for new session creation
+      socket.on('chat:session-updated', (data) => {
+        // Reload sessions to show new chat
+        loadSessions();
+      });
+
+      socketRef.current = socket;
+
+      return () => {
+        if (socket) {
+          socket.emit('unsubscribe:club', { clubId });
+          socket.disconnect();
+        }
+      };
+    }
+  }, [clubId, currentPage, search, role, selectedSession]);
 
   const loadSessions = async () => {
     try {
@@ -517,9 +636,11 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
 
       socket.on('connect', () => {
         socket.emit('subscribe:club', { clubId, userId });
+        // Subscribe to staff-specific events for direct notifications
+        socket.emit('subscribe:staff', { staffId: userId, clubId });
       });
 
-      // Listen for new chat messages
+      // Listen for new chat messages (general updates)
       socket.on('chat:new-message', (data) => {
         if (data.sessionId === session.id) {
           // Add the new message to the list if it's not already there
@@ -530,6 +651,30 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
             }
             return prev;
           });
+        }
+      });
+
+      // Listen for direct messages (targeted to this specific staff member)
+      socket.on('chat:new-message-direct', (data) => {
+        if (data.sessionId === session.id) {
+          // Add the new message to the list if it's not already there
+          setMessages(prev => {
+            const exists = prev.some(m => m.id === data.message.id);
+            if (!exists) {
+              // Play notification sound or show visual notification
+              console.log('New direct message received:', data.message);
+              return [...prev, data.message];
+            }
+            return prev;
+          });
+        }
+      });
+
+      // Listen for session updates
+      socket.on('chat:session-updated', (data) => {
+        if (data.session?.id === session.id) {
+          // Refresh session data
+          refreshSession();
         }
       });
 
@@ -730,46 +875,51 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
         ) : messages.length === 0 ? (
           <div className="text-white/60 text-center py-8">No messages yet. Start the conversation!</div>
         ) : (
-          messages.map((message) => {
-            // For player chat: player messages on left (green), staff messages on right (blue)
-            // For staff chat: own messages on right (blue), other's on left (green)
-            let isOwn = false;
+          (() => {
+            // Calculate current user info ONCE outside the map to avoid re-renders causing position changes
+            const currentUser = authAPI.getCurrentUser();
+            const currentUserEmail = currentUser?.email?.toLowerCase();
+            const currentUserId = localStorage.getItem('userId');
             
-            if (isPlayerChat) {
-              // Player chat: staff messages are "own" (right side, blue)
-              isOwn = message.senderType === 'staff';
-            } else {
-              // Staff chat: check if message is from current user
-              const currentUser = authAPI.getCurrentUser();
-              const currentUserEmail = currentUser.email?.toLowerCase();
-              const senderEmail = message.senderStaff?.email?.toLowerCase();
-              isOwn = currentUserEmail && (
-                senderEmail === currentUserEmail ||
-                (session.staffInitiator && message.senderStaff?.id === session.staffInitiator.id && session.staffInitiator.email?.toLowerCase() === currentUserEmail) ||
-                (session.staffRecipient && message.senderStaff?.id === session.staffRecipient.id && session.staffRecipient.email?.toLowerCase() === currentUserEmail)
-              );
-            }
-            
-            return (
-              <div
-                key={message.id}
-                className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`max-w-[70%] ${isOwn ? 'bg-blue-600' : 'bg-green-600'} rounded-lg p-3`}>
-                  <div className="text-white/80 text-xs mb-1">
-                    {message.senderName}
-                    {isPlayerChat && message.senderType === 'staff' && message.senderStaff?.role && (
-                      <span className="text-white/60 ml-1">({message.senderStaff.role})</span>
-                    )}
-                  </div>
-                  <div className="text-white">{message.message}</div>
-                  <div className="text-white/50 text-xs mt-1">
-                    {formatISTTime(message.createdAt)}
+            return messages.map((message) => {
+              // For player chat: player messages on left (green), staff messages on right (blue)
+              // For staff chat: own messages on right (blue), other's on left (green)
+              let isOwn = false;
+              
+              if (isPlayerChat) {
+                // Player chat: staff messages are "own" (right side, blue)
+                isOwn = message.senderType === 'staff';
+              } else {
+                // Staff chat: check if message is from current user
+                // Use userId first (most reliable), then fall back to email matching
+                const messageSenderUserId = message.senderStaff?.userId;
+                const senderEmail = message.senderStaff?.email?.toLowerCase();
+                
+                isOwn = (currentUserId && messageSenderUserId === currentUserId) || 
+                        (currentUserEmail && senderEmail === currentUserEmail);
+              }
+              
+              return (
+                <div
+                  key={message.id}
+                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-[70%] ${isOwn ? 'bg-blue-600' : 'bg-green-600'} rounded-lg p-3`}>
+                    <div className="text-white/80 text-xs mb-1">
+                      {message.senderName}
+                      {isPlayerChat && message.senderType === 'staff' && message.senderStaff?.role && (
+                        <span className="text-white/60 ml-1">({message.senderStaff.role})</span>
+                      )}
+                    </div>
+                    <div className="text-white">{message.message}</div>
+                    <div className="text-white/50 text-xs mt-1">
+                      {formatISTTime(message.createdAt)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            });
+          })()
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -818,8 +968,9 @@ function NewStaffChatModal({ clubId, existingSessions = [], onClose, onSuccess }
     try {
       setLoading(true);
       
-      // Use the unified chatable users endpoint
-      const result = await chatAPI.getChatableUsers(clubId);
+      // Use the unified chatable users endpoint with excludeExisting=true
+      // This will filter out staff members who already have active (non-archived) chats
+      const result = await chatAPI.getChatableUsers(clubId, true); // true = excludeExisting
       const usersList = result?.users || result || [];
       
       // Filter to only show active users
@@ -831,47 +982,31 @@ function NewStaffChatModal({ clubId, existingSessions = [], onClose, onSuccess }
       const uniqueUsers = [];
       const seenEmails = new Set();
       
-      // Get IDs of staff members who already have active chats
-      const existingStaffIds = new Set();
-      existingSessions.forEach(session => {
-        if (session.staffInitiator?.id) existingStaffIds.add(session.staffInitiator.id);
-        if (session.staffRecipient?.id) existingStaffIds.add(session.staffRecipient.id);
-        // Also check by email for Super Admin/Admin users
-        if (session.staffInitiator?.email) existingStaffIds.add(session.staffInitiator.email.toLowerCase());
-        if (session.staffRecipient?.email) existingStaffIds.add(session.staffRecipient.email.toLowerCase());
-      });
-      
       activeUsers.forEach(user => {
         const email = user.email?.toLowerCase();
         if (email && !seenEmails.has(email)) {
-          // Skip if user already has an active chat
-          const userChatId = user.chatId || user.id;
-          const hasExistingChat = existingStaffIds.has(userChatId) || existingStaffIds.has(email);
+          seenEmails.add(email);
           
-          if (!hasExistingChat) {
-            seenEmails.add(email);
-            
-            // Get actual role name (not "Super Admin/Admin" label)
-            let roleDisplay = user.role || user.customRoleName || 'Staff';
-            // If it's a role enum value, convert to readable format
-            if (roleDisplay === 'SUPER_ADMIN') roleDisplay = 'Super Admin';
-            else if (roleDisplay === 'ADMIN') roleDisplay = 'Admin';
-            else if (roleDisplay === 'MANAGER') roleDisplay = 'Manager';
-            else if (roleDisplay === 'HR') roleDisplay = 'HR';
-            else if (roleDisplay === 'GRE') roleDisplay = 'GRE';
-            else if (roleDisplay === 'CASHIER') roleDisplay = 'Cashier';
-            else if (roleDisplay === 'FNB') roleDisplay = 'FNB';
-            else if (roleDisplay === 'STAFF') roleDisplay = 'Staff';
-            else if (roleDisplay === 'DEALER') roleDisplay = 'Dealer';
-            else if (roleDisplay === 'AFFILIATE') roleDisplay = 'Affiliate';
-            
-            uniqueUsers.push({
-              ...user,
-              chatId: userChatId,
-              name: user.name || user.displayName || user.email,
-              role: roleDisplay
-            });
-          }
+          // Get actual role name (not "Super Admin/Admin" label)
+          let roleDisplay = user.role || user.customRoleName || 'Staff';
+          // If it's a role enum value, convert to readable format
+          if (roleDisplay === 'SUPER_ADMIN') roleDisplay = 'Super Admin';
+          else if (roleDisplay === 'ADMIN') roleDisplay = 'Admin';
+          else if (roleDisplay === 'MANAGER') roleDisplay = 'Manager';
+          else if (roleDisplay === 'HR') roleDisplay = 'HR';
+          else if (roleDisplay === 'GRE') roleDisplay = 'GRE';
+          else if (roleDisplay === 'CASHIER') roleDisplay = 'Cashier';
+          else if (roleDisplay === 'FNB') roleDisplay = 'FNB';
+          else if (roleDisplay === 'STAFF') roleDisplay = 'Staff';
+          else if (roleDisplay === 'DEALER') roleDisplay = 'Dealer';
+          else if (roleDisplay === 'AFFILIATE') roleDisplay = 'Affiliate';
+          
+          uniqueUsers.push({
+            ...user,
+            chatId: user.chatId || user.id,
+            name: user.name || user.displayName || user.email,
+            role: roleDisplay
+          });
         }
       });
       

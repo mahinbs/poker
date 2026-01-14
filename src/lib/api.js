@@ -1878,7 +1878,11 @@ export const chatAPI = {
     params.append('limit', limit.toString());
     if (search) params.append('search', search);
     if (role) params.append('role', role);
-    return await apiRequest(`/clubs/${clubId}/chat/staff/sessions?${params.toString()}`);
+    const userId = localStorage.getItem('userId');
+    const headers = userId ? { 'x-user-id': userId } : {};
+    return await apiRequest(`/clubs/${clubId}/chat/staff/sessions?${params.toString()}`, {
+      headers
+    });
   },
 
   // Player Chat
@@ -1926,8 +1930,9 @@ export const chatAPI = {
   },
 
   // Get all chatable users (staff + Super Admin + Admin)
-  getChatableUsers: async (clubId) => {
-    return await apiRequest(`/clubs/${clubId}/chat/chatable-users`);
+  getChatableUsers: async (clubId, excludeExisting = false) => {
+    const queryParam = excludeExisting ? '?excludeExisting=true' : '';
+    return await apiRequest(`/clubs/${clubId}/chat/chatable-users${queryParam}`);
   },
 
   // Archive chat session (one-sided deletion)
