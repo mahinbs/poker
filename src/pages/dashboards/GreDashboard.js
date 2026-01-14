@@ -574,20 +574,20 @@ export default function GreDashboard() {
             <>
               {/* My Shifts Widget - Only show on Player Management (main page) */}
               {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
-              <UnifiedPlayerManagement
-                selectedClubId={clubId}
-                playersData={playersData}
-                playersLoading={playersLoading}
-                pendingPlayers={pendingPlayers}
-                pendingLoading={pendingLoading}
-                suspendedPlayers={suspendedPlayers}
-                suspendedLoading={suspendedLoading}
-                onRefresh={() => {
-                  queryClient.invalidateQueries(['pendingPlayers', clubId]);
-                  queryClient.invalidateQueries(['clubPlayers', clubId]);
-                  queryClient.invalidateQueries(['suspendedPlayers', clubId]);
-                }}
-              />
+            <UnifiedPlayerManagement
+              selectedClubId={clubId}
+              playersData={playersData}
+              playersLoading={playersLoading}
+              pendingPlayers={pendingPlayers}
+              pendingLoading={pendingLoading}
+              suspendedPlayers={suspendedPlayers}
+              suspendedLoading={suspendedLoading}
+              onRefresh={() => {
+                queryClient.invalidateQueries(['pendingPlayers', clubId]);
+                queryClient.invalidateQueries(['clubPlayers', clubId]);
+                queryClient.invalidateQueries(['suspendedPlayers', clubId]);
+              }}
+            />
             </>
           )}
 

@@ -573,12 +573,12 @@ export default function HrDashboard() {
           </header>
 
           {/* Dynamic Content Based on Active Item */}
-          
+
           {activeItem === "Staff Management" && (
             <>
               {/* My Shifts Widget - Only show on Staff Management (main page) */}
               {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
-              <StaffManagement selectedClubId={clubId} />
+            <StaffManagement selectedClubId={clubId} />
             </>
           )}
 

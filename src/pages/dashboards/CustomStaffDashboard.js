@@ -199,7 +199,7 @@ export default function CustomStaffDashboard() {
               <>
                 {/* My Shifts Widget - Only show on Chat (main page) */}
                 <MyShiftsDashboard selectedClubId={clubId} />
-                <ChatManagement clubId={clubId} hidePlayerChat={true} />
+              <ChatManagement clubId={clubId} hidePlayerChat={true} />
               </>
             )}
 

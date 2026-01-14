@@ -184,7 +184,7 @@ export default function FnbDashboard() {
               <>
                 {/* My Shifts Widget - Only show on Menu & Inventory (main page) */}
                 <MyShiftsDashboard selectedClubId={clubId} />
-                <MenuInventoryTab clubId={clubId} />
+              <MenuInventoryTab clubId={clubId} />
               </>
             )}
 
