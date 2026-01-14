@@ -180,11 +180,12 @@ export default function FnbDashboard() {
               </div>
             )}
 
-          {/* My Shifts Widget - Always visible */}
-          {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
-
             {activeItem === "Menu & Inventory" && clubId && (
-              <MenuInventoryTab clubId={clubId} />
+              <>
+                {/* My Shifts Widget - Only show on Menu & Inventory (main page) */}
+                <MyShiftsDashboard selectedClubId={clubId} />
+                <MenuInventoryTab clubId={clubId} />
+              </>
             )}
 
             {activeItem === "Order Management" && clubId && (

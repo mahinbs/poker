@@ -5,7 +5,7 @@ import StaffManagement from "../../components/StaffManagement";
 import PlayerManagementHR from "../../components/PlayerManagementHR";
 import SalaryHistoryHR from "../../components/SalaryHistoryHR";
 import AttendanceManagement from "../../components/AttendanceManagement";
-import ChatManagementHR from "../../components/ChatManagementHR";
+import ChatManagement from "../../components/ChatManagement";
 import HrSidebar from "../../components/sidebars/HrSidebar";
 import toast from "react-hot-toast";
 import NotificationsInbox from "../../components/NotificationsInbox";
@@ -573,11 +573,13 @@ export default function HrDashboard() {
           </header>
 
           {/* Dynamic Content Based on Active Item */}
-          {/* My Shifts Widget - Always visible */}
-          {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
-
+          
           {activeItem === "Staff Management" && (
-            <StaffManagement selectedClubId={clubId} />
+            <>
+              {/* My Shifts Widget - Only show on Staff Management (main page) */}
+              {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
+              <StaffManagement selectedClubId={clubId} />
+            </>
           )}
 
           {activeItem === "Salary History" && (
@@ -593,7 +595,7 @@ export default function HrDashboard() {
           )}
 
           {activeItem === "Chat" && (
-            <ChatManagementHR clubId={clubId} />
+            <ChatManagement clubId={clubId} hidePlayerChat={true} />
           )}
 
           {/* Notifications */}

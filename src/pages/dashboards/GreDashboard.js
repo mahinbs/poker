@@ -569,25 +569,26 @@ export default function GreDashboard() {
       />
       <main className="lg:pl-80 min-h-screen">
         <div className="p-6 space-y-6">
-          {/* My Shifts Widget - Always visible */}
-          {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
-
           {/* Player Management */}
           {activeItem === "Player Management" && (
-            <UnifiedPlayerManagement
-              selectedClubId={clubId}
-              playersData={playersData}
-              playersLoading={playersLoading}
-              pendingPlayers={pendingPlayers}
-              pendingLoading={pendingLoading}
-              suspendedPlayers={suspendedPlayers}
-              suspendedLoading={suspendedLoading}
-              onRefresh={() => {
-                queryClient.invalidateQueries(['pendingPlayers', clubId]);
-                queryClient.invalidateQueries(['clubPlayers', clubId]);
-                queryClient.invalidateQueries(['suspendedPlayers', clubId]);
-              }}
-            />
+            <>
+              {/* My Shifts Widget - Only show on Player Management (main page) */}
+              {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
+              <UnifiedPlayerManagement
+                selectedClubId={clubId}
+                playersData={playersData}
+                playersLoading={playersLoading}
+                pendingPlayers={pendingPlayers}
+                pendingLoading={pendingLoading}
+                suspendedPlayers={suspendedPlayers}
+                suspendedLoading={suspendedLoading}
+                onRefresh={() => {
+                  queryClient.invalidateQueries(['pendingPlayers', clubId]);
+                  queryClient.invalidateQueries(['clubPlayers', clubId]);
+                  queryClient.invalidateQueries(['suspendedPlayers', clubId]);
+                }}
+              />
+            </>
           )}
 
           {/* Tables & Waitlist - View Only */}
