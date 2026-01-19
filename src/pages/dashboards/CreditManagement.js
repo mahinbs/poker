@@ -72,9 +72,10 @@ export default function CreditManagement({ selectedClubId }) {
     mutationFn: async ({ playerId, limit }) => {
       return await superAdminAPI.unlockCredit(selectedClubId, playerId, { creditLimit: parseFloat(limit) });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Credit feature unlocked successfully!");
-      queryClient.invalidateQueries(["creditPlayers", selectedClubId]);
+      // Force refetch the players data
+      await queryClient.refetchQueries(["creditPlayers", selectedClubId]);
       setShowUnlockModal(false);
       setSelectedPlayer(null);
       setCreditLimit("");
@@ -89,9 +90,10 @@ export default function CreditManagement({ selectedClubId }) {
     mutationFn: async ({ playerId, limit }) => {
       return await superAdminAPI.updateCreditLimit(selectedClubId, playerId, { creditLimit: parseFloat(limit) });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Credit limit updated successfully!");
-      queryClient.invalidateQueries(["creditPlayers", selectedClubId]);
+      // Force refetch the players data
+      await queryClient.refetchQueries(["creditPlayers", selectedClubId]);
       setShowLimitModal(false);
       setSelectedPlayer(null);
       setCreditLimit("");
@@ -211,13 +213,13 @@ export default function CreditManagement({ selectedClubId }) {
                         {player.creditEnabled && (
                           <div className="mt-2 space-y-1">
                             <p className="text-blue-400 text-sm">
-                              Credit Limit: <span className="font-bold">₹{player.creditLimit || 0}</span>
+                              Credit Limit: <span className="font-bold">₹{Number(player.creditLimit || 0).toLocaleString()}</span>
                             </p>
                             <p className="text-yellow-400 text-sm">
-                              Credit Used: <span className="font-bold">₹{player.creditUsed || 0}</span>
+                              Credit Used: <span className="font-bold">₹{Number(player.creditUsed || 0).toLocaleString()}</span>
                             </p>
                             <p className="text-green-400 text-sm">
-                              Available Credit: <span className="font-bold">₹{(player.creditLimit || 0) - (player.creditUsed || 0)}</span>
+                              Remaining Credit: <span className="font-bold">₹{Number((player.creditLimit || 0) - (player.creditUsed || 0)).toLocaleString()}</span>
                             </p>
                           </div>
                         )}
@@ -234,21 +236,21 @@ export default function CreditManagement({ selectedClubId }) {
                             Unlock Credit
                           </button>
                         ) : (
-                          <button
-                            onClick={() => {
-                              setSelectedPlayer(player);
-                              setCreditLimit(player.creditLimit?.toString() || "");
-                              setShowLimitModal(true);
-                            }}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
-                          >
-                            Edit Limit
-                          </button>
-                        )}
-                        {player.creditEnabled && (
-                          <span className="px-4 py-2 bg-green-600 text-white text-center rounded-lg font-semibold">
-                            Credit Enabled
-                          </span>
+                          <>
+                            <button
+                              onClick={() => {
+                                setSelectedPlayer(player);
+                                setCreditLimit(player.creditLimit?.toString() || "");
+                                setShowLimitModal(true);
+                              }}
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                            >
+                              Edit Limit
+                            </button>
+                            <span className="px-4 py-2 bg-green-600 text-white text-center rounded-lg font-semibold">
+                              Credit Enabled
+                            </span>
+                          </>
                         )}
                       </div>
                     </div>
@@ -278,9 +280,9 @@ export default function CreditManagement({ selectedClubId }) {
                         <p className="text-gray-400 text-sm">
                           Requested Amount: <span className="font-bold text-yellow-400">₹{Number(request.amount).toLocaleString()}</span>
                         </p>
-                        {request.limit && (
+                        {request.limit && request.limit > 0 && (
                           <p className="text-gray-400 text-sm">
-                            Credit Limit: <span className="font-bold text-blue-400">₹{Number(request.limit).toLocaleString()}</span>
+                            Approved Amount: <span className="font-bold text-green-400">₹{Number(request.limit).toLocaleString()}</span>
                           </p>
                         )}
                         <p className="text-gray-400 text-sm">
