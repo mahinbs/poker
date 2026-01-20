@@ -1694,6 +1694,11 @@ export const superAdminAPI = {
     return await apiRequest(`/clubs/${clubId}/players/${playerId}/balance`);
   },
 
+  // Get seated players (for buy-out)
+  getSeatedPlayers: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/seated-players`);
+  },
+
   // Transactions
   getTransactions: async (clubId, filters = {}) => {
     const query = new URLSearchParams(filters).toString();

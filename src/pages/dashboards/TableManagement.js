@@ -2250,6 +2250,19 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
 // ============================================================================
 function TableBuyOutView({ selectedClubId, tables }) {
   const [activeSubTab, setActiveSubTab] = useState("process-buyout");
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+
+  // Fetch seated players
+  const { data: seatedPlayers = [], isLoading: seatedPlayersLoading } = useQuery({
+    queryKey: ['seatedPlayers', selectedClubId],
+    queryFn: async () => {
+      if (!selectedClubId) return [];
+      const response = await superAdminAPI.getSeatedPlayers(selectedClubId);
+      return response || [];
+    },
+    enabled: !!selectedClubId,
+    refetchInterval: 5000, // Refresh every 5 seconds
+  });
 
   return (
     <div className="space-y-6">
@@ -2292,20 +2305,34 @@ function TableBuyOutView({ selectedClubId, tables }) {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Select Seated Player</label>
-                  <select className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white">
-                    <option value="">-- Select Player --</option>
-                    {/* TODO: Fetch seated players from backend */}
+                  <select 
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    value={selectedPlayer?.id || ''}
+                    onChange={(e) => {
+                      const player = seatedPlayers.find(p => p.id === e.target.value);
+                      setSelectedPlayer(player || null);
+                    }}
+                    disabled={seatedPlayersLoading || seatedPlayers.length === 0}
+                  >
+                    <option value="">
+                      {seatedPlayersLoading ? 'Loading...' : seatedPlayers.length === 0 ? 'No seated players' : '-- Select Player --'}
+                    </option>
+                    {seatedPlayers.map((player) => (
+                      <option key={player.id} value={player.id}>
+                        {player.name} - {player.tableName} (Seat #{player.seatNumber})
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="p-4 bg-blue-500/20 rounded-lg border border-blue-400/30">
                   <div className="text-sm text-white space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-300">Player:</span>
-                      <span className="font-semibold">-</span>
+                      <span className="font-semibold">{selectedPlayer?.name || '-'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-300">Table:</span>
-                      <span className="font-semibold">-</span>
+                      <span className="font-semibold">{selectedPlayer?.tableName || '-'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-300">Current Table Balance:</span>
