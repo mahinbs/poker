@@ -558,6 +558,16 @@ export const waitlistAPI = {
   },
 
   /**
+   * Update waitlist entry (alias)
+   */
+  updateWaitlistEntry: async (clubId, entryId, updateData) => {
+    return await apiRequest(`/clubs/${clubId}/waitlist/${entryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    });
+  },
+
+  /**
    * Seat player from waitlist
    */
   seatPlayer: async (clubId, entryId, tableNumber, seatedBy) => {
@@ -573,9 +583,28 @@ export const waitlistAPI = {
   },
 
   /**
+   * Assign seat to waitlist entry
+   */
+  assignSeat: async (clubId, entryId, assignmentData) => {
+    return await apiRequest(`/clubs/${clubId}/waitlist/${entryId}/assign-seat`, {
+      method: 'POST',
+      body: JSON.stringify(assignmentData),
+    });
+  },
+
+  /**
    * Cancel waitlist entry
    */
   cancelWaitlist: async (clubId, entryId) => {
+    return await apiRequest(`/clubs/${clubId}/waitlist/${entryId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Delete waitlist entry (alias)
+   */
+  deleteWaitlistEntry: async (clubId, entryId) => {
     return await apiRequest(`/clubs/${clubId}/waitlist/${entryId}`, {
       method: 'DELETE',
     });

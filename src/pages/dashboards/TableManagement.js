@@ -1733,6 +1733,133 @@ function TableManagementView({ selectedClubId, tables, tablesLoading }) {
 // Table Buy-In View Component (Waitlist Management)
 // ============================================================================
 function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
+  const queryClient = useQueryClient();
+  const [selectedPlayer, setSelectedPlayer] = useState("");
+  const [selectedTable, setSelectedTable] = useState("");
+  const [selectedSeat, setSelectedSeat] = useState("");
+  const [selectedTableForView, setSelectedTableForView] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Remove waitlist entry mutation
+  const removeWaitlistMutation = useMutation({
+    mutationFn: (entryId) => waitlistAPI.deleteWaitlistEntry(selectedClubId, entryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['waitlist', selectedClubId]);
+      toast.success('Player removed from waitlist');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to remove from waitlist');
+    }
+  });
+
+  // Assign seat mutation
+  const assignSeatMutation = useMutation({
+    mutationFn: ({ entryId, tableId, seatedBy }) => 
+      waitlistAPI.assignSeat(selectedClubId, entryId, { tableId, seatedBy: seatedBy || 'Super Admin' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['waitlist', selectedClubId]);
+      queryClient.invalidateQueries(['tables', selectedClubId]);
+      setSelectedPlayer("");
+      setSelectedTable("");
+      setSelectedSeat("");
+      toast.success('Seat assigned successfully');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to assign seat');
+    }
+  });
+
+  // Reorder waitlist mutation
+  const reorderWaitlistMutation = useMutation({
+    mutationFn: ({ entryId, newPriority }) => 
+      waitlistAPI.updateWaitlistEntry(selectedClubId, entryId, { priority: newPriority }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['waitlist', selectedClubId]);
+      toast.success('Waitlist reordered');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to reorder waitlist');
+    }
+  });
+
+  const handleAssignSeat = () => {
+    if (!selectedPlayer || !selectedTable || !selectedSeat) {
+      toast.error('Please select player, table, and seat');
+      return;
+    }
+    assignSeatMutation.mutate({
+      entryId: selectedPlayer,
+      tableId: selectedTable,
+      seatedBy: 'Super Admin'
+    });
+  };
+
+  const handleMoveUp = (entry, index) => {
+    if (index === 0) return;
+    const currentPriority = entry.priority || 0;
+    reorderWaitlistMutation.mutate({ entryId: entry.id, newPriority: currentPriority + 1 });
+  };
+
+  const handleMoveDown = (entry, index) => {
+    if (index === waitlist.length - 1) return;
+    const currentPriority = entry.priority || 0;
+    reorderWaitlistMutation.mutate({ entryId: entry.id, newPriority: currentPriority - 1 });
+  };
+
+  const handleViewTable = (entry) => {
+    // Find table associated with this waitlist entry
+    // Try to match by tableType first, then fall back to first available table
+    let table = tables.find(t => t.tableType === entry.tableType);
+    
+    // If no match by tableType, find any AVAILABLE table with empty seats
+    if (!table) {
+      table = tables.find(t => t.status === 'AVAILABLE' && t.currentSeats < t.maxSeats);
+    }
+    
+    // If still no match, just take the first table
+    if (!table && tables.length > 0) {
+      table = tables[0];
+    }
+    
+    if (table) {
+      setSelectedTableForView({ table, waitlistEntry: entry });
+    } else {
+      toast.error('No tables available. Please create a table first.');
+    }
+  };
+
+  // Sort waitlist by position (priority DESC, then createdAt ASC)
+  const pendingWaitlist = waitlist
+    .filter(e => e.status === 'PENDING')
+    .sort((a, b) => {
+      // Sort by priority descending first
+      const priorityA = a.priority || 0;
+      const priorityB = b.priority || 0;
+      if (priorityB !== priorityA) {
+        return priorityB - priorityA;
+      }
+      // Then by createdAt ascending (oldest first)
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    })
+    .map((entry, index) => ({
+      ...entry,
+      position: index + 1 // Add position number based on sorted order
+    }));
+
+  // Pagination
+  const totalPages = Math.ceil(pendingWaitlist.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentWaitlist = pendingWaitlist.slice(startIndex, endIndex);
+
+  // Reset to page 1 if current page is out of bounds
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
   return (
     <div className="space-y-6">
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
@@ -1747,35 +1874,85 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
                 <p className="text-sm">Loading...</p>
               </div>
-            ) : waitlist.length === 0 ? (
+            ) : pendingWaitlist.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 No players in waitlist
               </div>
             ) : (
-              <div className="space-y-3">
-                {waitlist.map((entry) => (
+              <>
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                  {currentWaitlist.map((entry) => (
                   <div key={entry.id} className="bg-slate-600 p-4 rounded-lg">
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <div className="font-semibold text-white">{entry.playerName}</div>
-                        <div className="text-sm text-gray-400">Position: {entry.priority || 'N/A'}</div>
-                        <div className="text-sm text-gray-400">Table Type: {entry.tableType || 'Any'}</div>
+                        <div className="text-sm text-gray-400">Position: #{entry.position || 'N/A'}</div>
+                        <div className="text-sm text-gray-400">Table Type: {entry.tableType || 'Cash Game'}</div>
+                        <div className="text-sm text-blue-400">Requested Seat: {entry.requestedSeat || 'N/A'}</div>
                       </div>
                       <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs font-semibold">
                         {entry.status}
                       </span>
                     </div>
                     <div className="flex gap-2 mt-3">
-                      <button className="flex-1 bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded text-sm font-medium transition-colors">
+                      <button 
+                        onClick={() => handleViewTable(entry)}
+                        className="flex-1 bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded text-sm font-medium transition-colors"
+                      >
                         🎯 View Table
                       </button>
-                      <button className="flex-1 bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded text-sm font-medium transition-colors">
+                      <button 
+                        onClick={() => removeWaitlistMutation.mutate(entry.id)}
+                        disabled={removeWaitlistMutation.isLoading}
+                        className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 px-3 py-1.5 rounded text-sm font-medium transition-colors"
+                      >
                         Remove
                       </button>
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+                
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-600">
+                    <div className="text-sm text-gray-400">
+                      Showing {startIndex + 1}-{Math.min(endIndex, pendingWaitlist.length)} of {pendingWaitlist.length}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed rounded text-sm transition-colors"
+                      >
+                        Previous
+                      </button>
+                      <div className="flex gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`px-3 py-1 rounded text-sm transition-colors ${
+                              currentPage === page 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-slate-600 hover:bg-slate-500'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed rounded text-sm transition-colors"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -1785,33 +1962,118 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Select Player</label>
-                <select className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white">
+                <select 
+                  value={selectedPlayer}
+                  onChange={(e) => {
+                    const playerId = e.target.value;
+                    setSelectedPlayer(playerId);
+                    
+                    // Auto-select table based on player's requested table type
+                    if (playerId) {
+                      const playerEntry = pendingWaitlist.find(entry => entry.id === playerId);
+                      if (playerEntry) {
+                        // Find matching table by tableType
+                        let matchingTable = tables.find(t => t.tableType === playerEntry.tableType);
+                        
+                        // If no exact match, find any AVAILABLE table with seats
+                        if (!matchingTable) {
+                          matchingTable = tables.find(t => t.status === 'AVAILABLE' && t.currentSeats < t.maxSeats);
+                        }
+                        
+                        // Fall back to first table
+                        if (!matchingTable && tables.length > 0) {
+                          matchingTable = tables[0];
+                        }
+                        
+                        setSelectedTable(matchingTable?.id || '');
+                        
+                        // Auto-select requested seat if available
+                        if (playerEntry.requestedSeat) {
+                          setSelectedSeat(String(playerEntry.requestedSeat));
+                        } else {
+                          setSelectedSeat('');
+                        }
+                      }
+                    } else {
+                      setSelectedTable('');
+                      setSelectedSeat('');
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white"
+                >
                   <option value="">-- Select Player --</option>
-                  {waitlist.map((entry) => (
-                    <option key={entry.id} value={entry.id}>{entry.playerName}</option>
+                  {pendingWaitlist.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.playerName} {entry.requestedSeat ? `(wants seat #${entry.requestedSeat})` : ''}
+                    </option>
                   ))}
                 </select>
               </div>
+              
+              {selectedPlayer && (() => {
+                const playerEntry = pendingWaitlist.find(e => e.id === selectedPlayer);
+                return playerEntry ? (
+                  <div className="bg-slate-600 rounded-lg p-3 text-sm">
+                    <div className="text-gray-300 mb-1">
+                      <span className="text-gray-400">Requested Table Type:</span> {playerEntry.tableType || 'Any'}
+                    </div>
+                    {playerEntry.requestedSeat && (
+                      <div className="text-blue-400">
+                        <span className="text-gray-400">Requested Seat:</span> #{playerEntry.requestedSeat}
+                      </div>
+                    )}
+                  </div>
+                ) : null;
+              })()}
+              
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Select Table</label>
-                <select className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white">
-                  <option value="">-- Select Table --</option>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Assigned Table {selectedPlayer && <span className="text-xs text-gray-400">(Auto-selected)</span>}
+                </label>
+                <select 
+                  value={selectedTable}
+                  onChange={(e) => setSelectedTable(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white"
+                  disabled={true}
+                >
+                  <option value="">-- No table selected --</option>
                   {tables.map((table) => (
-                    <option key={table.id} value={table.id}>Table {table.tableNumber}</option>
+                    <option key={table.id} value={table.id}>
+                      Table {table.tableNumber} ({table.currentSeats}/{table.maxSeats}) - {table.status}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Seat Number</label>
-                <select className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Seat Number {selectedPlayer && pendingWaitlist.find(e => e.id === selectedPlayer)?.requestedSeat && <span className="text-xs text-blue-400">(Pre-selected)</span>}
+                </label>
+                <select 
+                  value={selectedSeat}
+                  onChange={(e) => setSelectedSeat(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white"
+                  disabled={!selectedTable}
+                >
                   <option value="">-- Select Seat --</option>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((seat) => (
-                    <option key={seat} value={seat}>Seat {seat}</option>
-                  ))}
+                  {selectedTable && (() => {
+                    const table = tables.find(t => t.id === selectedTable);
+                    const maxSeats = table?.maxSeats || 10;
+                    const playerEntry = pendingWaitlist.find(e => e.id === selectedPlayer);
+                    return Array.from({ length: maxSeats }, (_, i) => i + 1).map((seat) => (
+                      <option key={seat} value={seat}>
+                        Seat {seat}
+                        {playerEntry?.requestedSeat === seat ? ' ⭐ (Requested)' : ''}
+                      </option>
+                    ));
+                  })()}
                 </select>
               </div>
-              <button className="w-full bg-purple-600 hover:bg-purple-500 px-4 py-3 rounded-lg font-semibold transition-colors">
-                Assign Seat
+              <button 
+                onClick={handleAssignSeat}
+                disabled={!selectedPlayer || !selectedTable || !selectedSeat || assignSeatMutation.isLoading}
+                className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 px-4 py-3 rounded-lg font-semibold transition-colors"
+              >
+                {assignSeatMutation.isLoading ? 'Assigning...' : 'Assign Seat'}
               </button>
             </div>
           </div>
@@ -1829,36 +2091,35 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
               <button className="w-full bg-green-600 hover:bg-green-500 px-4 py-3 rounded-lg font-semibold transition-colors">
                 Call Next Player
               </button>
-              <button className="w-full bg-blue-600 hover:bg-blue-500 px-4 py-3 rounded-lg font-semibold transition-colors">
-                Call All Players
-              </button>
-              <button className="w-full bg-yellow-600 hover:bg-yellow-500 px-4 py-3 rounded-lg font-semibold transition-colors">
-                Send SMS Notification
-              </button>
+              <div className="text-sm text-gray-400 text-center py-2">
+                {pendingWaitlist.length} player(s) in waitlist
+              </div>
             </div>
           </div>
 
           {/* Reorder Waitlist */}
           <div className="bg-slate-700 rounded-xl p-5">
             <h3 className="text-lg font-semibold mb-4">Reorder Waitlist</h3>
-            <div className="space-y-2">
-              {waitlist.length === 0 ? (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {pendingWaitlist.length === 0 ? (
                 <div className="text-center py-8 text-gray-400 text-sm">
                   No players to reorder
                 </div>
               ) : (
-                waitlist.map((entry, index) => (
+                pendingWaitlist.map((entry, index) => (
                   <div key={entry.id} className="bg-slate-600 p-3 rounded flex justify-between items-center">
                     <span className="text-white">{index + 1}. {entry.playerName}</span>
                     <div className="flex gap-1">
                       <button
-                        disabled={index === 0}
+                        onClick={() => handleMoveUp(entry, index)}
+                        disabled={index === 0 || reorderWaitlistMutation.isLoading}
                         className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-2 py-1 rounded text-xs transition-colors"
                       >
                         ↑
                       </button>
                       <button
-                        disabled={index === waitlist.length - 1}
+                        onClick={() => handleMoveDown(entry, index)}
+                        disabled={index === pendingWaitlist.length - 1 || reorderWaitlistMutation.isLoading}
                         className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-2 py-1 rounded text-xs transition-colors"
                       >
                         ↓
@@ -1871,6 +2132,115 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
           </div>
         </div>
       </div>
+
+      {/* Table View & Seat Assignment Modal */}
+      {selectedTableForView && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">
+                Assign Player to Table {selectedTableForView.table.tableNumber}
+              </h2>
+              <button 
+                onClick={() => setSelectedTableForView(null)}
+                className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded transition-colors"
+              >
+                Close
+              </button>
+            </div>
+            
+            {/* Table Info */}
+            <div className="bg-slate-700 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-lg mb-2">Table Information</h3>
+              <div className="grid grid-cols-2 gap-4 text-gray-300">
+                <div>
+                  <span className="text-gray-400">Type:</span> {selectedTableForView.table.tableType}
+                </div>
+                <div>
+                  <span className="text-gray-400">Seats:</span> {selectedTableForView.table.currentSeats}/{selectedTableForView.table.maxSeats}
+                </div>
+                <div>
+                  <span className="text-gray-400">Status:</span> 
+                  <span className={`ml-2 px-2 py-0.5 rounded text-xs ${
+                    selectedTableForView.table.status === 'AVAILABLE' ? 'bg-green-600' :
+                    selectedTableForView.table.status === 'OCCUPIED' ? 'bg-yellow-600' :
+                    'bg-gray-600'
+                  }`}>
+                    {selectedTableForView.table.status}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Available Seats:</span> {selectedTableForView.table.maxSeats - selectedTableForView.table.currentSeats}
+                </div>
+              </div>
+            </div>
+
+            {/* Player Info */}
+            <div className="bg-slate-700 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-lg mb-2">Player Waiting</h3>
+              <div className="grid grid-cols-2 gap-4 text-gray-300">
+                <div>
+                  <span className="text-gray-400">Name:</span> {selectedTableForView.waitlistEntry.playerName}
+                </div>
+                <div>
+                  <span className="text-gray-400">Position:</span> #{selectedTableForView.waitlistEntry.position || 'N/A'}
+                </div>
+                <div>
+                  <span className="text-gray-400">Requested Seat:</span> {selectedTableForView.waitlistEntry.requestedSeat || 'Any'}
+                </div>
+                <div>
+                  <span className="text-gray-400">Party Size:</span> {selectedTableForView.waitlistEntry.partySize || 1}
+                </div>
+              </div>
+            </div>
+
+            {/* Seat Assignment Form */}
+            <div className="bg-slate-700 rounded-lg p-4">
+              <h3 className="font-semibold text-lg mb-4">Assign Seat</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Select Seat Number
+                  </label>
+                  <select
+                    value={selectedSeat}
+                    onChange={(e) => setSelectedSeat(e.target.value)}
+                    className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white"
+                  >
+                    <option value="">-- Choose a seat --</option>
+                    {Array.from({ length: selectedTableForView.table.maxSeats }, (_, i) => i + 1).map(seatNum => (
+                      <option key={seatNum} value={seatNum}>
+                        Seat {seatNum}
+                        {selectedTableForView.waitlistEntry.requestedSeat === seatNum ? ' (Requested)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <button
+                  onClick={() => {
+                    if (!selectedSeat) {
+                      toast.error('Please select a seat number');
+                      return;
+                    }
+                    assignSeatMutation.mutate({
+                      entryId: selectedTableForView.waitlistEntry.id,
+                      tableId: selectedTableForView.table.id,
+                      seatedBy: 'Super Admin'
+                    });
+                    setSelectedTableForView(null);
+                    setSelectedSeat('');
+                  }}
+                  disabled={!selectedSeat || assignSeatMutation.isLoading}
+                  className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  {assignSeatMutation.isLoading ? 'Assigning...' : `Assign to Seat ${selectedSeat || '...'}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
