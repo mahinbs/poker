@@ -514,6 +514,23 @@ export const tablesAPI = {
   },
 
   /**
+   * Get seated players for a table
+   */
+  getSeatedPlayersForTable: async (clubId, tableId) => {
+    return await apiRequest(`/clubs/${clubId}/tables/${tableId}/seated-players`);
+  },
+
+  /**
+   * Settle all players and end session
+   */
+  settleAndEndSession: async (clubId, tableId, settlements) => {
+    return await apiRequest(`/clubs/${clubId}/tables/${tableId}/settle-and-end`, {
+      method: 'POST',
+      body: JSON.stringify({ settlements }),
+    });
+  },
+
+  /**
    * Update session parameters
    */
   updateSessionParams: async (clubId, tableId, params) => {
