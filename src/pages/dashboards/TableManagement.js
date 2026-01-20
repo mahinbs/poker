@@ -305,6 +305,9 @@ function TableSessionControl({
 }) {
   const queryClient = useQueryClient();
   const [selectedClubId, setSelectedClubId] = useState(clubId);
+  const [showSettlementModal, setShowSettlementModal] = useState(false);
+  const [seatedPlayers, setSeatedPlayers] = useState([]);
+  const [settlements, setSettlements] = useState({});
 
   // Update selectedClubId when clubId prop changes
   useEffect(() => {
@@ -345,19 +348,20 @@ function TableSessionControl({
     },
   });
 
-  // End session mutation
-  const endSessionMutation = useMutation({
-    mutationFn: async () => {
+  // Settle and end session mutation
+  const settleAndEndMutation = useMutation({
+    mutationFn: async (settlementsData) => {
       if (!selectedClubId) throw new Error('Club ID not found');
-      return await tablesAPI.endSession(selectedClubId, table.id);
+      return await tablesAPI.settleAndEndSession(selectedClubId, table.id, settlementsData);
     },
     onSuccess: () => {
-      toast.success('Session ended successfully');
+      toast.success('All players settled and session ended successfully!');
       queryClient.invalidateQueries(['tables', selectedClubId]);
+      setShowSettlementModal(false);
       onClose();
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to end session');
+      toast.error(error.message || 'Failed to settle and end session');
     },
   });
 
@@ -387,9 +391,60 @@ function TableSessionControl({
     }
   };
 
-  const handleEndSession = () => {
-    if (window.confirm('Are you sure you want to end this session? This action cannot be undone.')) {
-      endSessionMutation.mutate();
+  const handleEndSession = async () => {
+    if (!selectedClubId) {
+      toast.error('Club ID not found');
+      return;
+    }
+
+    try {
+      // Fetch seated players for this table
+      const response = await tablesAPI.getSeatedPlayersForTable(selectedClubId, table.id);
+      
+      if (response.seatedPlayers && response.seatedPlayers.length > 0) {
+        // Show settlement modal if there are seated players
+        setSeatedPlayers(response.seatedPlayers);
+        
+        // Initialize settlements with 0 for each player
+        const initialSettlements = {};
+        response.seatedPlayers.forEach(player => {
+          initialSettlements[player.playerId] = 0;
+        });
+        setSettlements(initialSettlements);
+        setShowSettlementModal(true);
+      } else {
+        // No seated players, end session directly
+        if (window.confirm('No players are seated. End this session?')) {
+          await tablesAPI.endSession(selectedClubId, table.id);
+          toast.success('Session ended successfully');
+          queryClient.invalidateQueries(['tables', selectedClubId]);
+          onClose();
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching seated players:', error);
+      toast.error('Failed to fetch seated players');
+    }
+  };
+
+  const handleSettlementChange = (playerId, amount) => {
+    setSettlements(prev => ({
+      ...prev,
+      [playerId]: parseFloat(amount) || 0
+    }));
+  };
+
+  const handleConfirmSettlement = () => {
+    // Convert settlements object to array format
+    const settlementsArray = Object.entries(settlements).map(([playerId, amount]) => ({
+      playerId,
+      amount: parseFloat(amount) || 0
+    }));
+
+    // Confirm with admin
+    const totalAmount = settlementsArray.reduce((sum, s) => sum + s.amount, 0);
+    if (window.confirm(`Settle ${settlementsArray.length} players for a total of ₹${totalAmount}? This will end the session.`)) {
+      settleAndEndMutation.mutate(settlementsArray);
     }
   };
 
@@ -599,6 +654,94 @@ function TableSessionControl({
           </div>
         </div>
       </div>
+
+      {/* Settlement Modal */}
+      {showSettlementModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-red-500/50 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-white">💰 Settle All Players</h3>
+              <button
+                onClick={() => setShowSettlementModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-6 p-4 bg-red-600/20 border border-red-500/30 rounded-lg">
+              <p className="text-sm text-red-300">
+                ⚠️ Enter the cash-out amount for each seated player. This will create transactions,
+                update balances, unseat all players, and end the session.
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              {seatedPlayers.map(player => (
+                <div key={player.playerId} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <div className="font-semibold text-white">{player.playerName}</div>
+                      <div className="text-sm text-gray-400">Seat #{player.seatNumber}</div>
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      Seated {new Date(player.seatedAt).toLocaleTimeString()}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400 text-sm">Cash-out Amount:</span>
+                    <input
+                      type="number"
+                      value={settlements[player.playerId] || 0}
+                      onChange={(e) => handleSettlementChange(player.playerId, e.target.value)}
+                      className="flex-1 px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white text-lg font-semibold"
+                      placeholder="Enter amount"
+                      min="0"
+                      step="100"
+                    />
+                    <span className="text-white font-semibold">₹</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-blue-600/20 border border-blue-500/30 rounded-lg mb-6">
+              <span className="text-blue-300 font-semibold">Total Settlement:</span>
+              <span className="text-white text-2xl font-bold">
+                ₹{Object.values(settlements).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0).toLocaleString()}
+              </span>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowSettlementModal(false)}
+                className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSettlement}
+                disabled={settleAndEndMutation.isLoading}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                {settleAndEndMutation.isLoading ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>✅</span>
+                    <span>Settle & End Session</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
