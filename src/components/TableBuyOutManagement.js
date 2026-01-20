@@ -46,10 +46,26 @@ export default function TableBuyOutManagement({ clubId }) {
   });
 
   const handleApprove = (request) => {
-    if (window.confirm(`Approve buy-out request for ${request.playerName}? Amount: ₹${Number(request.requestedAmount || request.currentTableBalance || 0).toLocaleString('en-IN')}`)) {
+    const amountStr = window.prompt(
+      `Enter final cash-out amount for ${request.playerName}:\n\n` +
+      `Table: Table ${request.tableNumber}\n` +
+      `Seat: ${request.seatNumber || 'N/A'}\n\n` +
+      `This amount will be added to player's available balance.`,
+      '' // Empty default, admin must enter amount
+    );
+    
+    if (amountStr === null) return; // Cancelled
+    
+    const amount = parseFloat(amountStr);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount greater than 0');
+      return;
+    }
+    
+    if (window.confirm(`Confirm: Add ₹${amount.toLocaleString('en-IN')} to ${request.playerName}'s balance and complete buy-out?`)) {
       approveMutation.mutate({
         requestId: request.id,
-        amount: request.requestedAmount || request.currentTableBalance || 0,
+        amount: amount,
       });
     }
   };
@@ -111,8 +127,8 @@ export default function TableBuyOutManagement({ clubId }) {
                         <div className="text-sm text-gray-400">Seat {request.seatNumber}</div>
                       )}
                     </div>
-                    <div className="text-xl font-bold text-green-400 mb-2">
-                      ₹{Number(request.requestedAmount || request.currentTableBalance || 0).toLocaleString('en-IN')}
+                    <div className="text-lg font-semibold text-yellow-400 mb-2">
+                      💰 Enter amount when approving
                     </div>
                     <div className="text-sm text-gray-400">
                       Call time started: {formatDateTime(request.callTimeStartedAt)}
