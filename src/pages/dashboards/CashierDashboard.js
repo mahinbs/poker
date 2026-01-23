@@ -680,7 +680,7 @@ export default function CashierDashboard() {
                       </div>
 
               {/* My Shifts Widget */}
-              {selectedClubId && <MyShiftsDashboard selectedClubId={selectedClubId} />}
+              {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
 
               {/* Revenue Cards */}
               {revenueLoading ? (
