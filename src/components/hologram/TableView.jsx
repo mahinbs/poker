@@ -119,7 +119,17 @@ export default function TableView({
       }))
     : [];
   const seatedPlayersArray = Array.isArray(seatedPlayers) ? seatedPlayers : [];
-  const potData = { pot: "50000" };
+  
+  // Calculate table value from all seated players' buy-in amounts
+  const calculateTableValue = () => {
+    if (!seatedPlayersArray || seatedPlayersArray.length === 0) return 0;
+    return seatedPlayersArray.reduce((total, player) => {
+      const buyIn = player?.session_buy_in_amount || player?.sessionBuyInAmount || 0;
+      return total + Number(buyIn);
+    }, 0);
+  };
+  
+  const potData = { pot: calculateTableValue() };
 
   const isOnWaitlist = waitlistArray.some((req) => req.tableId === tableId);
   const waitlistEntry = waitlistArray.find((req) => req.tableId === tableId);
@@ -346,13 +356,32 @@ export default function TableView({
                                   selectedPlayerForSeating.playerName ||
                                   selectedPlayerForSeating.name
                                 }`
+                              : isOccupied && seatedPlayer?.player
+                              ? `${seatedPlayer.player.firstName || ''} ${seatedPlayer.player.lastName || ''}`.trim() || `Seat ${seatNumber}`
                               : `Seat ${seatNumber}`
                           }
                         >
                           {isOccupied && seatedPlayer?.player ? (
-                            <span className="text-white text-xs font-bold">
-                              {seatedPlayer.player.firstName.charAt(0)}
-                              {seatedPlayer.player.lastName.charAt(0)}
+                            seatedPlayer.player.profileImage ? (
+                              <img 
+                                src={seatedPlayer.player.profileImage} 
+                                alt={`${seatedPlayer.player.firstName} ${seatedPlayer.player.lastName}`}
+                                className="w-full h-full rounded-full object-cover"
+                                onError={(e) => {
+                                  // Fallback to initials if image fails to load
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null
+                          ) : null}
+                          {isOccupied && seatedPlayer?.player ? (
+                            <span 
+                              className="text-white text-xs font-bold"
+                              style={{ display: seatedPlayer.player.profileImage ? 'none' : 'flex' }}
+                            >
+                              {seatedPlayer.player.firstName?.charAt(0) || ''}
+                              {seatedPlayer.player.lastName?.charAt(0) || ''}
                             </span>
                           ) : isViewOnly ? (
                             <span className="text-slate-400 text-xs">○</span>
@@ -376,9 +405,9 @@ export default function TableView({
                               : "text-slate-300"
                           }`}
                         >
-                          <div className="text-xs font-medium">
+                          <div className="text-xs font-medium whitespace-nowrap">
                             {isOccupied && seatedPlayer?.player
-                              ? seatedPlayer.player.firstName
+                              ? `${seatedPlayer.player.firstName || ''} ${seatedPlayer.player.lastName || ''}`.trim() || seatedPlayer.playerName || `Seat ${seatNumber}`
                               : `Seat ${seatNumber}`}
                           </div>
                           {isPreferredSeat && (

@@ -585,6 +585,15 @@ export const waitlistAPI = {
   },
 
   /**
+   * Unseat player from table
+   */
+  unseatPlayerFromTable: async (clubId, entryId) => {
+    return await apiRequest(`/clubs/${clubId}/waitlist/${entryId}/unseat`, {
+      method: 'POST',
+    });
+  },
+
+  /**
    * Seat player from waitlist
    */
   seatPlayer: async (clubId, entryId, tableNumber, seatedBy) => {

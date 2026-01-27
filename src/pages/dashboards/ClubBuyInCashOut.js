@@ -494,7 +494,10 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
         totalBalance,
       });
       setShowBalanceWarning(true);
-      toast.warning("Player has chips at table. Collect table chips first.");
+      toast.error("Player has chips at table. Collect table chips first.", {
+        icon: '⚠️',
+        duration: 4000
+      });
     } else {
       setBalanceValidation({
         status: 'warning',
@@ -504,7 +507,10 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
         totalBalance,
       });
       setShowBalanceWarning(true);
-      toast.warning("Balance mismatch detected. Transaction will be flagged for verification.");
+      toast.error("Balance mismatch detected. Transaction will be flagged for verification.", {
+        icon: '⚠️',
+        duration: 4000
+      });
     }
   };
 
