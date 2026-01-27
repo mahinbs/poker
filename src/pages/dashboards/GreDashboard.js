@@ -10,7 +10,6 @@ import ChatManagement from "../../components/ChatManagement";
 import TableView from "../../components/hologram/TableView";
 import NotificationsInbox from "../../components/NotificationsInbox";
 import LeaveManagement from "../../components/LeaveManagement";
-import MyShiftsDashboard from "../../components/MyShiftsDashboard";
 
 // View-only Tables component for GRE (without buy-in requests)
 function TableManagementViewOnly({ selectedClubId }) {
@@ -558,6 +557,27 @@ export default function GreDashboard() {
     ? [...baseMenuItems, "Rummy"]
     : baseMenuItems;
 
+  // Debug logging
+  console.log('[GRE DASHBOARD] Active Item:', activeItem);
+  console.log('[GRE DASHBOARD] Club ID:', clubId);
+  console.log('[GRE DASHBOARD] Menu Items:', menuItems);
+
+  // Show loading state if clubId is not yet loaded
+  if (!clubId) {
+    console.log('[GRE DASHBOARD] No clubId, showing loading screen');
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-white text-xl">Loading GRE Portal...</p>
+          <p className="text-gray-400 text-sm mt-2">Initializing club data</p>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('[GRE DASHBOARD] Rendering with clubId:', clubId);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {passwordResetModal}
@@ -569,35 +589,46 @@ export default function GreDashboard() {
       />
       <main className="lg:pl-80 min-h-screen">
         <div className="p-6 space-y-6">
+          {/* Debug Banner - Always visible */}
+          <div className="bg-yellow-900/30 border border-yellow-500 rounded-lg p-3 text-yellow-100">
+            <p className="text-sm font-mono">
+              <strong>DEBUG:</strong> Active: {activeItem} | Club: {clubId} | Menu Items: {menuItems.length}
+            </p>
+          </div>
           {/* Player Management */}
-          {activeItem === "Player Management" && (
-            <>
-              {/* My Shifts Widget - Only show on Player Management (main page) */}
-              {clubId && <MyShiftsDashboard selectedClubId={clubId} />}
-            <UnifiedPlayerManagement
-              selectedClubId={clubId}
-              playersData={playersData}
-              playersLoading={playersLoading}
-              pendingPlayers={pendingPlayers}
-              pendingLoading={pendingLoading}
-              suspendedPlayers={suspendedPlayers}
-              suspendedLoading={suspendedLoading}
-              onRefresh={() => {
-                queryClient.invalidateQueries(['pendingPlayers', clubId]);
-                queryClient.invalidateQueries(['clubPlayers', clubId]);
-                queryClient.invalidateQueries(['suspendedPlayers', clubId]);
-              }}
-            />
-            </>
-          )}
+          {activeItem === "Player Management" && clubId && (() => {
+            console.log('[GRE DASHBOARD] Rendering Player Management');
+            return (
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-blue-500/20 to-indigo-600/20 rounded-xl p-6 border border-blue-500/30">
+                <h1 className="text-3xl font-bold text-white mb-2">Player Management</h1>
+                <p className="text-gray-300">Manage player profiles, approvals, and suspensions</p>
+              </div>
+              <UnifiedPlayerManagement
+                selectedClubId={clubId}
+                playersData={playersData}
+                playersLoading={playersLoading}
+                pendingPlayers={pendingPlayers}
+                pendingLoading={pendingLoading}
+                suspendedPlayers={suspendedPlayers}
+                suspendedLoading={suspendedLoading}
+                onRefresh={() => {
+                  queryClient.invalidateQueries(['pendingPlayers', clubId]);
+                  queryClient.invalidateQueries(['clubPlayers', clubId]);
+                  queryClient.invalidateQueries(['suspendedPlayers', clubId]);
+                }}
+              />
+            </div>
+            );
+          })()}
 
           {/* Tables & Waitlist - View Only */}
-          {activeItem === "Tables & Waitlist" && (
+          {activeItem === "Tables & Waitlist" && clubId && (
             <TableManagementViewOnly selectedClubId={clubId} />
           )}
 
           {/* Tournaments - View Only */}
-          {activeItem === "Tournaments" && (
+          {activeItem === "Tournaments" && clubId && (
             <TournamentManagementViewOnly selectedClubId={clubId} />
           )}
 
@@ -612,7 +643,7 @@ export default function GreDashboard() {
           )}
 
           {/* Push Notifications */}
-          {activeItem === "Push Notifications" && (
+          {activeItem === "Push Notifications" && clubId && (
             <PushNotifications selectedClubId={clubId} />
           )}
 
@@ -622,17 +653,22 @@ export default function GreDashboard() {
           )}
 
           {/* Rummy Tournaments - View Only */}
-          {activeItem === "Rummy" && (
+          {activeItem === "Rummy" && clubId && (
             <RummyTournamentManagementViewOnly selectedClubId={clubId} />
           )}
 
           {/* Fallback for unknown menu items */}
-          {!["Player Management", "Tables & Waitlist", "Tournaments", "Chat", "Notifications", "Push Notifications", "Rummy"].includes(activeItem) && (
+          {!["Player Management", "Tables & Waitlist", "Tournaments", "Chat", "Notifications", "Push Notifications", "Leave Management", "Rummy"].includes(activeItem) && (() => {
+            console.log('[GRE DASHBOARD] Showing fallback/welcome screen');
+            return (
             <div className="text-white text-center py-12">
               <h2 className="text-2xl font-bold mb-4">Welcome to GRE Portal</h2>
               <p className="text-gray-400">Select an option from the sidebar to get started.</p>
+              <p className="text-gray-500 text-sm mt-4">Active Item: {activeItem}</p>
+              <p className="text-gray-500 text-sm">Club ID: {clubId}</p>
                     </div>
-          )}
+            );
+          })()}
           </div>
         </main>
     </div>
