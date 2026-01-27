@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { tablesAPI, waitlistAPI, clubsAPI, staffAPI, shiftsAPI } from '../../lib/api';
+import { tablesAPI, waitlistAPI, clubsAPI, staffAPI, shiftsAPI, superAdminAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from '../../components/TableBuyOutManagement';
 
@@ -38,6 +38,7 @@ export default function TableManagement({ selectedClubId }) {
     { id: "table-management", label: "Table Management" },
     { id: "table-buy-in", label: "Table Buy-In" },
     { id: "table-buy-out", label: "Table Buy-Out" },
+    { id: "history", label: "History" },
   ];
 
   return (
@@ -103,6 +104,14 @@ export default function TableManagement({ selectedClubId }) {
         {/* Tab 4: Table Buy-Out */}
         {activeTab === "table-buy-out" && (
           <TableBuyOutView
+            selectedClubId={selectedClubId}
+            tables={tables}
+          />
+        )}
+        
+        {/* Tab 5: History */}
+        {activeTab === "history" && (
+          <HistoryView
             selectedClubId={selectedClubId}
             tables={tables}
           />
@@ -753,6 +762,9 @@ function TableHologramModal({ table, onClose, clubId }) {
   const queryClient = useQueryClient();
   const [clubData, setClubData] = useState(null);
   const [sessionTime, setSessionTime] = useState('00:00:00');
+  const [seatedPlayersData, setSeatedPlayersData] = useState([]);
+  const [activeTab, setActiveTab] = useState('view'); // 'view' or 'history'
+  const [tableHistory, setTableHistory] = useState([]);
   
   // Extract dealer info from table notes
   const getDealerInfo = () => {
@@ -765,6 +777,80 @@ function TableHologramModal({ table, onClose, clubId }) {
   };
 
   const dealerInfo = getDealerInfo();
+  
+  // Fetch seated players for this table
+  useEffect(() => {
+    const fetchSeatedPlayers = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
+        const tenantId = localStorage.getItem('tenantId');
+        
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3333/api'}/clubs/${clubId}/tables/${table.id}/seated-players`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'x-user-id': userId || '',
+            'x-tenant-id': tenantId || '',
+            'x-club-id': clubId,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setSeatedPlayersData(data.seatedPlayers || []);
+        }
+      } catch (error) {
+        console.error('Error fetching seated players:', error);
+      }
+    };
+    
+    if (clubId && table?.id) {
+      fetchSeatedPlayers();
+      // Refresh every 5 seconds
+      const interval = setInterval(fetchSeatedPlayers, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [clubId, table?.id]);
+
+  // Fetch table history (buy-ins and buy-outs)
+  useEffect(() => {
+    const fetchTableHistory = async () => {
+      if (activeTab !== 'history') return;
+      
+      try {
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
+        const tenantId = localStorage.getItem('tenantId');
+        
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3333/api'}/clubs/${clubId}/transactions?tableNumber=${table.tableNumber}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'x-user-id': userId || '',
+            'x-tenant-id': tenantId || '',
+            'x-club-id': clubId,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          // Filter for Buy In and Deposit (buy-out) transactions related to this table
+          const filtered = data.filter(t => 
+            (t.type === 'Buy In' || (t.type === 'Deposit' && t.notes?.includes(`Table ${table.tableNumber}`))) &&
+            (t.notes?.includes(`Table ${table.tableNumber}`) || t.description?.includes(`Table ${table.tableNumber}`))
+          ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          setTableHistory(filtered);
+        }
+      } catch (error) {
+        console.error('Error fetching table history:', error);
+      }
+    };
+    
+    if (clubId && table?.tableNumber && activeTab === 'history') {
+      fetchTableHistory();
+    }
+  }, [clubId, table?.tableNumber, activeTab]);
 
   // Unassign dealer mutation
   const unassignDealerMutation = useMutation({
@@ -926,7 +1012,18 @@ function TableHologramModal({ table, onClose, clubId }) {
   }, [table]);
 
   const seats = Array.from({ length: table.maxSeats }, (_, i) => i + 1);
-  const occupiedSeats = []; // TODO: Get from backend
+  
+  // Get occupied seats from seated players data
+  const occupiedSeats = seatedPlayersData.map(p => p.seatNumber).filter(Boolean);
+  
+  // Calculate table value from actual seated players' buy-ins
+  const tableValue = seatedPlayersData.reduce((total, player) => {
+    const buyIn = player.buyInAmount || player.sessionBuyInAmount || 0;
+    console.log(`[TABLE VALUE] Player: ${player.playerName}, Buy-In: ${buyIn}`);
+    return total + Number(buyIn);
+  }, 0);
+  
+  console.log(`[TABLE VALUE] Total: ₹${tableValue}, Players:`, seatedPlayersData);
 
   // Parse table data from notes
   const noteParts = table.notes ? table.notes.split('|').map(p => p.trim()) : [];
@@ -937,30 +1034,59 @@ function TableHologramModal({ table, onClose, clubId }) {
   
   const gameType = table.notes?.match(/Game Type: ([^|]+)/)?.[1]?.trim() || noteParts[1] || table.tableType;
   const stakes = table.notes?.match(/Stakes: ([^|]+)/)?.[1]?.trim() || noteParts[2]?.replace('Stakes:', '').trim() || `₹${table.minBuyIn || 0}/₹${table.maxBuyIn || 0}`;
-  
-  // Parse table value from notes or use currentSeats * average buy-in as estimate
-  const tableValueMatch = table.notes?.match(/Table Value: ₹?([\d,]+)/);
-  const tableValue = tableValueMatch 
-    ? parseInt(tableValueMatch[1].replace(/,/g, '')) 
-    : (table.currentSeats || 0) * ((table.minBuyIn + table.maxBuyIn) / 2 || 25000);
 
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 rounded-2xl p-8 max-w-4xl w-full border-2 border-blue-500 shadow-2xl">
+      <div className="bg-slate-900 rounded-2xl p-8 max-w-4xl w-full border-2 border-blue-500 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-3xl font-bold text-white">Table {table.tableNumber} - {gameType}</h2>
             <p className="text-gray-400">Stakes: {stakes}</p>
           </div>
+        </div>
+        
+        {/* Tabs */}
+        <div className="flex gap-2 border-b border-slate-700 mb-6">
           <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            onClick={() => setActiveTab('view')}
+            className={`px-4 py-2 font-semibold transition-all ${
+              activeTab === 'view'
+                ? 'text-blue-400 border-b-2 border-blue-400'
+                : 'text-gray-400 hover:text-white'
+            }`}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            Live View
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-4 py-2 font-semibold transition-all ${
+              activeTab === 'history'
+                ? 'text-blue-400 border-b-2 border-blue-400'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            History
           </button>
         </div>
+
+        {activeTab === 'view' ? (
+          <>
+            {/* Dealer Info (if assigned) */}
+            {dealerInfo && (
+              <div className="mb-4 flex items-center justify-center gap-3 bg-purple-900/30 border border-purple-600/50 rounded-lg p-3">
+                <span className="text-purple-300 font-semibold">Dealer: {dealerInfo.name}</span>
+                <button
+                  onClick={handleUnassignDealer}
+                  disabled={unassignDealerMutation.isLoading}
+                  className="hover:bg-purple-700 rounded-full p-0.5 transition-colors disabled:opacity-50"
+                  title="Unassign Dealer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
 
         {/* Table Value Display Above Hologram */}
         <div className="mb-6 flex justify-center">
@@ -1028,6 +1154,7 @@ function TableHologramModal({ table, onClose, clubId }) {
             const x = 50 + 40 * Math.cos(radians);
             const y = 50 + 35 * Math.sin(radians);
             const isOccupied = occupiedSeats.includes(seatNum);
+            const seatedPlayer = seatedPlayersData.find(p => p.seatNumber === seatNum);
 
             return (
               <div
@@ -1041,12 +1168,22 @@ function TableHologramModal({ table, onClose, clubId }) {
                       ? 'bg-blue-600 text-white border-2 border-blue-400'
                       : 'bg-slate-700 text-gray-400 border-2 border-slate-600 hover:border-blue-500'
                   }`}
+                  title={seatedPlayer ? seatedPlayer.playerName : `Seat ${seatNum}`}
                 >
-                  {isOccupied ? 'P' + seatNum : seatNum}
+                  {isOccupied && seatedPlayer ? (
+                    seatedPlayer.playerName?.split(' ').map(n => n.charAt(0)).join('').substring(0, 2).toUpperCase()
+                  ) : (
+                    seatNum
+                  )}
                 </div>
-                <div className="text-center text-xs text-white mt-1">
-                  Seat {seatNum}
+                <div className="text-center text-xs text-white mt-1 whitespace-nowrap max-w-[80px] overflow-hidden text-ellipsis">
+                  {isOccupied && seatedPlayer ? seatedPlayer.playerName : `Seat ${seatNum}`}
                 </div>
+                {isOccupied && seatedPlayer && seatedPlayer.buyInAmount > 0 && (
+                  <div className="text-center text-[10px] text-yellow-300 bg-slate-800/80 px-1 rounded mt-0.5">
+                    ₹{Number(seatedPlayer.buyInAmount).toLocaleString()}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1096,6 +1233,77 @@ function TableHologramModal({ table, onClose, clubId }) {
             Close
           </button>
         </div>
+          </>
+        ) : (
+          /* History Tab */
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold text-white mb-4">Buy-In & Buy-Out History</h3>
+            {tableHistory.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                No transaction history for this table yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tableHistory.map((transaction, idx) => {
+                  const isBuyIn = transaction.type === 'Buy In';
+                  const isBuyOut = transaction.type === 'Deposit' && transaction.notes?.includes('buy-out');
+                  
+                  return (
+                    <div 
+                      key={transaction.id || idx} 
+                      className={`p-4 rounded-lg border-2 ${
+                        isBuyIn 
+                          ? 'bg-green-900/20 border-green-600/50' 
+                          : 'bg-orange-900/20 border-orange-600/50'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <span className={`text-2xl ${isBuyIn ? '💰' : '💵'}`}>
+                              {isBuyIn ? '💰' : '💵'}
+                            </span>
+                            <div>
+                              <div className="font-bold text-white">
+                                {transaction.playerName || transaction.player_name || 'Unknown Player'}
+                              </div>
+                              <div className="text-sm text-gray-400">
+                                {isBuyIn ? 'Buy-In' : 'Buy-Out'}
+                                {transaction.notes && ` • ${transaction.notes}`}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {new Date(transaction.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`text-right ${
+                          isBuyIn ? 'text-green-400' : 'text-orange-400'
+                        }`}>
+                          <div className="font-bold text-2xl">
+                            {isBuyIn ? '+' : ''}₹{Number(transaction.amount).toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {transaction.status}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={onClose}
+                className="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-lg font-bold text-white transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2394,18 +2602,82 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
 function TableBuyOutView({ selectedClubId, tables }) {
   const [activeSubTab, setActiveSubTab] = useState("process-buyout");
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [selectedTableForBuyOut, setSelectedTableForBuyOut] = useState("");
+  const [buyOutReason, setBuyOutReason] = useState("");
+  const [buyOutAmount, setBuyOutAmount] = useState("");
+  const queryClient = useQueryClient();
+  
+  console.log('[PROCESS BUY-OUT] Tables available:', tables);
+  console.log('[PROCESS BUY-OUT] Tables with players:', tables.filter(t => t.currentSeats > 0));
 
-  // Fetch seated players
-  const { data: seatedPlayers = [], isLoading: seatedPlayersLoading } = useQuery({
-    queryKey: ['seatedPlayers', selectedClubId],
+  // Fetch seated players for selected table
+  const { data: seatedPlayersForTable = [], isLoading: seatedPlayersLoading } = useQuery({
+    queryKey: ['seatedPlayersForTable', selectedClubId, selectedTableForBuyOut],
     queryFn: async () => {
-      if (!selectedClubId) return [];
-      const response = await superAdminAPI.getSeatedPlayers(selectedClubId);
-      return response || [];
+      if (!selectedClubId || !selectedTableForBuyOut) return [];
+      const response = await tablesAPI.getSeatedPlayersForTable(selectedClubId, selectedTableForBuyOut);
+      return response?.seatedPlayers || [];
     },
-    enabled: !!selectedClubId,
+    enabled: !!selectedClubId && !!selectedTableForBuyOut && activeSubTab === 'process-buyout',
     refetchInterval: 5000, // Refresh every 5 seconds
   });
+
+  // Handle buy-out approval
+  const handleApproveBuyOut = async () => {
+    if (!selectedPlayer || !buyOutAmount) {
+      toast.error('Please select a player and enter buy-out amount');
+      return;
+    }
+
+    const amount = parseFloat(buyOutAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (!window.confirm(`Confirm: Add ₹${amount.toLocaleString('en-IN')} to ${selectedPlayer.playerName}'s balance and complete buy-out?`)) {
+      return;
+    }
+
+    try {
+      // 1. Create buy-out transaction (Deposit) - add money to player's balance
+      await superAdminAPI.createTransaction(selectedClubId, {
+        playerId: selectedPlayer.playerId,
+        playerName: selectedPlayer.playerName,
+        type: 'Deposit',
+        amount: amount,
+        notes: `Buy-out from Table ${tables.find(t => t.id === selectedTableForBuyOut)?.tableNumber || ''}${buyOutReason ? ` - ${buyOutReason}` : ''}`,
+      });
+
+      // 2. Unseat the player from the table
+      const waitlist = await waitlistAPI.getWaitlist(selectedClubId);
+      const playerEntry = waitlist.find(entry => 
+        entry.playerId === selectedPlayer.playerId && 
+        entry.status === 'SEATED' &&
+        entry.tableNumber === tables.find(t => t.id === selectedTableForBuyOut)?.tableNumber
+      );
+      
+      if (playerEntry) {
+        await waitlistAPI.unseatPlayerFromTable(selectedClubId, playerEntry.id);
+      }
+
+      toast.success(`Buy-out approved! ₹${amount.toLocaleString('en-IN')} added to ${selectedPlayer.playerName}'s balance`);
+      
+      // Reset form
+      setSelectedPlayer(null);
+      setBuyOutAmount('');
+      setBuyOutReason('');
+      
+      // Refresh data
+      queryClient.invalidateQueries(['seatedPlayersForTable']);
+      queryClient.invalidateQueries(['tables']);
+      queryClient.invalidateQueries(['waitlist']);
+      
+    } catch (error) {
+      console.error('Error approving buy-out:', error);
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to approve buy-out');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -2447,53 +2719,96 @@ function TableBuyOutView({ selectedClubId, tables }) {
               <h3 className="text-lg font-semibold mb-4">Process Buy-Out</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Select Seated Player</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">1. Select Table</label>
                   <select 
                     className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-                    value={selectedPlayer?.id || ''}
+                    value={selectedTableForBuyOut}
                     onChange={(e) => {
-                      const player = seatedPlayers.find(p => p.id === e.target.value);
-                      setSelectedPlayer(player || null);
+                      setSelectedTableForBuyOut(e.target.value);
+                      setSelectedPlayer(null); // Reset player when table changes
                     }}
-                    disabled={seatedPlayersLoading || seatedPlayers.length === 0}
                   >
-                    <option value="">
-                      {seatedPlayersLoading ? 'Loading...' : seatedPlayers.length === 0 ? 'No seated players' : '-- Select Player --'}
-                    </option>
-                    {seatedPlayers.map((player) => (
-                      <option key={player.id} value={player.id}>
-                        {player.name} - {player.tableName} (Seat #{player.seatNumber})
+                    <option value="">-- Select Table --</option>
+                    {tables.filter(t => (t.currentSeats || 0) > 0).map((table) => (
+                      <option key={table.id} value={table.id}>
+                        Table {table.tableNumber} ({table.currentSeats || 0} players)
                       </option>
                     ))}
                   </select>
                 </div>
-                <div className="p-4 bg-blue-500/20 rounded-lg border border-blue-400/30">
-                  <div className="text-sm text-white space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">Player:</span>
-                      <span className="font-semibold">{selectedPlayer?.name || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">Table:</span>
-                      <span className="font-semibold">{selectedPlayer?.tableName || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">Current Table Balance:</span>
-                      <span className="font-semibold text-emerald-300">0 chips</span>
-                    </div>
+                
+                {selectedTableForBuyOut && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">2. Select Seated Player</label>
+                    <select 
+                      className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                      value={selectedPlayer?.playerId || ''}
+                      onChange={(e) => {
+                        const player = seatedPlayersForTable.find(p => p.playerId === e.target.value);
+                        setSelectedPlayer(player || null);
+                      }}
+                      disabled={seatedPlayersLoading || seatedPlayersForTable.length === 0}
+                    >
+                      <option value="">
+                        {seatedPlayersLoading ? 'Loading...' : seatedPlayersForTable.length === 0 ? 'No seated players' : '-- Select Player --'}
+                      </option>
+                      {seatedPlayersForTable.map((player) => (
+                        <option key={player.playerId} value={player.playerId}>
+                          {player.playerName} - Seat #{player.seatNumber}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Reason (Optional)</label>
-                  <textarea
-                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-                    rows="3"
-                    placeholder="Enter reason for buy-out (optional)..."
-                  />
-                </div>
-                <button className="w-full bg-orange-600 hover:bg-orange-500 px-4 py-3 rounded-lg font-semibold transition-colors">
-                  Approve Buy-Out
-                </button>
+                )}
+                
+                {selectedPlayer && (
+                  <>
+                    <div className="p-4 bg-blue-500/20 rounded-lg border border-blue-400/30">
+                      <div className="text-sm text-white space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-300">Player:</span>
+                          <span className="font-semibold">{selectedPlayer.playerName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-300">Seat:</span>
+                          <span className="font-semibold">#{selectedPlayer.seatNumber}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-300">Buy-In Amount:</span>
+                          <span className="font-semibold text-emerald-300">₹{(selectedPlayer.buyInAmount || 0).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">3. Final Balance / Buy-Out Amount</label>
+                      <input
+                        type="number"
+                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                        placeholder="Enter final balance amount..."
+                        value={buyOutAmount}
+                        onChange={(e) => setBuyOutAmount(e.target.value)}
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Player's current buy-in: ₹{selectedPlayer?.buyInAmount || 0}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">4. Reason (Optional)</label>
+                      <textarea
+                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                        rows="3"
+                        placeholder="Enter reason for buy-out (optional)..."
+                        value={buyOutReason}
+                        onChange={(e) => setBuyOutReason(e.target.value)}
+                      />
+                    </div>
+                    <button 
+                      onClick={handleApproveBuyOut}
+                      disabled={!selectedPlayer || !buyOutAmount}
+                      className="w-full bg-orange-600 hover:bg-orange-500 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-3 rounded-lg font-semibold transition-colors"
+                    >
+                      Approve Buy-Out
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -2539,4 +2854,235 @@ function TableBuyOutView({ selectedClubId, tables }) {
   );
 }
 
+// ============================================================================
+// History View Component (5th Tab)
+// ============================================================================
+function HistoryView({ selectedClubId, tables }) {
+  const [historyFilters, setHistoryFilters] = useState({
+    type: 'all', // 'all', 'buy-in', 'buy-out'
+    search: '',
+    tableNumber: 'all',
+    page: 1,
+    perPage: 10,
+  });
 
+  // Fetch all transactions for history
+  const { data: allTransactions = [], isLoading: historyLoading } = useQuery({
+    queryKey: ['transactions', selectedClubId],
+    queryFn: async () => {
+      if (!selectedClubId) return [];
+      try {
+        const response = await superAdminAPI.getTransactions(selectedClubId, {});
+        console.log('[HISTORY] Raw transactions response:', response);
+        console.log('[HISTORY] Response type:', typeof response, Array.isArray(response));
+        
+        // Handle different response formats
+        let transactions = Array.isArray(response) ? response : (response?.data || response?.transactions || []);
+        console.log('[HISTORY] Parsed transactions:', transactions.length, 'records');
+        if (transactions.length > 0) {
+          console.log('[HISTORY] Sample transaction:', transactions[0]);
+        }
+        
+        return transactions;
+      } catch (error) {
+        console.error('[HISTORY] Error fetching transactions:', error);
+        return [];
+      }
+    },
+    enabled: !!selectedClubId,
+  });
+
+  // Filter history
+  const filteredHistory = allTransactions.filter(t => {
+    const isBuyIn = t.type === 'Buy In';
+    const isBuyOut = (t.type === 'Deposit' || t.type === 'Cashout') && 
+                     (t.notes?.toLowerCase().includes('buy-out') || 
+                      t.notes?.toLowerCase().includes('buyout') ||
+                      t.description?.toLowerCase().includes('buy-out') ||
+                      t.description?.toLowerCase().includes('buyout'));
+    
+    // Filter by type
+    if (historyFilters.type === 'buy-in' && !isBuyIn) return false;
+    if (historyFilters.type === 'buy-out' && !isBuyOut) return false;
+    if (historyFilters.type === 'all' && !(isBuyIn || isBuyOut)) return false;
+    
+    // Table filter
+    if (historyFilters.tableNumber !== 'all') {
+      const tableMatch = t.notes?.includes(`Table ${historyFilters.tableNumber}`) || 
+                        t.description?.includes(`Table ${historyFilters.tableNumber}`) ||
+                        t.notes?.includes(`table ${historyFilters.tableNumber}`) ||
+                        t.description?.includes(`table ${historyFilters.tableNumber}`);
+      if (!tableMatch) return false;
+    }
+    
+    // Search filter
+    if (historyFilters.search) {
+      const search = historyFilters.search.toLowerCase();
+      const playerName = t.playerName || t.player_name || '';
+      const email = t.email || '';
+      return (
+        playerName.toLowerCase().includes(search) ||
+        email.toLowerCase().includes(search)
+      );
+    }
+    
+    return true;
+  });
+  
+  console.log('[HISTORY] All transactions:', allTransactions.length);
+  console.log('[HISTORY] Filtered:', filteredHistory.length, 'Filters:', historyFilters);
+
+  // Paginate history
+  const paginatedHistory = filteredHistory.slice(
+    (historyFilters.page - 1) * historyFilters.perPage,
+    historyFilters.page * historyFilters.perPage
+  );
+  
+  const totalPages = Math.ceil(filteredHistory.length / historyFilters.perPage);
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-indigo-600/30 via-purple-500/20 to-pink-700/30 rounded-xl p-6 border border-indigo-800/40">
+        <h2 className="text-2xl font-bold mb-4">Buy-In & Buy-Out History</h2>
+        <p className="text-gray-300 text-sm mb-6">
+          View all buy-in and buy-out transactions with advanced filters.
+        </p>
+          {/* Filters */}
+          <div className="bg-white/10 p-5 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Filters</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Transaction Type</label>
+                <select 
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  value={historyFilters.type}
+                  onChange={(e) => setHistoryFilters({...historyFilters, type: e.target.value, page: 1})}
+                >
+                  <option value="all">All Transactions</option>
+                  <option value="buy-in">Buy-In Only</option>
+                  <option value="buy-out">Buy-Out Only</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Table</label>
+                <select 
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  value={historyFilters.tableNumber}
+                  onChange={(e) => setHistoryFilters({...historyFilters, tableNumber: e.target.value, page: 1})}
+                >
+                  <option value="all">All Tables</option>
+                  {tables.map((table) => (
+                    <option key={table.id} value={table.tableNumber}>
+                      Table {table.tableNumber}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Search Player</label>
+                <input 
+                  type="text"
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  placeholder="Player name or email..."
+                  value={historyFilters.search}
+                  onChange={(e) => setHistoryFilters({...historyFilters, search: e.target.value, page: 1})}
+                />
+              </div>
+          </div>
+        </div>
+        
+        {/* History Table */}
+        <div className="bg-white/10 p-5 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">
+            Transaction History ({filteredHistory.length} records)
+          </h3>
+          
+          {historyLoading ? (
+            <div className="text-center py-8 text-gray-400">Loading...</div>
+          ) : paginatedHistory.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">No transactions found</div>
+          ) : (
+            <>
+              <div className="space-y-3 mb-6">
+                {paginatedHistory.map((transaction, idx) => {
+                  const isBuyIn = transaction.type === 'Buy In';
+                  const isBuyOut = (transaction.type === 'Deposit' || transaction.type === 'Cashout') && 
+                                  (transaction.notes?.toLowerCase().includes('buy-out') || 
+                                   transaction.notes?.toLowerCase().includes('buyout') ||
+                                   transaction.description?.toLowerCase().includes('buy-out') ||
+                                   transaction.description?.toLowerCase().includes('buyout'));
+                  
+                  return (
+                    <div 
+                      key={transaction.id || idx} 
+                      className={`p-4 rounded-lg border-2 ${
+                        isBuyIn 
+                          ? 'bg-green-900/20 border-green-600/50' 
+                          : 'bg-orange-900/20 border-orange-600/50'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">
+                              {isBuyIn ? '💰' : '💵'}
+                            </span>
+                            <div>
+                              <div className="font-bold text-white">
+                                {transaction.playerName || transaction.player_name || 'Unknown Player'}
+                              </div>
+                              <div className="text-sm text-gray-400">
+                                {isBuyIn ? 'Buy-In' : 'Buy-Out'}
+                                {transaction.notes && ` • ${transaction.notes}`}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {new Date(transaction.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`text-right ${
+                          isBuyIn ? 'text-green-400' : 'text-orange-400'
+                        }`}>
+                          <div className="font-bold text-2xl">
+                            {isBuyIn ? '+' : ''}₹{Number(transaction.amount).toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {transaction.status}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2">
+                  <button
+                    onClick={() => setHistoryFilters({...historyFilters, page: Math.max(1, historyFilters.page - 1)})}
+                    disabled={historyFilters.page === 1}
+                    className="px-4 py-2 bg-slate-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-white">
+                    Page {historyFilters.page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setHistoryFilters({...historyFilters, page: Math.min(totalPages, historyFilters.page + 1)})}
+                    disabled={historyFilters.page === totalPages}
+                    className="px-4 py-2 bg-slate-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
