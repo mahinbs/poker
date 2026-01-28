@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { clubsAPI, staffAPI } from "../lib/api";
 import toast from "react-hot-toast";
 import { toDateIST, todayISTString } from "../utils/dateUtils";
@@ -25,7 +26,7 @@ export default function AttendanceManagement({ selectedClubId }) {
   });
 
   // Fetch staff members for dropdown
-  const { data: staffData } = useQuery({
+  const { data: staffData, refetch: refetchStaff } = useQuery({
     queryKey: ['staff-list', selectedClubId],
     queryFn: () => staffAPI.getAllStaffMembers(selectedClubId, { status: 'Active' }),
     enabled: !!selectedClubId,
@@ -34,11 +35,26 @@ export default function AttendanceManagement({ selectedClubId }) {
   const staffMembers = staffData?.staff || [];
 
   // Fetch attendance records (without staffId filter - we'll filter client-side)
-  const { data: allAttendanceRecords = [], isLoading } = useQuery({
+  const { data: allAttendanceRecords = [], isLoading, refetch: refetchAttendance } = useQuery({
     queryKey: ['attendance', selectedClubId, filters.startDate, filters.endDate],
     queryFn: () => clubsAPI.getAttendanceRecords(selectedClubId, filters.startDate, filters.endDate),
     enabled: !!selectedClubId,
   });
+
+  // Fetch attendance stats
+  const { data: stats, refetch: refetchStats } = useQuery({
+    queryKey: ['attendanceStats', selectedClubId, filters.startDate, filters.endDate],
+    queryFn: () => clubsAPI.getAttendanceStats(selectedClubId, filters.startDate, filters.endDate),
+    enabled: !!selectedClubId,
+  });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchStaff();
+    refetchAttendance();
+    refetchStats();
+    toast.success('Data refreshed!');
+  };
 
   // Filter attendance records client-side based on search term
   const attendanceRecords = useMemo(() => {
@@ -55,13 +71,6 @@ export default function AttendanceManagement({ selectedClubId }) {
              staffEmail.includes(searchLower);
     });
   }, [allAttendanceRecords, filters.searchTerm]);
-
-  // Fetch attendance stats
-  const { data: stats } = useQuery({
-    queryKey: ['attendanceStats', selectedClubId, filters.startDate, filters.endDate],
-    queryFn: () => clubsAPI.getAttendanceStats(selectedClubId, filters.startDate, filters.endDate),
-    enabled: !!selectedClubId,
-  });
 
   // Create attendance mutation
   const createAttendanceMutation = useMutation({
@@ -165,12 +174,23 @@ export default function AttendanceManagement({ selectedClubId }) {
           <h1 className="text-3xl font-bold">Attendance Management</h1>
           <p className="text-gray-400">Track login and logout times for all employees</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
-        >
-          + Create Attendance
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh data"
+          >
+            <FaSync className={isLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
+          >
+            + Create Attendance
+          </button>
+        </div>
       </div>
 
       {!selectedClubId && (

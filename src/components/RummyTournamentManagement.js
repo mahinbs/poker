@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { tournamentsAPI, clubsAPI } from "../lib/api";
 import toast from "react-hot-toast";
 
@@ -64,7 +65,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
   }, [selectedClubId]);
 
   // Fetch tournaments (filter for rummy tournaments)
-  const { data: tournamentsData, isLoading: tournamentsLoading } = useQuery({
+  const { data: tournamentsData, isLoading: tournamentsLoading, refetch: refetchTournaments } = useQuery({
     queryKey: ["rummy-tournaments", selectedClubId],
     queryFn: () => tournamentsAPI.getTournaments(selectedClubId),
     enabled: !!selectedClubId,
@@ -77,14 +78,14 @@ export default function RummyTournamentManagement({ selectedClubId }) {
   });
 
   // Fetch tournament details
-  const { data: tournamentDetails, isLoading: detailsLoading } = useQuery({
+  const { data: tournamentDetails, isLoading: detailsLoading, refetch: refetchTournamentDetails } = useQuery({
     queryKey: ["rummy-tournament-details", selectedClubId, selectedTournament?.id],
     queryFn: () => tournamentsAPI.getTournamentById(selectedClubId, selectedTournament.id),
     enabled: !!selectedClubId && !!selectedTournament && showDetailsModal,
   });
 
   // Fetch tournament players
-  const { data: playersData, isLoading: playersLoading } = useQuery({
+  const { data: playersData, isLoading: playersLoading, refetch: refetchTournamentPlayers } = useQuery({
     queryKey: ["rummy-tournament-players", selectedClubId, selectedTournament?.id],
     queryFn: async () => {
       const response = await tournamentsAPI.getTournamentPlayers(selectedClubId, selectedTournament.id);
@@ -94,7 +95,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
   });
 
   // Fetch tournament winners (if completed)
-  const { data: winnersData } = useQuery({
+  const { data: winnersData, refetch: refetchWinners } = useQuery({
     queryKey: ["rummy-tournament-winners", selectedClubId, selectedTournament?.id],
     queryFn: async () => {
       const response = await tournamentsAPI.getTournamentWinners(selectedClubId, selectedTournament.id);
@@ -367,16 +368,41 @@ export default function RummyTournamentManagement({ selectedClubId }) {
     ? tournamentsData 
     : (tournamentsData?.tournaments || []);
 
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchTournaments();
+    if (showDetailsModal && selectedTournament) {
+      refetchTournamentDetails();
+      refetchTournamentPlayers();
+      if (selectedTournament.status === "completed") {
+        refetchWinners();
+      }
+    }
+    queryClient.invalidateQueries(["rummy-tournaments", selectedClubId]);
+    toast.success('Rummy tournament data refreshed!');
+  };
+
   return (
     <div className="text-white space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Rummy Tournaments</h2>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-medium"
-        >
-          + Create Rummy Tournament
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={tournamentsLoading || detailsLoading || playersLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh tournament data"
+          >
+            <FaSync className={tournamentsLoading || detailsLoading || playersLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-medium"
+          >
+            + Create Rummy Tournament
+          </button>
+        </div>
       </div>
 
       {/* Tournaments List */}

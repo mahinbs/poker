@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { FaSync } from 'react-icons/fa';
 import { apiRequest, staffAPI } from '../lib/api';
+import toast from 'react-hot-toast';
 
 const WEEKDAYS = [
   { value: 0, label: 'Sunday', short: 'Sun' },
@@ -229,8 +231,38 @@ export default function RosterManagement({ selectedClubId }) {
     staffSearch === '' || s.staffName.toLowerCase().includes(staffSearch.toLowerCase())
   ) || [];
 
+  // Handle refresh
+  const handleRefresh = async () => {
+    setLoading(true);
+    try {
+      await loadTemplates();
+      await loadStaff();
+      if (activeTab === 'overview') {
+        await loadOverview();
+      }
+      toast.success('Roster data refreshed!');
+    } catch (error) {
+      toast.error('Failed to refresh data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Header with Refresh */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={handleRefresh}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh roster data"
+        >
+          <FaSync className={loading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
+
       {/* Sub-tabs for Roster Management */}
       <div className="flex gap-2 border-b border-gray-700">
         {[

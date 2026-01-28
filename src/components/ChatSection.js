@@ -29,68 +29,9 @@ export default function ChatSection({
     return roleMap[userRole] || "Staff";
   };
 
-  // Default player chats
-  const defaultPlayerChats = [
-    {
-      id: "PC001",
-      playerId: "P001",
-      playerName: "Alex Johnson",
-      status: "open",
-      lastMessage: "Need assistance at Table 2",
-      lastMessageTime: new Date(Date.now() - 180000).toISOString(),
-      messages: [
-        {
-          id: "M1",
-          sender: "player",
-          senderName: "Alex Johnson",
-          text: "Need assistance at Table 2",
-          timestamp: new Date(Date.now() - 180000).toISOString(),
-        },
-        {
-          id: "M2",
-          sender: "staff",
-          senderName: getRoleDisplayName(),
-          text: "On my way!",
-          timestamp: new Date(Date.now() - 120000).toISOString(),
-        },
-      ],
-      createdAt: new Date(Date.now() - 600000).toISOString(),
-    },
-  ];
-
-  // Default staff chats
-  const defaultStaffChats = [
-    {
-      id: "SC001",
-      staffId: "ST001",
-      staffName: "Sarah Johnson",
-      staffRole: "Dealer",
-      status: "open",
-      lastMessage: "Player dispute at Table 3",
-      lastMessageTime: new Date(Date.now() - 300000).toISOString(),
-      messages: [
-        {
-          id: "M3",
-          sender: "staff",
-          senderName: "Sarah Johnson",
-          text: "Player dispute at Table 3",
-          timestamp: new Date(Date.now() - 300000).toISOString(),
-        },
-        {
-          id: "M4",
-          sender: "admin",
-          senderName: getRoleDisplayName(),
-          text: "I'll handle it.",
-          timestamp: new Date(Date.now() - 240000).toISOString(),
-        },
-      ],
-      createdAt: new Date(Date.now() - 300000).toISOString(),
-    },
-  ];
-
-  // Manage state
-  const [internalPlayerChats, setInternalPlayerChats] = useState(defaultPlayerChats);
-  const [internalStaffChats, setInternalStaffChats] = useState(defaultStaffChats);
+  // Manage state - should be populated from API
+  const [internalPlayerChats, setInternalPlayerChats] = useState([]);
+  const [internalStaffChats, setInternalStaffChats] = useState([]);
 
   const playerChats = propPlayerChats !== null ? propPlayerChats : internalPlayerChats;
   const setPlayerChats = propSetPlayerChats || setInternalPlayerChats;

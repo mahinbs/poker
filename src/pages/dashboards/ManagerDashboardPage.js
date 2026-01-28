@@ -56,157 +56,26 @@ export default function ManagerDashboardPage() {
 
   const activeTables = tables.filter((table) => table.status === "Active");
 
-  // Mock dealers data
-  const dealers = [
-    { id: 1, name: "John" },
-    { id: 2, name: "Sarah" },
-    { id: 3, name: "Mike" },
-  ];
+  // Dealers data - should be populated from API
+  const [dealers, setDealers] = useState([]);
 
-  // Mock players data with balances (connected across all portals)
-  const [playerBalances, setPlayerBalances] = useState({
-    P001: {
-      id: "P001",
-      name: "Alex Johnson",
-      email: "alex.johnson@example.com",
-      availableBalance: 35000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P002: {
-      id: "P002",
-      name: "Maria Garcia",
-      email: "maria.garcia@example.com",
-      availableBalance: 28000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P003: {
-      id: "P003",
-      name: "David Wilson",
-      email: "david.wilson@example.com",
-      availableBalance: 42000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P101: {
-      id: "P101",
-      name: "Alex Johnson",
-      email: "alex.johnson@example.com",
-      availableBalance: 25000,
-      tableBalance: 5000,
-      tableId: 1,
-      seatNumber: 3,
-    },
-    P102: {
-      id: "P102",
-      name: "Maria Garcia",
-      email: "maria.garcia@example.com",
-      availableBalance: 15000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P103: {
-      id: "P103",
-      name: "Rajesh Kumar",
-      email: "rajesh.kumar@example.com",
-      availableBalance: 45000,
-      tableBalance: 10000,
-      tableId: 1,
-      seatNumber: 5,
-    },
-    P104: {
-      id: "P104",
-      name: "Priya Sharma",
-      email: "priya.sharma@example.com",
-      availableBalance: 32000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P105: {
-      id: "P105",
-      name: "Amit Patel",
-      email: "amit.patel@example.com",
-      availableBalance: 18000,
-      tableBalance: 7500,
-      tableId: 2,
-      seatNumber: 2,
-    },
-    P106: {
-      id: "P106",
-      name: "John Doe",
-      email: "john.doe@example.com",
-      availableBalance: 28000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-    P107: {
-      id: "P107",
-      name: "Jane Smith",
-      email: "jane.smith@example.com",
-      availableBalance: 35000,
-      tableBalance: 0,
-      tableId: null,
-      seatNumber: null,
-    },
-  });
+  // Players data with balances - should be populated from API
+  const [playerBalances, setPlayerBalances] = useState({});
 
-  // Mock players data for search (for backward compatibility)
+  // Players data for search (derived from playerBalances)
   const mockPlayers = Object.values(playerBalances).map(
     ({ availableBalance, tableBalance, tableId, seatNumber, ...player }) =>
       player
   );
 
-  // Table balances tracking
-  const [tableBalances, setTableBalances] = useState({
-    1: { id: 1, name: "Table 1 - Texas Hold'em", totalBalance: 15000, players: ["P001", "P103"] },
-    2: { id: 2, name: "Table 2 - Omaha", totalBalance: 7500, players: ["P105"] },
-    3: { id: 3, name: "Table 3 - Stud", totalBalance: 0, players: [] }
-  });
+  // Table balances tracking - should be populated from API
+  const [tableBalances, setTableBalances] = useState({});
 
-  // State for waitlist and seating management
-  const [waitlist, setWaitlist] = useState([
-    {
-      id: 1,
-      playerName: "Alex Johnson",
-      playerId: "P001",
-      position: 1,
-      gameType: "Texas Hold'em",
-      preferredSeat: 3,
-      preferredTable: 1,
-    },
-    {
-      id: 2,
-      playerName: "Maria Garcia",
-      playerId: "P002",
-      position: 2,
-      gameType: "Omaha",
-      preferredSeat: 5,
-      preferredTable: 2,
-    },
-    {
-      id: 3,
-      playerName: "David Wilson",
-      playerId: "P003",
-      position: 3,
-      gameType: "Texas Hold'em",
-      preferredSeat: null, // No preference
-      preferredTable: 1,
-    },
-  ]);
+  // State for waitlist and seating management - should be populated from API
+  const [waitlist, setWaitlist] = useState([]);
 
-  // Track occupied seats by table (tableId -> array of occupied seat numbers)
-  const [occupiedSeats, setOccupiedSeats] = useState({
-    1: [1, 2, 4, 7], // Table 1 has seats 1, 2, 4, 7 occupied
-    2: [2, 3, 6], // Table 2 has seats 2, 3, 6 occupied
-    3: [], // Table 3 is empty
-  });
+  // Track occupied seats by table (tableId -> array of occupied seat numbers) - should be populated from API
+  const [occupiedSeats, setOccupiedSeats] = useState({});
 
   // State for table view modal (manager mode)
   const [showTableView, setShowTableView] = useState(false);

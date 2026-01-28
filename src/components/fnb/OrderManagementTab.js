@@ -119,12 +119,7 @@ export default function OrderManagementTab({ clubId }) {
             </button>
           ))}
         </div>
-        <button
-          onClick={loadOrders}
-          className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold"
-        >
-          🔄 Refresh
-        </button>
+        
       </div>
 
       {/* Order Processing Workflow Info */}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import AdminSidebar from "../../components/sidebars/AdminSidebar";
 import { clubsAPI, playersAPI, authAPI } from "../../lib/api";
 import toast from "react-hot-toast";
@@ -102,7 +103,7 @@ export default function AdminDashboard() {
   }, [navigate]);
 
   // Load revenue data for club
-  const { data: revenueData, isLoading: revenueLoading } = useQuery({
+  const { data: revenueData, isLoading: revenueLoading, refetch: refetchRevenue } = useQuery({
     queryKey: ['clubRevenue', clubId],
     queryFn: () => clubsAPI.getClubRevenue(clubId),
     enabled: !!clubId,
@@ -110,25 +111,35 @@ export default function AdminDashboard() {
   });
 
   // Load players for club
-  const { data: playersData, isLoading: playersLoading } = useQuery({
+  const { data: playersData, isLoading: playersLoading, refetch: refetchPlayers } = useQuery({
     queryKey: ['clubPlayers', clubId],
     queryFn: () => playersAPI.getPlayers(clubId, { limit: 100 }),
     enabled: !!clubId,
   });
 
   // Load pending approval players
-  const { data: pendingPlayers = [], isLoading: pendingLoading } = useQuery({
+  const { data: pendingPlayers = [], isLoading: pendingLoading, refetch: refetchPending } = useQuery({
     queryKey: ['pendingPlayers', clubId],
     queryFn: () => playersAPI.getPendingApprovalPlayers(clubId),
     enabled: !!clubId,
   });
 
   // Load suspended players
-  const { data: suspendedPlayers = [], isLoading: suspendedLoading } = useQuery({
+  const { data: suspendedPlayers = [], isLoading: suspendedLoading, refetch: refetchSuspended } = useQuery({
     queryKey: ['suspendedPlayers', clubId],
     queryFn: () => playersAPI.getSuspendedPlayers(clubId),
     enabled: !!clubId,
   });
+
+  // Handle refresh for dashboard
+  const handleRefreshDashboard = () => {
+    refetchRevenue();
+    refetchPlayers();
+    refetchPending();
+    refetchSuspended();
+    queryClient.invalidateQueries(['club', clubId]);
+    toast.success('Data refreshed!');
+  };
 
   // Handle sign out
   const handleSignOut = () => {
@@ -337,7 +348,16 @@ export default function AdminDashboard() {
                 <h1 className="text-3xl font-bold text-white">
                   Dashboard - {clubInfo?.name || club?.name || 'Loading...'}
                 </h1>
-                  </div>
+                <button
+                  onClick={handleRefreshDashboard}
+                  disabled={revenueLoading || playersLoading || pendingLoading || suspendedLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Refresh data"
+                >
+                  <FaSync className={revenueLoading || playersLoading || pendingLoading || suspendedLoading ? "animate-spin" : ""} />
+                  Refresh
+                </button>
+              </div>
 
               {/* Revenue Cards */}
               {revenueLoading ? (

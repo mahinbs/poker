@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { tournamentsAPI, clubsAPI } from "../lib/api";
 import toast from "react-hot-toast";
 
@@ -77,32 +78,46 @@ export default function TournamentManagement({ selectedClubId }) {
   }, [selectedClubId]);
 
   // Fetch tournaments
-  const { data: tournamentsData, isLoading: tournamentsLoading } = useQuery({
+  const { data: tournamentsData, isLoading: tournamentsLoading, refetch: refetchTournaments } = useQuery({
     queryKey: ["tournaments", selectedClubId],
     queryFn: () => tournamentsAPI.getTournaments(selectedClubId),
     enabled: !!selectedClubId,
   });
 
   // Fetch tournament details
-  const { data: tournamentDetails, isLoading: detailsLoading } = useQuery({
+  const { data: tournamentDetails, isLoading: detailsLoading, refetch: refetchTournamentDetails } = useQuery({
     queryKey: ["tournament-details", selectedClubId, selectedTournament?.id],
     queryFn: () => tournamentsAPI.getTournamentById(selectedClubId, selectedTournament.id),
     enabled: !!selectedClubId && !!selectedTournament && showDetailsModal,
   });
 
   // Fetch tournament players
-  const { data: playersData, isLoading: playersLoading } = useQuery({
+  const { data: playersData, isLoading: playersLoading, refetch: refetchTournamentPlayers } = useQuery({
     queryKey: ["tournament-players", selectedClubId, selectedTournament?.id],
     queryFn: () => tournamentsAPI.getTournamentPlayers(selectedClubId, selectedTournament.id),
     enabled: !!selectedClubId && !!selectedTournament && showDetailsModal,
   });
 
   // Fetch tournament winners
-  const { data: winnersData } = useQuery({
+  const { data: winnersData, refetch: refetchWinners } = useQuery({
     queryKey: ["tournament-winners", selectedClubId, selectedTournament?.id],
     queryFn: () => tournamentsAPI.getTournamentWinners(selectedClubId, selectedTournament.id),
     enabled: !!selectedClubId && !!selectedTournament && selectedTournament.status === "completed",
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchTournaments();
+    if (showDetailsModal && selectedTournament) {
+      refetchTournamentDetails();
+      refetchTournamentPlayers();
+      if (selectedTournament.status === "completed") {
+        refetchWinners();
+      }
+    }
+    queryClient.invalidateQueries(["tournaments", selectedClubId]);
+    toast.success('Tournament data refreshed!');
+  };
 
   // Create tournament mutation
   const createMutation = useMutation({
@@ -401,12 +416,23 @@ export default function TournamentManagement({ selectedClubId }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-white">Tournament Management</h1>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all"
-        >
-          ➕ Create Tournament
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={tournamentsLoading || detailsLoading || playersLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh tournament data"
+          >
+            <FaSync className={tournamentsLoading || detailsLoading || playersLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all"
+          >
+            ➕ Create Tournament
+          </button>
+        </div>
       </div>
 
       {/* Tournaments List */}

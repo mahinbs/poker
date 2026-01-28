@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { FaSync } from 'react-icons/fa';
 import { apiRequest } from '../lib/api';
+import toast from 'react-hot-toast';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -125,15 +127,31 @@ export default function MyShifts({ selectedClubId, compact = false }) {
     );
   }
 
+  const handleRefresh = async () => {
+    await loadMyShifts();
+    toast.success('Shifts refreshed!');
+  };
+
   return (
     <div className="bg-gray-800 rounded-lg p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-white">📅 My Shifts</h2>
-        {currentStaff && (
-          <span className="text-sm text-gray-400">
-            {currentStaff.name} • {currentStaff.role}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {currentStaff && (
+            <span className="text-sm text-gray-400">
+              {currentStaff.name} • {currentStaff.role}
+            </span>
+          )}
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh shifts"
+          >
+            <FaSync className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3">

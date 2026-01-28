@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync, FaCalendarAlt, FaCheckCircle, FaTimesCircle, FaClock, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { leaveAPI } from "../lib/api";
 import toast from "react-hot-toast";
-import { FaCalendarAlt, FaCheckCircle, FaTimesCircle, FaClock, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { formatDateIST, formatTimeIST, formatDateTimeIST } from "../utils/dateUtils";
 
 const STAFF_ROLES = [
@@ -130,11 +130,30 @@ export default function LeaveManagement({ clubId }) {
   const total = approveLeavesData?.total || 0;
 
   // Fetch pending leave applications (for badge count)
-  const { data: pendingLeaves = [], isLoading: pendingLeavesLoading } = useQuery({
+  const { data: pendingLeaves = [], isLoading: pendingLeavesLoading, refetch: refetchPendingLeaves } = useQuery({
     queryKey: ['pendingLeaveApplications', clubId],
     queryFn: () => leaveAPI.getPendingLeaveApplications(clubId),
     enabled: !!clubId && canApprove,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    if (activeTab === "policies") {
+      refetchPolicies();
+    } else if (activeTab === "my-leaves") {
+      refetchMyLeaves();
+      refetchBalance();
+    } else if (activeTab === "approve-leaves") {
+      refetchApproveLeaves();
+      refetchPendingLeaves();
+    }
+    queryClient.invalidateQueries(['leavePolicies', clubId]);
+    queryClient.invalidateQueries(['myLeaveApplications', clubId]);
+    queryClient.invalidateQueries(['leaveBalance', clubId]);
+    queryClient.invalidateQueries(['leaveApplicationsForApproval', clubId]);
+    queryClient.invalidateQueries(['pendingLeaveApplications', clubId]);
+    toast.success('Leave data refreshed!');
+  };
 
   // Create leave policy mutation
   const createPolicyMutation = useMutation({
@@ -297,6 +316,20 @@ export default function LeaveManagement({ clubId }) {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-white mb-8">Leave Management</h1>
+
+        {/* Header with Refresh */}
+        <div className="flex justify-between items-center mb-4">
+          <div></div>
+          <button
+            onClick={handleRefresh}
+            disabled={policiesLoading || myLeavesLoading || approveLeavesLoading || pendingLeavesLoading || balanceLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh leave data"
+          >
+            <FaSync className={policiesLoading || myLeavesLoading || approveLeavesLoading || pendingLeavesLoading || balanceLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
 
         {/* Tabs */}
         <div className="flex gap-4 mb-6 border-b border-slate-700">

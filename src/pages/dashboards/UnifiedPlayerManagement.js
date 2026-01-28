@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { superAdminAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
@@ -47,7 +48,7 @@ export default function UnifiedPlayerManagement({
   const queryClient = useQueryClient();
 
   // Fetch player details and documents
-  const { data: playerDetailsData, isLoading: playerDetailsLoading } = useQuery({
+  const { data: playerDetailsData, isLoading: playerDetailsLoading, refetch: refetchPlayerDetails } = useQuery({
     queryKey: ['playerDetails', selectedClubId, selectedPlayerForDetails?.id],
     queryFn: async () => {
       if (!selectedPlayerForDetails || !selectedClubId) return null;
@@ -249,7 +250,7 @@ export default function UnifiedPlayerManagement({
   });
 
   // Field Update Requests Query (TODO: Add backend endpoint)
-  const { data: fieldUpdateRequests = [], isLoading: fieldUpdatesLoading } = useQuery({
+  const { data: fieldUpdateRequests = [], isLoading: fieldUpdatesLoading, refetch: refetchFieldUpdates } = useQuery({
     queryKey: ['fieldUpdateRequests', selectedClubId],
     queryFn: async () => {
       // TODO: Replace with actual API call when backend endpoint is ready
@@ -258,6 +259,28 @@ export default function UnifiedPlayerManagement({
     },
     enabled: !!selectedClubId && activeTab === "field-updates",
   });
+
+  // Handle refresh - refresh data based on active tab
+  const handleRefresh = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
+    if (activeTab === "all") {
+      // Refresh all players data
+      queryClient.invalidateQueries(['clubPlayers', selectedClubId]);
+    } else if (activeTab === "approval") {
+      // Refresh pending players
+      queryClient.invalidateQueries(['pendingPlayers', selectedClubId]);
+    } else if (activeTab === "field-updates") {
+      refetchFieldUpdates();
+      queryClient.invalidateQueries(['fieldUpdateRequests', selectedClubId]);
+    }
+    if (showPlayerDetailsModal && selectedPlayerForDetails) {
+      refetchPlayerDetails();
+      queryClient.invalidateQueries(['playerDetails', selectedClubId]);
+    }
+    toast.success('Data refreshed!');
+  };
 
   // Approve/Reject Field Update Mutation (TODO: Add backend endpoint)
   const fieldUpdateMutation = useMutation({
@@ -390,7 +413,9 @@ export default function UnifiedPlayerManagement({
 
   return (
     <div className="text-white space-y-6">
-      <h1 className="text-3xl font-bold">Player Management</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Player Management</h1>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-700">
@@ -414,6 +439,18 @@ export default function UnifiedPlayerManagement({
         {/* Tab 1: All Players */}
         {activeTab === "all" && (
           <div className="space-y-4">
+            {/* Refresh Button */}
+            <div className="flex justify-end">
+              <button
+                onClick={handleRefresh}
+                disabled={playersLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh player data"
+              >
+                <FaSync className={playersLoading ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </div>
             {/* Filters */}
             <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex gap-4">
               <input
@@ -453,7 +490,7 @@ export default function UnifiedPlayerManagement({
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Email</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Phone</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Balance</th>
+                      {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Balance</th> */}
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">KYC</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Registered</th>
@@ -485,7 +522,7 @@ export default function UnifiedPlayerManagement({
                           <td className="px-6 py-4 text-gray-400">{player.playerId || '-'}</td>
                           <td className="px-6 py-4 text-gray-400">{player.email}</td>
                           <td className="px-6 py-4 text-gray-400">{player.phoneNumber || '-'}</td>
-                          <td className="px-6 py-4 text-gray-400">₹{player.balance || 0}</td>
+                          {/* <td className="px-6 py-4 text-gray-400">₹{player.balance || 0}</td> */}
                           <td className="px-6 py-4">
                             <span
                               className={`px-2 py-1 rounded text-xs font-semibold ${
@@ -501,7 +538,7 @@ export default function UnifiedPlayerManagement({
                           </td>
                           <td className="px-6 py-4">
                             <span
-                              className={`px-2 py-1 rounded text-xs font-semibold ${
+                              className={`px-2 py-1 capitalize rounded text-xs font-semibold ${
                                 player.kycStatus === 'approved' || player.kycStatus === 'verified'
                                   ? 'bg-green-600/20 text-green-400'
                                   : 'bg-gray-600/20 text-gray-400'
@@ -719,6 +756,18 @@ export default function UnifiedPlayerManagement({
         {/* Tab 3: Player Approval */}
         {activeTab === "approval" && (
           <div className="space-y-6">
+            {/* Refresh Button */}
+            <div className="flex justify-end">
+              <button
+                onClick={handleRefresh}
+                disabled={pendingLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh pending players"
+              >
+                <FaSync className={pendingLoading ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </div>
             {pendingLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
@@ -841,6 +890,18 @@ export default function UnifiedPlayerManagement({
         {/* Tab 4: Player Fields Update Approval */}
         {activeTab === "field-updates" && (
           <div className="space-y-6">
+            {/* Refresh Button */}
+            <div className="flex justify-end">
+              <button
+                onClick={handleRefresh}
+                disabled={fieldUpdatesLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh field update requests"
+              >
+                <FaSync className={fieldUpdatesLoading ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </div>
             {fieldUpdatesLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>

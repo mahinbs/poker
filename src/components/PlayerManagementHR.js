@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { playersAPI, clubsAPI } from "../lib/api";
 import toast from "react-hot-toast";
 
@@ -15,7 +16,7 @@ export default function PlayerManagementHR({ selectedClubId }) {
   const queryClient = useQueryClient();
 
   // Fetch all players
-  const { data: playersResponse, isLoading: playersLoading } = useQuery({
+  const { data: playersResponse, isLoading: playersLoading, refetch: refetchPlayers } = useQuery({
     queryKey: ['clubPlayers', selectedClubId],
     queryFn: () => playersAPI.getPlayers(selectedClubId),
     enabled: !!selectedClubId,
@@ -27,7 +28,7 @@ export default function PlayerManagementHR({ selectedClubId }) {
     : (playersResponse?.players || []);
 
   // Fetch player details and documents
-  const { data: playerDetailsData, isLoading: playerDetailsLoading } = useQuery({
+  const { data: playerDetailsData, isLoading: playerDetailsLoading, refetch: refetchPlayerDetails } = useQuery({
     queryKey: ['playerDetails', selectedClubId, selectedPlayerForDetails?.id],
     queryFn: async () => {
       if (!selectedPlayerForDetails || !selectedClubId) return null;
@@ -69,7 +70,7 @@ export default function PlayerManagementHR({ selectedClubId }) {
   });
 
   // Field Update Requests Query (TODO: Add backend endpoint)
-  const { data: fieldUpdateRequests = [], isLoading: fieldUpdatesLoading } = useQuery({
+  const { data: fieldUpdateRequests = [], isLoading: fieldUpdatesLoading, refetch: refetchFieldUpdates } = useQuery({
     queryKey: ['fieldUpdateRequests', selectedClubId],
     queryFn: async () => {
       // TODO: Replace with actual API call when backend endpoint is ready
@@ -78,6 +79,20 @@ export default function PlayerManagementHR({ selectedClubId }) {
     },
     enabled: !!selectedClubId && activeTab === "field-updates",
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchPlayers();
+    if (activeTab === "field-updates") {
+      refetchFieldUpdates();
+    }
+    if (showPlayerDetailsModal) {
+      refetchPlayerDetails();
+    }
+    queryClient.invalidateQueries(['clubPlayers', selectedClubId]);
+    queryClient.invalidateQueries(['fieldUpdateRequests', selectedClubId]);
+    toast.success('Data refreshed!');
+  };
 
   // Approve/Reject Field Update Mutation
   const fieldUpdateMutation = useMutation({
@@ -123,7 +138,18 @@ export default function PlayerManagementHR({ selectedClubId }) {
 
   return (
     <div className="text-white space-y-6">
-      <h1 className="text-3xl font-bold">Player Management</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Player Management</h1>
+        <button
+          onClick={handleRefresh}
+          disabled={playersLoading || fieldUpdatesLoading || playerDetailsLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh data"
+        >
+          <FaSync className={playersLoading || fieldUpdatesLoading || playerDetailsLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-700">

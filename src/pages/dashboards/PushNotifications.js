@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { superAdminAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
@@ -66,14 +67,14 @@ export default function PushNotifications({ selectedClubId }) {
   });
 
   // Fetch notifications
-  const { data: notifications = [], isLoading } = useQuery({
+  const { data: notifications = [], isLoading, refetch: refetchNotifications } = useQuery({
     queryKey: ["pushNotifications", selectedClubId, activeTab],
     queryFn: () => superAdminAPI.getPushNotifications(selectedClubId, activeTab),
     enabled: !!selectedClubId,
   });
 
   // Fetch all players for custom group selection
-  const { data: allPlayers = [] } = useQuery({
+  const { data: allPlayers = [], refetch: refetchAllPlayers } = useQuery({
     queryKey: ["allPlayersForGroup", selectedClubId],
     queryFn: async () => {
       if (!selectedClubId) return [];
@@ -117,7 +118,7 @@ export default function PushNotifications({ selectedClubId }) {
   });
 
   // Fetch all staff for custom staff selection
-  const { data: allStaff = [] } = useQuery({
+  const { data: allStaff = [], refetch: refetchAllStaff } = useQuery({
     queryKey: ["allStaffForGroup", selectedClubId],
     queryFn: async () => {
       if (!selectedClubId) return [];
@@ -127,6 +128,19 @@ export default function PushNotifications({ selectedClubId }) {
     },
     enabled: !!selectedClubId && notificationForm.targetType === NOTIFICATION_TARGETS.STAFF_CUSTOM,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchNotifications();
+    if (notificationForm.targetType === NOTIFICATION_TARGETS.CUSTOM_GROUP) {
+      refetchAllPlayers();
+    }
+    if (notificationForm.targetType === NOTIFICATION_TARGETS.STAFF_CUSTOM) {
+      refetchAllStaff();
+    }
+    queryClient.invalidateQueries(["pushNotifications", selectedClubId]);
+    toast.success('Notifications refreshed!');
+  };
 
   // Create notification mutation
   const createNotificationMutation = useMutation({
@@ -275,15 +289,26 @@ export default function PushNotifications({ selectedClubId }) {
           <h1 className="text-3xl font-bold text-white mb-2">Push Notifications & Offers</h1>
           <p className="text-gray-400">Create and manage push notifications for players and staff</p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowCreateModal(true);
-          }}
-          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg"
-        >
-          + Create Notification
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh notifications"
+          >
+            <FaSync className={isLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowCreateModal(true);
+            }}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg"
+          >
+            + Create Notification
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

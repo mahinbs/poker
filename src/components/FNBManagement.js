@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { FaSync } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 import MenuInventoryTab from './fnb/MenuInventoryTab';
 import OrderManagementTab from './fnb/OrderManagementTab';
 import SupplierManagementTab from './fnb/SupplierManagementTab';
@@ -10,6 +12,12 @@ import KitchenOperationsTab from './fnb/KitchenOperationsTab';
  */
 export default function FNBManagement({ clubId }) {
   const [activeTab, setActiveTab] = useState('menu-inventory');
+  const [refreshKeys, setRefreshKeys] = useState({
+    'menu-inventory': 0,
+    'order-management': 0,
+    'supplier-management': 0,
+    'kitchen-operations': 0,
+  });
 
   const tabs = [
     { id: 'menu-inventory', label: 'Menu & Inventory', icon: '📋' },
@@ -17,6 +25,14 @@ export default function FNBManagement({ clubId }) {
     { id: 'supplier-management', label: 'Supplier Management', icon: '🚚' },
     { id: 'kitchen-operations', label: 'Kitchen Operations', icon: '👨‍🍳' },
   ];
+
+  const handleRefreshTab = (tabId) => {
+    setRefreshKeys((prev) => ({
+      ...prev,
+      [tabId]: (prev[tabId] || 0) + 1,
+    }));
+    toast.success('Data refreshed!');
+  };
 
   return (
     <div className="space-y-6">
@@ -52,10 +68,65 @@ export default function FNBManagement({ clubId }) {
 
       {/* Tab Content */}
       <div className="min-h-[600px]">
-        {activeTab === 'menu-inventory' && <MenuInventoryTab clubId={clubId} />}
-        {activeTab === 'order-management' && <OrderManagementTab clubId={clubId} />}
-        {activeTab === 'supplier-management' && <SupplierManagementTab clubId={clubId} />}
-        {activeTab === 'kitchen-operations' && <KitchenOperationsTab clubId={clubId} />}
+        {activeTab === 'menu-inventory' && (
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={() => handleRefreshTab('menu-inventory')}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-semibold transition-all"
+              >
+                <FaSync />
+                Refresh
+              </button>
+            </div>
+            <MenuInventoryTab key={refreshKeys['menu-inventory']} clubId={clubId} />
+          </div>
+        )}
+
+        {activeTab === 'order-management' && (
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={() => handleRefreshTab('order-management')}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-semibold transition-all"
+              >
+                <FaSync />
+                Refresh
+              </button>
+            </div>
+            <OrderManagementTab key={refreshKeys['order-management']} clubId={clubId} />
+          </div>
+        )}
+
+        {activeTab === 'supplier-management' && (
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={() => handleRefreshTab('supplier-management')}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-semibold transition-all"
+              >
+                <FaSync />
+                Refresh
+              </button>
+            </div>
+            <SupplierManagementTab key={refreshKeys['supplier-management']} clubId={clubId} />
+          </div>
+        )}
+
+        {activeTab === 'kitchen-operations' && (
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={() => handleRefreshTab('kitchen-operations')}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-semibold transition-all"
+              >
+                <FaSync />
+                Refresh
+              </button>
+            </div>
+            <KitchenOperationsTab key={refreshKeys['kitchen-operations']} clubId={clubId} />
+          </div>
+        )}
       </div>
     </div>
   );

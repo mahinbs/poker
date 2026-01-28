@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { staffAPI } from "../lib/api";
 import toast from "react-hot-toast";
 import { storageService } from "../lib/storage";
@@ -60,11 +61,18 @@ export default function StaffManagement({ selectedClubId }) {
   const [uploadingPan, setUploadingPan] = useState(false);
 
   // Fetch staff
-  const { data: staffData, isLoading: staffLoading } = useQuery({
+  const { data: staffData, isLoading: staffLoading, refetch: refetchStaff } = useQuery({
     queryKey: ["staff-management", selectedClubId, filters],
     queryFn: () => staffAPI.getAllStaffMembers(selectedClubId, filters),
     enabled: !!selectedClubId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchStaff();
+    queryClient.invalidateQueries(["staff-management", selectedClubId]);
+    toast.success('Staff data refreshed!');
+  };
 
   // Create staff mutation
   const createMutation = useMutation({
@@ -317,14 +325,25 @@ export default function StaffManagement({ selectedClubId }) {
         <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-white">Staff Management</h1>
-        {activeTab === "staff" && (
+        <div className="flex gap-3">
           <button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all"
+            onClick={handleRefresh}
+            disabled={staffLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh data"
           >
-            ➕ Create Staff
+            <FaSync className={staffLoading ? "animate-spin" : ""} />
+            Refresh
           </button>
-        )}
+          {activeTab === "staff" && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all"
+            >
+              ➕ Create Staff
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}

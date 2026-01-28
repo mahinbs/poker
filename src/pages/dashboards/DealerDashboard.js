@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import ChatManagement from "../../components/ChatManagement";
 import DealerSidebar from "../../components/sidebars/DealerSidebar";
 import { payrollAPI, bonusAPI, staffAPI, shiftsAPI, financialOverridesAPI } from "../../lib/api";
@@ -262,7 +263,9 @@ function ShiftTimingsView({ clubId, dealerId }) {
     };
   };
 
-  const { data: shiftsData, isLoading } = useQuery({
+  const queryClient = useQueryClient();
+
+  const { data: shiftsData, isLoading, refetch: refetchShifts } = useQuery({
     queryKey: ["shifts", clubId, dealerId, selectedDate, viewMode],
     queryFn: () => {
       const { startDate, endDate } = getDateRange();
@@ -274,6 +277,13 @@ function ShiftTimingsView({ clubId, dealerId }) {
     },
     enabled: !!clubId && !!dealerId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchShifts();
+    queryClient.invalidateQueries(["shifts", clubId, dealerId]);
+    toast.success('Shift data refreshed!');
+  };
 
   const navigateDate = (direction) => {
     const newDate = new Date(selectedDate);
@@ -453,13 +463,14 @@ function ShiftTimingsView({ clubId, dealerId }) {
 
 // Transactions Component
 function TransactionsView({ clubId, dealerId }) {
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState({
     startDate: "",
     endDate: "",
   });
 
-  const { data: transactionsData, isLoading } = useQuery({
+  const { data: transactionsData, isLoading, refetch: refetchTransactions } = useQuery({
     queryKey: ["dealer-transactions", clubId, dealerId, currentPage, filters],
     queryFn: async () => {
       // Get transactions filtered for dealer (dealer-cashout, salary-bonus)
@@ -532,9 +543,27 @@ function TransactionsView({ clubId, dealerId }) {
   const transactions = transactionsData?.transactions || [];
   const totalPages = transactionsData?.totalPages || 1;
 
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchTransactions();
+    queryClient.invalidateQueries(["dealer-transactions", clubId, dealerId]);
+    toast.success('Transaction data refreshed!');
+  };
+
   return (
     <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-xl">
-      <h2 className="text-2xl font-bold text-white mb-6">My Transactions</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-white">My Transactions</h2>
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh transaction data"
+        >
+          <FaSync className={isLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
       
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -639,6 +668,7 @@ function TransactionsView({ clubId, dealerId }) {
 
 // Tips Component
 function TipsView({ clubId, dealerId }) {
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState({
     startDate: "",
@@ -646,7 +676,7 @@ function TipsView({ clubId, dealerId }) {
     status: "",
   });
 
-  const { data: tipsData, isLoading } = useQuery({
+  const { data: tipsData, isLoading, refetch: refetchTips } = useQuery({
     queryKey: ["dealer-tips", clubId, dealerId, currentPage, filters],
     queryFn: () => payrollAPI.getDealerTips(clubId, {
       page: currentPage,
@@ -656,6 +686,13 @@ function TipsView({ clubId, dealerId }) {
     }),
     enabled: !!clubId && !!dealerId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchTips();
+    queryClient.invalidateQueries(["dealer-tips", clubId, dealerId]);
+    toast.success('Tips data refreshed!');
+  };
 
   const formatCurrency = (value) => `₹${(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const formatDate = (dateString) => {
@@ -676,7 +713,18 @@ function TipsView({ clubId, dealerId }) {
 
   return (
     <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-xl">
-      <h2 className="text-2xl font-bold text-white mb-6">My Tips</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-white">My Tips</h2>
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh tips data"
+        >
+          <FaSync className={isLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
       
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -796,11 +844,20 @@ function TipsView({ clubId, dealerId }) {
 
 // Tip Settings Component (View Only)
 function TipSettingsView({ clubId, dealerId }) {
-  const { data: settingsData, isLoading } = useQuery({
+  const queryClient = useQueryClient();
+
+  const { data: settingsData, isLoading, refetch: refetchSettings } = useQuery({
     queryKey: ["tip-settings", clubId, dealerId],
     queryFn: () => payrollAPI.getTipSettings(clubId, dealerId),
     enabled: !!clubId && !!dealerId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchSettings();
+    queryClient.invalidateQueries(["tip-settings", clubId, dealerId]);
+    toast.success('Tip settings refreshed!');
+  };
 
   if (isLoading) {
     return <div className="text-center py-8">Loading tip settings...</div>;
@@ -810,7 +867,18 @@ function TipSettingsView({ clubId, dealerId }) {
 
   return (
     <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-xl">
-      <h2 className="text-2xl font-bold text-white mb-6">My Tip Settings</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-white">My Tip Settings</h2>
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh tip settings"
+        >
+          <FaSync className={isLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
       <div className="bg-blue-900/20 border border-blue-500/50 rounded-lg p-4 mb-6">
         <p className="text-blue-300 text-sm">
           💡 These settings are configured by the administrator. Contact your manager if you need changes.

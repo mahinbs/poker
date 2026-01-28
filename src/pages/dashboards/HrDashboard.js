@@ -138,160 +138,31 @@ export default function HrDashboard() {
     }
   }, []);
 
-  // Staff members data with documents
-  const staffMembers = [
-    {
-      id: "S001",
-      name: "Sarah Johnson",
-      position: "Dealer",
-      department: "Operations",
-      email: "sarah.j@email.com",
-      phone: "+91 98765 43210",
-      startDate: "2024-01-15",
-      status: "Active",
-      documents: [
-        { type: "PAN Card", status: "Verified", uploadedDate: "2024-01-10" },
-        { type: "Aadhaar Card", status: "Verified", uploadedDate: "2024-01-10" },
-        { type: "ID Card", status: "Verified", uploadedDate: "2024-01-15" },
-        { type: "Medical Certificate", status: "Verified", uploadedDate: "2024-01-12" }
-      ]
-    },
-    {
-      id: "S002",
-      name: "Mike Chen",
-      position: "Floor Manager",
-      department: "Operations",
-      email: "mike.c@email.com",
-      phone: "+91 98765 43211",
-      startDate: "2023-11-20",
-      status: "Active",
-      documents: [
-        { type: "PAN Card", status: "Verified", uploadedDate: "2023-11-15" },
-        { type: "Passport", status: "Verified", uploadedDate: "2023-11-15" },
-        { type: "Experience Certificate", status: "Pending Review", uploadedDate: "2024-01-20" },
-        { type: "ID Card", status: "Verified", uploadedDate: "2023-11-20" }
-      ]
-    },
-    {
-      id: "S003",
-      name: "Emma Davis",
-      position: "Cashier",
-      department: "Operations",
-      email: "emma.d@email.com",
-      phone: "+91 98765 43212",
-      startDate: "2024-02-01",
-      status: "On Leave",
-      documents: [
-        { type: "PAN Card", status: "Verified", uploadedDate: "2024-01-28" },
-        { type: "Aadhaar Card", status: "Verified", uploadedDate: "2024-01-28" },
-        { type: "Medical Certificate", status: "Verified", uploadedDate: "2024-02-01" },
-        { type: "ID Card", status: "Verified", uploadedDate: "2024-02-01" }
-      ]
-    },
-    {
-      id: "S004",
-      name: "John Smith",
-      position: "Security",
-      department: "Security",
-      email: "john.s@email.com",
-      phone: "+91 98765 43213",
-      startDate: "2023-12-10",
-      status: "Active",
-      documents: [
-        { type: "PAN Card", status: "Verified", uploadedDate: "2023-12-05" },
-        { type: "Driving License", status: "Verified", uploadedDate: "2023-12-05" },
-        { type: "ID Card", status: "Verified", uploadedDate: "2023-12-10" }
-      ]
-    },
-    {
-      id: "S005",
-      name: "David Wilson",
-      position: "Dealer",
-      department: "Operations",
-      email: "david.w@email.com",
-      phone: "+91 98765 43214",
-      startDate: "2024-01-20",
-      status: "Active",
-      documents: [
-        { type: "PAN Card", status: "Verified", uploadedDate: "2024-01-18" },
-        { type: "ID Card", status: "Verified", uploadedDate: "2024-01-20" }
-      ]
-    },
-    {
-      id: "S006",
-      name: "Lisa Brown",
-      position: "Kitchen Staff",
-      department: "Kitchen",
-      email: "lisa.b@email.com",
-      phone: "+91 98765 43215",
-      startDate: "2024-02-05",
-      status: "Active",
-      documents: [
-        { type: "PAN Card", status: "Verified", uploadedDate: "2024-02-03" },
-        { type: "Aadhaar Card", status: "Verified", uploadedDate: "2024-02-03" },
-        { type: "ID Card", status: "Verified", uploadedDate: "2024-02-05" }
-      ]
-    },
-  ];
+  // Staff members data - should be populated from API
+  const [staffMembers, setStaffMembers] = useState([]);
 
   // State for Attendance Management - Table format
   const [currentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [attendanceRecords, setAttendanceRecords] = useState(() => {
-    // Initialize attendance records for all staff with empty login/logout times
-    return staffMembers.map(staff => ({
-      staffId: staff.id,
-      staffName: staff.name,
-      position: staff.position,
-      department: staff.department,
-      date: currentDate,
-      loginTime: "",
-      logoutTime: "",
-      status: "pending"
-    }));
-  });
-
-  // State for Staff Requests
-  const [staffRequests, setStaffRequests] = useState([
-    {
-      id: "SR001",
-      staffId: "S001",
-      staffName: "Sarah Johnson",
-      requestType: "leave",
-      subject: "Leave Application",
-      message: "I need to take leave on 2024-01-25 for personal reasons.",
-      leaveStartDate: "2024-01-25",
-      leaveEndDate: "2024-01-26",
-      leaveType: "Personal Leave",
-      status: "pending",
-      submittedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      hrResponse: null
-    },
-    {
-      id: "SR002",
-      staffId: "S002",
-      staffName: "Mike Chen",
-      requestType: "chat",
-      subject: "Need to discuss schedule",
-      message: "Can we discuss my upcoming schedule change?",
-      status: "in_progress",
-      submittedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      hrResponse: "Sure, let's schedule a meeting."
-    },
-    {
-      id: "SR003",
-      staffId: "S003",
-      staffName: "Emma Davis",
-      requestType: "leave",
-      subject: "Medical Leave Request",
-      message: "I need medical leave for upcoming surgery.",
-      leaveStartDate: "2024-02-05",
-      leaveEndDate: "2024-02-10",
-      leaveType: "Medical Leave",
-      status: "approved",
-      submittedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      hrResponse: "Approved. Please submit medical certificate."
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  
+  // Initialize attendance records when staffMembers changes
+  useEffect(() => {
+    if (staffMembers.length > 0) {
+      setAttendanceRecords(staffMembers.map(staff => ({
+        staffId: staff.id,
+        staffName: staff.name,
+        position: staff.position,
+        department: staff.department,
+        date: currentDate,
+        loginTime: "",
+        logoutTime: "",
+        status: "pending"
+      })));
     }
-  ]);
+  }, [staffMembers, currentDate]);
+
+  // State for Staff Requests - should be populated from API
+  const [staffRequests, setStaffRequests] = useState([]);
 
   const [requestFilter, setRequestFilter] = useState("all"); // "all", "pending", "in_progress", "approved", "rejected"
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -305,77 +176,21 @@ export default function HrDashboard() {
   const [documentFile, setDocumentFile] = useState(null);
   const [documentFileName, setDocumentFileName] = useState("");
 
-  // Player Management State
-  const [kycRequests, setKycRequests] = useState([
-    { id: 1, name: "Rahul Sharma", documentType: "PAN Card", docUrl: "#", status: "Pending", submittedDate: "2024-02-20", playerId: "P001", documentNumber: "ABCDE1234F", email: "rahul@example.com", phone: "+91 9876543210" },
-    { id: 2, name: "Priya Patel", documentType: "Aadhaar", docUrl: "#", status: "Pending", submittedDate: "2024-02-21", playerId: "P002", documentNumber: "1234 5678 9012", email: "priya@example.com", phone: "+91 9876543211" },
-  ]);
-  const [profileUpdates, setProfileUpdates] = useState([
-    { id: 1, name: "Amit Kumar", playerId: "P003", fields: [{ field: "Phone Number", oldValue: "+91 9876543210", newValue: "+91 9123456780" }, { field: "Address", oldValue: "Old Address", newValue: "New Address" }], status: "Pending", requestedDate: "2024-02-22" },
-    { id: 2, name: "Sneha Gupta", playerId: "P004", fields: [{ field: "Email", oldValue: "sneha.old@test.com", newValue: "sneha.new@test.com" }], status: "Pending", requestedDate: "2024-02-23" },
-  ]);
-  const [allPlayers, setAllPlayers] = useState([
-    { id: "P001", name: "John Doe", email: "john.doe@example.com", phone: "+91 9876543210", status: "Active", kycStatus: "Verified", registrationDate: "2024-01-15", referredBy: "Agent X", balance: 5000 },
-    { id: "P002", name: "Jane Smith", email: "jane.smith@example.com", phone: "+91 9876543211", status: "Active", kycStatus: "Pending", registrationDate: "2024-01-10", referredBy: "Agent Y", balance: 2500 },
-    { id: "P003", name: "Rajesh Kumar", email: "rajesh@example.com", phone: "+91 9876543212", status: "Suspended", kycStatus: "Verified", registrationDate: "2024-01-08", referredBy: "Agent Z", balance: 0 },
-    { id: "P004", name: "Priya Sharma", email: "priya@example.com", phone: "+91 9876543213", status: "Pending Approval", kycStatus: "Pending", registrationDate: "2024-01-20", referredBy: "Agent A", balance: 0 },
-  ]);
-  const [pendingApprovals, setPendingApprovals] = useState([
-    { id: 1, name: "Rajesh Kumar", email: "rajesh@example.com", phone: "+91 9876543212", registrationDate: "2024-02-18", status: "Pending", referredBy: "Agent X" },
-    { id: 2, name: "Meera Singh", email: "meera@example.com", phone: "+91 9876543213", registrationDate: "2024-02-19", status: "Pending", referredBy: "Agent Y" },
-  ]);
-  const [suspendedPlayers, setSuspendedPlayers] = useState([
-    { id: 1, name: "Vikram Patel", email: "vikram@example.com", reason: "Suspicious Activity", suspensionDate: "2024-02-15", status: "Suspended", duration: "temporary", suspensionDays: 7 },
-  ]);
+  // Player Management State - should be populated from API
+  const [kycRequests, setKycRequests] = useState([]);
+  const [profileUpdates, setProfileUpdates] = useState([]);
+  const [allPlayers, setAllPlayers] = useState([]);
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [suspendedPlayers, setSuspendedPlayers] = useState([]);
 
-  // Chat/Support System State
-  const [playerChats, setPlayerChats] = useState([
-    {
-      id: "PC001",
-      playerId: "P001",
-      playerName: "Alex Johnson",
-      status: "open",
-      lastMessage: "Need assistance with account",
-      lastMessageTime: new Date(Date.now() - 180000).toISOString(),
-      messages: [
-        {
-          id: "M1",
-          sender: "player",
-          senderName: "Alex Johnson",
-          text: "Need assistance with account",
-          timestamp: new Date(Date.now() - 180000).toISOString(),
-        },
-      ],
-      createdAt: new Date(Date.now() - 600000).toISOString(),
-    },
-  ]);
-
-  const [staffChats, setStaffChats] = useState([
-    {
-      id: "SC001",
-      staffId: "ST001",
-      staffName: "Sarah Johnson",
-      staffRole: "Dealer",
-      status: "open",
-      lastMessage: "Need assistance with schedule",
-      lastMessageTime: new Date(Date.now() - 300000).toISOString(),
-      messages: [
-        {
-          id: "M3",
-          sender: "staff",
-          senderName: "Sarah Johnson",
-          text: "Need assistance with schedule",
-          timestamp: new Date(Date.now() - 300000).toISOString(),
-        },
-      ],
-      createdAt: new Date(Date.now() - 300000).toISOString(),
-    },
-  ]);
+  // Chat/Support System State - should be populated from API
+  const [playerChats, setPlayerChats] = useState([]);
+  const [staffChats, setStaffChats] = useState([]);
 
   // Update attendance records when date changes
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
-    if (currentDate !== today) {
+    if (currentDate !== today && staffMembers.length > 0) {
       // If viewing a different date, reinitialize records
       setAttendanceRecords(staffMembers.map(staff => ({
         staffId: staff.id,
@@ -388,7 +203,7 @@ export default function HrDashboard() {
         status: "pending"
       })));
     }
-  }, [currentDate]);
+  }, [currentDate, staffMembers]);
 
   // Handle attendance time update
   const handleAttendanceUpdate = (staffId, field, value) => {
@@ -466,11 +281,11 @@ export default function HrDashboard() {
     }));
 
     // Also update in staffMembers array
-    const updatedStaffMembers = staffMembers.map(staff =>
+    setStaffMembers(prev => prev.map(staff =>
       staff.id === selectedStaffDetails.id
         ? { ...staff, documents: [...(staff.documents || []), newDocument] }
         : staff
-    );
+    ));
 
     alert(`Document "${documentType}" uploaded successfully for ${selectedStaffDetails.name}`);
 
@@ -496,9 +311,9 @@ export default function HrDashboard() {
     });
 
     // Also update in staffMembers array
-    const updatedStaffMembers = staffMembers.map(staff => {
+    setStaffMembers(prev => prev.map(staff => {
       if (staff.id === selectedStaffDetails.id) {
-        const updatedDocs = [...staff.documents];
+        const updatedDocs = [...(staff.documents || [])];
         updatedDocs[docIndex] = {
           ...updatedDocs[docIndex],
           status: newStatus
@@ -506,7 +321,7 @@ export default function HrDashboard() {
         return { ...staff, documents: updatedDocs };
       }
       return staff;
-    });
+    }));
 
     alert(`Document status updated to "${newStatus}"`);
   };
@@ -764,7 +579,7 @@ export default function HrDashboard() {
               <section className="p-6 bg-gradient-to-r from-cyan-600/30 via-blue-500/20 to-indigo-700/30 rounded-xl shadow-md border border-cyan-800/40">
                 <h2 className="text-xl font-bold text-white mb-6">Staff Directory</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {staffMembers.map(staff => (
+                  {staffMembers && staffMembers.length > 0 ? staffMembers.map(staff => (
                     <div key={staff.id} className="bg-white/10 p-4 rounded-lg border border-blue-400/30">
                     <div className="flex justify-between items-center mb-3">
                         <h3 className="text-lg font-semibold text-white">{staff.name}</h3>
@@ -794,7 +609,11 @@ export default function HrDashboard() {
                       </button>
                     </div>
                   </div>
-                  ))}
+                  )) : (
+                    <div className="col-span-full text-center py-8 text-gray-400">
+                      No staff members found. Please add staff members or check your API connection.
+                    </div>
+                  )}
                 </div>
               </section>
 

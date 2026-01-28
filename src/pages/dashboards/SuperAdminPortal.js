@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import SuperAdminSidebar from "../../components/sidebars/SuperAdminSidebar";
 import { superAdminAPI } from "../../lib/api";
 import toast from "react-hot-toast";
@@ -55,7 +56,7 @@ export default function SuperAdminPortal() {
   }, [navigate]);
 
   // Load all clubs for this super admin
-  const { data: clubs = [], isLoading: clubsLoading, error: clubsError } = useQuery({
+  const { data: clubs = [], isLoading: clubsLoading, error: clubsError, refetch: refetchClubs } = useQuery({
     queryKey: ['superAdminClubs'],
     queryFn: superAdminAPI.getClubs,
   });
@@ -68,32 +69,48 @@ export default function SuperAdminPortal() {
   }, [clubs, selectedClubId]);
 
   // Load revenue data for selected club
-  const { data: revenueData, isLoading: revenueLoading } = useQuery({
+  const { data: revenueData, isLoading: revenueLoading, refetch: refetchRevenue } = useQuery({
     queryKey: ['clubRevenue', selectedClubId],
     queryFn: () => superAdminAPI.getClubRevenue(selectedClubId),
     enabled: !!selectedClubId,
   });
 
   // Load players for selected club
-  const { data: playersData, isLoading: playersLoading } = useQuery({
+  const { data: playersData, isLoading: playersLoading, refetch: refetchPlayers } = useQuery({
     queryKey: ['clubPlayers', selectedClubId],
     queryFn: () => superAdminAPI.getAllPlayers(selectedClubId, { limit: 100 }),
     enabled: !!selectedClubId,
   });
 
   // Load pending approval players
-  const { data: pendingPlayers = [], isLoading: pendingLoading } = useQuery({
+  const { data: pendingPlayers = [], isLoading: pendingLoading, refetch: refetchPending } = useQuery({
     queryKey: ['pendingPlayers', selectedClubId],
     queryFn: () => superAdminAPI.getPendingApprovalPlayers(selectedClubId),
     enabled: !!selectedClubId,
   });
 
   // Load suspended players
-  const { data: suspendedPlayers = [], isLoading: suspendedLoading } = useQuery({
+  const { data: suspendedPlayers = [], isLoading: suspendedLoading, refetch: refetchSuspended } = useQuery({
     queryKey: ['suspendedPlayers', selectedClubId],
     queryFn: () => superAdminAPI.getSuspendedPlayers(selectedClubId),
     enabled: !!selectedClubId,
   });
+
+  // Handle refresh for dashboard
+  const handleRefreshDashboard = () => {
+    refetchClubs();
+    if (selectedClubId) {
+      refetchRevenue();
+      refetchPlayers();
+      refetchPending();
+      refetchSuspended();
+      queryClient.invalidateQueries(['clubRevenue', selectedClubId]);
+      queryClient.invalidateQueries(['clubPlayers', selectedClubId]);
+      queryClient.invalidateQueries(['pendingPlayers', selectedClubId]);
+      queryClient.invalidateQueries(['suspendedPlayers', selectedClubId]);
+    }
+    toast.success('Data refreshed!');
+  };
 
   const selectedClub = clubs.find((c) => c.clubId === selectedClubId);
 
@@ -384,7 +401,16 @@ export default function SuperAdminPortal() {
                 <h1 className="text-3xl font-bold text-white">
                   Dashboard - {selectedClub?.clubName || 'Loading...'}
                 </h1>
-                      </div>
+                <button
+                  onClick={handleRefreshDashboard}
+                  disabled={revenueLoading || playersLoading || pendingLoading || suspendedLoading || clubsLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Refresh data"
+                >
+                  <FaSync className={revenueLoading || playersLoading || pendingLoading || suspendedLoading || clubsLoading ? "animate-spin" : ""} />
+                  Refresh
+                </button>
+              </div>
 
               {/* Revenue Cards */}
               {revenueLoading ? (

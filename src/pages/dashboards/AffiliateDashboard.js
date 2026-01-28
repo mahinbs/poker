@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import AffiliateSidebar from "../../components/sidebars/AffiliateSidebar";
 import { affiliateAPI } from "../../lib/api";
 import toast from "react-hot-toast";
@@ -260,7 +261,9 @@ function ReferralPlayersView({ clubId, affiliateId }) {
     endDate: "",
   });
 
-  const { data: playersData, isLoading } = useQuery({
+  const queryClient = useQueryClient();
+
+  const { data: playersData, isLoading, refetch: refetchReferrals } = useQuery({
     queryKey: ["affiliate-referrals", clubId, affiliateId, currentPage, filters],
     queryFn: () => affiliateAPI.getAffiliateReferrals(clubId, affiliateId, {
       search: filters.search,
@@ -270,6 +273,13 @@ function ReferralPlayersView({ clubId, affiliateId }) {
     }),
     enabled: !!clubId && !!affiliateId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchReferrals();
+    queryClient.invalidateQueries(["affiliate-referrals", clubId, affiliateId]);
+    toast.success('Referral data refreshed!');
+  };
 
   const formatCurrency = (value) => `₹${(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const formatDate = (dateString) => {
@@ -307,7 +317,18 @@ function ReferralPlayersView({ clubId, affiliateId }) {
 
   return (
     <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-xl">
-      <h2 className="text-2xl font-bold text-white mb-6">My Referral Players</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-white">My Referral Players</h2>
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh referral data"
+        >
+          <FaSync className={isLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
       
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -439,6 +460,7 @@ function ReferralPlayersView({ clubId, affiliateId }) {
 
 // Transactions Component
 function TransactionsView({ clubId, affiliateId }) {
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState({
     search: "",
@@ -446,7 +468,7 @@ function TransactionsView({ clubId, affiliateId }) {
     endDate: "",
   });
 
-  const { data: transactionsData, isLoading } = useQuery({
+  const { data: transactionsData, isLoading, refetch: refetchTransactions } = useQuery({
     queryKey: ["affiliate-transactions", clubId, affiliateId, currentPage, filters],
     queryFn: () => affiliateAPI.getAffiliateTransactions(clubId, {
       page: currentPage,
@@ -456,6 +478,13 @@ function TransactionsView({ clubId, affiliateId }) {
     }),
     enabled: !!clubId && !!affiliateId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchTransactions();
+    queryClient.invalidateQueries(["affiliate-transactions", clubId, affiliateId]);
+    toast.success('Transaction data refreshed!');
+  };
 
   const formatCurrency = (value) => `₹${(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const formatDate = (dateString) => {
@@ -476,7 +505,18 @@ function TransactionsView({ clubId, affiliateId }) {
 
   return (
     <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-xl">
-      <h2 className="text-2xl font-bold text-white mb-6">My Transactions</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-white">My Transactions</h2>
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh transaction data"
+        >
+          <FaSync className={isLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
       
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

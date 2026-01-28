@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { payrollAPI } from "../lib/api";
 import toast from "react-hot-toast";
 
@@ -47,14 +48,14 @@ export default function DealerTips({ selectedClubId }) {
   });
 
   // Get dealers
-  const { data: dealersData } = useQuery({
+  const { data: dealersData, refetch: refetchDealers } = useQuery({
     queryKey: ["payroll-dealers", selectedClubId],
     queryFn: () => payrollAPI.getDealersForPayroll(selectedClubId),
     enabled: !!selectedClubId,
   });
 
   // Get tip settings for selected dealer (when modal is open)
-  const { data: settingsData } = useQuery({
+  const { data: settingsData, refetch: refetchSettings } = useQuery({
     queryKey: ["tip-settings", selectedClubId, selectedDealer?.id],
     queryFn: () => payrollAPI.getTipSettings(selectedClubId, selectedDealer?.id),
     enabled: !!selectedClubId && !!selectedDealer && showTipsModal,
@@ -72,7 +73,7 @@ export default function DealerTips({ selectedClubId }) {
   }, [settingsData]);
 
   // Get dealer tips with pagination
-  const { data: tipsData, isLoading: tipsLoading } = useQuery({
+  const { data: tipsData, isLoading: tipsLoading, refetch: refetchTips } = useQuery({
     queryKey: ["dealer-tips", selectedClubId, currentTipsPage, tipsFilters],
     queryFn: () =>
       payrollAPI.getDealerTips(selectedClubId, {
@@ -84,7 +85,7 @@ export default function DealerTips({ selectedClubId }) {
   });
 
   // Get dealer cashouts with pagination
-  const { data: cashoutsData, isLoading: cashoutsLoading } = useQuery({
+  const { data: cashoutsData, isLoading: cashoutsLoading, refetch: refetchCashouts } = useQuery({
     queryKey: ["dealer-cashouts", selectedClubId, currentCashoutPage, cashoutFilters],
     queryFn: () =>
       payrollAPI.getDealerCashouts(selectedClubId, {
@@ -94,6 +95,23 @@ export default function DealerTips({ selectedClubId }) {
       }),
     enabled: !!selectedClubId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchDealers();
+    if (activeTab === "tips") {
+      refetchTips();
+    } else if (activeTab === "cashout") {
+      refetchCashouts();
+    }
+    if (showTipsModal && selectedDealer) {
+      refetchSettings();
+    }
+    queryClient.invalidateQueries(["dealer-tips", selectedClubId]);
+    queryClient.invalidateQueries(["dealer-cashouts", selectedClubId]);
+    queryClient.invalidateQueries(["payroll-dealers", selectedClubId]);
+    toast.success('Tips data refreshed!');
+  };
 
   // Update tip settings mutation
   const updateSettingsMutation = useMutation({
@@ -234,6 +252,15 @@ export default function DealerTips({ selectedClubId }) {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Dealer Tips Management</h2>
+        <button
+          onClick={handleRefresh}
+          disabled={tipsLoading || cashoutsLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh data"
+        >
+          <FaSync className={tipsLoading || cashoutsLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
       </div>
 
       {/* Tabs */}

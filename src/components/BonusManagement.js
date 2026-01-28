@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { bonusAPI } from "../lib/api";
 import toast from "react-hot-toast";
 
@@ -30,6 +31,19 @@ export default function BonusManagement({ selectedClubId }) {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-white">Bonus Management</h1>
+        <button
+          onClick={() => {
+            queryClient.invalidateQueries(["player-bonuses", selectedClubId]);
+            queryClient.invalidateQueries(["staff-bonuses", selectedClubId]);
+            queryClient.invalidateQueries(["bonus-players", selectedClubId]);
+            toast.success('Data refreshed!');
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-medium transition-colors"
+          title="Refresh data"
+        >
+          <FaSync />
+          Refresh
+        </button>
       </div>
 
       {/* Main Tabs */}
@@ -97,14 +111,14 @@ function PlayerBonusTab({ selectedClubId, activeSubTab, setActiveSubTab }) {
   });
 
   // Get players list (KYC approved/verified only) with search
-  const { data: playersData } = useQuery({
+  const { data: playersData, refetch: refetchPlayers } = useQuery({
     queryKey: ["bonus-players", selectedClubId, playerSearch],
     queryFn: () => bonusAPI.getPlayersForBonus(selectedClubId, playerSearch || undefined),
     enabled: !!selectedClubId,
   });
 
   // Get player bonuses with pagination
-  const { data: bonusesData, isLoading } = useQuery({
+  const { data: bonusesData, isLoading, refetch: refetchBonuses } = useQuery({
     queryKey: ["player-bonuses", selectedClubId, currentPage, filters],
     queryFn: () =>
       bonusAPI.getPlayerBonuses(selectedClubId, {
@@ -114,6 +128,15 @@ function PlayerBonusTab({ selectedClubId, activeSubTab, setActiveSubTab }) {
       }),
     enabled: !!selectedClubId && activeSubTab === "history",
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchPlayers();
+    if (activeSubTab === "history") {
+      refetchBonuses();
+    }
+    toast.success('Data refreshed!');
+  };
 
   // Process bonus mutation
   const processMutation = useMutation({

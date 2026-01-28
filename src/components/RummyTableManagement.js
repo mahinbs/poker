@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { FaSync } from 'react-icons/fa';
 import { tablesAPI, waitlistAPI, staffAPI, shiftsAPI } from '../lib/api';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from './TableBuyOutManagement';
@@ -17,7 +18,7 @@ export default function RummyTableManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
 
   // Fetch tables (filter for rummy tables)
-  const { data: tablesData, isLoading: tablesLoading } = useQuery({
+  const { data: tablesData, isLoading: tablesLoading, refetch: refetchTables } = useQuery({
     queryKey: ['rummy-tables', selectedClubId],
     queryFn: () => tablesAPI.getTables(selectedClubId),
     enabled: !!selectedClubId,
@@ -28,11 +29,20 @@ export default function RummyTableManagement({ selectedClubId }) {
   });
 
   // Fetch waitlist
-  const { data: waitlistData, isLoading: waitlistLoading } = useQuery({
+  const { data: waitlistData, isLoading: waitlistLoading, refetch: refetchWaitlist } = useQuery({
     queryKey: ['waitlist', selectedClubId],
     queryFn: () => waitlistAPI.getWaitlist(selectedClubId),
     enabled: !!selectedClubId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchTables();
+    refetchWaitlist();
+    queryClient.invalidateQueries(['rummy-tables', selectedClubId]);
+    queryClient.invalidateQueries(['waitlist', selectedClubId]);
+    toast.success('Rummy table data refreshed!');
+  };
 
   const tables = tablesData || [];
   const waitlist = waitlistData || [];
@@ -46,7 +56,18 @@ export default function RummyTableManagement({ selectedClubId }) {
 
   return (
     <div className="text-white space-y-6">
-      <h1 className="text-3xl font-bold">Rummy Tables & Waitlist</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Rummy Tables & Waitlist</h1>
+        <button
+          onClick={handleRefresh}
+          disabled={tablesLoading || waitlistLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh table data"
+        >
+          <FaSync className={tablesLoading || waitlistLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
 
       {!selectedClubId && (
         <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 text-yellow-100 flex items-center gap-3">

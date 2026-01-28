@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '../lib/api';
-import { FaSearch, FaFilter, FaChartBar } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaChartBar, FaSync } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 
 export default function AuditLogsBackups({ clubId }) {
   const [page, setPage] = useState(1);
@@ -15,22 +16,31 @@ export default function AuditLogsBackups({ clubId }) {
   const [activeFilters, setActiveFilters] = useState({});
   const [showFilters, setShowFilters] = useState(false);
 
+  const queryClient = useQueryClient();
+
   // Fetch audit logs
-  const { data: logsData, isLoading, refetch } = useQuery({
-    queryKey: ['auditLogs', clubId, page, activeFilters],
+  const { data: logsData, isLoading, refetch: refetchLogs } = useQuery({
+    queryKey: ['auditLogs', clubId, page, JSON.stringify(activeFilters)],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: '10',
-        ...activeFilters,
       });
-      return await apiRequest(`/clubs/${clubId}/audit-logs?${params}`);
+      
+      // Only add non-empty filter values to params
+      Object.entries(activeFilters).forEach(([key, value]) => {
+        if (value && value.toString().trim() !== '') {
+          params.append(key, value.toString().trim());
+        }
+      });
+      
+      return await apiRequest(`/clubs/${clubId}/audit-logs?${params.toString()}`);
     },
     enabled: !!clubId
   });
 
   // Fetch statistics
-  const { data: stats } = useQuery({
+  const { data: stats, refetch: refetchStats } = useQuery({
     queryKey: ['auditLogStats', clubId],
     queryFn: async () => {
       return await apiRequest(`/clubs/${clubId}/audit-logs/statistics?days=30`);
@@ -38,17 +48,39 @@ export default function AuditLogsBackups({ clubId }) {
     enabled: !!clubId
   });
 
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchLogs();
+    refetchStats();
+    queryClient.invalidateQueries(['auditLogs', clubId]);
+    queryClient.invalidateQueries(['auditLogStats', clubId]);
+    toast.success('Audit logs refreshed!');
+  };
+
   const handleApplyFilters = () => {
+    // Validate date range
+    if (filters.startDate && filters.endDate && filters.startDate > filters.endDate) {
+      alert('End date must be after start date');
+      return;
+    }
+    
     const applied = {};
-    if (filters.search) applied.search = filters.search;
-    if (filters.category) applied.category = filters.category;
-    if (filters.staffRole) applied.staffRole = filters.staffRole;
+    if (filters.search && filters.search.trim()) applied.search = filters.search.trim();
+    if (filters.category && filters.category.trim()) applied.category = filters.category.trim();
+    if (filters.staffRole && filters.staffRole.trim()) applied.staffRole = filters.staffRole.trim();
     if (filters.startDate) applied.startDate = filters.startDate;
     if (filters.endDate) applied.endDate = filters.endDate;
     
     setActiveFilters(applied);
     setPage(1);
     setShowFilters(false);
+  };
+  
+  // Handle search on Enter key
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleApplyFilters();
+    }
   };
 
   const handleClearFilters = () => {
@@ -108,8 +140,21 @@ export default function AuditLogsBackups({ clubId }) {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-white mb-2">Audit Logs & Backups</h1>
-        <p className="text-gray-400">Track all staff activities and system events</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">Audit Logs & Backups</h1>
+            <p className="text-gray-400">Track all staff activities and system events</p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh audit logs"
+          >
+            <FaSync className={isLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -157,6 +202,7 @@ export default function AuditLogsBackups({ clubId }) {
                 type="text"
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                onKeyPress={handleSearchKeyPress}
                 placeholder="Search by name or description..."
                 className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
@@ -173,6 +219,7 @@ export default function AuditLogsBackups({ clubId }) {
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                max={filters.endDate || undefined}
                 className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
@@ -184,6 +231,7 @@ export default function AuditLogsBackups({ clubId }) {
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                min={filters.startDate || undefined}
                 className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
@@ -210,9 +258,9 @@ export default function AuditLogsBackups({ clubId }) {
           {Object.keys(activeFilters).length > 0 && (
             <button
               onClick={handleClearFilters}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
             >
-              Clear
+              Clear All Filters
             </button>
           )}
         </div>
@@ -252,6 +300,105 @@ export default function AuditLogsBackups({ clubId }) {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+        )}
+        
+        {/* Active Filters Display */}
+        {Object.keys(activeFilters).length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-700">
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-gray-400">Active filters:</span>
+              {activeFilters.search && (
+                <span className="px-3 py-1 bg-purple-600/30 text-purple-300 rounded-full text-sm flex items-center gap-2">
+                  Search: "{activeFilters.search}"
+                  <button
+                    onClick={() => {
+                      const newFilters = { ...filters, search: '' };
+                      const newActive = { ...activeFilters };
+                      delete newActive.search;
+                      setFilters(newFilters);
+                      setActiveFilters(newActive);
+                      setPage(1);
+                    }}
+                    className="hover:text-purple-100"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {activeFilters.category && (
+                <span className="px-3 py-1 bg-blue-600/30 text-blue-300 rounded-full text-sm flex items-center gap-2">
+                  Category: {categories.find(c => c.value === activeFilters.category)?.label || activeFilters.category}
+                  <button
+                    onClick={() => {
+                      const newFilters = { ...filters, category: '' };
+                      const newActive = { ...activeFilters };
+                      delete newActive.category;
+                      setFilters(newFilters);
+                      setActiveFilters(newActive);
+                      setPage(1);
+                    }}
+                    className="hover:text-blue-100"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {activeFilters.staffRole && (
+                <span className="px-3 py-1 bg-green-600/30 text-green-300 rounded-full text-sm flex items-center gap-2">
+                  Role: {roles.find(r => r.value === activeFilters.staffRole)?.label || activeFilters.staffRole}
+                  <button
+                    onClick={() => {
+                      const newFilters = { ...filters, staffRole: '' };
+                      const newActive = { ...activeFilters };
+                      delete newActive.staffRole;
+                      setFilters(newFilters);
+                      setActiveFilters(newActive);
+                      setPage(1);
+                    }}
+                    className="hover:text-green-100"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {activeFilters.startDate && (
+                <span className="px-3 py-1 bg-orange-600/30 text-orange-300 rounded-full text-sm flex items-center gap-2">
+                  From: {activeFilters.startDate}
+                  <button
+                    onClick={() => {
+                      const newFilters = { ...filters, startDate: '' };
+                      const newActive = { ...activeFilters };
+                      delete newActive.startDate;
+                      setFilters(newFilters);
+                      setActiveFilters(newActive);
+                      setPage(1);
+                    }}
+                    className="hover:text-orange-100"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {activeFilters.endDate && (
+                <span className="px-3 py-1 bg-pink-600/30 text-pink-300 rounded-full text-sm flex items-center gap-2">
+                  To: {activeFilters.endDate}
+                  <button
+                    onClick={() => {
+                      const newFilters = { ...filters, endDate: '' };
+                      const newActive = { ...activeFilters };
+                      delete newActive.endDate;
+                      setFilters(newFilters);
+                      setActiveFilters(newActive);
+                      setPage(1);
+                    }}
+                    className="hover:text-pink-100"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
             </div>
           </div>
         )}

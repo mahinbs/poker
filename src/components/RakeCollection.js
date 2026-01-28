@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { clubsAPI } from "../lib/api";
 import toast from "react-hot-toast";
 
@@ -22,21 +23,21 @@ export default function RakeCollection({ clubId }) {
   });
 
   // Fetch active tables
-  const { data: activeTables = [], isLoading: tablesLoading } = useQuery({
+  const { data: activeTables = [], isLoading: tablesLoading, refetch: refetchTables } = useQuery({
     queryKey: ['activeTablesForRake', clubId],
     queryFn: () => clubsAPI.getActiveTablesForRakeCollection(clubId),
     enabled: !!clubId,
   });
 
   // Fetch rake collections history
-  const { data: historyData, isLoading: historyLoading } = useQuery({
+  const { data: historyData, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
     queryKey: ['rakeCollections', clubId, historyFilters],
     queryFn: () => clubsAPI.getRakeCollections(clubId, historyFilters),
     enabled: !!clubId,
   });
 
   // Fetch stats
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
     queryKey: ['rakeCollectionStats', clubId, historyFilters.startDate, historyFilters.endDate],
     queryFn: () => clubsAPI.getRakeCollectionStats(
       clubId,
@@ -45,6 +46,17 @@ export default function RakeCollection({ clubId }) {
     ),
     enabled: !!clubId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchTables();
+    refetchHistory();
+    refetchStats();
+    queryClient.invalidateQueries(['activeTablesForRake', clubId]);
+    queryClient.invalidateQueries(['rakeCollections', clubId]);
+    queryClient.invalidateQueries(['rakeCollectionStats', clubId]);
+    toast.success('Rake data refreshed!');
+  };
 
   // Create rake collection mutation
   const createMutation = useMutation({
@@ -118,6 +130,19 @@ export default function RakeCollection({ clubId }) {
 
   return (
     <div className="space-y-6">
+      {/* Header with Refresh */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={handleRefresh}
+          disabled={tablesLoading || historyLoading || statsLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh rake data"
+        >
+          <FaSync className={tablesLoading || historyLoading || statsLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
+
       {/* Collect Rake Section */}
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
         <h2 className="text-2xl font-bold mb-6 text-white">Collect Rake from Table</h2>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { shiftsAPI } from "../lib/api";
 import toast from "react-hot-toast";
 import { formatDateIST, toDateIST, toDateTimeLocalIST } from "../utils/dateUtils";
@@ -24,14 +25,14 @@ export default function ShiftManagement({ selectedClubId }) {
   });
 
   // Get dealers list (all dealers)
-  const { data: dealersData } = useQuery({
+  const { data: dealersData, refetch: refetchDealers } = useQuery({
     queryKey: ["dealers", selectedClubId],
     queryFn: () => shiftsAPI.getDealers(selectedClubId),
     enabled: !!selectedClubId,
   });
 
   // Get dealers filtered by date (for shift creation modal)
-  const { data: dealersForDate } = useQuery({
+  const { data: dealersForDate, refetch: refetchDealersForDate } = useQuery({
     queryKey: ["dealers", selectedClubId, shiftForm.shiftDate],
     queryFn: () => shiftsAPI.getDealers(selectedClubId, shiftForm.shiftDate),
     enabled: !!selectedClubId && !!shiftForm.shiftDate,
@@ -62,7 +63,7 @@ export default function ShiftManagement({ selectedClubId }) {
   };
 
   // Get shifts for the current view
-  const { data: shiftsData, isLoading } = useQuery({
+  const { data: shiftsData, isLoading, refetch: refetchShifts } = useQuery({
     queryKey: ["shifts", selectedClubId, selectedDate, viewMode],
     queryFn: () => {
       const { startDate, endDate } = getDateRange();
@@ -74,6 +75,18 @@ export default function ShiftManagement({ selectedClubId }) {
     },
     enabled: !!selectedClubId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchDealers();
+    refetchShifts();
+    if (shiftForm.shiftDate) {
+      refetchDealersForDate();
+    }
+    queryClient.invalidateQueries(["dealers", selectedClubId]);
+    queryClient.invalidateQueries(["shifts", selectedClubId]);
+    toast.success('Shift data refreshed!');
+  };
 
   // Create shift mutation
   const createMutation = useMutation({
@@ -296,6 +309,17 @@ export default function ShiftManagement({ selectedClubId }) {
   return (
     <div className="space-y-6">
       {/* Header */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh shift data"
+        >
+          <FaSync className={isLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-white">Shift Management</h1>
         <div className="flex gap-3">

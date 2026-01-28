@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { superAdminAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
@@ -15,7 +16,7 @@ export default function CreditManagement({ selectedClubId }) {
   const [rejectReason, setRejectReason] = useState("");
 
   // Fetch all KYC approved players with credit info
-  const { data: playersData = [], isLoading: playersLoading } = useQuery({
+  const { data: playersData = [], isLoading: playersLoading, refetch: refetchPlayers } = useQuery({
     queryKey: ["creditPlayers", selectedClubId],
     queryFn: async () => {
       if (!selectedClubId) return [];
@@ -61,11 +62,22 @@ export default function CreditManagement({ selectedClubId }) {
   });
 
   // Fetch pending credit requests
-  const { data: creditRequests = [], isLoading: requestsLoading } = useQuery({
+  const { data: creditRequests = [], isLoading: requestsLoading, refetch: refetchRequests } = useQuery({
     queryKey: ["creditRequests", selectedClubId],
     queryFn: () => superAdminAPI.getCreditRequests(selectedClubId, 'Pending'),
     enabled: !!selectedClubId && activeTab === 'credit-requests',
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchPlayers();
+    if (activeTab === 'credit-requests') {
+      refetchRequests();
+    }
+    queryClient.invalidateQueries(["creditPlayers", selectedClubId]);
+    queryClient.invalidateQueries(["creditRequests", selectedClubId]);
+    toast.success('Credit data refreshed!');
+  };
 
   // Unlock credit feature mutation
   const unlockCreditMutation = useMutation({
@@ -161,8 +173,21 @@ export default function CreditManagement({ selectedClubId }) {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white mb-2">Credit Feature Management</h1>
-        <p className="text-gray-400">Ultimate control: players, staff, credit, overrides and more</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Credit Feature Management</h1>
+            <p className="text-gray-400">Ultimate control: players, staff, credit, overrides and more</p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={playersLoading || requestsLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh credit data"
+          >
+            <FaSync className={playersLoading || requestsLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

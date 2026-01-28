@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { superAdminAPI } from "../lib/api";
 import toast from "react-hot-toast";
 import { formatDateReadableIST, formatDateIST } from "../utils/dateUtils";
@@ -11,12 +12,19 @@ export default function NotificationsInbox({ selectedClubId, recipientType = "st
   const itemsPerPage = 10;
 
   // Fetch notifications
-  const { data: notificationsData, isLoading } = useQuery({
+  const { data: notificationsData, isLoading, refetch: refetchNotifications } = useQuery({
     queryKey: ["notificationInbox", selectedClubId, recipientType],
     queryFn: () => superAdminAPI.getNotificationInbox(selectedClubId, recipientType),
     enabled: !!selectedClubId,
     refetchInterval: 30000, // Refetch every 30 seconds
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchNotifications();
+    queryClient.invalidateQueries(["unreadNotificationCount", selectedClubId, recipientType]);
+    toast.success('Notifications refreshed!');
+  };
 
   const notifications = notificationsData?.notifications || [];
   const total = notificationsData?.total || 0;
@@ -100,15 +108,26 @@ export default function NotificationsInbox({ selectedClubId, recipientType = "st
             {sortedNotifications.length} total
           </p>
         </div>
-        {unreadCount > 0 && (
+        <div className="flex gap-3">
           <button
-            onClick={() => markAllAsReadMutation.mutate()}
-            disabled={markAllAsReadMutation.isPending}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh notifications"
           >
-            Mark All as Read
+            <FaSync className={isLoading ? "animate-spin" : ""} />
+            Refresh
           </button>
-        )}
+          {unreadCount > 0 && (
+            <button
+              onClick={() => markAllAsReadMutation.mutate()}
+              disabled={markAllAsReadMutation.isPending}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
+            >
+              Mark All as Read
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Notifications List */}

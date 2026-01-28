@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import CashierSidebar from "../../components/sidebars/CashierSidebar";
 import { clubsAPI, playersAPI, tablesAPI, tournamentsAPI } from "../../lib/api";
 import toast from "react-hot-toast";
@@ -441,7 +442,7 @@ export default function CashierDashboard() {
   }, [navigate]);
 
   // Load club info
-  const { data: club, isLoading: clubLoading } = useQuery({
+  const { data: club, isLoading: clubLoading, refetch: refetchClub } = useQuery({
     queryKey: ['club', clubId],
     queryFn: () => clubsAPI.getClub(clubId),
     enabled: !!clubId,
@@ -471,12 +472,21 @@ export default function CashierDashboard() {
   }, [navigate]);
 
   // Load revenue data for club
-  const { data: revenueData, isLoading: revenueLoading } = useQuery({
+  const { data: revenueData, isLoading: revenueLoading, refetch: refetchRevenue } = useQuery({
     queryKey: ['clubRevenue', clubId],
     queryFn: () => clubsAPI.getClubRevenue(clubId),
     enabled: !!clubId,
     refetchInterval: 30000, // Refetch every 30 seconds
   });
+
+  // Handle refresh for dashboard
+  const handleRefreshDashboard = () => {
+    refetchRevenue();
+    refetchClub();
+    queryClient.invalidateQueries(['clubRevenue', clubId]);
+    queryClient.invalidateQueries(['club', clubId]);
+    toast.success('Data refreshed!');
+  };
 
   // Handle sign out
   const handleSignOut = () => {
@@ -677,7 +687,16 @@ export default function CashierDashboard() {
                 <h1 className="text-3xl font-bold text-white">
                   Dashboard - {clubInfo?.name || club?.name || 'Loading...'}
                 </h1>
-                      </div>
+                <button
+                  onClick={handleRefreshDashboard}
+                  disabled={revenueLoading || clubLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Refresh data"
+                >
+                  <FaSync className={revenueLoading || clubLoading ? "animate-spin" : ""} />
+                  Refresh
+                </button>
+              </div>
 
               {/* My Shifts Widget */}
               {clubId && <MyShiftsDashboard selectedClubId={clubId} />}

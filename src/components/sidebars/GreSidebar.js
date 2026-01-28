@@ -183,15 +183,10 @@ export default function GreSidebar({
             </div>
             <div 
               onClick={() => setShowResetPassword(true)}
-              className="flex items-center text-white min-w-0 cursor-pointer hover:opacity-90 transition-opacity p-2 -m-2 rounded-lg"
+              className="bg-white/10 rounded-xl p-4 mb-6 text-white shadow-inner cursor-pointer hover:bg-white/15 transition-colors"
             >
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                <span className="text-gray-900 font-bold text-sm">G</span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-lg font-semibold truncate">{displayName}</div>
-                <div className="text-sm opacity-80 truncate">{userEmail}</div>
-              </div>
+              <div className="text-lg font-semibold">{displayName}</div>
+              <div className="text-sm opacity-80">{userEmail}</div>
             </div>
             
             {/* Reset Password Modal - Rendered via Portal */}
@@ -250,7 +245,7 @@ export default function GreSidebar({
                 }}
                 className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md overflow-hidden ${
                   activeItem === item
-                    ? "bg-gradient-to-r from-blue-400 to-indigo-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
+                    ? "bg-gradient-to-r from-blue-400 to-indigo-600 text-white font-bold shadow-lg scale-[1.02]"
                     : "bg-white/5 hover:bg-gradient-to-r hover:from-blue-400/20 hover:to-indigo-500/20 text-white"
                 }`}
               >

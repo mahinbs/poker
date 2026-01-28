@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { superAdminAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
@@ -229,14 +230,14 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
   const [balanceValidation, setBalanceValidation] = useState(null);
 
   // Get player balance for cash-out
-  const { data: playerBalance } = useQuery({
+  const { data: playerBalance, refetch: refetchPlayerBalance } = useQuery({
     queryKey: ["playerBalance", selectedClubId, selectedPlayerCashOut?.id],
     queryFn: () => superAdminAPI.getPlayerBalance(selectedClubId, selectedPlayerCashOut.id),
     enabled: !!selectedClubId && !!selectedPlayerCashOut,
   });
 
   // Get recent buy-ins
-  const { data: recentBuyIns = [] } = useQuery({
+  const { data: recentBuyIns = [], refetch: refetchRecentBuyIns } = useQuery({
     queryKey: ["recentBuyIns", selectedClubId],
     queryFn: async () => {
       const transactions = await superAdminAPI.getTransactions(selectedClubId);
@@ -248,7 +249,7 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
   });
 
   // Get transaction history with filters and pagination
-  const { data: transactionHistory, isLoading: historyLoading } = useQuery({
+  const { data: transactionHistory, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
     queryKey: ["transactionHistory", selectedClubId, historyPage, historyFilters],
     queryFn: async () => {
       const allTransactions = await superAdminAPI.getTransactions(selectedClubId);
@@ -305,7 +306,7 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
   });
 
   // Get players with available balance for cash-out (only approved KYC verified)
-  const { data: playersWithBalance = [] } = useQuery({
+  const { data: playersWithBalance = [], refetch: refetchPlayersWithBalance } = useQuery({
     queryKey: ["playersWithBalance", selectedClubId],
     queryFn: async () => {
       if (!selectedClubId) return [];
@@ -557,12 +558,44 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
     });
   };
 
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchRecentBuyIns();
+    if (activeTab === 'history') {
+      refetchHistory();
+    }
+    if (activeTab === 'cash-out') {
+      refetchPlayersWithBalance();
+      if (selectedPlayerCashOut) {
+        refetchPlayerBalance();
+      }
+    }
+    queryClient.invalidateQueries(["recentBuyIns", selectedClubId]);
+    queryClient.invalidateQueries(["transactionHistory", selectedClubId]);
+    queryClient.invalidateQueries(["playersWithBalance", selectedClubId]);
+    queryClient.invalidateQueries(["playerBalance", selectedClubId]);
+    toast.success('Transaction data refreshed!');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white mb-2">Club Buy-In & Cash Out</h1>
-        <p className="text-gray-400">Manage player transactions and balance updates</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Club Buy-In & Cash Out</h1>
+            <p className="text-gray-400">Manage player transactions and balance updates</p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={historyLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh transaction data"
+          >
+            <FaSync className={historyLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

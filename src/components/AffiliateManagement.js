@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { affiliateAPI } from "../lib/api";
 import toast from "react-hot-toast";
 
@@ -37,7 +38,7 @@ export default function AffiliateManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
 
   // Get affiliates list with pagination
-  const { data: affiliatesData, isLoading: affiliatesLoading } = useQuery({
+  const { data: affiliatesData, isLoading: affiliatesLoading, refetch: refetchAffiliates } = useQuery({
     queryKey: ["affiliates", selectedClubId, currentPage, filters],
     queryFn: () =>
       affiliateAPI.getAffiliates(selectedClubId, {
@@ -49,7 +50,7 @@ export default function AffiliateManagement({ selectedClubId }) {
   });
 
   // Get affiliate referrals
-  const { data: referralsData, isLoading: referralsLoading } = useQuery({
+  const { data: referralsData, isLoading: referralsLoading, refetch: refetchReferrals } = useQuery({
     queryKey: ["affiliate-referrals", selectedAffiliate?.id, referralSearch, referralKycFilter],
     queryFn: () =>
       affiliateAPI.getAffiliateReferrals(selectedClubId, selectedAffiliate?.id, {
@@ -60,7 +61,7 @@ export default function AffiliateManagement({ selectedClubId }) {
   });
 
   // Get affiliate transactions
-  const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
+  const { data: transactionsData, isLoading: transactionsLoading, refetch: refetchTransactions } = useQuery({
     queryKey: ["affiliate-transactions", selectedClubId, transactionPage, transactionFilters],
     queryFn: () =>
       affiliateAPI.getAffiliateTransactions(selectedClubId, {
@@ -70,6 +71,19 @@ export default function AffiliateManagement({ selectedClubId }) {
       }),
     enabled: !!selectedClubId && activeTab === "payments",
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    if (activeTab === "list") {
+      refetchAffiliates();
+    } else if (activeTab === "payments") {
+      refetchTransactions();
+    }
+    if (showReferralsModal) {
+      refetchReferrals();
+    }
+    toast.success('Data refreshed!');
+  };
 
   // Process payment mutation
   const processPaymentMutation = useMutation({
@@ -163,6 +177,15 @@ export default function AffiliateManagement({ selectedClubId }) {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Affiliate Management</h2>
+        <button
+          onClick={handleRefresh}
+          disabled={affiliatesLoading || transactionsLoading || referralsLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh data"
+        >
+          <FaSync className={affiliatesLoading || transactionsLoading || referralsLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
       </div>
 
       {/* Tabs */}

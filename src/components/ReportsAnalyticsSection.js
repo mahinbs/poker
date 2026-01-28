@@ -366,17 +366,8 @@ export default function ReportsAnalyticsSection({
               setSelectedReportType("daily_transactions");
               setReportDateRange({ start: today, end: today });
               setTimeout(() => {
-                const mockData = [
-                  [
-                    "Date",
-                    "Total Transactions",
-                    "Revenue",
-                    "Deposits",
-                    "Withdrawals",
-                  ],
-                  [today, "45", "₹12,450", "₹25,000", "₹10,000"],
-                ];
-                setReportData(mockData);
+                // Data should be fetched from API
+                setReportData([]);
               }, 100);
             }}
             className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white px-4 py-3 rounded-lg font-semibold shadow"
@@ -389,17 +380,8 @@ export default function ReportsAnalyticsSection({
               setSelectedReportType("daily_rake");
               setReportDateRange({ start: today, end: today });
               setTimeout(() => {
-                const mockData = [
-                  [
-                    "Date",
-                    "Total Rake",
-                    "Tables",
-                    "Average Rake per Table",
-                    "Top Table",
-                  ],
-                  [today, "₹1,245", "8", "₹155.63", "Table 1"],
-                ];
-                setReportData(mockData);
+                // Data should be fetched from API
+                setReportData([]);
               }, 100);
             }}
             className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-400 hover:to-cyan-500 text-white px-4 py-3 rounded-lg font-semibold shadow"
@@ -412,18 +394,8 @@ export default function ReportsAnalyticsSection({
               setSelectedReportType("credit_transactions");
               setReportDateRange({ start: today, end: today });
               setTimeout(() => {
-                const mockData = [
-                  [
-                    "Date",
-                    "Player",
-                    "Type",
-                    "Amount",
-                    "Balance Before",
-                    "Balance After",
-                  ],
-                  [today, "P101", "Credit Granted", "₹50,000", "₹0", "₹50,000"],
-                ];
-                setReportData(mockData);
+                // Data should be fetched from API
+                setReportData([]);
               }, 100);
             }}
             className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white px-4 py-3 rounded-lg font-semibold shadow"
@@ -436,11 +408,8 @@ export default function ReportsAnalyticsSection({
               setSelectedReportType("expenses");
               setReportDateRange({ start: today, end: today });
               setTimeout(() => {
-                const mockData = [
-                  ["Date", "Category", "Description", "Amount", "Approved By"],
-                  [today, "Operations", "Staff Payment", "₹15,000", "Admin"],
-                ];
-                setReportData(mockData);
+                // Data should be fetched from API
+                setReportData([]);
               }, 100);
             }}
             className="bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-400 hover:to-orange-500 text-white px-4 py-3 rounded-lg font-semibold shadow"

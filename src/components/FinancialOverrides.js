@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { financialOverridesAPI } from "../lib/api";
 import toast from "react-hot-toast";
 
@@ -23,7 +24,7 @@ export default function FinancialOverrides({ selectedClubId }) {
   const queryClient = useQueryClient();
 
   // Get all transactions
-  const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
+  const { data: transactionsData, isLoading: transactionsLoading, refetch: refetchTransactions } = useQuery({
     queryKey: ["financial-overrides", selectedClubId, activeTab, staffSubTab, currentPage],
     queryFn: () =>
       financialOverridesAPI.getAllTransactions(selectedClubId, {
@@ -34,6 +35,13 @@ export default function FinancialOverrides({ selectedClubId }) {
       }),
     enabled: !!selectedClubId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchTransactions();
+    queryClient.invalidateQueries(["financial-overrides", selectedClubId]);
+    toast.success('Financial overrides data refreshed!');
+  };
 
   // Edit transaction mutation
   const editMutation = useMutation({
@@ -143,6 +151,15 @@ export default function FinancialOverrides({ selectedClubId }) {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Financial Overrides</h2>
+        <button
+          onClick={handleRefresh}
+          disabled={transactionsLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh transactions"
+        >
+          <FaSync className={transactionsLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
       </div>
 
       {/* Main Tabs */}

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { clubsAPI } from "../lib/api";
+import toast from "react-hot-toast";
 
 // HR-restricted Salary History - Read-only list of salary payments
 export default function SalaryHistoryHR({ selectedClubId }) {
@@ -12,8 +14,10 @@ export default function SalaryHistoryHR({ selectedClubId }) {
     staffId: "",
   });
 
+  const queryClient = useQueryClient();
+
   // Get salary payments (read-only)
-  const { data: paymentsData, isLoading } = useQuery({
+  const { data: paymentsData, isLoading, refetch: refetchPayments } = useQuery({
     queryKey: ["salary-payments", selectedClubId, currentPage, filters],
     queryFn: async () => {
       const result = await clubsAPI.getSalaryPayments(selectedClubId, {
@@ -25,6 +29,13 @@ export default function SalaryHistoryHR({ selectedClubId }) {
     },
     enabled: !!selectedClubId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchPayments();
+    queryClient.invalidateQueries(["salary-payments", selectedClubId]);
+    toast.success('Salary history refreshed!');
+  };
 
   const payments = paymentsData?.payments || [];
   const totalPages = paymentsData?.totalPages || 1;
@@ -42,8 +53,21 @@ export default function SalaryHistoryHR({ selectedClubId }) {
 
   return (
     <div className="text-white space-y-6">
-      <h1 className="text-3xl font-bold">Salary History</h1>
-      <p className="text-gray-400">View-only: Salary payment history for all employees</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Salary History</h1>
+          <p className="text-gray-400">View-only: Salary payment history for all employees</p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh salary history"
+        >
+          <FaSync className={isLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
 
       {!selectedClubId && (
         <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 text-yellow-100">

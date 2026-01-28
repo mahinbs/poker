@@ -420,32 +420,44 @@ export default function GreDashboard() {
   }, [navigate]);
 
   // Fetch players data
-  const { data: playersData, isLoading: playersLoading } = useQuery({
+  const { data: playersData, isLoading: playersLoading, refetch: refetchPlayers } = useQuery({
     queryKey: ['clubPlayers', clubId],
     queryFn: () => playersAPI.getPlayers(clubId),
     enabled: !!clubId,
   });
 
   // Fetch pending players
-  const { data: pendingPlayers = [], isLoading: pendingLoading } = useQuery({
+  const { data: pendingPlayers = [], isLoading: pendingLoading, refetch: refetchPending } = useQuery({
     queryKey: ['pendingPlayers', clubId],
     queryFn: () => playersAPI.getPendingApprovalPlayers(clubId),
     enabled: !!clubId,
   });
 
   // Fetch suspended players
-  const { data: suspendedPlayers = [], isLoading: suspendedLoading } = useQuery({
+  const { data: suspendedPlayers = [], isLoading: suspendedLoading, refetch: refetchSuspended } = useQuery({
     queryKey: ['suspendedPlayers', clubId],
     queryFn: () => playersAPI.getSuspendedPlayers(clubId),
     enabled: !!clubId,
   });
 
   // Fetch club info to check if rummy is enabled
-  const { data: clubInfo } = useQuery({
+  const { data: clubInfo, refetch: refetchClubInfo } = useQuery({
     queryKey: ['club', clubId],
     queryFn: () => clubsAPI.getClub(clubId),
     enabled: !!clubId,
   });
+
+  // Handle refresh for player management
+  const handleRefreshPlayerData = () => {
+    refetchPlayers();
+    refetchPending();
+    refetchSuspended();
+    refetchClubInfo();
+    queryClient.invalidateQueries(['clubPlayers', clubId]);
+    queryClient.invalidateQueries(['pendingPlayers', clubId]);
+    queryClient.invalidateQueries(['suspendedPlayers', clubId]);
+    toast.success('Player data refreshed!');
+  };
 
   // Handle sign out
   const handleSignOut = () => {
@@ -579,30 +591,29 @@ export default function GreDashboard() {
   console.log('[GRE DASHBOARD] Rendering with clubId:', clubId);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <>
       {passwordResetModal}
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <GreSidebar
         activeItem={activeItem}
         setActiveItem={setActiveItem}
         menuItems={menuItems}
         onSignOut={handleSignOut}
       />
-      <main className="lg:pl-80 min-h-screen">
-        <div className="p-6 space-y-6">
-          {/* Debug Banner - Always visible */}
-          <div className="bg-yellow-900/30 border border-yellow-500 rounded-lg p-3 text-yellow-100">
-            <p className="text-sm font-mono">
-              <strong>DEBUG:</strong> Active: {activeItem} | Club: {clubId} | Menu Items: {menuItems.length}
-            </p>
-          </div>
+      <main className="flex-1 p-8 overflow-y-auto">
+        <div className="space-y-6">
           {/* Player Management */}
           {activeItem === "Player Management" && clubId && (() => {
             console.log('[GRE DASHBOARD] Rendering Player Management');
             return (
             <div className="space-y-6">
               <div className="bg-gradient-to-r from-blue-500/20 to-indigo-600/20 rounded-xl p-6 border border-blue-500/30">
-                <h1 className="text-3xl font-bold text-white mb-2">Player Management</h1>
-                <p className="text-gray-300">Manage player profiles, approvals, and suspensions</p>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">Player Management</h1>
+                    <p className="text-gray-300">Manage player profiles, approvals, and suspensions</p>
+                  </div>
+                </div>
               </div>
               <UnifiedPlayerManagement
                 selectedClubId={clubId}
@@ -612,11 +623,7 @@ export default function GreDashboard() {
                 pendingLoading={pendingLoading}
                 suspendedPlayers={suspendedPlayers}
                 suspendedLoading={suspendedLoading}
-                onRefresh={() => {
-                  queryClient.invalidateQueries(['pendingPlayers', clubId]);
-                  queryClient.invalidateQueries(['clubPlayers', clubId]);
-                  queryClient.invalidateQueries(['suspendedPlayers', clubId]);
-                }}
+                onRefresh={handleRefreshPlayerData}
               />
             </div>
             );
@@ -672,5 +679,6 @@ export default function GreDashboard() {
           </div>
         </main>
     </div>
+    </>
   );
 }

@@ -37,13 +37,8 @@ export default function PushNotificationsSection({ registeredPlayers = [] }) {
   const [groupMemberSearch, setGroupMemberSearch] = useState("");
   const [editingGroup, setEditingGroup] = useState(null);
 
-  // Mock staff data for staff groups
-  const mockStaff = [
-    { id: "ST001", name: "Sarah Johnson", role: "Dealer", email: "sarah@example.com" },
-    { id: "ST002", name: "Mike Chen", role: "Cashier", email: "mike@example.com" },
-    { id: "ST003", name: "Emma Davis", role: "Floor Manager", email: "emma@example.com" },
-    { id: "ST004", name: "John Doe", role: "Dealer", email: "john@example.com" }
-  ];
+  // Staff data for staff groups - should be populated from API
+  const [mockStaff, setMockStaff] = useState([]);
 
   // Get available members based on group type
   const getAvailableMembers = () => {

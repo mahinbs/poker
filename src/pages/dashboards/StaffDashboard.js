@@ -153,13 +153,8 @@ export default function StaffDashboard() {
   // Affiliate Dashboard state
   const [copied, setCopied] = useState(false);
   const referralCode = "STAFF2025";
-  const referrals = [
-    { id: 1, name: "Rahul Sharma", joinedAt: "2024-12-10", status: "Active" },
-    { id: 2, name: "Anita Desai", joinedAt: "2024-12-12", status: "Playing" },
-    { id: 3, name: "Vikram Singh", joinedAt: "2024-12-15", status: "Inactive" },
-    { id: 4, name: "Priya Patel", joinedAt: "2024-12-18", status: "Active" },
-    { id: 5, name: "Arjun Kumar", joinedAt: "2024-12-18", status: "Pending Deposit" },
-  ];
+  // Referrals data - should be populated from API
+  const [referrals, setReferrals] = useState([]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralCode);

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { clubsAPI } from "../lib/api";
 import toast from "react-hot-toast";
 
@@ -89,8 +90,23 @@ export default function BuyInRequestManagement({ clubId }) {
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-white">Table Buy-In Requests</h2>
-          <div className="text-sm text-gray-400">
-            {pendingRequests.length} pending request{pendingRequests.length !== 1 ? 's' : ''}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-400">
+              {pendingRequests.length} pending request{pendingRequests.length !== 1 ? 's' : ''}
+            </div>
+            <button
+              onClick={() => {
+                refetch();
+                queryClient.invalidateQueries(['buyInRequests', clubId]);
+                toast.success('Buy-in requests refreshed!');
+              }}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh requests"
+            >
+              <FaSync className={isLoading ? "animate-spin" : ""} />
+              Refresh
+            </button>
           </div>
         </div>
 

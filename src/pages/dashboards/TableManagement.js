@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { FaSync } from 'react-icons/fa';
 import { tablesAPI, waitlistAPI, clubsAPI, staffAPI, shiftsAPI, superAdminAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from '../../components/TableBuyOutManagement';
@@ -17,18 +18,27 @@ export default function TableManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
 
   // Fetch tables
-  const { data: tablesData, isLoading: tablesLoading } = useQuery({
+  const { data: tablesData, isLoading: tablesLoading, refetch: refetchTables } = useQuery({
     queryKey: ['tables', selectedClubId],
     queryFn: () => tablesAPI.getTables(selectedClubId),
     enabled: !!selectedClubId,
   });
 
   // Fetch waitlist
-  const { data: waitlistData, isLoading: waitlistLoading } = useQuery({
+  const { data: waitlistData, isLoading: waitlistLoading, refetch: refetchWaitlist } = useQuery({
     queryKey: ['waitlist', selectedClubId],
     queryFn: () => waitlistAPI.getWaitlist(selectedClubId),
     enabled: !!selectedClubId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchTables();
+    refetchWaitlist();
+    queryClient.invalidateQueries(['tables', selectedClubId]);
+    queryClient.invalidateQueries(['waitlist', selectedClubId]);
+    toast.success('Table data refreshed!');
+  };
 
   const tables = tablesData || [];
   const waitlist = waitlistData || [];
@@ -43,7 +53,9 @@ export default function TableManagement({ selectedClubId }) {
 
   return (
     <div className="text-white space-y-6">
-      <h1 className="text-3xl font-bold">Tables & Waitlist</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Tables & Waitlist</h1>        
+      </div>
 
       {!selectedClubId && (
         <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 text-yellow-100 flex items-center gap-3">
@@ -75,46 +87,111 @@ export default function TableManagement({ selectedClubId }) {
       <div className="mt-6">
         {/* Tab 1: Live Tables */}
         {activeTab === "live-tables" && (
-          <LiveTablesView 
-            selectedClubId={selectedClubId}
-            tables={tables}
-            tablesLoading={tablesLoading}
-          />
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={handleRefresh}
+                disabled={tablesLoading || waitlistLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh live tables data"
+              >
+                <FaSync className={tablesLoading || waitlistLoading ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </div>
+            <LiveTablesView 
+              selectedClubId={selectedClubId}
+              tables={tables}
+              tablesLoading={tablesLoading}
+            />
+          </div>
         )}
 
         {/* Tab 2: Table Management */}
         {activeTab === "table-management" && (
-          <TableManagementView
-            selectedClubId={selectedClubId}
-            tables={tables}
-            tablesLoading={tablesLoading}
-          />
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={handleRefresh}
+                disabled={tablesLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh table management data"
+              >
+                <FaSync className={tablesLoading ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </div>
+            <TableManagementView
+              selectedClubId={selectedClubId}
+              tables={tables}
+              tablesLoading={tablesLoading}
+            />
+          </div>
         )}
 
         {/* Tab 3: Table Buy-In */}
         {activeTab === "table-buy-in" && (
-          <TableBuyInView
-            selectedClubId={selectedClubId}
-            tables={tables}
-            waitlist={waitlist}
-            waitlistLoading={waitlistLoading}
-          />
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={handleRefresh}
+                disabled={tablesLoading || waitlistLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh waitlist & tables"
+              >
+                <FaSync className={tablesLoading || waitlistLoading ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </div>
+            <TableBuyInView
+              selectedClubId={selectedClubId}
+              tables={tables}
+              waitlist={waitlist}
+              waitlistLoading={waitlistLoading}
+            />
+          </div>
         )}
 
         {/* Tab 4: Table Buy-Out */}
         {activeTab === "table-buy-out" && (
-          <TableBuyOutView
-            selectedClubId={selectedClubId}
-            tables={tables}
-          />
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={handleRefresh}
+                disabled={tablesLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh table buy-out data"
+              >
+                <FaSync className={tablesLoading ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </div>
+            <TableBuyOutView
+              selectedClubId={selectedClubId}
+              tables={tables}
+            />
+          </div>
         )}
         
         {/* Tab 5: History */}
         {activeTab === "history" && (
-          <HistoryView
-            selectedClubId={selectedClubId}
-            tables={tables}
-          />
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                onClick={handleRefresh}
+                disabled={tablesLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh history data"
+              >
+                <FaSync className={tablesLoading ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </div>
+            <HistoryView
+              selectedClubId={selectedClubId}
+              tables={tables}
+            />
+          </div>
         )}
       </div>
     </div>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FaSync } from "react-icons/fa";
 import { payrollAPI } from "../lib/api";
 import toast from "react-hot-toast";
 
@@ -28,14 +29,14 @@ export default function EmployeeSalary({ selectedClubId }) {
   });
 
   // Get staff list
-  const { data: staffData } = useQuery({
+  const { data: staffData, refetch: refetchStaff } = useQuery({
     queryKey: ["payroll-staff", selectedClubId],
     queryFn: () => payrollAPI.getAllStaffForPayroll(selectedClubId),
     enabled: !!selectedClubId,
   });
 
   // Get salary payments with pagination
-  const { data: paymentsData, isLoading } = useQuery({
+  const { data: paymentsData, isLoading, refetch: refetchPayments } = useQuery({
     queryKey: ["salary-payments", selectedClubId, currentPage, filters],
     queryFn: () =>
       payrollAPI.getSalaryPayments(selectedClubId, {
@@ -45,6 +46,15 @@ export default function EmployeeSalary({ selectedClubId }) {
       }),
     enabled: !!selectedClubId,
   });
+
+  // Handle refresh
+  const handleRefresh = () => {
+    refetchStaff();
+    refetchPayments();
+    queryClient.invalidateQueries(["salary-payments", selectedClubId]);
+    queryClient.invalidateQueries(["payroll-staff", selectedClubId]);
+    toast.success('Salary data refreshed!');
+  };
 
   // Process salary mutation
   const processMutation = useMutation({
@@ -109,7 +119,18 @@ export default function EmployeeSalary({ selectedClubId }) {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Employee Salary Processing</h2>
-        <div className="text-white">Total Records: {total}</div>
+        <div className="flex items-center gap-4">
+          <div className="text-white">Total Records: {total}</div>
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh data"
+          >
+            <FaSync className={isLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
