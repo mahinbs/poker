@@ -453,7 +453,6 @@ export default function UnifiedPlayerManagement({
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Email</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Phone</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Balance</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">KYC</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Registered</th>
@@ -485,7 +484,6 @@ export default function UnifiedPlayerManagement({
                           <td className="px-6 py-4 text-gray-400">{player.playerId || '-'}</td>
                           <td className="px-6 py-4 text-gray-400">{player.email}</td>
                           <td className="px-6 py-4 text-gray-400">{player.phoneNumber || '-'}</td>
-                          <td className="px-6 py-4 text-gray-400">₹{player.balance || 0}</td>
                           <td className="px-6 py-4">
                             <span
                               className={`px-2 py-1 rounded text-xs font-semibold ${
@@ -1073,7 +1071,7 @@ export default function UnifiedPlayerManagement({
       {/* Success Modal - Player Created */}
       {showSuccessModal && successData && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
-          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-8 max-w-2xl w-full border-2 border-emerald-500 shadow-2xl">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-8 max-w-2xl w-full border-2 border-emerald-500 shadow-2xl max-h-[85vh] overflow-y-auto">
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500 rounded-full mb-4">
                 <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1120,8 +1118,8 @@ export default function UnifiedPlayerManagement({
 
       {/* Player Details Modal */}
       {showPlayerDetailsModal && selectedPlayerForDetails && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 overflow-y-auto">
-          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-8 max-w-4xl w-full border-2 border-purple-500 shadow-2xl my-8">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-8 max-w-4xl w-full border-2 border-purple-500 shadow-2xl my-8 max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-3xl font-bold text-white">Player Details</h2>
               <button
@@ -1360,7 +1358,7 @@ export default function UnifiedPlayerManagement({
       {/* Suspend Player Modal */}
       {showSuspendModal && playerToSuspend && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
-          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-8 max-w-2xl w-full border-2 border-red-500 shadow-2xl">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-8 max-w-2xl w-full border-2 border-red-500 shadow-2xl max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-3xl font-bold text-white">Suspend Player</h2>
               <button

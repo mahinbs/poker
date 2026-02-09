@@ -2090,6 +2090,7 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
   const [selectedSeat, setSelectedSeat] = useState("");
   const [selectedTableForView, setSelectedTableForView] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const itemsPerPage = 10;
 
   // Remove waitlist entry mutation
@@ -2211,10 +2212,40 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
     }
   }, [totalPages, currentPage]);
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['waitlist', selectedClubId] }),
+        queryClient.refetchQueries({ queryKey: ['tables', selectedClubId] }),
+      ]);
+      toast.success('Table Buy-In data refreshed');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-        <h2 className="text-2xl font-bold mb-6">Waitlist Management</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">Waitlist Management</h2>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={waitlistLoading || isRefreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+          >
+            {isRefreshing ? (
+              <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            )}
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Current Waitlist */}
@@ -2605,6 +2636,7 @@ function TableBuyOutView({ selectedClubId, tables }) {
   const [selectedTableForBuyOut, setSelectedTableForBuyOut] = useState("");
   const [buyOutReason, setBuyOutReason] = useState("");
   const [buyOutAmount, setBuyOutAmount] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const queryClient = useQueryClient();
   
   console.log('[PROCESS BUY-OUT] Tables available:', tables);
@@ -2679,10 +2711,41 @@ function TableBuyOutView({ selectedClubId, tables }) {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['seatedPlayersForTable'] }),
+        queryClient.refetchQueries({ queryKey: ['tables', selectedClubId] }),
+        queryClient.refetchQueries({ queryKey: ['waitlist', selectedClubId] }),
+      ]);
+      toast.success('Table Buy-Out data refreshed');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-orange-600/30 via-red-500/20 to-rose-700/30 rounded-xl p-6 border border-orange-800/40">
-        <h2 className="text-2xl font-bold mb-4">Table Buy-Out</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold">Table Buy-Out</h2>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+          >
+            {isRefreshing ? (
+              <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            )}
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
         <p className="text-gray-300 text-sm mb-6">
           Manage player buy-out requests and process manual buy-outs.
         </p>

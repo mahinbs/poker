@@ -445,7 +445,7 @@ export default function ShiftManagement({ selectedClubId }) {
       {/* Create Shift Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-purple-600">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-purple-600 max-h-[85vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-white mb-6">Create New Shift</h2>
 
             <div className="space-y-4">
@@ -551,7 +551,7 @@ export default function ShiftManagement({ selectedClubId }) {
       {/* Edit Shift Modal */}
       {showEditModal && selectedShift && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-blue-600">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-blue-600 max-h-[85vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-white mb-6">Edit Shift</h2>
 
             <div className="space-y-4">

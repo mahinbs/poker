@@ -241,7 +241,7 @@ function TournamentManagementViewOnly({ selectedClubId }) {
       {/* Tournament Details Modal */}
       {selectedTournament && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full border border-slate-700">
+          <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full border border-slate-700 max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-6">
               <h2 className="text-2xl font-bold text-white">{selectedTournament.name || 'Tournament'}</h2>
                             <button 
@@ -364,7 +364,7 @@ function RummyTournamentManagementViewOnly({ selectedClubId }) {
       {/* Tournament Details Modal */}
       {selectedTournament && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full border border-slate-700">
+          <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full border border-slate-700 max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-6">
               <h2 className="text-2xl font-bold text-white">{selectedTournament.name || 'Rummy Tournament'}</h2>
               <button 
@@ -559,7 +559,7 @@ export default function CashierDashboard() {
   // PASSWORD RESET MODAL
   const passwordResetModal = showPasswordResetModal && (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[200]">
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 max-w-md w-full border border-emerald-600 shadow-2xl">
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 max-w-md w-full border border-emerald-600 shadow-2xl max-h-[85vh] overflow-y-auto">
         <div className="text-center mb-6">
           <div className="text-yellow-400 text-5xl mb-3">🔒</div>
           <h2 className="text-2xl font-bold text-white">Password Reset Required</h2>

@@ -353,8 +353,8 @@ export default function VIPStore({ selectedClubId }) {
 // Product Form Modal Component
 function ProductModal({ title, form, setForm, onSubmit, onClose, isLoading }) {
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-slate-800 rounded-xl p-6 max-w-2xl w-full my-8 border border-slate-700">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-800 rounded-xl p-6 max-w-2xl w-full my-8 border border-slate-700 max-h-[85vh] overflow-y-auto">
         <h2 className="text-2xl font-bold text-white mb-6">{title}</h2>
         
         <form onSubmit={onSubmit} className="space-y-4">

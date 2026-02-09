@@ -105,7 +105,7 @@ export default function FnbDashboard() {
   // PASSWORD RESET MODAL
   const passwordResetModal = showPasswordResetModal && (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[200]">
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 max-w-md w-full border border-emerald-600 shadow-2xl">
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 max-w-md w-full border border-emerald-600 shadow-2xl max-h-[85vh] overflow-y-auto">
         <div className="text-center mb-6">
           <div className="text-yellow-400 text-5xl mb-3">🔒</div>
           <h2 className="text-2xl font-bold text-white">Password Reset Required</h2>

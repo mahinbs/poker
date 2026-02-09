@@ -328,7 +328,7 @@ export default function CreditManagement({ selectedClubId }) {
       {/* Unlock Credit Modal */}
       {showUnlockModal && selectedPlayer && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-slate-700">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-slate-700 max-h-[85vh] overflow-y-auto">
             <h3 className="text-2xl font-bold text-white mb-4">Unlock Credit Feature</h3>
             <p className="text-gray-300 mb-4">
               Do you want to unlock the credit feature for <span className="font-semibold text-white">{selectedPlayer.name}</span>?
@@ -376,7 +376,7 @@ export default function CreditManagement({ selectedClubId }) {
       {/* Edit Limit Modal */}
       {showLimitModal && selectedPlayer && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-slate-700">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-slate-700 max-h-[85vh] overflow-y-auto">
             <h3 className="text-2xl font-bold text-white mb-4">Edit Credit Limit</h3>
             <p className="text-gray-300 mb-4">
               Update credit limit for <span className="font-semibold text-white">{selectedPlayer.name}</span>
@@ -426,7 +426,7 @@ export default function CreditManagement({ selectedClubId }) {
       {/* Reject Reason Modal */}
       {showRejectModal && selectedRequest && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-slate-700">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-slate-700 max-h-[85vh] overflow-y-auto">
             <h3 className="text-2xl font-bold text-white mb-4">Reject Credit Request</h3>
             <p className="text-gray-300 mb-4">
               Rejecting request from <span className="font-semibold text-white">{selectedRequest.playerName}</span>
