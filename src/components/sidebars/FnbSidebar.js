@@ -197,7 +197,7 @@ export default function FnbSidebar({
             {/* Reset Password Modal - Rendered via Portal */}
             {showResetPassword && createPortal(
               <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]" onClick={() => setShowResetPassword(false)}>
-                <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 max-w-md w-full mx-4 border border-emerald-600 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 max-w-md w-full mx-4 border border-emerald-600 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                   <div className="text-center mb-6">
                     <div className="text-yellow-400 text-5xl mb-3">🔒</div>
                     <h2 className="text-2xl font-bold text-white">Reset Password</h2>

@@ -355,7 +355,7 @@ export default function FinancialOverrides({ selectedClubId }) {
       {/* Edit Transaction Modal */}
       {showEditModal && selectedTransaction && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-blue-600">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-blue-600 max-h-[85vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-white mb-6">✏️ Edit Transaction</h2>
 
             <div className="bg-blue-900/30 border border-blue-600 rounded-lg p-4 mb-6">
@@ -422,7 +422,7 @@ export default function FinancialOverrides({ selectedClubId }) {
       {/* Cancel Transaction Modal */}
       {showCancelModal && selectedTransaction && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-red-600">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-red-600 max-h-[85vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-white mb-6">❌ Cancel Transaction</h2>
 
             <div className="bg-red-900/30 border border-red-600 rounded-lg p-4 mb-6">

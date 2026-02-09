@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { clubsAPI, superAdminAPI, chatAPI } from "../../lib/api";
+import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
 const DEFAULT_MENU_ITEMS = [
@@ -64,6 +64,18 @@ export default function AdminSidebar({
   });
 
   const totalUnreadChats = (unreadChatData?.staffChats || 0) + (unreadChatData?.playerChats || 0);
+
+  // Fetch pending leave applications count
+  const { data: pendingLeaves = [] } = useQuery({
+    queryKey: ['pendingLeaveApplications', clubId],
+    queryFn: () => leaveAPI.getPendingLeaveApplications(clubId),
+    enabled: !!clubId,
+    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
+    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
+  });
+
+  const pendingLeaveCount = pendingLeaves?.length || 0;
 
   useEffect(() => {
     const handleResize = () => {
@@ -237,7 +249,7 @@ export default function AdminSidebar({
             {/* Reset Password Modal - Rendered via Portal */}
             {showResetPassword && createPortal(
               <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]" onClick={() => setShowResetPassword(false)}>
-                <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 max-w-md w-full mx-4 border border-emerald-600 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 max-w-md w-full mx-4 border border-emerald-600 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                   <div className="text-center mb-6">
                     <div className="text-yellow-400 text-5xl mb-3">🔒</div>
                     <h2 className="text-2xl font-bold text-white">Reset Password</h2>
@@ -350,6 +362,16 @@ export default function AdminSidebar({
                   {item === "Chat" && totalUnreadChats > 0 && (
                     <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
                       {totalUnreadChats > 9 ? "9+" : totalUnreadChats}
+                    </span>
+                  )}
+                  {item === "Staff Management" && pendingLeaveCount > 0 && (
+                    <span className="ml-2 bg-amber-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
+                      {pendingLeaveCount > 9 ? "9+" : pendingLeaveCount}
+                    </span>
+                  )}
+                  {item === "Leave Management" && pendingLeaveCount > 0 && (
+                    <span className="ml-2 bg-amber-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
+                      {pendingLeaveCount > 9 ? "9+" : pendingLeaveCount}
                     </span>
                   )}
                 </span>

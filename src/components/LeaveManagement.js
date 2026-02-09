@@ -76,6 +76,9 @@ export default function LeaveManagement({ clubId }) {
     queryKey: ['leavePolicies', clubId],
     queryFn: () => leaveAPI.getLeavePolicies(clubId),
     enabled: !!clubId && canManagePolicies,
+    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
+    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
   });
 
   // Filters state for my leaves page
@@ -92,6 +95,9 @@ export default function LeaveManagement({ clubId }) {
     queryKey: ['myLeaveApplications', clubId, myLeavesFilters],
     queryFn: () => leaveAPI.getMyLeaveApplications(clubId, myLeavesFilters),
     enabled: !!clubId && canApplyForLeaves,
+    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
+    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
   });
 
   const myLeaves = myLeavesData?.applications || [];
@@ -104,6 +110,9 @@ export default function LeaveManagement({ clubId }) {
     queryKey: ['leaveBalance', clubId],
     queryFn: () => leaveAPI.getLeaveBalance(clubId),
     enabled: !!clubId && canApplyForLeaves,
+    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
+    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
   });
 
   // Filters state for approve leaves page
@@ -122,6 +131,9 @@ export default function LeaveManagement({ clubId }) {
     queryKey: ['leaveApplicationsForApproval', clubId, approveFilters],
     queryFn: () => leaveAPI.getLeaveApplicationsForApproval(clubId, approveFilters),
     enabled: !!clubId && canApprove,
+    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
+    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
   });
 
   const approveLeaves = approveLeavesData?.applications || [];
@@ -134,6 +146,9 @@ export default function LeaveManagement({ clubId }) {
     queryKey: ['pendingLeaveApplications', clubId],
     queryFn: () => leaveAPI.getPendingLeaveApplications(clubId),
     enabled: !!clubId && canApprove,
+    refetchInterval: 10000, // Refetch every 10 seconds for real-time badge updates
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
+    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
   });
 
   // Create leave policy mutation
@@ -180,13 +195,17 @@ export default function LeaveManagement({ clubId }) {
   // Create leave application mutation
   const createLeaveMutation = useMutation({
     mutationFn: (data) => leaveAPI.createLeaveApplication(clubId, data),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Leave application submitted successfully');
       setShowLeaveModal(false);
       setLeaveForm({ startDate: "", endDate: "", reason: "" });
-      queryClient.invalidateQueries(['myLeaveApplications', clubId]);
-      queryClient.invalidateQueries(['leaveBalance', clubId]);
-      queryClient.invalidateQueries(['pendingLeaveApplications', clubId]);
+      // Immediately refetch all leave-related queries for instant UI update
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['myLeaveApplications', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['leaveBalance', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['pendingLeaveApplications', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['leaveApplicationsForApproval', clubId] }),
+      ]);
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to submit leave application');
@@ -196,12 +215,15 @@ export default function LeaveManagement({ clubId }) {
   // Approve leave mutation
   const approveLeaveMutation = useMutation({
     mutationFn: (applicationId) => leaveAPI.approveLeaveApplication(clubId, applicationId),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Leave application approved');
-      queryClient.invalidateQueries(['pendingLeaveApplications', clubId]);
-      queryClient.invalidateQueries(['leaveApplicationsForApproval', clubId]);
-      queryClient.invalidateQueries(['myLeaveApplications', clubId]);
-      queryClient.invalidateQueries(['leaveBalance', clubId]);
+      // Immediately refetch all leave-related queries for instant UI update
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['pendingLeaveApplications', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['leaveApplicationsForApproval', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['myLeaveApplications', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['leaveBalance', clubId] }),
+      ]);
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to approve leave');
@@ -211,14 +233,18 @@ export default function LeaveManagement({ clubId }) {
   // Reject leave mutation
   const rejectLeaveMutation = useMutation({
     mutationFn: ({ applicationId, reason }) => leaveAPI.rejectLeaveApplication(clubId, applicationId, reason),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Leave application rejected');
       setShowRejectModal(false);
       setRejectionReason("");
       setSelectedApplication(null);
-      queryClient.invalidateQueries(['pendingLeaveApplications', clubId]);
-      queryClient.invalidateQueries(['leaveApplicationsForApproval', clubId]);
-      queryClient.invalidateQueries(['myLeaveApplications', clubId]);
+      // Immediately refetch all leave-related queries for instant UI update
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['pendingLeaveApplications', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['leaveApplicationsForApproval', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['myLeaveApplications', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['leaveBalance', clubId] }),
+      ]);
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to reject leave');
@@ -228,12 +254,15 @@ export default function LeaveManagement({ clubId }) {
   // Cancel leave mutation
   const cancelLeaveMutation = useMutation({
     mutationFn: (applicationId) => leaveAPI.cancelLeaveApplication(clubId, applicationId),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Leave application cancelled successfully');
-      queryClient.invalidateQueries(['myLeaveApplications', clubId]);
-      queryClient.invalidateQueries(['leaveBalance', clubId]);
-      queryClient.invalidateQueries(['pendingLeaveApplications', clubId]);
-      queryClient.invalidateQueries(['leaveApplicationsForApproval', clubId]);
+      // Immediately refetch all leave-related queries for instant UI update
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['myLeaveApplications', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['leaveBalance', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['pendingLeaveApplications', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['leaveApplicationsForApproval', clubId] }),
+      ]);
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to cancel leave');
@@ -556,14 +585,24 @@ export default function LeaveManagement({ clubId }) {
                       <div className="flex gap-3">
                         <button
                           onClick={() => approveLeaveMutation.mutate(application.id)}
-                          disabled={approveLeaveMutation.isLoading}
-                          className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                          disabled={approveLeaveMutation.isLoading || rejectLeaveMutation.isLoading}
+                          className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <FaCheckCircle /> Approve
+                          {approveLeaveMutation.isLoading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                              Approving...
+                            </>
+                          ) : (
+                            <>
+                              <FaCheckCircle /> Approve
+                            </>
+                          )}
                         </button>
                         <button
                           onClick={() => handleRejectLeave(application)}
-                          className="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2"
+                          disabled={approveLeaveMutation.isLoading || rejectLeaveMutation.isLoading}
+                          className="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <FaTimesCircle /> Reject
                         </button>
@@ -830,7 +869,7 @@ export default function LeaveManagement({ clubId }) {
         {/* Create/Edit Policy Modal */}
         {showPolicyModal && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-            <div className="bg-slate-800 rounded-xl p-8 max-w-md w-full border border-slate-700">
+            <div className="bg-slate-800 rounded-xl p-8 max-w-md w-full border border-slate-700 max-h-[85vh] overflow-y-auto">
               <h2 className="text-2xl font-bold text-white mb-6">
                 {selectedPolicy ? "Edit Leave Policy" : "Create Leave Policy"}
               </h2>
@@ -901,7 +940,7 @@ export default function LeaveManagement({ clubId }) {
         {/* Apply for Leave Modal */}
         {showLeaveModal && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-            <div className="bg-slate-800 rounded-xl p-8 max-w-md w-full border border-slate-700">
+            <div className="bg-slate-800 rounded-xl p-8 max-w-md w-full border border-slate-700 max-h-[85vh] overflow-y-auto">
               <h2 className="text-2xl font-bold text-white mb-6">Apply for Leave</h2>
               <form onSubmit={handleSubmitLeave}>
                 <div className="mb-4">
@@ -965,7 +1004,7 @@ export default function LeaveManagement({ clubId }) {
         {/* Reject Leave Modal */}
         {showRejectModal && selectedApplication && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-            <div className="bg-slate-800 rounded-xl p-8 max-w-md w-full border border-slate-700">
+            <div className="bg-slate-800 rounded-xl p-8 max-w-md w-full border border-slate-700 max-h-[85vh] overflow-y-auto">
               <h2 className="text-2xl font-bold text-white mb-6">Reject Leave Application</h2>
               <p className="text-gray-400 mb-4">
                 Rejecting leave application for <strong className="text-white">{selectedApplication.staff.name}</strong>
@@ -996,9 +1035,16 @@ export default function LeaveManagement({ clubId }) {
                   <button
                     type="submit"
                     disabled={rejectLeaveMutation.isLoading}
-                    className="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                    className="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Reject Leave
+                    {rejectLeaveMutation.isLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Rejecting...
+                      </>
+                    ) : (
+                      'Reject Leave'
+                    )}
                   </button>
                 </div>
               </form>

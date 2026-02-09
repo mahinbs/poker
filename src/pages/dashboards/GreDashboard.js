@@ -204,7 +204,7 @@ function TournamentManagementViewOnly({ selectedClubId }) {
       {/* Tournament Details Modal */}
       {selectedTournament && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full border border-slate-700">
+          <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full border border-slate-700 max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-6">
               <h2 className="text-2xl font-bold text-white">{selectedTournament.name || 'Tournament'}</h2>
                             <button 
@@ -327,7 +327,7 @@ function RummyTournamentManagementViewOnly({ selectedClubId }) {
       {/* Tournament Details Modal */}
       {selectedTournament && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full border border-slate-700">
+          <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full border border-slate-700 max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-6">
               <h2 className="text-2xl font-bold text-white">{selectedTournament.name || 'Rummy Tournament'}</h2>
               <button 
@@ -514,7 +514,7 @@ export default function GreDashboard() {
   // Password Reset Modal
   const passwordResetModal = showPasswordResetModal && (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[200]">
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 max-w-md w-full border border-emerald-600 shadow-2xl">
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 max-w-md w-full border border-emerald-600 shadow-2xl max-h-[85vh] overflow-y-auto">
         <div className="text-center mb-6">
           <div className="text-yellow-400 text-5xl mb-3">🔒</div>
           <h2 className="text-2xl font-bold text-white">Password Reset Required</h2>
@@ -557,14 +557,8 @@ export default function GreDashboard() {
     ? [...baseMenuItems, "Rummy"]
     : baseMenuItems;
 
-  // Debug logging
-  console.log('[GRE DASHBOARD] Active Item:', activeItem);
-  console.log('[GRE DASHBOARD] Club ID:', clubId);
-  console.log('[GRE DASHBOARD] Menu Items:', menuItems);
-
   // Show loading state if clubId is not yet loaded
   if (!clubId) {
-    console.log('[GRE DASHBOARD] No clubId, showing loading screen');
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -576,10 +570,8 @@ export default function GreDashboard() {
     );
   }
 
-  console.log('[GRE DASHBOARD] Rendering with clubId:', clubId);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col lg:flex-row">
       {passwordResetModal}
       <GreSidebar
         activeItem={activeItem}
@@ -587,18 +579,10 @@ export default function GreDashboard() {
         menuItems={menuItems}
         onSignOut={handleSignOut}
       />
-      <main className="lg:pl-80 min-h-screen">
+      <main className="flex-1 min-w-0 min-h-screen">
         <div className="p-6 space-y-6">
-          {/* Debug Banner - Always visible */}
-          <div className="bg-yellow-900/30 border border-yellow-500 rounded-lg p-3 text-yellow-100">
-            <p className="text-sm font-mono">
-              <strong>DEBUG:</strong> Active: {activeItem} | Club: {clubId} | Menu Items: {menuItems.length}
-            </p>
-          </div>
           {/* Player Management */}
-          {activeItem === "Player Management" && clubId && (() => {
-            console.log('[GRE DASHBOARD] Rendering Player Management');
-            return (
+          {activeItem === "Player Management" && clubId && (
             <div className="space-y-6">
               <div className="bg-gradient-to-r from-blue-500/20 to-indigo-600/20 rounded-xl p-6 border border-blue-500/30">
                 <h1 className="text-3xl font-bold text-white mb-2">Player Management</h1>
@@ -619,8 +603,7 @@ export default function GreDashboard() {
                 }}
               />
             </div>
-            );
-          })()}
+          )}
 
           {/* Tables & Waitlist - View Only */}
           {activeItem === "Tables & Waitlist" && clubId && (
@@ -658,17 +641,12 @@ export default function GreDashboard() {
           )}
 
           {/* Fallback for unknown menu items */}
-          {!["Player Management", "Tables & Waitlist", "Tournaments", "Chat", "Notifications", "Push Notifications", "Leave Management", "Rummy"].includes(activeItem) && (() => {
-            console.log('[GRE DASHBOARD] Showing fallback/welcome screen');
-            return (
+          {!["Player Management", "Tables & Waitlist", "Tournaments", "Chat", "Notifications", "Push Notifications", "Leave Management", "Rummy"].includes(activeItem) && (
             <div className="text-white text-center py-12">
               <h2 className="text-2xl font-bold mb-4">Welcome to GRE Portal</h2>
               <p className="text-gray-400">Select an option from the sidebar to get started.</p>
-              <p className="text-gray-500 text-sm mt-4">Active Item: {activeItem}</p>
-              <p className="text-gray-500 text-sm">Club ID: {clubId}</p>
-                    </div>
-            );
-          })()}
+            </div>
+          )}
           </div>
         </main>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { staffAPI } from "../lib/api";
+import { staffAPI, leaveAPI } from "../lib/api";
 import toast from "react-hot-toast";
 import { storageService } from "../lib/storage";
 import RosterManagement from "./RosterManagement";
@@ -65,6 +65,18 @@ export default function StaffManagement({ selectedClubId }) {
     queryFn: () => staffAPI.getAllStaffMembers(selectedClubId, filters),
     enabled: !!selectedClubId,
   });
+
+  // Fetch pending leave applications for badge count
+  const { data: pendingLeaves = [] } = useQuery({
+    queryKey: ['pendingLeaveApplications', selectedClubId],
+    queryFn: () => leaveAPI.getPendingLeaveApplications(selectedClubId),
+    enabled: !!selectedClubId,
+    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
+    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
+  });
+
+  const pendingLeaveCount = pendingLeaves?.length || 0;
 
   // Create staff mutation
   const createMutation = useMutation({
@@ -351,13 +363,20 @@ export default function StaffManagement({ selectedClubId }) {
         </button>
         <button
           onClick={() => setActiveTab("leave")}
-          className={`px-6 py-3 font-semibold transition-colors ${
+          className={`px-6 py-3 font-semibold transition-colors relative ${
             activeTab === "leave"
               ? "text-white border-b-2 border-purple-500"
               : "text-gray-400 hover:text-white"
           }`}
         >
-          Leave Management
+          <span className="flex items-center gap-2">
+            Leave Management
+            {pendingLeaveCount > 0 && (
+              <span className="bg-amber-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                {pendingLeaveCount > 9 ? "9+" : pendingLeaveCount}
+              </span>
+            )}
+          </span>
         </button>
       </div>
 
@@ -789,7 +808,7 @@ export default function StaffManagement({ selectedClubId }) {
       {/* Suspend Modal */}
       {showSuspendModal && selectedStaff && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-orange-600">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-orange-600 max-h-[85vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-white mb-4">Suspend Staff Member</h2>
             <p className="text-gray-300 mb-4">
               You are about to suspend <strong>{selectedStaff.name}</strong>. Please provide a reason:
@@ -828,7 +847,7 @@ export default function StaffManagement({ selectedClubId }) {
       {/* Temporary Password Modal */}
       {showPasswordModal && tempPassword && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-green-600">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-green-600 max-h-[85vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-white mb-4">
               {tempPassword.isReset ? "Password Reset Successfully!" : "Staff Member Created Successfully!"}
             </h2>
