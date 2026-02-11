@@ -1330,6 +1330,16 @@ export const affiliateAPI = {
     const query = new URLSearchParams(params).toString();
     return await apiRequest(`/clubs/${clubId}/affiliates/transactions${query ? '?' + query : ''}`);
   },
+
+  /**
+   * Override an existing affiliate transaction (Super Admin / Admin only)
+   */
+  overrideAffiliateTransaction: async (clubId, transactionId, data) => {
+    return await apiRequest(`/clubs/${clubId}/affiliates/transactions/${transactionId}/override`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // Financial Overrides

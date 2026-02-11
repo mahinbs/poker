@@ -670,8 +670,9 @@ function UpdateStockModal({ clubId, item, onClose, onSave }) {
               type="number"
               required
               min="0"
+              step="0.01"
               value={currentStock}
-              onChange={(e) => setCurrentStock(parseInt(e.target.value))}
+              onChange={(e) => setCurrentStock(parseFloat(e.target.value) || 0)}
               className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
             />
             <p className="text-xs text-gray-400 mt-1">Minimum: {item.minStock} {item.unit}</p>
@@ -763,6 +764,7 @@ function AddInventoryItemModal({ clubId, onClose, onSave }) {
                 type="number"
                 required
                 min="0"
+                step="0.01"
                 value={formData.currentStock}
                 onChange={(e) => setFormData({ ...formData, currentStock: parseFloat(e.target.value) || 0 })}
                 className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
@@ -775,6 +777,7 @@ function AddInventoryItemModal({ clubId, onClose, onSave }) {
                 type="number"
                 required
                 min="0"
+                step="0.01"
                 value={formData.minStock}
                 onChange={(e) => setFormData({ ...formData, minStock: parseFloat(e.target.value) || 0 })}
                 className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
