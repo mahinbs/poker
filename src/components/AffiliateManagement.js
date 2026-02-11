@@ -26,6 +26,14 @@ export default function AffiliateManagement({ selectedClubId }) {
 
   const [transactionPage, setTransactionPage] = useState(1);
 
+  // Override modal state (Super Admin only)
+  const [showOverrideModal, setShowOverrideModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [overrideForm, setOverrideForm] = useState({
+    amount: "",
+    reason: "",
+  });
+
   const [paymentForm, setPaymentForm] = useState({
     affiliateId: "",
     amount: "",
@@ -35,6 +43,10 @@ export default function AffiliateManagement({ selectedClubId }) {
   });
 
   const queryClient = useQueryClient();
+
+  // This component is only used inside the Super Admin portal,
+  // so we can safely treat the current user as Super Admin here.
+  const isSuperAdmin = true;
 
   // Get affiliates list with pagination
   const { data: affiliatesData, isLoading: affiliatesLoading } = useQuery({
@@ -130,6 +142,52 @@ export default function AffiliateManagement({ selectedClubId }) {
   const transactions = transactionsData?.transactions || [];
   const transactionTotalPages = transactionsData?.totalPages || 1;
   const transactionTotal = transactionsData?.total || 0;
+
+  // ===== Affiliate Transaction Override (Super Admin only) =====
+  const overrideTransactionMutation = useMutation({
+    mutationFn: (payload) =>
+      affiliateAPI.overrideAffiliateTransaction(selectedClubId, payload.id, {
+        amount: payload.amount,
+        reason: payload.reason,
+      }),
+    onSuccess: () => {
+      toast.success("Affiliate transaction overridden successfully");
+      queryClient.invalidateQueries(["affiliate-transactions", selectedClubId]);
+      setShowOverrideModal(false);
+      setSelectedTransaction(null);
+      setOverrideForm({ amount: "", reason: "" });
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to override transaction");
+    },
+  });
+
+  const handleOpenOverrideModal = (transaction) => {
+    if (!isSuperAdmin) return;
+    setSelectedTransaction(transaction);
+    setOverrideForm({
+      amount: Number(transaction.amount || 0).toFixed(2),
+      reason: transaction.overrideReason || "",
+    });
+    setShowOverrideModal(true);
+  };
+
+  const handleSubmitOverride = () => {
+    if (!overrideForm.amount || parseFloat(overrideForm.amount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    if (!overrideForm.reason || overrideForm.reason.trim().length < 5) {
+      toast.error("Please enter a clear override reason (min 5 characters)");
+      return;
+    }
+
+    overrideTransactionMutation.mutate({
+      id: selectedTransaction.id,
+      amount: parseFloat(overrideForm.amount),
+      reason: overrideForm.reason.trim(),
+    });
+  };
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -411,6 +469,9 @@ export default function AffiliateManagement({ selectedClubId }) {
                         <th className="text-left text-white font-semibold p-3">Type</th>
                         <th className="text-right text-white font-semibold p-3">Amount</th>
                         <th className="text-left text-white font-semibold p-3">Description</th>
+                        {isSuperAdmin && (
+                          <th className="text-center text-white font-semibold p-3">Actions</th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -434,10 +495,30 @@ export default function AffiliateManagement({ selectedClubId }) {
                           </td>
                           <td className="text-right text-green-400 font-semibold p-3">
                             ₹{Number(transaction.amount).toFixed(2)}
+                            {transaction.isOverridden && transaction.originalAmount != null && (
+                              <div className="text-xs text-yellow-400 mt-1">
+                                (Was ₹{Number(transaction.originalAmount).toFixed(2)})
+                              </div>
+                            )}
                           </td>
                           <td className="text-gray-400 p-3 text-sm">
                             {transaction.description || transaction.notes || "-"}
+                            {transaction.isOverridden && transaction.overrideReason && (
+                              <div className="text-xs text-yellow-400 mt-1">
+                                Override: {transaction.overrideReason}
+                              </div>
+                            )}
                           </td>
+                          {isSuperAdmin && (
+                            <td className="text-center p-3">
+                              <button
+                                onClick={() => handleOpenOverrideModal(transaction)}
+                                className="px-3 py-1 bg-red-900/40 hover:bg-red-800/60 text-red-300 rounded-lg text-xs border border-red-700 transition-colors"
+                              >
+                                Override
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -665,6 +746,89 @@ export default function AffiliateManagement({ selectedClubId }) {
                 onClick={() => {
                   setShowPaymentModal(false);
                   setSelectedAffiliate(null);
+                }}
+                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Override Transaction Modal (Super Admin only) */}
+      {isSuperAdmin && showOverrideModal && selectedTransaction && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-red-600 max-h-[85vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold text-white mb-6">🛠 Override Affiliate Transaction</h2>
+
+            <div className="bg-slate-900/60 border border-slate-700 rounded-lg p-4 mb-6 text-sm text-gray-300">
+              <div className="mb-1">
+                <span className="text-gray-400">Affiliate:</span>{" "}
+                <span className="text-white">
+                  {selectedTransaction.affiliate?.name ||
+                    selectedTransaction.affiliate?.user?.email ||
+                    "N/A"}
+                </span>
+              </div>
+              <div className="mb-1">
+                <span className="text-gray-400">Code:</span>{" "}
+                <span className="text-yellow-400 font-mono">
+                  {selectedTransaction.affiliate?.code}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-400">Current Amount:</span>{" "}
+                <span className="text-green-400 font-semibold">
+                  ₹{Number(selectedTransaction.amount || 0).toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-white text-sm mb-2 block">New Amount (₹) *</label>
+                <input
+                  type="number"
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-red-500"
+                  placeholder="₹0.00"
+                  value={overrideForm.amount}
+                  onChange={(e) =>
+                    setOverrideForm({ ...overrideForm, amount: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="text-white text-sm mb-2 block">Override Reason *</label>
+                <textarea
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-red-500 h-24"
+                  placeholder="Explain why you are overriding this transaction..."
+                  value={overrideForm.reason}
+                  onChange={(e) =>
+                    setOverrideForm({ ...overrideForm, reason: e.target.value })
+                  }
+                />
+              </div>
+
+              <p className="text-xs text-yellow-400 bg-yellow-900/20 border border-yellow-700 rounded-lg p-3">
+                This action will update the transaction amount and adjust the affiliate's total
+                commission. A full audit log entry will be recorded.
+              </p>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleSubmitOverride}
+                disabled={overrideTransactionMutation.isLoading}
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
+              >
+                {overrideTransactionMutation.isLoading ? "Saving..." : "Save Override"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowOverrideModal(false);
+                  setSelectedTransaction(null);
                 }}
                 className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
               >

@@ -22,10 +22,23 @@ const STAFF_ROLES = [
 export default function StaffManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("staff"); // 'staff', 'roster', or 'leave'
-  
-  // Check if current user is HR
+
+  // Check current user role
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const isHR = user.role === 'HR';
+  const isAdmin = user.role === 'Admin';
+
+  const AVAILABLE_ROLES = (() => {
+    if (isHR) {
+      // HR cannot create Admin or Super Admin
+      return STAFF_ROLES.filter(r => r.value !== "Super Admin" && r.value !== "Admin");
+    }
+    if (isAdmin) {
+      // Admin cannot create Super Admin
+      return STAFF_ROLES.filter(r => r.value !== "Super Admin");
+    }
+    return STAFF_ROLES;
+  })();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
@@ -46,7 +59,7 @@ export default function StaffManagement({ selectedClubId }) {
   // Form state
   const [staffForm, setStaffForm] = useState({
     name: "",
-    role: "Super Admin",
+    role: isHR ? "Staff" : isAdmin ? "Admin" : "Super Admin",
     email: "",
     phone: "",
     employeeId: "",
@@ -205,7 +218,7 @@ export default function StaffManagement({ selectedClubId }) {
   const resetForm = () => {
     setStaffForm({
       name: "",
-      role: "Super Admin",
+      role: isHR ? "Staff" : isAdmin ? "Admin" : "Super Admin",
         email: "",
         phone: "",
       employeeId: "",
@@ -608,7 +621,7 @@ export default function StaffManagement({ selectedClubId }) {
                     value={staffForm.role}
                     onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })}
                   >
-                    {STAFF_ROLES.map((role) => (
+              {AVAILABLE_ROLES.map((role) => (
                       <option key={role.value} value={role.value}>
                         {role.label}
                       </option>
