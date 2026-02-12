@@ -7,7 +7,9 @@ export default function TableBuyOutManagement({ clubId }) {
   const queryClient = useQueryClient();
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [cashoutAmount, setCashoutAmount] = useState("");
 
   // Fetch pending buy-out requests
   const { data: buyOutRequests = [], isLoading, refetch } = useQuery({
@@ -46,28 +48,24 @@ export default function TableBuyOutManagement({ clubId }) {
   });
 
   const handleApprove = (request) => {
-    const amountStr = window.prompt(
-      `Enter final cash-out amount for ${request.playerName}:\n\n` +
-      `Table: Table ${request.tableNumber}\n` +
-      `Seat: ${request.seatNumber || 'N/A'}\n\n` +
-      `This amount will be added to player's available balance.`,
-      '' // Empty default, admin must enter amount
-    );
-    
-    if (amountStr === null) return; // Cancelled
-    
-    const amount = parseFloat(amountStr);
-    if (isNaN(amount) || amount <= 0) {
-      toast.error('Please enter a valid amount greater than 0');
+    setSelectedRequest(request);
+    setCashoutAmount("");
+    setShowApproveModal(true);
+  };
+
+  const handleApproveSubmit = () => {
+    const amount = parseFloat(cashoutAmount);
+    if (isNaN(amount) || amount < 0) {
+      toast.error('Please enter a valid amount (can be 0 for no winnings)');
       return;
     }
     
-    if (window.confirm(`Confirm: Add ₹${amount.toLocaleString('en-IN')} to ${request.playerName}'s balance and complete buy-out?`)) {
-      approveMutation.mutate({
-        requestId: request.id,
-        amount: amount,
-      });
-    }
+    approveMutation.mutate({
+      requestId: selectedRequest.id,
+      amount: amount,
+    });
+    setShowApproveModal(false);
+    setCashoutAmount("");
   };
 
   const handleReject = (request) => {
@@ -159,6 +157,91 @@ export default function TableBuyOutManagement({ clubId }) {
           </div>
         )}
       </div>
+
+      {/* Approve Cashout Modal */}
+      {showApproveModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 max-w-lg w-full mx-4">
+            <h3 className="text-xl font-bold mb-4 text-white">Process Table Cashout</h3>
+            
+            {/* Player Info */}
+            <div className="bg-slate-700 rounded-lg p-4 mb-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-gray-400">Player:</span>
+                  <span className="text-white font-semibold ml-2">{selectedRequest.playerName}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Table:</span>
+                  <span className="text-white font-semibold ml-2">Table {selectedRequest.tableNumber}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Seat:</span>
+                  <span className="text-white font-semibold ml-2">{selectedRequest.seatNumber || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Call Time:</span>
+                  <span className="text-white font-semibold ml-2">{formatDateTime(selectedRequest.callTimeStartedAt)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-blue-900/30 border border-blue-700/50 rounded-lg p-4 mb-4">
+              <div className="text-sm text-blue-200 space-y-2">
+                <p className="font-semibold">💡 How Cashout Works:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Enter the <strong>final amount</strong> player has at the table</li>
+                  <li>If player used credit, it will be <strong>paid back first</strong></li>
+                  <li>Remaining amount goes to the player's wallet</li>
+                  <li>If the final amount is less than the credit used, the player owes the difference</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Amount Input */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Final Table Amount (₹) <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="number"
+                value={cashoutAmount}
+                onChange={(e) => setCashoutAmount(e.target.value)}
+                placeholder="Enter final amount at table (can be 0)"
+                min="0"
+                step="1"
+                className="w-full bg-slate-700 text-white rounded-lg px-4 py-3 border border-slate-600 text-lg focus:border-blue-500 focus:outline-none"
+                autoFocus
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Enter 0 if player lost everything. System will calculate credit payback automatically.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleApproveSubmit}
+                disabled={approveMutation.isPending || cashoutAmount === ""}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {approveMutation.isPending ? "Processing..." : "Complete Cashout"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowApproveModal(false);
+                  setSelectedRequest(null);
+                  setCashoutAmount("");
+                }}
+                className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reject Modal */}
       {showRejectModal && selectedRequest && (

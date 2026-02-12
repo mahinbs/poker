@@ -3,6 +3,7 @@ import CustomSelect from "./common/CustomSelect";
 
 export default function PlayerManagementSection({
   userRole = "hr", // "superadmin", "admin", "manager", "hr", "cashier", "gre",
+  clubId = null, // Club ID for API calls
   // Data props
   kycRequests = [],
   setKycRequests = null,
@@ -19,6 +20,11 @@ export default function PlayerManagementSection({
   setAllPlayers = null,
 }) {
   const [activeTab, setActiveTab] = useState(forceTab || "all-players");
+  
+  // Player details modal state
+  const [selectedPlayerForView, setSelectedPlayerForView] = useState(null);
+  const [showPlayerDetailsModal, setShowPlayerDetailsModal] = useState(false);
+  const [loadingPlayerDetails, setLoadingPlayerDetails] = useState(false);
 
   // Player Creation state
   const [playerForm, setPlayerForm] = useState({
@@ -280,6 +286,23 @@ export default function PlayerManagementSection({
       documentUrl: "",
       initialBalance: 0,
     });
+  };
+
+  // View player details with KYC documents
+  const handleViewPlayerDetails = async (player, clubId) => {
+    try {
+      setLoadingPlayerDetails(true);
+      setShowPlayerDetailsModal(true);
+      // For now, just show the player data we have
+      // In real implementation, fetch from API: clubsAPI.getPlayer(clubId, player.id)
+      setSelectedPlayerForView(player);
+    } catch (error) {
+      console.error('Error fetching player details:', error);
+      alert('Failed to load player details');
+      setShowPlayerDetailsModal(false);
+    } finally {
+      setLoadingPlayerDetails(false);
+    }
   };
 
   const handleApprovePlayer = (id) => {
@@ -585,6 +608,12 @@ export default function PlayerManagementSection({
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right space-x-2">
+                      <button
+                        onClick={() => handleViewPlayerDetails(player, clubId)}
+                        className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-xs font-bold text-white"
+                      >
+                        📄 View KYC
+                      </button>
                       {player.status === "Pending" && (
                         <>
                           <button
@@ -1259,6 +1288,14 @@ export default function PlayerManagementSection({
                           </div>
                         )}
                       </div>
+
+                      {/* View Details Button */}
+                      <button
+                        onClick={() => handleViewPlayerDetails(player, clubId)}
+                        className="w-full mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm"
+                      >
+                        📄 View Full Details & KYC
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1340,6 +1377,194 @@ export default function PlayerManagementSection({
           </section>
         );
       })()}
+
+      {/* Player Details Modal with KYC Documents */}
+      {showPlayerDetailsModal && selectedPlayerForView && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-white">Player Details & KYC Documents</h3>
+              <button
+                onClick={() => {
+                  setShowPlayerDetailsModal(false);
+                  setSelectedPlayerForView(null);
+                }}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {loadingPlayerDetails ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading player details...</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Player Information */}
+                <div className="bg-slate-700 rounded-lg p-6">
+                  <h4 className="text-xl font-semibold text-white mb-4">Personal Information</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-gray-400 text-sm">Full Name:</span>
+                      <p className="text-white font-semibold text-lg">{selectedPlayerForView.name}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">Player ID:</span>
+                      <p className="text-white font-semibold">{selectedPlayerForView.id}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">Email:</span>
+                      <p className="text-white font-semibold">{selectedPlayerForView.email}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">Phone:</span>
+                      <p className="text-white font-semibold">{selectedPlayerForView.phone || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">Registration Date:</span>
+                      <p className="text-white font-semibold">{selectedPlayerForView.registrationDate}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">Account Status:</span>
+                      <p className={`font-semibold ${
+                        selectedPlayerForView.status === 'Active' ? 'text-green-400' :
+                        selectedPlayerForView.status === 'Pending' ? 'text-yellow-400' :
+                        selectedPlayerForView.status === 'Suspended' ? 'text-red-400' :
+                        'text-gray-400'
+                      }`}>
+                        {selectedPlayerForView.status || 'Pending'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">KYC Status:</span>
+                      <p className={`font-semibold ${
+                        selectedPlayerForView.kycStatus === 'Verified' || selectedPlayerForView.kycStatus === 'approved' ? 'text-green-400' :
+                        selectedPlayerForView.kycStatus === 'Pending' || selectedPlayerForView.kycStatus === 'pending' ? 'text-yellow-400' :
+                        'text-red-400'
+                      }`}>
+                        {selectedPlayerForView.kycStatus || 'Pending'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">Referred By:</span>
+                      <p className="text-white font-semibold">{selectedPlayerForView.referredBy || 'Direct Registration'}</p>
+                    </div>
+                    {selectedPlayerForView.balance !== undefined && (
+                      <div>
+                        <span className="text-gray-400 text-sm">Current Balance:</span>
+                        <p className="text-green-400 font-semibold text-lg">₹{(selectedPlayerForView.balance || 0).toLocaleString('en-IN')}</p>
+                      </div>
+                    )}
+                    {selectedPlayerForView.kycDocument && (
+                      <div>
+                        <span className="text-gray-400 text-sm">Document Submitted:</span>
+                        <p className="text-white font-semibold">{selectedPlayerForView.kycDocument}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* KYC Documents */}
+                <div className="bg-slate-700 rounded-lg p-6">
+                  <h4 className="text-xl font-semibold text-white mb-4">KYC Documents</h4>
+                  
+                  {selectedPlayerForView.kycDocuments && selectedPlayerForView.kycDocuments.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedPlayerForView.kycDocuments.map((doc, index) => (
+                        <div key={index} className="bg-slate-600 rounded-lg p-4">
+                          <div className="mb-3">
+                            <span className="text-gray-300 text-sm font-semibold">
+                              {doc.type || `Document ${index + 1}`}
+                            </span>
+                            {doc.status && (
+                              <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                                doc.status === 'approved' ? 'bg-green-900 text-green-300' :
+                                doc.status === 'rejected' ? 'bg-red-900 text-red-300' :
+                                'bg-yellow-900 text-yellow-300'
+                              }`}>
+                                {doc.status}
+                              </span>
+                            )}
+                          </div>
+                          {doc.url ? (
+                            <div className="space-y-2">
+                              <img 
+                                src={doc.url} 
+                                alt={doc.type || 'KYC Document'} 
+                                className="w-full h-48 object-cover rounded"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23334155" width="200" height="200"/%3E%3Ctext fill="%239ca3af" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                              <a 
+                                href={doc.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="block text-center text-blue-400 hover:text-blue-300 text-sm"
+                              >
+                                View Full Size
+                              </a>
+                            </div>
+                          ) : (
+                            <div className="bg-slate-500 rounded h-48 flex items-center justify-center text-gray-400">
+                              No document available
+                            </div>
+                          )}
+                          {doc.uploadedAt && (
+                            <p className="text-gray-400 text-xs mt-2">
+                              Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <div className="text-4xl mb-2">📄</div>
+                      <div className="text-lg">No KYC documents submitted</div>
+                      <div className="text-sm mt-1">Player has not uploaded any documents yet</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 justify-end pt-4 border-t border-slate-600">
+                  <button
+                    onClick={() => {
+                      setShowPlayerDetailsModal(false);
+                      handleApprovePlayer(selectedPlayerForView.id);
+                    }}
+                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    Approve Player
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowPlayerDetailsModal(false);
+                      handleRejectPlayer(selectedPlayerForView.id);
+                    }}
+                    className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    Reject Player
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowPlayerDetailsModal(false);
+                      setSelectedPlayerForView(null);
+                    }}
+                    className="px-6 py-3 bg-slate-600 hover:bg-slate-500 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
