@@ -513,6 +513,16 @@ export default function UnifiedPlayerManagement({
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedPlayerForDetails(player);
+                                  setShowPlayerDetailsModal(true);
+                                }}
+                                className="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                              >
+                                📄 View
+                              </button>
                               {player.status === 'Suspended' ? (
                                 <button
                                   onClick={(e) => {
@@ -758,18 +768,27 @@ export default function UnifiedPlayerManagement({
                           {new Date(player.registrationDate || player.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4">
-                          {player.kycDocumentUrl ? (
-                            <a
-                              href={player.kycDocumentUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300"
+                          <div className="flex flex-col gap-1">
+                            {player.kycDocumentUrl && (
+                              <a
+                                href={player.kycDocumentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:text-blue-300 text-sm"
+                              >
+                                View Document
+                              </a>
+                            )}
+                            <button
+                              onClick={() => {
+                                setSelectedPlayerForDetails(player);
+                                setShowPlayerDetailsModal(true);
+                              }}
+                              className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded-lg text-xs font-medium text-white transition-colors"
                             >
-                              View Document
-                            </a>
-                          ) : (
-                            <span className="text-gray-500">No document</span>
-                          )}
+                              📄 View KYC
+                            </button>
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs font-semibold">
