@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { clubsAPI, superAdminAPI, chatAPI } from "../../lib/api";
@@ -32,6 +32,9 @@ export default function ManagerSidebar({
     confirmPassword: "",
   });
 
+  // Track previous notification count for sound alert
+  const prevNotificationCount = useRef(null);
+
   const isRummyEnabled = clubInfo?.rummyEnabled || false;
 
   // Add Rummy to menu items if enabled
@@ -57,6 +60,21 @@ export default function ManagerSidebar({
   });
 
   const totalUnreadChats = (unreadChatData?.staffChats || 0) + (unreadChatData?.playerChats || 0);
+
+  // Play notification sound when new notification arrives
+  useEffect(() => {
+    const currentCount = unreadData?.unreadCount || 0;
+    
+    // Only play sound if count increased (new notification)
+    if (prevNotificationCount.current !== null && currentCount > prevNotificationCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    
+    // Update previous count
+    prevNotificationCount.current = currentCount;
+  }, [unreadData?.unreadCount]);
 
   useEffect(() => {
     const handleResize = () => {
