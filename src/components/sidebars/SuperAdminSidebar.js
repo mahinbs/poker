@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
@@ -46,6 +46,9 @@ export default function SuperAdminSidebar({
     confirmPassword: "",
   });
 
+  // Track previous notification count for sound alert
+  const prevNotificationCount = useRef(null);
+
   // Get clubId and fetch unread notification count
   const clubId = selectedClubId || localStorage.getItem('clubId');
   const { data: unreadData } = useQuery({
@@ -76,6 +79,21 @@ export default function SuperAdminSidebar({
   });
 
   const pendingLeaveCount = pendingLeaves?.length || 0;
+
+  // Play notification sound when new notification arrives
+  useEffect(() => {
+    const currentCount = unreadData?.unreadCount || 0;
+    
+    // Only play sound if count increased (new notification)
+    if (prevNotificationCount.current !== null && currentCount > prevNotificationCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    
+    // Update previous count
+    prevNotificationCount.current = currentCount;
+  }, [unreadData?.unreadCount]);
 
   useEffect(() => {
     const handleResize = () => {
