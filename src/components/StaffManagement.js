@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { staffAPI, leaveAPI } from "../lib/api";
+import { staffAPI, leaveAPI, clubsAPI } from "../lib/api";
 import toast from "react-hot-toast";
 import { storageService } from "../lib/storage";
 import RosterManagement from "./RosterManagement";
@@ -39,6 +39,14 @@ export default function StaffManagement({ selectedClubId }) {
     }
     return STAFF_ROLES;
   })();
+  // Fetch club data to check if both poker and rummy are enabled
+  const { data: clubData } = useQuery({
+    queryKey: ['club-data', selectedClubId],
+    queryFn: () => clubsAPI.getClub(selectedClubId),
+    enabled: !!selectedClubId,
+  });
+  const hasBothGames = clubData?.pokerEnabled && clubData?.rummyEnabled;
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
@@ -64,6 +72,7 @@ export default function StaffManagement({ selectedClubId }) {
     phone: "",
     employeeId: "",
     customRoleName: "",
+    gameType: "",
     aadharDocumentUrl: "",
     panDocumentUrl: "",
   });
@@ -223,6 +232,7 @@ export default function StaffManagement({ selectedClubId }) {
         phone: "",
       employeeId: "",
       customRoleName: "",
+      gameType: "",
       aadharDocumentUrl: "",
       panDocumentUrl: "",
     });
@@ -236,6 +246,11 @@ export default function StaffManagement({ selectedClubId }) {
 
     if (staffForm.role === "Staff" && !staffForm.customRoleName) {
       toast.error("Please enter a custom role name");
+      return;
+    }
+
+    if (hasBothGames && (staffForm.role === "Dealer" || staffForm.role === "Manager") && !staffForm.gameType) {
+      toast.error("Please select a game type for this " + staffForm.role.toLowerCase());
       return;
     }
 
@@ -261,6 +276,7 @@ export default function StaffManagement({ selectedClubId }) {
       phone: staff.phone,
       employeeId: staff.employeeId || "",
       customRoleName: staff.customRoleName || "",
+      gameType: staff.gameType || "",
       aadharDocumentUrl: staff.aadharDocumentUrl || "",
       panDocumentUrl: staff.panDocumentUrl || "",
     });
@@ -641,6 +657,26 @@ export default function StaffManagement({ selectedClubId }) {
                     onChange={(e) => setStaffForm({ ...staffForm, customRoleName: e.target.value })}
                                             />
                                         </div>
+              )}
+
+              {hasBothGames && (staffForm.role === "Dealer" || staffForm.role === "Manager") && (
+                <div>
+                  <label className="text-white text-sm mb-1 block">Game Type *</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    value={staffForm.gameType}
+                    onChange={(e) => setStaffForm({ ...staffForm, gameType: e.target.value })}
+                  >
+                    <option value="">Select game type</option>
+                    <option value="poker">♠ Poker</option>
+                    <option value="rummy">🃏 Rummy</option>
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {staffForm.role === "Dealer"
+                      ? "Dealer will only be assigned to tables of this game type"
+                      : "Manager will manage tables of this game type"}
+                  </p>
+                </div>
               )}
 
               <div className="grid grid-cols-2 gap-4">

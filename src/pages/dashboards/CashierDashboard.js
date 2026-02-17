@@ -647,7 +647,7 @@ export default function CashierDashboard() {
     "Push Notifications",
     "Tournaments", // View-only
     "Chat",
-    "Financial Overrides",
+    "Transactions",
     "Leave Management",
   ];
 
@@ -780,8 +780,8 @@ export default function CashierDashboard() {
             <ChatManagement clubId={clubId} />
           )}
 
-          {/* Financial Overrides */}
-          {activeItem === "Financial Overrides" && (
+          {/* Transactions */}
+          {activeItem === "Transactions" && (
             <FinancialOverrides selectedClubId={clubId} />
           )}
 
@@ -801,7 +801,7 @@ export default function CashierDashboard() {
           )}
 
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Payroll Management", "Bonus Management", "Tables & Waitlist", "Club Buy-In", "Push Notifications", "Tournaments", "Chat", "Financial Overrides", "Rummy", "Notifications"].includes(activeItem) && (
+          {!["Dashboard", "Payroll Management", "Bonus Management", "Tables & Waitlist", "Club Buy-In", "Push Notifications", "Tournaments", "Chat", "Transactions", "Rummy", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
             </div>

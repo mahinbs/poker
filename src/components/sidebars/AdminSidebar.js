@@ -43,11 +43,14 @@ export default function AdminSidebar({
   const prevNotificationCount = useRef(null);
 
   const isRummyEnabled = clubInfo?.rummyEnabled || false;
+  const isPokerEnabled = clubInfo?.pokerEnabled !== false;
 
-  // Add Rummy to menu items if enabled
-  const finalMenuItems = isRummyEnabled 
-    ? [...menuItems, "Rummy"]
-    : menuItems;
+  // Filter menu items based on game access, then add Rummy if enabled
+  let finalMenuItems = menuItems.filter(item => {
+    if (!isPokerEnabled && ["Tables & Waitlist", "Tournaments"].includes(item)) return false;
+    return true;
+  });
+  if (isRummyEnabled) finalMenuItems = [...finalMenuItems, "Rummy"];
 
   // Get clubId and fetch unread notification count
   const clubId = localStorage.getItem('clubId');

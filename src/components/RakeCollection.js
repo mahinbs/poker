@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { clubsAPI } from "../lib/api";
 import toast from "react-hot-toast";
 
-export default function RakeCollection({ clubId }) {
+export default function RakeCollection({ clubId, gameType }) {
   const queryClient = useQueryClient();
   const [selectedTable, setSelectedTable] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -22,29 +22,51 @@ export default function RakeCollection({ clubId }) {
   });
 
   // Fetch active tables
-  const { data: activeTables = [], isLoading: tablesLoading } = useQuery({
+  const { data: allActiveTables = [], isLoading: tablesLoading } = useQuery({
     queryKey: ['activeTablesForRake', clubId],
     queryFn: () => clubsAPI.getActiveTablesForRakeCollection(clubId),
     enabled: !!clubId,
   });
 
+  // Filter active tables by game type
+  const activeTables = gameType
+    ? allActiveTables.filter(t => {
+        if (gameType === 'rummy') return t.tableType === 'RUMMY';
+        return t.tableType !== 'RUMMY'; // poker = everything except RUMMY
+      })
+    : allActiveTables;
+
   // Fetch rake collections history
-  const { data: historyData, isLoading: historyLoading } = useQuery({
+  const { data: rawHistoryData, isLoading: historyLoading } = useQuery({
     queryKey: ['rakeCollections', clubId, historyFilters],
     queryFn: () => clubsAPI.getRakeCollections(clubId, historyFilters),
     enabled: !!clubId,
   });
 
-  // Fetch stats
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['rakeCollectionStats', clubId, historyFilters.startDate, historyFilters.endDate],
-    queryFn: () => clubsAPI.getRakeCollectionStats(
-      clubId,
-      historyFilters.startDate || undefined,
-      historyFilters.endDate || undefined
-    ),
-    enabled: !!clubId,
-  });
+  // Filter history by game type
+  const historyData = rawHistoryData ? {
+    ...rawHistoryData,
+    collections: gameType
+      ? (rawHistoryData.collections || []).filter(c => {
+          const tableType = c.table?.tableType || c.tableType || '';
+          if (gameType === 'rummy') return tableType === 'RUMMY';
+          return tableType !== 'RUMMY';
+        })
+      : (rawHistoryData.collections || []),
+  } : rawHistoryData;
+
+  // Compute stats from filtered collections
+  const filteredCollections = historyData?.collections || [];
+  const stats = {
+    totalEntries: filteredCollections.length,
+    totalCollected: Number(filteredCollections.reduce((sum, c) => sum + Number(c.totalRakeAmount || 0), 0).toFixed(2)),
+    avgPerTable: (() => {
+      const uniqueTables = new Set(filteredCollections.map(c => c.tableNumber));
+      const total = filteredCollections.reduce((sum, c) => sum + Number(c.totalRakeAmount || 0), 0);
+      return uniqueTables.size > 0 ? Number((total / uniqueTables.size).toFixed(2)) : 0;
+    })(),
+  };
+  const statsLoading = historyLoading;
 
   // Create rake collection mutation
   const createMutation = useMutation({
@@ -120,7 +142,9 @@ export default function RakeCollection({ clubId }) {
     <div className="space-y-6">
       {/* Collect Rake Section */}
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-        <h2 className="text-2xl font-bold mb-6 text-white">Collect Rake from Table</h2>
+        <h2 className="text-2xl font-bold mb-6 text-white">
+          Collect Rake from {gameType === 'rummy' ? 'Rummy' : gameType === 'poker' ? 'Poker' : ''} Table
+        </h2>
         
         {tablesLoading ? (
           <div className="text-gray-400">Loading tables...</div>
@@ -256,7 +280,9 @@ export default function RakeCollection({ clubId }) {
       {/* Rake Collection History */}
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-white">Rake Collection History</h2>
+          <h2 className="text-2xl font-bold text-white">
+            {gameType === 'rummy' ? 'Rummy' : gameType === 'poker' ? 'Poker' : ''} Rake Collection History
+          </h2>
           
           <div className="flex gap-3 flex-wrap">
             <input

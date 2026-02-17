@@ -10,7 +10,6 @@ const DEFAULT_MENU_ITEMS = [
   "Player Management",
   "Tables & Waitlist",
   // "Table Buy-Out", // Commented out - now integrated into Tables & Waitlist as a sub-tab
-  "Rake Collection",
   "Push Notifications",
   "Tournaments",
   "Chat",
@@ -36,11 +35,14 @@ export default function ManagerSidebar({
   const prevNotificationCount = useRef(null);
 
   const isRummyEnabled = clubInfo?.rummyEnabled || false;
+  const isPokerEnabled = clubInfo?.pokerEnabled !== false;
 
-  // Add Rummy to menu items if enabled
-  const finalMenuItems = isRummyEnabled 
-    ? [...menuItems, "Rummy"]
-    : menuItems;
+  // Filter menu items based on game access, then add Rummy if enabled
+  let finalMenuItems = menuItems.filter(item => {
+    if (!isPokerEnabled && ["Tables & Waitlist", "Tournaments"].includes(item)) return false;
+    return true;
+  });
+  if (isRummyEnabled) finalMenuItems = [...finalMenuItems, "Rummy"];
 
   // Get clubId and fetch unread notification count
   const clubId = localStorage.getItem('clubId');

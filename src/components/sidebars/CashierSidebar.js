@@ -14,7 +14,7 @@ const DEFAULT_MENU_ITEMS = [
   "Push Notifications",
   "Tournaments", // View-only
   "Chat",
-  "Financial Overrides",
+  "Transactions",
 ];
 
 export default function CashierSidebar({ 

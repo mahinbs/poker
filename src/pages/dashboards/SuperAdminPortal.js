@@ -568,8 +568,8 @@ export default function SuperAdminPortal() {
           <AffiliateManagement selectedClubId={selectedClubId} />
         )}
 
-        {/* Financial Overrides */}
-        {activeItem === "Financial Overrides" && (
+        {/* Transactions */}
+        {activeItem === "Transactions" && (
           <FinancialOverrides selectedClubId={selectedClubId} />
         )}
 
@@ -606,7 +606,7 @@ export default function SuperAdminPortal() {
           <SystemControl clubId={selectedClubId} />
         )}
 
-        {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Financial Overrides", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
+        {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Transactions", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
             </div>

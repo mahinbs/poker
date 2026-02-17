@@ -208,6 +208,7 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
   const [historyPage, setHistoryPage] = useState(1);
   const [historyFilters, setHistoryFilters] = useState({
     type: '', // '', 'Deposit', 'Cashout'
+    gameType: '', // '', 'poker', 'rummy'
     playerName: '',
     startDate: '',
     endDate: '',
@@ -261,6 +262,11 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
       // Filter by type
       if (historyFilters.type) {
         filtered = filtered.filter(t => t.type === historyFilters.type);
+      }
+
+      // Filter by game type (poker/rummy)
+      if (historyFilters.gameType) {
+        filtered = filtered.filter(t => t.gameType === historyFilters.gameType);
       }
 
       // Filter by player name
@@ -976,6 +982,23 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
                 </select>
               </div>
 
+              {/* Game Type Filter */}
+              <div>
+                <label className="block text-gray-300 mb-2 text-sm">Game Type</label>
+                <select
+                  value={historyFilters.gameType}
+                  onChange={(e) => {
+                    setHistoryFilters({ ...historyFilters, gameType: e.target.value });
+                    setHistoryPage(1);
+                  }}
+                  className="w-full px-3 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">All Games</option>
+                  <option value="poker">♠ Poker</option>
+                  <option value="rummy">🃏 Rummy</option>
+                </select>
+              </div>
+
               {/* Player Name Filter */}
               <div>
                 <label className="block text-gray-300 mb-2 text-sm">Player Name/ID</label>
@@ -1082,28 +1105,39 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
                             </div>
                           </td>
                           <td className="py-4 px-4">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                txn.type === 'Deposit' || txn.type === 'Buy In'
-                                  ? 'bg-green-500/20 text-green-400'
-                                  : 'bg-blue-500/20 text-blue-400'
-                              }`}
-                            >
-                              {txn.type === 'Deposit' || txn.type === 'Buy In' ? 'Buy-In' : 'Cash-Out'}
-                            </span>
-                            {txn.isOverridden && (
-                              <span 
-                                onClick={() => {
-                                  if (txn.overrideReason) {
-                                    alert(`Override Reason:\n\n${txn.overrideReason}`);
-                                  }
-                                }}
-                                className="ml-2 px-2 py-1 rounded text-xs bg-orange-900/30 text-orange-400 border border-orange-700 cursor-pointer hover:bg-orange-900/50 transition-colors inline-block"
-                                title="Click to view override reason"
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                  txn.type === 'Deposit' || txn.type === 'Buy In'
+                                    ? 'bg-green-500/20 text-green-400'
+                                    : 'bg-blue-500/20 text-blue-400'
+                                }`}
                               >
-                                ✏️ Overridden
+                                {txn.type === 'Deposit' || txn.type === 'Buy In' ? 'Buy-In' : 'Cash-Out'}
                               </span>
-                            )}
+                              {txn.gameType && (
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                  txn.gameType === 'poker' 
+                                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' 
+                                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                }`}>
+                                  {txn.gameType === 'poker' ? '♠ Poker' : '🃏 Rummy'}
+                                </span>
+                              )}
+                              {txn.isOverridden && (
+                                <span 
+                                  onClick={() => {
+                                    if (txn.overrideReason) {
+                                      alert(`Override Reason:\n\n${txn.overrideReason}`);
+                                    }
+                                  }}
+                                  className="px-2 py-1 rounded text-xs bg-orange-900/30 text-orange-400 border border-orange-700 cursor-pointer hover:bg-orange-900/50 transition-colors inline-block"
+                                  title="Click to view override reason"
+                                >
+                                  ✏️ Overridden
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="py-4 px-4">
                             <div className="text-white font-medium">{txn.playerName}</div>

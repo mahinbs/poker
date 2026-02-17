@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tablesAPI, waitlistAPI, clubsAPI, staffAPI, shiftsAPI, superAdminAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from '../../components/TableBuyOutManagement';
+import RakeCollection from '../../components/RakeCollection';
 
 /**
  * Comprehensive Table Management Component for Super Admin
@@ -38,6 +39,7 @@ export default function TableManagement({ selectedClubId }) {
     { id: "table-management", label: "Table Management" },
     { id: "table-buy-in", label: "Table Buy-In" },
     { id: "table-buy-out", label: "Table Buy-Out" },
+    { id: "rake-collection", label: "Rake Collection" },
     { id: "history", label: "History" },
   ];
 
@@ -108,8 +110,13 @@ export default function TableManagement({ selectedClubId }) {
             tables={tables}
           />
         )}
+
+        {/* Tab 5: Rake Collection */}
+        {activeTab === "rake-collection" && (
+          <RakeCollection clubId={selectedClubId} gameType="poker" />
+        )}
         
-        {/* Tab 5: History */}
+        {/* Tab 6: History */}
         {activeTab === "history" && (
           <HistoryView
             selectedClubId={selectedClubId}
@@ -317,6 +324,7 @@ function TableSessionControl({
   const [showSettlementModal, setShowSettlementModal] = useState(false);
   const [seatedPlayers, setSeatedPlayers] = useState([]);
   const [settlements, setSettlements] = useState({});
+  const [rakeAmount, setRakeAmount] = useState('');
 
   // Update selectedClubId when clubId prop changes
   useEffect(() => {
@@ -450,10 +458,16 @@ function TableSessionControl({
       amount: parseFloat(amount) || 0
     }));
 
+    const rakeNum = parseFloat(rakeAmount) || 0;
+
     // Confirm with admin
     const totalAmount = settlementsArray.reduce((sum, s) => sum + s.amount, 0);
-    if (window.confirm(`Settle ${settlementsArray.length} players for a total of ₹${totalAmount}? This will end the session.`)) {
-      settleAndEndMutation.mutate(settlementsArray);
+    const confirmMsg = rakeNum > 0
+      ? `Settle ${settlementsArray.length} players for a total of ₹${totalAmount} with ₹${rakeNum} rake? This will end the session.`
+      : `Settle ${settlementsArray.length} players for a total of ₹${totalAmount}? This will end the session.`;
+
+    if (window.confirm(confirmMsg)) {
+      settleAndEndMutation.mutate({ settlements: settlementsArray, rakeAmount: rakeNum || undefined });
     }
   };
 
@@ -716,11 +730,29 @@ function TableSessionControl({
               ))}
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-blue-600/20 border border-blue-500/30 rounded-lg mb-6">
+            <div className="flex items-center justify-between p-4 bg-blue-600/20 border border-blue-500/30 rounded-lg mb-4">
               <span className="text-blue-300 font-semibold">Total Settlement:</span>
               <span className="text-white text-2xl font-bold">
                 ₹{Object.values(settlements).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0).toLocaleString()}
               </span>
+            </div>
+
+            {/* Rake Collection Input */}
+            <div className="p-4 bg-amber-600/20 border border-amber-500/30 rounded-lg mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-amber-300 font-semibold whitespace-nowrap">🎰 Session Rake:</span>
+                <input
+                  type="number"
+                  value={rakeAmount}
+                  onChange={(e) => setRakeAmount(e.target.value)}
+                  className="flex-1 px-4 py-2 bg-slate-600 border border-amber-500/50 rounded-lg text-white text-lg font-semibold"
+                  placeholder="Enter rake amount (optional)"
+                  min="0"
+                  step="100"
+                />
+                <span className="text-white font-semibold">₹</span>
+              </div>
+              <p className="text-amber-300/70 text-xs mt-2">Rake will be recorded for this session automatically</p>
             </div>
 
             <div className="flex gap-4">
@@ -1387,13 +1419,14 @@ function TableManagementView({ selectedClubId, tables, tablesLoading }) {
   );
 
   // For assign dealer: Only show dealers who have shifts today AND are not on leave
+  // Also filter to only poker dealers (gameType is 'poker' or not set)
   const dealersForAssignment = (availableDealersForToday?.dealers || []).filter(
-    dealer => !assignedDealerIds.has(dealer.id)
+    dealer => !assignedDealerIds.has(dealer.id) && dealer.gameType !== 'rummy'
   );
 
-  // For general display: Filter out dealers on leave
+  // For general display: Filter out dealers on leave, only show poker dealers
   const availableDealers = allDealers.filter(
-    dealer => !assignedDealerIds.has(dealer.id) && !dealersOnLeaveIds.has(dealer.id)
+    dealer => !assignedDealerIds.has(dealer.id) && !dealersOnLeaveIds.has(dealer.id) && dealer.gameType !== 'rummy'
   );
 
   // Assign dealer mutation
@@ -2941,10 +2974,9 @@ function HistoryView({ selectedClubId, tables }) {
         
         // Handle different response formats
         let transactions = Array.isArray(response) ? response : (response?.data || response?.transactions || []);
-        console.log('[HISTORY] Parsed transactions:', transactions.length, 'records');
-        if (transactions.length > 0) {
-          console.log('[HISTORY] Sample transaction:', transactions[0]);
-        }
+        // Filter to only poker game_type transactions (exclude rummy)
+        transactions = transactions.filter(t => t.game_type !== 'rummy');
+        console.log('[HISTORY] Parsed poker transactions:', transactions.length, 'records');
         
         return transactions;
       } catch (error) {

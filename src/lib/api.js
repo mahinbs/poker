@@ -523,10 +523,14 @@ export const tablesAPI = {
   /**
    * Settle all players and end session
    */
-  settleAndEndSession: async (clubId, tableId, settlements) => {
+  settleAndEndSession: async (clubId, tableId, data) => {
+    // Support both array (legacy) and object format
+    const body = Array.isArray(data)
+      ? { settlements: data }
+      : { settlements: data.settlements, rakeAmount: data.rakeAmount };
     return await apiRequest(`/clubs/${clubId}/tables/${tableId}/settle-and-end`, {
       method: 'POST',
-      body: JSON.stringify({ settlements }),
+      body: JSON.stringify(body),
     });
   },
 
@@ -1263,6 +1267,34 @@ export const payrollAPI = {
     const query = new URLSearchParams(params).toString();
     return await apiRequest(`/clubs/${clubId}/payroll/cashout${query ? '?' + query : ''}`);
   },
+
+  // Managers
+  getManagersForPayroll: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/payroll/managers`);
+  },
+
+  // Manager Tip Balance
+  getManagerTipBalance: async (clubId, managerId) => {
+    return await apiRequest(`/clubs/${clubId}/payroll/manager-tips/${managerId}/balance`);
+  },
+
+  // Manager Cashouts
+  processManagerCashout: async (clubId, cashoutData) => {
+    return await apiRequest(`/clubs/${clubId}/payroll/manager-cashout`, {
+      method: 'POST',
+      body: JSON.stringify(cashoutData),
+    });
+  },
+
+  getManagerCashouts: async (clubId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return await apiRequest(`/clubs/${clubId}/payroll/manager-cashout${query ? '?' + query : ''}`);
+  },
+
+  // Club Tip Summary
+  getClubTipSummary: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/payroll/tips/club-summary`);
+  },
 };
 
 // =============================================================================
@@ -1466,6 +1498,8 @@ export const tenantsAPI = {
     if (clubData.gradient) payload.gradient = clubData.gradient;
     if (clubData.logoUrl) payload.logoUrl = clubData.logoUrl;
     if (clubData.videoUrl) payload.videoUrl = clubData.videoUrl;
+    if (clubData.pokerEnabled !== undefined) payload.pokerEnabled = clubData.pokerEnabled;
+    if (clubData.rummyEnabled !== undefined) payload.rummyEnabled = clubData.rummyEnabled;
     
     return await apiRequest(`/tenants/${tenantId}/clubs`, {
       method: 'POST',
@@ -1582,6 +1616,23 @@ export const masterAdminAPI = {
       method: 'PUT',
       body: JSON.stringify({ rummyEnabled }),
     });
+  },
+
+  /**
+   * Update club game access (poker, rummy, tournaments toggles)
+   */
+  updateClubGameAccess: async (clubId, updates) => {
+    return await apiRequest(`/clubs/${clubId}/game-access`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  },
+
+  /**
+   * Get club game access settings
+   */
+  getClubGameAccess: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/game-access`);
   },
 
   /**
