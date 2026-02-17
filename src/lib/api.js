@@ -354,6 +354,23 @@ export const clubsAPI = {
       body: JSON.stringify(data),
     });
   },
+
+  /**
+   * Get daily roster for attendance
+   */
+  getDailyRoster: async (clubId, date) => {
+    return await apiRequest(`/clubs/${clubId}/attendance/daily-roster?date=${date}`);
+  },
+
+  /**
+   * Bulk create attendance records
+   */
+  bulkCreateAttendance: async (clubId, entries) => {
+    return await apiRequest(`/clubs/${clubId}/attendance/bulk`, {
+      method: 'POST',
+      body: JSON.stringify({ entries }),
+    });
+  },
 };
 
 // =============================================================================
@@ -1049,6 +1066,16 @@ export const staffAPI = {
     return await apiRequest(`/clubs/${clubId}/staff-management/${staffId}`, {
       method: 'PUT',
       body: JSON.stringify(staffData),
+    });
+  },
+
+  /**
+   * Update staff salary
+   */
+  updateStaffSalary: async (clubId, staffId, data) => {
+    return await apiRequest(`/clubs/${clubId}/staff-management/${staffId}/salary`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
     });
   },
 
