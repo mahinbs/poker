@@ -23,6 +23,9 @@ export default function HrSidebar({
   const prevNotificationCount = useRef(null);
   // Track previous leave count for sound alert
   const prevLeaveCount = useRef(null);
+  // Track previous chat counts for sound alerts
+  const prevStaffChatCount = useRef(null);
+  const prevPlayerChatCount = useRef(null);
 
   // Get clubId and fetch unread notification count
   const clubId = localStorage.getItem('clubId');
@@ -82,6 +85,28 @@ export default function HrSidebar({
 
     prevLeaveCount.current = currentLeaveCount;
   }, [pendingLeaveCount]);
+
+  // Play sound when a new staff chat message arrives
+  useEffect(() => {
+    const staffChats = unreadChatData?.staffChats || 0;
+    if (prevStaffChatCount.current !== null && staffChats > prevStaffChatCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    prevStaffChatCount.current = staffChats;
+  }, [unreadChatData?.staffChats]);
+
+  // Play different sound when a new player chat message arrives
+  useEffect(() => {
+    const playerChats = unreadChatData?.playerChats || 0;
+    if (prevPlayerChatCount.current !== null && playerChats > prevPlayerChatCount.current) {
+      const audio = new Audio('/audio/notification-alert-2.wav');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    prevPlayerChatCount.current = playerChats;
+  }, [unreadChatData?.playerChats]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -214,10 +239,10 @@ export default function HrSidebar({
 
       <aside
         className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-purple-500/20 via-pink-600/30 to-rose-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${isMobile
-            ? isOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-            : "translate-x-0"
+          ? isOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+          : "translate-x-0"
           }`}
       >
         <div className="p-5 h-full flex flex-col min-w-0">
@@ -293,8 +318,8 @@ export default function HrSidebar({
                   if (isMobile) setIsOpen(false);
                 }}
                 className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md overflow-hidden ${activeItem === item
-                    ? "bg-gradient-to-r from-purple-400 to-pink-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-purple-400/20 hover:to-pink-500/20 text-white"
+                  ? "bg-gradient-to-r from-purple-400 to-pink-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
+                  : "bg-white/5 hover:bg-gradient-to-r hover:from-purple-400/20 hover:to-pink-500/20 text-white"
                   }`}
               >
                 <span className="flex items-center justify-between">

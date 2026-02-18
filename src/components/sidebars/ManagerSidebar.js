@@ -35,6 +35,9 @@ export default function ManagerSidebar({
   const prevNotificationCount = useRef(null);
   // Track previous approved leave count for sound alert
   const prevApprovedLeaveCount = useRef(null);
+  // Track previous chat counts for sound alerts
+  const prevStaffChatCount = useRef(null);
+  const prevPlayerChatCount = useRef(null);
 
   const isRummyEnabled = clubInfo?.rummyEnabled || false;
   const isPokerEnabled = clubInfo?.pokerEnabled !== false;
@@ -101,6 +104,28 @@ export default function ManagerSidebar({
     }
     prevApprovedLeaveCount.current = approvedLeaveCount;
   }, [approvedLeaveCount]);
+
+  // Play sound when a new staff chat message arrives
+  useEffect(() => {
+    const staffChats = unreadChatData?.staffChats || 0;
+    if (prevStaffChatCount.current !== null && staffChats > prevStaffChatCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    prevStaffChatCount.current = staffChats;
+  }, [unreadChatData?.staffChats]);
+
+  // Play different sound when a new player chat message arrives
+  useEffect(() => {
+    const playerChats = unreadChatData?.playerChats || 0;
+    if (prevPlayerChatCount.current !== null && playerChats > prevPlayerChatCount.current) {
+      const audio = new Audio('/audio/notification-alert-2.wav');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    prevPlayerChatCount.current = playerChats;
+  }, [unreadChatData?.playerChats]);
 
   useEffect(() => {
     const handleResize = () => {
