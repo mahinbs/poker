@@ -151,7 +151,7 @@ export default function CustomStaffSidebar({
 
       {/* Sidebar */}
       <aside
-        className={`sidebar-container fixed lg:static inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700 transform ${isOpen ? "translate-x-0" : "-translate-x-full"
+        className={`sidebar-container fixed h-screen overflow-y-auto lg:static inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700 transform ${isOpen ? "translate-x-0" : "-translate-x-full"
           } lg:translate-x-0 transition-transform duration-300 ease-in-out`}
       >
         <div className="flex flex-col h-full">

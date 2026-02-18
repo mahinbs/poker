@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { superAdminAPI } from "../../lib/api";
 import toast from "react-hot-toast";
+import { useWebSocket } from "../../hooks/useWebSocket";
 
 export default function CreditManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
@@ -13,13 +14,84 @@ export default function CreditManagement({ selectedClubId }) {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [newRequestIds, setNewRequestIds] = useState(new Set()); // track newly arrived IDs for highlight
+  const activeTabRef = useRef(activeTab);
+
+  // Keep ref in sync so WebSocket callbacks always see current tab
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+
+  // --- WebSocket -----------------------------------------------------------
+  const { connected, events } = useWebSocket(selectedClubId);
+  const lastProcessedEventRef = useRef(0);
+
+  useEffect(() => {
+    if (!events || events.length === 0) return;
+
+    const newEvents = events.slice(lastProcessedEventRef.current);
+    lastProcessedEventRef.current = events.length;
+
+    newEvents.forEach((event) => {
+      if (event.type === 'credit:requested') {
+        const data = event.data;
+
+        queryClient.setQueryData(['creditRequests', selectedClubId], (old = []) => {
+          if (old.some((r) => r.id === data.id)) return old;
+          return [data, ...old];
+        });
+
+        setNewRequestIds((prev) => new Set([...prev, data.id]));
+
+        toast(
+          (t) => (
+            <div className="flex items-start gap-3">
+              <div>
+                <p className="font-semibold text-white">New Credit Request</p>
+                <p className="text-sm text-gray-300">
+                  {data.playerName || 'A player'} requested {Number(data.amount || 0).toLocaleString()}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setActiveTab('credit-requests');
+                  toast.dismiss(t.id);
+                }}
+                className="ml-2 px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white text-xs rounded-lg font-medium"
+              >
+                View
+              </button>
+            </div>
+          ),
+          {
+            duration: 6000,
+            style: { background: '#1e293b', border: '1px solid #f59e0b', color: '#fff' },
+          }
+        );
+
+        setTimeout(() => {
+          setNewRequestIds((prev) => {
+            const next = new Set(prev);
+            next.delete(data.id);
+            return next;
+          });
+        }, 8000);
+      }
+
+      if (event.type === 'credit:approved' || event.type === 'credit:rejected') {
+        queryClient.invalidateQueries(['creditRequests', selectedClubId]);
+        queryClient.invalidateQueries(['creditPlayers', selectedClubId]);
+      }
+    });
+  }, [events, selectedClubId, queryClient]);
+
+
+  // â”€â”€â”€ Queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   // Fetch all KYC approved players with credit info
   const { data: playersData = [], isLoading: playersLoading } = useQuery({
     queryKey: ["creditPlayers", selectedClubId],
     queryFn: async () => {
       if (!selectedClubId) return [];
-      
+
       const allPlayers = [];
       let page = 1;
       const limit = 50;
@@ -29,15 +101,15 @@ export default function CreditManagement({ selectedClubId }) {
         try {
           const response = await superAdminAPI.getPlayers(selectedClubId, { limit, page });
           const players = response?.players || [];
-          
+
           if (!players || players.length === 0) {
             hasMore = false;
             break;
           }
 
           // Filter only approved/verified KYC players with Active status
-          const approvedPlayers = players.filter(p => 
-            (p.kycStatus === 'approved' || p.kycStatus === 'verified') && 
+          const approvedPlayers = players.filter(p =>
+            (p.kycStatus === 'approved' || p.kycStatus === 'verified') &&
             p.status === 'Active'
           );
 
@@ -60,12 +132,15 @@ export default function CreditManagement({ selectedClubId }) {
     enabled: !!selectedClubId,
   });
 
-  // Fetch pending credit requests
-  const { data: creditRequests = [], isLoading: requestsLoading } = useQuery({
+  // Fetch pending credit requests (initial load; WS keeps it live after)
+  const { data: creditRequests = [], isLoading: requestsLoading, isFetching: requestsFetching, refetch: refetchRequests } = useQuery({
     queryKey: ["creditRequests", selectedClubId],
     queryFn: () => superAdminAPI.getCreditRequests(selectedClubId, 'Pending'),
-    enabled: !!selectedClubId && activeTab === 'credit-requests',
+    enabled: !!selectedClubId,
+    refetchInterval: 10000, // poll every 10s as reliable fallback
   });
+
+  // â”€â”€â”€ Mutations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   // Unlock credit feature mutation
   const unlockCreditMutation = useMutation({
@@ -74,7 +149,6 @@ export default function CreditManagement({ selectedClubId }) {
     },
     onSuccess: async () => {
       toast.success("Credit feature unlocked successfully!");
-      // Force refetch the players data
       await queryClient.refetchQueries(["creditPlayers", selectedClubId]);
       setShowUnlockModal(false);
       setSelectedPlayer(null);
@@ -92,7 +166,6 @@ export default function CreditManagement({ selectedClubId }) {
     },
     onSuccess: async () => {
       toast.success("Credit limit updated successfully!");
-      // Force refetch the players data
       await queryClient.refetchQueries(["creditPlayers", selectedClubId]);
       setShowLimitModal(false);
       setSelectedPlayer(null);
@@ -160,37 +233,52 @@ export default function CreditManagement({ selectedClubId }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white mb-2">Credit Feature Management</h1>
-        <p className="text-gray-400">Ultimate control: players, staff, credit, overrides and more</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Credit Feature Management</h1>
+          <p className="text-gray-400">Ultimate control: players, staff, credit, overrides and more</p>
+        </div>
+        {/* WebSocket status */}
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border ${connected
+          ? "bg-emerald-900/40 border-emerald-500/50 text-emerald-400"
+          : "bg-slate-700/50 border-slate-600 text-gray-400"
+          }`}>
+          <span className={`w-2 h-2 rounded-full ${connected ? "bg-emerald-400 animate-pulse" : "bg-gray-500"}`} />
+          {connected ? "Live" : "Connecting..."}
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-4 mb-6">
         <button
           onClick={() => setActiveTab("players-list")}
-          className={`px-6 py-3 font-semibold rounded-t-lg transition-colors ${
-            activeTab === "players-list"
-              ? "bg-gradient-to-r from-amber-600 to-amber-500 text-white"
-              : "bg-slate-700 text-gray-300 hover:bg-slate-600"
-          }`}
+          className={`px-6 py-3 font-semibold rounded-t-lg transition-colors ${activeTab === "players-list"
+            ? "bg-gradient-to-r from-amber-600 to-amber-500 text-white"
+            : "bg-slate-700 text-gray-300 hover:bg-slate-600"
+            }`}
         >
-          Players List & Credit Management
+          Players List &amp; Credit Management
         </button>
         <button
           onClick={() => setActiveTab("credit-requests")}
-          className={`px-6 py-3 font-semibold rounded-t-lg transition-colors ${
-            activeTab === "credit-requests"
-              ? "bg-gradient-to-r from-amber-600 to-amber-500 text-white"
-              : "bg-slate-700 text-gray-300 hover:bg-slate-600"
-          }`}
+          className={`relative px-6 py-3 font-semibold rounded-t-lg transition-colors ${activeTab === "credit-requests"
+            ? "bg-gradient-to-r from-amber-600 to-amber-500 text-white"
+            : "bg-slate-700 text-gray-300 hover:bg-slate-600"
+            }`}
         >
           Credit Approval Requests
+          {/* Unread badge */}
+          {creditRequests.length > 0 && activeTab !== "credit-requests" && (
+            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+              {creditRequests.length > 9 ? "9+" : creditRequests.length}
+            </span>
+          )}
         </button>
       </div>
 
       {/* Content */}
-      <div className="bg-gradient-to-br from-amber-900/30 to-orange-900/30 rounded-lg p-6">{/* Players List Tab */}
+      <div className="bg-gradient-to-br from-amber-900/30 to-orange-900/30 rounded-lg p-6">
+        {/* Players List Tab */}
         {activeTab === "players-list" && (
           <div>
             <h2 className="text-2xl font-bold text-white mb-4">All Players - Credit Management</h2>
@@ -208,18 +296,18 @@ export default function CreditManagement({ selectedClubId }) {
                         <p className="text-gray-400 text-sm">ID: {player.playerId || player.id}</p>
                         <p className="text-gray-400 text-sm">Email: {player.email}</p>
                         <p className="text-gray-400 text-sm">
-                          Balance: <span className="font-bold text-green-400">₹{player.balance || 0}</span>
+                          Balance: <span className="font-bold text-green-400">{player.balance || 0}</span>
                         </p>
                         {player.creditEnabled && (
                           <div className="mt-2 space-y-1">
                             <p className="text-blue-400 text-sm">
-                              Credit Limit: <span className="font-bold">₹{Number(player.creditLimit || 0).toLocaleString()}</span>
+                              Credit Limit: <span className="font-bold">{Number(player.creditLimit || 0).toLocaleString()}</span>
                             </p>
                             <p className="text-yellow-400 text-sm">
-                              Credit Used: <span className="font-bold">₹{Number(player.creditUsed || 0).toLocaleString()}</span>
+                              Credit Used: <span className="font-bold">{Number(player.creditUsed || 0).toLocaleString()}</span>
                             </p>
                             <p className="text-green-400 text-sm">
-                              Remaining Credit: <span className="font-bold">₹{Number((player.creditLimit || 0) - (player.creditUsed || 0)).toLocaleString()}</span>
+                              Remaining Credit: <span className="font-bold">{Number((player.creditLimit || 0) - (player.creditUsed || 0)).toLocaleString()}</span>
                             </p>
                           </div>
                         )}
@@ -264,29 +352,57 @@ export default function CreditManagement({ selectedClubId }) {
         {/* Credit Approval Requests Tab */}
         {activeTab === "credit-requests" && (
           <div>
-            <h2 className="text-2xl font-bold text-white mb-4">Credit Approval Requests</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-white">Credit Approval Requests</h2>
+              </div>
+              <button
+                onClick={() => refetchRequests()}
+                disabled={requestsFetching}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <svg className={`w-4 h-4 ${requestsFetching ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {requestsFetching ? "Refreshing..." : "Refresh"}
+              </button>
+            </div>
+
             {requestsLoading ? (
               <div className="text-gray-400 text-center py-8">Loading requests...</div>
             ) : creditRequests.length === 0 ? (
-              <div className="text-gray-400 text-center py-8">No pending credit requests</div>
+              <div className="text-gray-400 text-center py-12">
+                <p className="text-lg">No pending credit requests</p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {creditRequests.map((request) => (
-                  <div key={request.id} className="bg-slate-800/50 rounded-lg p-6 border border-slate-700">
+                  <div
+                    key={request.id}
+                    className={`rounded-lg p-6 border transition-all duration-500 ${newRequestIds.has(request.id)
+                      ? "bg-amber-900/30 border-amber-500/60 shadow-lg shadow-amber-900/20 animate-pulse-once"
+                      : "bg-slate-800/50 border-slate-700"
+                      }`}
+                  >
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-white font-semibold text-xl">{request.playerName}</h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-white font-semibold text-xl">{request.playerName}</h3>
+                          {newRequestIds.has(request.id) && (
+                            <span className="px-2 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full">NEW</span>
+                          )}
+                        </div>
                         <p className="text-gray-400 text-sm">Player ID: {request.playerId}</p>
                         <p className="text-gray-400 text-sm">
-                          Requested Amount: <span className="font-bold text-yellow-400">₹{Number(request.amount).toLocaleString()}</span>
+                          Requested Amount: <span className="font-bold text-yellow-400">{Number(request.amount).toLocaleString()}</span>
                         </p>
                         {request.limit && request.limit > 0 && (
                           <p className="text-gray-400 text-sm">
-                            Approved Amount: <span className="font-bold text-green-400">₹{Number(request.limit).toLocaleString()}</span>
+                            Approved Amount: <span className="font-bold text-green-400">{Number(request.limit).toLocaleString()}</span>
                           </p>
                         )}
                         <p className="text-gray-400 text-sm">
-                          Requested: {new Date(request.createdAt).toLocaleDateString()}
+                          Requested: {new Date(request.createdAt).toLocaleString()}
                         </p>
                         {request.notes && (
                           <p className="text-gray-300 text-sm mt-2">
@@ -335,12 +451,12 @@ export default function CreditManagement({ selectedClubId }) {
             </p>
             <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500 rounded-lg">
               <p className="text-blue-400 text-sm">
-                Current Balance: ₹{selectedPlayer.balance || 0}
+                Current Balance: {selectedPlayer.balance || 0}
               </p>
             </div>
             <div className="mb-6">
               <label className="block text-gray-300 mb-2 font-semibold">
-                Set Credit Limit (₹) <span className="text-red-400">*</span>
+                Set Credit Limit () <span className="text-red-400">*</span>
               </label>
               <input
                 type="number"
@@ -383,15 +499,15 @@ export default function CreditManagement({ selectedClubId }) {
             </p>
             <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500 rounded-lg">
               <p className="text-blue-400 text-sm">
-                Current Limit: ₹{selectedPlayer.creditLimit || 0}
+                Current Limit: {selectedPlayer.creditLimit || 0}
               </p>
               <p className="text-blue-400 text-sm">
-                Credit Used: ₹{selectedPlayer.creditUsed || 0}
+                Credit Used: {selectedPlayer.creditUsed || 0}
               </p>
             </div>
             <div className="mb-6">
               <label className="block text-gray-300 mb-2 font-semibold">
-                New Credit Limit (₹) <span className="text-red-400">*</span>
+                New Credit Limit () <span className="text-red-400">*</span>
               </label>
               <input
                 type="number"
@@ -423,6 +539,7 @@ export default function CreditManagement({ selectedClubId }) {
           </div>
         </div>
       )}
+
       {/* Reject Reason Modal */}
       {showRejectModal && selectedRequest && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
@@ -474,4 +591,3 @@ export default function CreditManagement({ selectedClubId }) {
     </div>
   );
 }
-

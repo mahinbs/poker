@@ -153,14 +153,12 @@ export default function CustomStaffDashboard() {
   ];
 
   const handleSignOut = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('staffuser');
-    localStorage.removeItem('clubId');
+    localStorage.clear();
     navigate("/login");
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
+    <div className="bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">
       <div className="flex">
         {/* Sidebar */}
         <CustomStaffSidebar
@@ -172,7 +170,7 @@ export default function CustomStaffDashboard() {
         />
 
         {/* Main Section */}
-        <main className="flex-1 lg:ml-0 min-w-0">
+        <main className="flex-1 lg:ml-0 min-w-0 h-screen overflow-y-auto">
           <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 sm:py-10 space-y-8">
             {/* Header */}
             <header className="bg-gradient-to-r from-purple-600 via-blue-500 to-indigo-400 p-6 rounded-xl shadow-md flex justify-between items-center mt-16 lg:mt-0">

@@ -4,20 +4,21 @@ import { superAdminAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
 // Unified Player Management Component with 4 Tabs
-export default function UnifiedPlayerManagement({ 
-  selectedClubId, 
-  playersData, 
-  playersLoading, 
-  pendingPlayers, 
+export default function UnifiedPlayerManagement({
+  selectedClubId,
+  playersData,
+  playersLoading,
+  pendingPlayers,
   pendingLoading,
   suspendedPlayers = [],
   suspendedLoading = false,
-  onRefresh 
+  onRefresh
 }) {
   const [activeTab, setActiveTab] = useState("all"); // "all", "create", "approval", "field-updates"
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isRefreshingApprovals, setIsRefreshingApprovals] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [approvalPage, setApprovalPage] = useState(1);
   const [fieldUpdatesPage, setFieldUpdatesPage] = useState(1);
@@ -68,7 +69,7 @@ export default function UnifiedPlayerManagement({
       } catch (err) {
         console.error('Error fetching documents:', err);
       }
-      
+
       // Also check kycDocuments from player object and merge (avoid duplicates)
       const playerKycDocs = player.kycDocuments || selectedPlayerForDetails.kycDocuments || [];
       if (Array.isArray(playerKycDocs) && playerKycDocs.length > 0) {
@@ -80,9 +81,9 @@ export default function UnifiedPlayerManagement({
           }
         });
       }
-      
-      return { 
-        ...player, 
+
+      return {
+        ...player,
         documents: documents
       };
     },
@@ -120,10 +121,10 @@ export default function UnifiedPlayerManagement({
     mutationFn: async (data) => {
       // First create the player
       const playerData = await superAdminAPI.createPlayer(selectedClubId, data);
-      
+
       // Then upload documents
       const uploadPromises = [];
-      
+
       if (playerForm.aadhaarFile) {
         uploadPromises.push(
           uploadDocumentMutation.mutateAsync({
@@ -133,7 +134,7 @@ export default function UnifiedPlayerManagement({
           })
         );
       }
-      
+
       if (playerForm.panCardFile) {
         uploadPromises.push(
           uploadDocumentMutation.mutateAsync({
@@ -249,7 +250,7 @@ export default function UnifiedPlayerManagement({
   });
 
   // Field Update Requests Query (TODO: Add backend endpoint)
-  const { data: fieldUpdateRequests = [], isLoading: fieldUpdatesLoading } = useQuery({
+  const { data: fieldUpdateRequests = [], isLoading: fieldUpdatesLoading, isFetching: fieldUpdatesFetching, refetch: refetchFieldUpdates } = useQuery({
     queryKey: ['fieldUpdateRequests', selectedClubId],
     queryFn: async () => {
       // TODO: Replace with actual API call when backend endpoint is ready
@@ -277,13 +278,13 @@ export default function UnifiedPlayerManagement({
 
   const handleCreatePlayer = async (e) => {
     e.preventDefault();
-    
+
     // Validate club is selected
     if (!selectedClubId) {
       toast.error('Please select a club first');
       return;
     }
-    
+
     // Validate PAN card format if provided
     if (playerForm.panCard && playerForm.panCard.trim()) {
       const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
@@ -324,7 +325,7 @@ export default function UnifiedPlayerManagement({
       toast.error('PAN card document must be JPG, PNG, or PDF');
       return;
     }
-    
+
     // Backend will generate password automatically - no need to send it
     // Map referralCode to affiliateCode for backend
     const formData = {
@@ -335,7 +336,7 @@ export default function UnifiedPlayerManagement({
       panCard: playerForm.panCard || undefined,
       initialBalance: playerForm.initialBalance || 0,
     };
-    
+
     createPlayerMutation.mutate(formData);
   };
 
@@ -398,11 +399,10 @@ export default function UnifiedPlayerManagement({
           <button
             key={tab.id}
             onClick={() => handleTabChange(tab.id)}
-            className={`px-6 py-3 font-semibold transition-all ${
-              activeTab === tab.id
-                ? "bg-gradient-to-r from-red-400 to-purple-600 text-white border-b-2 border-purple-400"
-                : "text-gray-400 hover:text-white"
-            }`}
+            className={`px-6 py-3 font-semibold transition-all ${activeTab === tab.id
+              ? "bg-gradient-to-r from-red-400 to-purple-600 text-white border-b-2 border-purple-400"
+              : "text-gray-400 hover:text-white"
+              }`}
           >
             {tab.label}
           </button>
@@ -468,11 +468,11 @@ export default function UnifiedPlayerManagement({
                       </tr>
                     ) : (
                       paginatedPlayers.map((player) => (
-                        <tr 
-                          key={player.id} 
+                        <tr
+                          key={player.id}
                           className="hover:bg-slate-750"
                         >
-                          <td 
+                          <td
                             className="px-6 py-4 font-medium cursor-pointer"
                             onClick={() => {
                               setSelectedPlayerForDetails(player);
@@ -486,24 +486,22 @@ export default function UnifiedPlayerManagement({
                           <td className="px-6 py-4 text-gray-400">{player.phoneNumber || '-'}</td>
                           <td className="px-6 py-4">
                             <span
-                              className={`px-2 py-1 rounded text-xs font-semibold ${
-                                player.status === 'Active'
-                                  ? 'bg-emerald-600/20 text-emerald-400'
-                                  : player.status === 'Pending'
+                              className={`px-2 py-1 rounded text-xs font-semibold ${player.status === 'Active'
+                                ? 'bg-emerald-600/20 text-emerald-400'
+                                : player.status === 'Pending'
                                   ? 'bg-yellow-600/20 text-yellow-400'
                                   : 'bg-red-600/20 text-red-400'
-                              }`}
+                                }`}
                             >
                               {player.status}
                             </span>
                           </td>
                           <td className="px-6 py-4">
                             <span
-                              className={`px-2 py-1 rounded text-xs font-semibold ${
-                                player.kycStatus === 'approved' || player.kycStatus === 'verified'
-                                  ? 'bg-green-600/20 text-green-400'
-                                  : 'bg-gray-600/20 text-gray-400'
-                              }`}
+                              className={`px-2 py-1 rounded text-xs font-semibold ${player.kycStatus === 'approved' || player.kycStatus === 'verified'
+                                ? 'bg-green-600/20 text-green-400'
+                                : 'bg-gray-600/20 text-gray-400'
+                                }`}
                             >
                               {player.kycStatus || 'pending'}
                             </span>
@@ -727,6 +725,23 @@ export default function UnifiedPlayerManagement({
         {/* Tab 3: Player Approval */}
         {activeTab === "approval" && (
           <div className="space-y-6">
+            {/* Refresh button — always visible */}
+            <div className="flex justify-end">
+              <button
+                onClick={async () => {
+                  setIsRefreshingApprovals(true);
+                  try { await onRefresh(); } finally { setIsRefreshingApprovals(false); }
+                }}
+                disabled={isRefreshingApprovals || pendingLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                title="Refresh approval requests"
+              >
+                <svg className={`w-4 h-4 ${isRefreshingApprovals || pendingLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {isRefreshingApprovals || pendingLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
             {pendingLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
@@ -760,70 +775,70 @@ export default function UnifiedPlayerManagement({
                       </tr>
                     ) : (
                       paginatedPendingPlayers.map((player) => (
-                      <tr key={player.id} className="hover:bg-slate-750">
-                        <td className="px-6 py-4 font-medium">{player.name}</td>
-                        <td className="px-6 py-4 text-gray-400">{player.email}</td>
-                        <td className="px-6 py-4 text-gray-400">{player.phoneNumber || '-'}</td>
-                        <td className="px-6 py-4 text-gray-400 text-sm">
-                          {new Date(player.registrationDate || player.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-1">
-                            {player.kycDocumentUrl && (
-                              <a
-                                href={player.kycDocumentUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-400 hover:text-blue-300 text-sm"
+                        <tr key={player.id} className="hover:bg-slate-750">
+                          <td className="px-6 py-4 font-medium">{player.name}</td>
+                          <td className="px-6 py-4 text-gray-400">{player.email}</td>
+                          <td className="px-6 py-4 text-gray-400">{player.phoneNumber || '-'}</td>
+                          <td className="px-6 py-4 text-gray-400 text-sm">
+                            {new Date(player.registrationDate || player.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              {player.kycDocumentUrl && (
+                                <a
+                                  href={player.kycDocumentUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-400 hover:text-blue-300 text-sm"
+                                >
+                                  View Document
+                                </a>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setSelectedPlayerForDetails(player);
+                                  setShowPlayerDetailsModal(true);
+                                }}
+                                className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded-lg text-xs font-medium text-white transition-colors"
                               >
-                                View Document
-                              </a>
-                            )}
-                            <button
-                              onClick={() => {
-                                setSelectedPlayerForDetails(player);
-                                setShowPlayerDetailsModal(true);
-                              }}
-                              className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded-lg text-xs font-medium text-white transition-colors"
-                            >
-                              📄 View KYC
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs font-semibold">
-                            Pending
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => {
-                                setSelectedPlayer(player);
-                                // Show details modal or approve directly
-                                approveMutation.mutate({ playerId: player.id, notes: 'Approved by Super Admin' });
-                              }}
-                              disabled={approveMutation.isLoading}
-                              className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => {
-                                const reason = prompt('Enter rejection reason:');
-                                if (reason) {
-                                  rejectMutation.mutate({ playerId: player.id, reason });
-                                }
-                              }}
-                              disabled={rejectMutation.isLoading}
-                              className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )))}
+                                📄 View KYC
+                              </button>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs font-semibold">
+                              Pending
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedPlayer(player);
+                                  // Show details modal or approve directly
+                                  approveMutation.mutate({ playerId: player.id, notes: 'Approved by Super Admin' });
+                                }}
+                                disabled={approveMutation.isLoading}
+                                className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const reason = prompt('Enter rejection reason:');
+                                  if (reason) {
+                                    rejectMutation.mutate({ playerId: player.id, reason });
+                                  }
+                                }}
+                                disabled={rejectMutation.isLoading}
+                                className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )))}
                   </tbody>
                 </table>
                 {/* Pagination Controls */}
@@ -858,6 +873,20 @@ export default function UnifiedPlayerManagement({
         {/* Tab 4: Player Fields Update Approval */}
         {activeTab === "field-updates" && (
           <div className="space-y-6">
+            {/* Refresh button — always visible */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => refetchFieldUpdates()}
+                disabled={fieldUpdatesFetching}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                title="Refresh field update requests"
+              >
+                <svg className={`w-4 h-4 ${fieldUpdatesFetching ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {fieldUpdatesFetching ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
             {fieldUpdatesLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
@@ -892,63 +921,63 @@ export default function UnifiedPlayerManagement({
                       </tr>
                     ) : (
                       paginatedFieldUpdates.map((request) => (
-                      <tr key={request.id} className="hover:bg-slate-750">
-                        <td className="px-6 py-4 font-medium">{request.playerName}</td>
-                        <td className="px-6 py-4">
-                          <div className="space-y-1">
-                            {request.fields?.map((field, idx) => (
-                              <div key={idx} className="text-sm">
-                                <span className="text-gray-400">{field.fieldName}:</span>{' '}
-                                <span className="text-gray-500 line-through">{field.currentValue || 'N/A'}</span>
-                                {' → '}
-                                <span className="text-emerald-400">{field.requestedValue}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-gray-400 text-sm">
-                          {new Date(request.requestedDate || request.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs font-semibold">
-                            {request.status || 'Pending'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => {
-                                fieldUpdateMutation.mutate({
-                                  requestId: request.id,
-                                  approved: true,
-                                  notes: 'Approved by Super Admin',
-                                });
-                              }}
-                              disabled={fieldUpdateMutation.isLoading}
-                              className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => {
-                                const reason = prompt('Enter rejection reason:');
-                                if (reason) {
+                        <tr key={request.id} className="hover:bg-slate-750">
+                          <td className="px-6 py-4 font-medium">{request.playerName}</td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-1">
+                              {request.fields?.map((field, idx) => (
+                                <div key={idx} className="text-sm">
+                                  <span className="text-gray-400">{field.fieldName}:</span>{' '}
+                                  <span className="text-gray-500 line-through">{field.currentValue || 'N/A'}</span>
+                                  {' → '}
+                                  <span className="text-emerald-400">{field.requestedValue}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-gray-400 text-sm">
+                            {new Date(request.requestedDate || request.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs font-semibold">
+                              {request.status || 'Pending'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
                                   fieldUpdateMutation.mutate({
                                     requestId: request.id,
-                                    approved: false,
-                                    notes: reason,
+                                    approved: true,
+                                    notes: 'Approved by Super Admin',
                                   });
-                                }
-                              }}
-                              disabled={fieldUpdateMutation.isLoading}
-                              className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                                }}
+                                disabled={fieldUpdateMutation.isLoading}
+                                className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const reason = prompt('Enter rejection reason:');
+                                  if (reason) {
+                                    fieldUpdateMutation.mutate({
+                                      requestId: request.id,
+                                      approved: false,
+                                      notes: reason,
+                                    });
+                                  }
+                                }}
+                                disabled={fieldUpdateMutation.isLoading}
+                                className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
@@ -983,7 +1012,7 @@ export default function UnifiedPlayerManagement({
             {activeTab === "suspend" && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold">Player Suspension Management</h2>
-                
+
                 {/* Note: Suspension is now done from All Players tab */}
                 <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
                   <div className="text-center py-8">
@@ -1193,13 +1222,12 @@ export default function UnifiedPlayerManagement({
                     <div>
                       <p className="text-gray-400 text-sm mb-1">Status</p>
                       <span
-                        className={`inline-block px-3 py-1 rounded text-xs font-semibold ${
-                          (playerDetailsData.status || selectedPlayerForDetails.status) === 'Active'
-                            ? 'bg-emerald-600/20 text-emerald-400'
-                            : (playerDetailsData.status || selectedPlayerForDetails.status) === 'Pending'
+                        className={`inline-block px-3 py-1 rounded text-xs font-semibold ${(playerDetailsData.status || selectedPlayerForDetails.status) === 'Active'
+                          ? 'bg-emerald-600/20 text-emerald-400'
+                          : (playerDetailsData.status || selectedPlayerForDetails.status) === 'Pending'
                             ? 'bg-yellow-600/20 text-yellow-400'
                             : 'bg-red-600/20 text-red-400'
-                        }`}
+                          }`}
                       >
                         {playerDetailsData.status || selectedPlayerForDetails.status}
                       </span>
@@ -1207,12 +1235,11 @@ export default function UnifiedPlayerManagement({
                     <div>
                       <p className="text-gray-400 text-sm mb-1">KYC Status</p>
                       <span
-                        className={`inline-block px-3 py-1 rounded text-xs font-semibold ${
-                          (playerDetailsData.kycStatus || selectedPlayerForDetails.kycStatus) === 'approved' || 
+                        className={`inline-block px-3 py-1 rounded text-xs font-semibold ${(playerDetailsData.kycStatus || selectedPlayerForDetails.kycStatus) === 'approved' ||
                           (playerDetailsData.kycStatus || selectedPlayerForDetails.kycStatus) === 'verified'
-                            ? 'bg-green-600/20 text-green-400'
-                            : 'bg-gray-600/20 text-gray-400'
-                        }`}
+                          ? 'bg-green-600/20 text-green-400'
+                          : 'bg-gray-600/20 text-gray-400'
+                          }`}
                       >
                         {playerDetailsData.kycStatus || selectedPlayerForDetails.kycStatus || 'pending'}
                       </span>
@@ -1256,25 +1283,23 @@ export default function UnifiedPlayerManagement({
 
                         const documentTypeLabel = getDocumentTypeLabel(doc.type || doc.documentType);
                         const isAadhaar = documentTypeLabel.includes('Aadhaar');
-                        
+
                         return (
-                          <div 
-                            key={doc.id || idx} 
-                            className={`bg-slate-700/70 rounded-xl p-6 border-2 ${
-                              isAadhaar 
-                                ? 'border-blue-500/50 shadow-lg shadow-blue-500/10' 
-                                : 'border-purple-500/50 shadow-lg shadow-purple-500/10'
-                            }`}
+                          <div
+                            key={doc.id || idx}
+                            className={`bg-slate-700/70 rounded-xl p-6 border-2 ${isAadhaar
+                              ? 'border-blue-500/50 shadow-lg shadow-blue-500/10'
+                              : 'border-purple-500/50 shadow-lg shadow-purple-500/10'
+                              }`}
                           >
                             {/* Document Header */}
                             <div className="flex justify-between items-start mb-4">
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-3">
-                                  <span className={`px-4 py-2 rounded-lg text-sm font-bold ${
-                                    isAadhaar 
-                                      ? 'bg-blue-600/30 text-blue-300 border border-blue-500/50' 
-                                      : 'bg-purple-600/30 text-purple-300 border border-purple-500/50'
-                                  }`}>
+                                  <span className={`px-4 py-2 rounded-lg text-sm font-bold ${isAadhaar
+                                    ? 'bg-blue-600/30 text-blue-300 border border-blue-500/50'
+                                    : 'bg-purple-600/30 text-purple-300 border border-purple-500/50'
+                                    }`}>
                                     {documentTypeLabel}
                                   </span>
                                 </div>
@@ -1316,13 +1341,13 @@ export default function UnifiedPlayerManagement({
                                 )}
                               </div>
                             </div>
-                            
+
                             {doc.url && (
                               <div className="mt-3">
                                 {doc.url.match(/\.(jpg|jpeg|png|gif)$/i) ? (
-                                  <img 
-                                    src={doc.url} 
-                                    alt={doc.name || 'Document'} 
+                                  <img
+                                    src={doc.url}
+                                    alt={doc.name || 'Document'}
                                     className="max-w-full h-auto rounded-lg border border-slate-600 max-h-64"
                                     onError={(e) => {
                                       e.target.style.display = 'none';

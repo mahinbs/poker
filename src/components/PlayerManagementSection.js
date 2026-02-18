@@ -13,6 +13,12 @@ export default function PlayerManagementSection({
   setPendingApprovals = null,
   suspendedPlayers = [],
   setSuspendedPlayers = null,
+  // Refresh callbacks
+  onRefreshApprovals = null,
+  onRefreshFieldUpdates = null,
+  // Refresh loading states
+  isRefreshingApprovals = false,
+  isRefreshingFieldUpdates = false,
   // Option to force a specific tab
   forceTab = null, // "creating", "approval", "suspension", "kyc-review", "field-update", "all-players"
   // All players list prop
@@ -20,7 +26,7 @@ export default function PlayerManagementSection({
   setAllPlayers = null,
 }) {
   const [activeTab, setActiveTab] = useState(forceTab || "all-players");
-  
+
   // Player details modal state
   const [selectedPlayerForView, setSelectedPlayerForView] = useState(null);
   const [showPlayerDetailsModal, setShowPlayerDetailsModal] = useState(false);
@@ -345,11 +351,10 @@ export default function PlayerManagementSection({
           {canViewAllPlayers && (
             <button
               onClick={() => setActiveTab("all-players")}
-              className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
-                activeTab === "all-players"
-                  ? "bg-gradient-to-r from-purple-600 to-pink-700 text-white shadow-lg"
-                  : "bg-white/10 text-white/70 hover:bg-white/15"
-              }`}
+              className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${activeTab === "all-players"
+                ? "bg-gradient-to-r from-purple-600 to-pink-700 text-white shadow-lg"
+                : "bg-white/10 text-white/70 hover:bg-white/15"
+                }`}
             >
               All Players
             </button>
@@ -357,11 +362,10 @@ export default function PlayerManagementSection({
           {canCreatePlayer && (
             <button
               onClick={() => setActiveTab("creating")}
-              className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
-                activeTab === "creating"
-                  ? "bg-gradient-to-r from-purple-600 to-pink-700 text-white shadow-lg"
-                  : "bg-white/10 text-white/70 hover:bg-white/15"
-              }`}
+              className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${activeTab === "creating"
+                ? "bg-gradient-to-r from-purple-600 to-pink-700 text-white shadow-lg"
+                : "bg-white/10 text-white/70 hover:bg-white/15"
+                }`}
             >
               Player Creating
             </button>
@@ -369,11 +373,10 @@ export default function PlayerManagementSection({
           {canApprovePlayer && (
             <button
               onClick={() => setActiveTab("approval")}
-              className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
-                activeTab === "approval"
-                  ? "bg-gradient-to-r from-purple-600 to-pink-700 text-white shadow-lg"
-                  : "bg-white/10 text-white/70 hover:bg-white/15"
-              }`}
+              className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${activeTab === "approval"
+                ? "bg-gradient-to-r from-purple-600 to-pink-700 text-white shadow-lg"
+                : "bg-white/10 text-white/70 hover:bg-white/15"
+                }`}
             >
               Player Approval
             </button>
@@ -381,11 +384,10 @@ export default function PlayerManagementSection({
           {canSuspendPlayer && (
             <button
               onClick={() => setActiveTab("suspension")}
-              className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
-                activeTab === "suspension"
-                  ? "bg-gradient-to-r from-purple-600 to-pink-700 text-white shadow-lg"
-                  : "bg-white/10 text-white/70 hover:bg-white/15"
-              }`}
+              className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${activeTab === "suspension"
+                ? "bg-gradient-to-r from-purple-600 to-pink-700 text-white shadow-lg"
+                : "bg-white/10 text-white/70 hover:bg-white/15"
+                }`}
             >
               Player Suspension
             </button>
@@ -393,11 +395,10 @@ export default function PlayerManagementSection({
           {canReviewKyc && (
             <button
               onClick={() => setActiveTab("kyc-review")}
-              className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
-                activeTab === "kyc-review"
-                  ? "bg-gradient-to-r from-purple-600 to-pink-700 text-white shadow-lg"
-                  : "bg-white/10 text-white/70 hover:bg-white/15"
-              }`}
+              className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${activeTab === "kyc-review"
+                ? "bg-gradient-to-r from-purple-600 to-pink-700 text-white shadow-lg"
+                : "bg-white/10 text-white/70 hover:bg-white/15"
+                }`}
             >
               Player KYC Docs Review
             </button>
@@ -405,16 +406,15 @@ export default function PlayerManagementSection({
           {canReviewFieldUpdates && (
             <button
               onClick={() => setActiveTab("field-update")}
-              className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
-                activeTab === "field-update"
-                  ? "bg-gradient-to-r from-purple-600 to-pink-700 text-white shadow-lg"
-                  : "bg-white/10 text-white/70 hover:bg-white/15"
-              }`}
+              className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${activeTab === "field-update"
+                ? "bg-gradient-to-r from-purple-600 to-pink-700 text-white shadow-lg"
+                : "bg-white/10 text-white/70 hover:bg-white/15"
+                }`}
             >
               Player Fields Update Approval
             </button>
           )}
-          
+
         </div>
       )}
 
@@ -568,9 +568,24 @@ export default function PlayerManagementSection({
       {/* Player Approval Tab */}
       {activeTab === "approval" && canApprovePlayer && (
         <section className="p-6 bg-gradient-to-r from-blue-600/30 via-indigo-500/20 to-purple-700/30 rounded-xl shadow-md border border-blue-800/40">
-          <h2 className="text-xl font-bold text-white mb-6">
-            Player Approval Requests
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-white">
+              Player Approval Requests
+            </h2>
+            {onRefreshApprovals && (
+              <button
+                onClick={onRefreshApprovals}
+                disabled={isRefreshingApprovals}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                title="Refresh approval requests"
+              >
+                <svg className={`w-4 h-4 ${isRefreshingApprovals ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {isRefreshingApprovals ? 'Refreshing...' : 'Refresh'}
+              </button>
+            )}
+          </div>
           <div className="bg-white/10 p-4 rounded-lg">
             <table className="w-full text-left bg-gray-900/50 rounded-lg overflow-hidden">
               <thead className="bg-gray-800 text-gray-400 uppercase text-sm">
@@ -596,13 +611,12 @@ export default function PlayerManagementSection({
                     <td className="py-3 px-4">{player.referredBy || "N/A"}</td>
                     <td className="py-3 px-4">
                       <span
-                        className={`px-2 py-1 text-xs rounded ${
-                          player.status === "Approved"
-                            ? "bg-green-900 text-green-400"
-                            : player.status === "Rejected"
+                        className={`px-2 py-1 text-xs rounded ${player.status === "Approved"
+                          ? "bg-green-900 text-green-400"
+                          : player.status === "Rejected"
                             ? "bg-red-900 text-red-400"
                             : "bg-yellow-900 text-yellow-400"
-                        }`}
+                          }`}
                       >
                         {player.status}
                       </span>
@@ -834,13 +848,12 @@ export default function PlayerManagementSection({
                     <td className="py-3 px-4">{req.submittedDate}</td>
                     <td className="py-3 px-4">
                       <span
-                        className={`px-2 py-1 text-xs rounded ${
-                          req.status === "Approved"
-                            ? "bg-green-900 text-green-400"
-                            : req.status === "Rejected"
+                        className={`px-2 py-1 text-xs rounded ${req.status === "Approved"
+                          ? "bg-green-900 text-green-400"
+                          : req.status === "Rejected"
                             ? "bg-red-900 text-red-400"
                             : "bg-yellow-900 text-yellow-400"
-                        }`}
+                          }`}
                       >
                         {req.status}
                       </span>
@@ -970,13 +983,12 @@ export default function PlayerManagementSection({
                       <label className="text-gray-400 text-sm">Status</label>
                       <div>
                         <span
-                          className={`px-3 py-1 rounded-full text-xs border font-medium ${
-                            selectedKycDetails.status === "Approved"
-                              ? "bg-green-500/30 text-green-300 border-green-400/50"
-                              : selectedKycDetails.status === "Rejected"
+                          className={`px-3 py-1 rounded-full text-xs border font-medium ${selectedKycDetails.status === "Approved"
+                            ? "bg-green-500/30 text-green-300 border-green-400/50"
+                            : selectedKycDetails.status === "Rejected"
                               ? "bg-red-500/30 text-red-300 border-red-400/50"
                               : "bg-yellow-500/30 text-yellow-300 border-yellow-400/50"
-                          }`}
+                            }`}
                         >
                           {selectedKycDetails.status}
                         </span>
@@ -1039,9 +1051,24 @@ export default function PlayerManagementSection({
       {/* Player Fields Update Approval Tab */}
       {activeTab === "field-update" && canReviewFieldUpdates && (
         <section className="p-6 bg-gray-800/50 rounded-xl border border-gray-700">
-          <h2 className="text-xl font-bold text-white mb-4">
-            Player Profile Update Requests
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white">
+              Player Profile Update Requests
+            </h2>
+            {onRefreshFieldUpdates && (
+              <button
+                onClick={onRefreshFieldUpdates}
+                disabled={isRefreshingFieldUpdates}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                title="Refresh field update requests"
+              >
+                <svg className={`w-4 h-4 ${isRefreshingFieldUpdates ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {isRefreshingFieldUpdates ? 'Refreshing...' : 'Refresh'}
+              </button>
+            )}
+          </div>
           <div className="bg-white/10 p-4 rounded-lg">
             <table className="w-full text-left bg-gray-900/50 rounded-lg overflow-hidden">
               <thead className="bg-gray-800 text-gray-400 uppercase text-sm">
@@ -1059,12 +1086,12 @@ export default function PlayerManagementSection({
                     req.fields ||
                     (req.field
                       ? [
-                          {
-                            field: req.field,
-                            oldValue: req.oldValue,
-                            newValue: req.newValue,
-                          },
-                        ]
+                        {
+                          field: req.field,
+                          oldValue: req.oldValue,
+                          newValue: req.newValue,
+                        },
+                      ]
                       : []);
                   return (
                     <tr key={req.id}>
@@ -1096,13 +1123,12 @@ export default function PlayerManagementSection({
                       </td>
                       <td className="py-3 px-4">
                         <span
-                          className={`px-2 py-1 text-xs rounded ${
-                            req.status === "Approved"
-                              ? "bg-green-900 text-green-400"
-                              : req.status === "Rejected"
+                          className={`px-2 py-1 text-xs rounded ${req.status === "Approved"
+                            ? "bg-green-900 text-green-400"
+                            : req.status === "Rejected"
                               ? "bg-red-900 text-red-400"
                               : "bg-yellow-900 text-yellow-400"
-                          }`}
+                            }`}
                         >
                           {req.status}
                         </span>
@@ -1226,15 +1252,14 @@ export default function PlayerManagementSection({
                           <div className="text-xs text-gray-400">ID: {player.id}</div>
                         </div>
                         <span
-                          className={`px-2 py-1 text-xs rounded font-semibold ${
-                            player.status === "Active"
-                              ? "bg-green-900 text-green-400"
-                              : player.status === "Suspended"
+                          className={`px-2 py-1 text-xs rounded font-semibold ${player.status === "Active"
+                            ? "bg-green-900 text-green-400"
+                            : player.status === "Suspended"
                               ? "bg-red-900 text-red-400"
                               : player.status === "Pending Approval"
-                              ? "bg-yellow-900 text-yellow-400"
-                              : "bg-gray-900 text-gray-400"
-                          }`}
+                                ? "bg-yellow-900 text-yellow-400"
+                                : "bg-gray-900 text-gray-400"
+                            }`}
                         >
                           {player.status}
                         </span>
@@ -1260,15 +1285,14 @@ export default function PlayerManagementSection({
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-400">KYC Status:</span>
                           <span
-                            className={`px-2 py-1 text-xs rounded ${
-                              player.kycStatus === "Verified"
-                                ? "bg-green-900 text-green-400"
-                                : player.kycStatus === "Pending"
+                            className={`px-2 py-1 text-xs rounded ${player.kycStatus === "Verified"
+                              ? "bg-green-900 text-green-400"
+                              : player.kycStatus === "Pending"
                                 ? "bg-yellow-900 text-yellow-400"
                                 : player.kycStatus === "Rejected"
-                                ? "bg-red-900 text-red-400"
-                                : "bg-gray-900 text-gray-400"
-                            }`}
+                                  ? "bg-red-900 text-red-400"
+                                  : "bg-gray-900 text-gray-400"
+                              }`}
                           >
                             {player.kycStatus || "N/A"}
                           </span>
@@ -1327,11 +1351,10 @@ export default function PlayerManagementSection({
                               <button
                                 key={page}
                                 onClick={() => setCurrentPage(page)}
-                                className={`px-3 py-2 rounded text-sm font-semibold transition-all ${
-                                  currentPage === page
-                                    ? "bg-indigo-600 text-white"
-                                    : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                                }`}
+                                className={`px-3 py-2 rounded text-sm font-semibold transition-all ${currentPage === page
+                                  ? "bg-indigo-600 text-white"
+                                  : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                                  }`}
                               >
                                 {page}
                               </button>
@@ -1428,22 +1451,20 @@ export default function PlayerManagementSection({
                     </div>
                     <div>
                       <span className="text-gray-400 text-sm">Account Status:</span>
-                      <p className={`font-semibold ${
-                        selectedPlayerForView.status === 'Active' ? 'text-green-400' :
+                      <p className={`font-semibold ${selectedPlayerForView.status === 'Active' ? 'text-green-400' :
                         selectedPlayerForView.status === 'Pending' ? 'text-yellow-400' :
-                        selectedPlayerForView.status === 'Suspended' ? 'text-red-400' :
-                        'text-gray-400'
-                      }`}>
+                          selectedPlayerForView.status === 'Suspended' ? 'text-red-400' :
+                            'text-gray-400'
+                        }`}>
                         {selectedPlayerForView.status || 'Pending'}
                       </p>
                     </div>
                     <div>
                       <span className="text-gray-400 text-sm">KYC Status:</span>
-                      <p className={`font-semibold ${
-                        selectedPlayerForView.kycStatus === 'Verified' || selectedPlayerForView.kycStatus === 'approved' ? 'text-green-400' :
+                      <p className={`font-semibold ${selectedPlayerForView.kycStatus === 'Verified' || selectedPlayerForView.kycStatus === 'approved' ? 'text-green-400' :
                         selectedPlayerForView.kycStatus === 'Pending' || selectedPlayerForView.kycStatus === 'pending' ? 'text-yellow-400' :
-                        'text-red-400'
-                      }`}>
+                          'text-red-400'
+                        }`}>
                         {selectedPlayerForView.kycStatus || 'Pending'}
                       </p>
                     </div>
@@ -1469,7 +1490,7 @@ export default function PlayerManagementSection({
                 {/* KYC Documents */}
                 <div className="bg-slate-700 rounded-lg p-6">
                   <h4 className="text-xl font-semibold text-white mb-4">KYC Documents</h4>
-                  
+
                   {selectedPlayerForView.kycDocuments && selectedPlayerForView.kycDocuments.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {selectedPlayerForView.kycDocuments.map((doc, index) => (
@@ -1479,29 +1500,28 @@ export default function PlayerManagementSection({
                               {doc.type || `Document ${index + 1}`}
                             </span>
                             {doc.status && (
-                              <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                                doc.status === 'approved' ? 'bg-green-900 text-green-300' :
+                              <span className={`ml-2 px-2 py-1 rounded text-xs ${doc.status === 'approved' ? 'bg-green-900 text-green-300' :
                                 doc.status === 'rejected' ? 'bg-red-900 text-red-300' :
-                                'bg-yellow-900 text-yellow-300'
-                              }`}>
+                                  'bg-yellow-900 text-yellow-300'
+                                }`}>
                                 {doc.status}
                               </span>
                             )}
                           </div>
                           {doc.url ? (
                             <div className="space-y-2">
-                              <img 
-                                src={doc.url} 
-                                alt={doc.type || 'KYC Document'} 
+                              <img
+                                src={doc.url}
+                                alt={doc.type || 'KYC Document'}
                                 className="w-full h-48 object-cover rounded"
                                 onError={(e) => {
                                   e.target.onerror = null;
                                   e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23334155" width="200" height="200"/%3E%3Ctext fill="%239ca3af" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
                                 }}
                               />
-                              <a 
-                                href={doc.url} 
-                                target="_blank" 
+                              <a
+                                href={doc.url}
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="block text-center text-blue-400 hover:text-blue-300 text-sm"
                               >

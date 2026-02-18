@@ -53,6 +53,8 @@ export default function SuperAdminSidebar({
   // Track previous chat counts for sound alerts
   const prevStaffChatCount = useRef(null);
   const prevPlayerChatCount = useRef(null);
+  // Track previous credit request count for sound alert
+  const prevCreditCount = useRef(null);
 
   // Get clubId and fetch unread notification count
   const clubId = selectedClubId || localStorage.getItem('clubId');
@@ -84,6 +86,17 @@ export default function SuperAdminSidebar({
   });
 
   const pendingLeaveCount = pendingLeaves?.length || 0;
+
+  // Fetch pending credit requests count
+  const { data: creditRequests = [] } = useQuery({
+    queryKey: ["creditRequests", clubId],
+    queryFn: () => superAdminAPI.getCreditRequests(clubId, 'Pending'),
+    enabled: !!clubId,
+    refetchInterval: 10000,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
+  });
+  const pendingCreditCount = creditRequests?.length || 0;
 
   // Play notification sound when new notification arrives
   useEffect(() => {
@@ -134,6 +147,16 @@ export default function SuperAdminSidebar({
     }
     prevPlayerChatCount.current = playerChats;
   }, [unreadChatData?.playerChats]);
+
+  // Play sound when a new credit request arrives
+  useEffect(() => {
+    if (prevCreditCount.current !== null && pendingCreditCount > prevCreditCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.6;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    prevCreditCount.current = pendingCreditCount;
+  }, [pendingCreditCount]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -487,6 +510,11 @@ export default function SuperAdminSidebar({
                   {item === "Staff Management" && pendingLeaveCount > 0 && (
                     <span className="ml-2 bg-amber-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
                       {pendingLeaveCount > 9 ? "9+" : pendingLeaveCount}
+                    </span>
+                  )}
+                  {item === "Credit Management" && pendingCreditCount > 0 && (
+                    <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
+                      {pendingCreditCount > 9 ? "9+" : pendingCreditCount}
                     </span>
                   )}
                 </span>

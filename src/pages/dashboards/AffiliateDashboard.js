@@ -186,9 +186,7 @@ export default function AffiliateDashboard() {
   ];
 
   const handleSignOut = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('staffuser');
-    localStorage.removeItem('clubId');
+    localStorage.clear()
     navigate("/login");
     };
 

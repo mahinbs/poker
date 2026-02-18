@@ -15,15 +15,15 @@ export default function PlayerManagementHR({ selectedClubId }) {
   const queryClient = useQueryClient();
 
   // Fetch all players
-  const { data: playersResponse, isLoading: playersLoading } = useQuery({
+  const { data: playersResponse, isLoading: playersLoading, isFetching: playersFetching, refetch: refetchPlayers } = useQuery({
     queryKey: ['clubPlayers', selectedClubId],
     queryFn: () => playersAPI.getPlayers(selectedClubId),
     enabled: !!selectedClubId,
   });
 
   // Extract players array from response (backend returns { players: [...], total: ..., etc. })
-  const playersData = Array.isArray(playersResponse) 
-    ? playersResponse 
+  const playersData = Array.isArray(playersResponse)
+    ? playersResponse
     : (playersResponse?.players || []);
 
   // Fetch player details and documents
@@ -48,7 +48,7 @@ export default function PlayerManagementHR({ selectedClubId }) {
       } catch (err) {
         console.error('Error fetching documents:', err);
       }
-      
+
       // Also check kycDocuments from player object
       const playerKycDocs = player.kycDocuments || selectedPlayerForDetails.kycDocuments || [];
       if (Array.isArray(playerKycDocs) && playerKycDocs.length > 0) {
@@ -59,9 +59,9 @@ export default function PlayerManagementHR({ selectedClubId }) {
           }
         });
       }
-      
-      return { 
-        ...player, 
+
+      return {
+        ...player,
         documents: documents
       };
     },
@@ -69,7 +69,7 @@ export default function PlayerManagementHR({ selectedClubId }) {
   });
 
   // Field Update Requests Query (TODO: Add backend endpoint)
-  const { data: fieldUpdateRequests = [], isLoading: fieldUpdatesLoading } = useQuery({
+  const { data: fieldUpdateRequests = [], isLoading: fieldUpdatesLoading, isFetching: fieldUpdatesFetching, refetch: refetchFieldUpdates } = useQuery({
     queryKey: ['fieldUpdateRequests', selectedClubId],
     queryFn: async () => {
       // TODO: Replace with actual API call when backend endpoint is ready
@@ -97,7 +97,7 @@ export default function PlayerManagementHR({ selectedClubId }) {
 
   // Filter players
   const filteredPlayers = playersData.filter(player => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       player.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       player.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       player.playerId?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -135,11 +135,10 @@ export default function PlayerManagementHR({ selectedClubId }) {
               setCurrentPage(1);
               setFieldUpdatesPage(1);
             }}
-            className={`px-6 py-3 font-semibold transition-all ${
-              activeTab === tab.id
-                ? "bg-gradient-to-r from-red-400 to-purple-600 text-white border-b-2 border-purple-400"
-                : "text-gray-400 hover:text-white"
-            }`}
+            className={`px-6 py-3 font-semibold transition-all ${activeTab === tab.id
+              ? "bg-gradient-to-r from-red-400 to-purple-600 text-white border-b-2 border-purple-400"
+              : "text-gray-400 hover:text-white"
+              }`}
           >
             {tab.label}
           </button>
@@ -151,15 +150,26 @@ export default function PlayerManagementHR({ selectedClubId }) {
         {/* Tab 1: All Players */}
         {activeTab === "all" && (
           <div className="space-y-4">
-            {/* Search */}
-            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+            {/* Search + Refresh */}
+            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex gap-3 items-center">
               <input
                 type="text"
                 placeholder="Search by name, email, or ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
+                className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
               />
+              <button
+                onClick={() => refetchPlayers()}
+                disabled={playersFetching}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                title="Refresh players list"
+              >
+                <svg className={`w-4 h-4 ${playersFetching ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {playersFetching ? 'Refreshing...' : 'Refresh'}
+              </button>
             </div>
 
             {/* Players Table */}
@@ -201,11 +211,10 @@ export default function PlayerManagementHR({ selectedClubId }) {
                           <td className="px-6 py-4 text-gray-400">{player.phoneNumber || '-'}</td>
                           <td className="px-6 py-4">
                             <span
-                              className={`px-2 py-1 rounded text-xs font-semibold ${
-                                player.kycStatus === 'approved' || player.kycStatus === 'verified'
-                                  ? 'bg-green-600/20 text-green-400'
-                                  : 'bg-yellow-600/20 text-yellow-400'
-                              }`}
+                              className={`px-2 py-1 rounded text-xs font-semibold ${player.kycStatus === 'approved' || player.kycStatus === 'verified'
+                                ? 'bg-green-600/20 text-green-400'
+                                : 'bg-yellow-600/20 text-yellow-400'
+                                }`}
                             >
                               {player.kycStatus || 'Pending'}
                             </span>
@@ -265,6 +274,20 @@ export default function PlayerManagementHR({ selectedClubId }) {
         {/* Tab 2: Field Updates */}
         {activeTab === "field-updates" && (
           <div className="space-y-6">
+            {/* Refresh button — always visible */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => refetchFieldUpdates()}
+                disabled={fieldUpdatesFetching}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                title="Refresh field update requests"
+              >
+                <svg className={`w-4 h-4 ${fieldUpdatesFetching ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {fieldUpdatesFetching ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
             {fieldUpdatesLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
@@ -442,12 +465,11 @@ export default function PlayerManagementHR({ selectedClubId }) {
                     <div>
                       <p className="text-gray-400 text-sm mb-1">KYC Status</p>
                       <span
-                        className={`inline-block px-3 py-1 rounded text-xs font-semibold ${
-                          (playerDetailsData.kycStatus || selectedPlayerForDetails.kycStatus) === 'approved' || 
+                        className={`inline-block px-3 py-1 rounded text-xs font-semibold ${(playerDetailsData.kycStatus || selectedPlayerForDetails.kycStatus) === 'approved' ||
                           (playerDetailsData.kycStatus || selectedPlayerForDetails.kycStatus) === 'verified'
-                            ? 'bg-green-600/20 text-green-400'
-                            : 'bg-gray-600/20 text-gray-400'
-                        }`}
+                          ? 'bg-green-600/20 text-green-400'
+                          : 'bg-gray-600/20 text-gray-400'
+                          }`}
                       >
                         {playerDetailsData.kycStatus || selectedPlayerForDetails.kycStatus || 'Pending'}
                       </span>
