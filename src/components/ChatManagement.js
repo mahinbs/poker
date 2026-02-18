@@ -115,7 +115,8 @@ function StaffChatTab({ clubId, showNotification }) {
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 5,
+        reconnectionDelayMax: 10000,
+        reconnectionAttempts: Infinity,
       });
 
       socket.on('connect', () => {
@@ -632,6 +633,10 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
       const socket = io(`${WEBSOCKET_URL}/realtime`, {
         auth: { clubId, userId },
         transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 10000,
+        reconnectionAttempts: Infinity,
       });
 
       socket.on('connect', () => {

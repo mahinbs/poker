@@ -711,20 +711,32 @@ function TableSessionControl({
             <div className="space-y-4 mb-6">
               {seatedPlayers.map(player => (
                 <div key={player.playerId} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="font-semibold text-white">{player.playerName}</div>
                       <div className="text-sm text-gray-400">Seat #{player.seatNumber}</div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm text-gray-400">
-                        Seated {new Date(player.seatedAt).toLocaleTimeString()}
+                    <div className="text-sm text-gray-400">
+                      Seated {new Date(player.seatedAt).toLocaleTimeString('en-US', { hour12: true })}
+                    </div>
+                  </div>
+                  {/* Player Balance Info */}
+                  <div className="grid grid-cols-3 gap-2 mb-3 text-sm">
+                    <div className="bg-slate-800/60 rounded px-3 py-2 text-center">
+                      <div className="text-gray-400 text-xs">Buy-In</div>
+                      <div className="text-cyan-400 font-semibold">₹{(player.buyInAmount || 0).toLocaleString()}</div>
+                    </div>
+                    <div className="bg-slate-800/60 rounded px-3 py-2 text-center">
+                      <div className="text-gray-400 text-xs">Wallet Balance</div>
+                      <div className={`font-semibold ${(player.walletBalance || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        ₹{(player.walletBalance || 0).toLocaleString()}
                       </div>
-                      {player.buyInAmount > 0 && (
-                        <div className="text-xs text-emerald-400">
-                          Table Balance: ₹{Number(player.buyInAmount).toLocaleString()}
-                        </div>
-                      )}
+                    </div>
+                    <div className="bg-slate-800/60 rounded px-3 py-2 text-center">
+                      <div className="text-gray-400 text-xs">Credits</div>
+                      <div className="text-yellow-400 font-semibold">
+                        {(player.totalCredits || 0) > 0 ? `₹${(player.totalCredits || 0).toLocaleString()}` : '-'}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1100,34 +1112,45 @@ function TableHologramModal({ table, onClose, clubId }) {
           </div>
         </div>
 
-        {/* Table Visualization - Round shape for Rummy */}
-        <div className="relative w-full aspect-square max-w-[500px] mx-auto bg-gradient-to-br from-green-800 to-green-900 rounded-full border-8 border-emerald-600 shadow-2xl flex items-center justify-center">
-          {/* Center Logo */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-white rounded-full p-2 shadow-lg flex items-center justify-center w-24 h-24">
+        {/* Rummy Table Visualization - Standard Round Shape */}
+        <div className="relative w-full aspect-square max-w-[500px] mx-auto">
+          {/* Outer Rail - Dark Wood */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-900 via-yellow-900 to-amber-950 shadow-2xl">
+            {/* Padding Rail - Amber Cushion */}
+            <div className="absolute inset-[10px] rounded-full bg-gradient-to-br from-amber-700 via-amber-600 to-amber-700">
+              {/* Green Felt Surface */}
+              <div className="absolute inset-[8px] rounded-full bg-gradient-to-br from-emerald-700 via-green-800 to-emerald-900 shadow-inner">
+                {/* Subtle felt ring */}
+                <div className="absolute inset-[30px] rounded-full border border-emerald-600/30"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Center Logo - Club Logo */}
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="w-24 h-24 bg-white/15 rounded-full border-2 border-white/25 flex items-center justify-center shadow-xl backdrop-blur-sm overflow-hidden">
               {clubLogoUrl ? (
                 <>
                   <img 
                     src={clubLogoUrl} 
                     alt="Club Logo" 
-                    className="w-20 h-20 object-contain"
+                    className="w-full h-full object-contain rounded-full p-2"
                     onError={(e) => {
-                      console.error('Failed to load club logo:', clubLogoUrl);
                       e.target.style.display = 'none';
                       const fallback = e.target.parentElement.querySelector('.logo-fallback');
                       if (fallback) fallback.style.display = 'flex';
                     }}
                   />
-                  <div className="logo-fallback text-3xl font-bold text-gray-800 hidden items-center justify-center w-full h-full">🃏</div>
+                  <div className="logo-fallback text-3xl font-bold text-white/40 hidden items-center justify-center w-full h-full">🎴</div>
                 </>
               ) : (
-                <div className="text-3xl font-bold text-gray-800">🃏</div>
+                <div className="text-3xl font-bold text-white/40">🎴</div>
               )}
             </div>
           </div>
 
           {/* Dealer Position */}
-          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20">
             {dealerInfo && (
               <div className="mb-2 bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
                 <span>👤 {dealerInfo.name}</span>
@@ -1151,11 +1174,11 @@ function TableHologramModal({ table, onClose, clubId }) {
             </div>
           </div>
 
-          {/* Seats arranged in ellipse */}
+          {/* Seats arranged in circle */}
           {seats.map((seatNum) => {
             const angle = (360 / table.maxSeats) * (seatNum - 1);
             const radians = (angle - 90) * (Math.PI / 180);
-            const radius = 40;
+            const radius = 42;
             const x = 50 + radius * Math.cos(radians);
             const y = 50 + radius * Math.sin(radians);
             const isOccupied = occupiedSeats.includes(seatNum);
@@ -1164,7 +1187,7 @@ function TableHologramModal({ table, onClose, clubId }) {
             return (
               <div
                 key={seatNum}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20"
                 style={{ left: `${x}%`, top: `${y}%` }}
               >
                 <div

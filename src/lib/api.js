@@ -1003,6 +1003,38 @@ export const tournamentsAPI = {
   getTournamentWinners: async (clubId, tournamentId) => {
     return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}/winners`);
   },
+
+  pauseTournament: async (clubId, tournamentId) => {
+    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}/pause`, {
+      method: 'POST',
+    });
+  },
+
+  resumeTournament: async (clubId, tournamentId) => {
+    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}/resume`, {
+      method: 'POST',
+    });
+  },
+
+  stopTournament: async (clubId, tournamentId) => {
+    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}/stop`, {
+      method: 'POST',
+    });
+  },
+
+  exitTournamentPlayer: async (clubId, tournamentId, data) => {
+    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}/exit-player`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  rebuyTournamentPlayer: async (clubId, tournamentId, data) => {
+    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}/rebuy`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // =============================================================================
