@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { clubsAPI, superAdminAPI, chatAPI } from "../../lib/api";
+import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
-export default function StaffSidebar({ 
-  activeItem, 
-  setActiveItem, 
+export default function StaffSidebar({
+  activeItem,
+  setActiveItem,
   menuItems = [],
-  onSignOut = null 
+  onSignOut = null
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -21,6 +21,8 @@ export default function StaffSidebar({
 
   // Track previous notification count for sound alert
   const prevNotificationCount = useRef(null);
+  // Track previous approved leave count for sound alert
+  const prevApprovedLeaveCount = useRef(null);
 
   // Get clubId and fetch unread notification count
   const clubId = localStorage.getItem('clubId');
@@ -30,6 +32,17 @@ export default function StaffSidebar({
     enabled: !!clubId,
     refetchInterval: 30000,
   });
+
+  // Fetch my approved leave applications (to detect when a leave gets approved)
+  const { data: approvedLeavesData } = useQuery({
+    queryKey: ["myApprovedLeaves", clubId],
+    queryFn: () => leaveAPI.getMyLeaveApplications(clubId, { status: 'Approved' }),
+    enabled: !!clubId,
+    refetchInterval: 10000,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
+  });
+  const approvedLeaveCount = approvedLeavesData?.total || 0;
 
   // Fetch unread chat counts
   const { data: unreadChatData } = useQuery({
@@ -44,17 +57,28 @@ export default function StaffSidebar({
   // Play notification sound when new notification arrives
   useEffect(() => {
     const currentCount = unreadData?.unreadCount || 0;
-    
+
     // Only play sound if count increased (new notification)
     if (prevNotificationCount.current !== null && currentCount > prevNotificationCount.current) {
       const audio = new Audio('/audio/popup-alert.mp3');
       audio.volume = 0.5;
       audio.play().catch(err => console.log('Audio play failed:', err));
     }
-    
+
     // Update previous count
     prevNotificationCount.current = currentCount;
   }, [unreadData?.unreadCount]);
+
+  // Play sound when a leave request gets approved
+  useEffect(() => {
+    if (prevApprovedLeaveCount.current !== null && approvedLeaveCount > prevApprovedLeaveCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+      toast.success('🎉 Your leave request has been approved!', { duration: 5000 });
+    }
+    prevApprovedLeaveCount.current = approvedLeaveCount;
+  }, [approvedLeaveCount]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -80,7 +104,7 @@ export default function StaffSidebar({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen, isMobile]);
-  
+
   // Fetch club info to get club code
   const { data: club } = useQuery({
     queryKey: ['club', clubId],
@@ -186,27 +210,26 @@ export default function StaffSidebar({
       )}
 
       <aside
-        className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-purple-500/20 via-blue-600/30 to-indigo-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${
-          isMobile
-            ? isOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-            : "translate-x-0"
-        }`}
+        className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-purple-500/20 via-blue-600/30 to-indigo-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${isMobile
+          ? isOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+          : "translate-x-0"
+          }`}
       >
         <div className="p-3 sm:p-4 md:p-5 h-full flex flex-col min-w-0">
           <div className="mb-4 sm:mb-6">
             <div className="pt-11 lg:pt-0 text-xl sm:text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-300 to-indigo-400 drop-shadow-lg mb-4 sm:mb-6 break-words">
               Staff Portal
             </div>
-            <div 
+            <div
               onClick={() => setShowResetPassword(true)}
               className="bg-white/10 rounded-lg md:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6 text-white shadow-inner cursor-pointer hover:bg-white/15 transition-colors"
             >
               <div className="text-base sm:text-lg font-semibold truncate">{displayName}</div>
               <div className="text-xs sm:text-sm opacity-80 truncate">{userEmail}</div>
             </div>
-            
+
             {/* Reset Password Modal - Rendered via Portal */}
             {showResetPassword && createPortal(
               <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]" onClick={() => setShowResetPassword(false)}>
@@ -238,7 +261,7 @@ export default function StaffSidebar({
               </div>,
               document.body
             )}
-            
+
             {/* Show Club Code */}
             {club && club.code && (
               <div className="mb-4 sm:mb-6">
@@ -261,11 +284,10 @@ export default function StaffSidebar({
                   setActiveItem(item);
                   if (isMobile) setIsOpen(false);
                 }}
-                className={`w-full text-left rounded-lg md:rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base font-medium transition-all duration-300 shadow-md overflow-hidden ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-purple-400 to-blue-600 text-white font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-purple-400/20 hover:to-blue-500/20 text-white"
-                }`}
+                className={`w-full text-left rounded-lg md:rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base font-medium transition-all duration-300 shadow-md overflow-hidden ${activeItem === item
+                  ? "bg-gradient-to-r from-purple-400 to-blue-600 text-white font-bold shadow-lg scale-[1.02]"
+                  : "bg-white/5 hover:bg-gradient-to-r hover:from-purple-400/20 hover:to-blue-500/20 text-white"
+                  }`}
               >
                 <span className="flex items-center justify-between">
                   <span className="truncate block">{item}</span>

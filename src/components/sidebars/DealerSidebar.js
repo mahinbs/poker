@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { clubsAPI, superAdminAPI, chatAPI } from "../../lib/api";
+import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
-export default function DealerSidebar({ 
-  activeItem, 
-  setActiveItem, 
+export default function DealerSidebar({
+  activeItem,
+  setActiveItem,
   menuItems = [],
-  onSignOut = null 
+  onSignOut = null
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -21,6 +21,8 @@ export default function DealerSidebar({
 
   // Track previous notification count for sound alert
   const prevNotificationCount = useRef(null);
+  // Track previous approved leave count for sound alert
+  const prevApprovedLeaveCount = useRef(null);
 
   // Get clubId and fetch unread notification count
   const clubId = localStorage.getItem('clubId');
@@ -30,6 +32,17 @@ export default function DealerSidebar({
     enabled: !!clubId,
     refetchInterval: 30000,
   });
+
+  // Fetch my approved leave applications (to detect when a leave gets approved)
+  const { data: approvedLeavesData } = useQuery({
+    queryKey: ["myApprovedLeaves", clubId],
+    queryFn: () => leaveAPI.getMyLeaveApplications(clubId, { status: 'Approved' }),
+    enabled: !!clubId,
+    refetchInterval: 10000,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
+  });
+  const approvedLeaveCount = approvedLeavesData?.total || 0;
 
   // Fetch unread chat counts
   const { data: unreadChatData } = useQuery({
@@ -44,17 +57,28 @@ export default function DealerSidebar({
   // Play notification sound when new notification arrives
   useEffect(() => {
     const currentCount = unreadData?.unreadCount || 0;
-    
+
     // Only play sound if count increased (new notification)
     if (prevNotificationCount.current !== null && currentCount > prevNotificationCount.current) {
       const audio = new Audio('/audio/popup-alert.mp3');
       audio.volume = 0.5;
       audio.play().catch(err => console.log('Audio play failed:', err));
     }
-    
+
     // Update previous count
     prevNotificationCount.current = currentCount;
   }, [unreadData?.unreadCount]);
+
+  // Play sound when a leave request gets approved
+  useEffect(() => {
+    if (prevApprovedLeaveCount.current !== null && approvedLeaveCount > prevApprovedLeaveCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+      toast.success('🎉 Your leave request has been approved!', { duration: 5000 });
+    }
+    prevApprovedLeaveCount.current = approvedLeaveCount;
+  }, [approvedLeaveCount]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -80,7 +104,7 @@ export default function DealerSidebar({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen, isMobile]);
-  
+
   // Fetch club info to get club code
   const { data: club } = useQuery({
     queryKey: ['club', clubId],
@@ -217,9 +241,8 @@ export default function DealerSidebar({
 
       {/* Sidebar */}
       <aside
-        className={`sidebar-container fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-br from-gray-800 to-gray-900 text-white shadow-lg transform ${
-          isMobile && !isOpen ? "-translate-x-full" : "translate-x-0"
-        } lg:translate-x-0 transition-transform duration-300 ease-in-out`}
+        className={`sidebar-container fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-br from-gray-800 to-gray-900 text-white shadow-lg transform ${isMobile && !isOpen ? "-translate-x-full" : "translate-x-0"
+          } lg:translate-x-0 transition-transform duration-300 ease-in-out`}
       >
         <div className="flex h-full flex-col justify-between">
           <div className="px-6 py-8">
@@ -231,7 +254,7 @@ export default function DealerSidebar({
             </div>
 
             {/* User Info Card */}
-            <div 
+            <div
               className="bg-slate-700 rounded-xl p-4 mb-8 shadow-inner border border-slate-600 cursor-pointer hover:bg-slate-600 transition-colors"
               onClick={() => setShowResetPassword(true)}
             >
@@ -262,10 +285,9 @@ export default function DealerSidebar({
                     if (isMobile) setIsOpen(false);
                   }}
                   className={`flex items-center w-full px-4 py-3 rounded-lg text-left font-medium transition-colors duration-200
-                    ${
-                      activeItem === item
-                        ? "bg-purple-600 text-white shadow-md"
-                        : "text-gray-300 hover:bg-slate-700 hover:text-white"
+                    ${activeItem === item
+                      ? "bg-purple-600 text-white shadow-md"
+                      : "text-gray-300 hover:bg-slate-700 hover:text-white"
                     }`}
                 >
                   <span className="flex items-center justify-between w-full">

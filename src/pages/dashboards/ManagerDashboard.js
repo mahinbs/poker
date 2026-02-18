@@ -55,7 +55,7 @@ export default function ManagerDashboard() {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const currentUser = authAPI.getCurrentUser();
-    
+
     // Check if user is logged in
     if (!user.id) {
       navigate('/login');
@@ -67,7 +67,7 @@ export default function ManagerDashboard() {
     const isSuperAdmin = user.role === 'SUPER_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
     const isAdmin = user.role === 'ADMIN' || currentUser?.role === 'ADMIN';
     const isMasterAdmin = user.isMasterAdmin || currentUser?.isMasterAdmin;
-    
+
     if (!isManager && !isSuperAdmin && !isAdmin && !isMasterAdmin) {
       // User is not Manager - redirect to their correct portal
       const role = currentUser?.role || user.role;
@@ -83,7 +83,7 @@ export default function ManagerDashboard() {
         'DEALER': '/dealer',
         'AFFILIATE': '/affiliate',
       };
-      
+
       const redirectPath = role && roleDashboardMap[role] ? roleDashboardMap[role] : '/login';
       navigate(redirectPath, { replace: true });
       return;
@@ -127,6 +127,7 @@ export default function ManagerDashboard() {
   // Handle sign out
   const handleSignOut = () => {
     localStorage.clear();
+    sessionStorage.clear();
     navigate('/login');
   };
 
@@ -149,12 +150,12 @@ export default function ManagerDashboard() {
     },
     onSuccess: () => {
       toast.success('Password reset successfully!');
-      
+
       // Update localStorage to clear mustResetPassword flag
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       user.mustResetPassword = false;
       localStorage.setItem('user', JSON.stringify(user));
-      
+
       // Close modal and reset form
       setShowPasswordResetModal(false);
       setPasswordForm({
@@ -172,7 +173,7 @@ export default function ManagerDashboard() {
     e.preventDefault();
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const email = user.email;
-    
+
     if (!email) {
       toast.error('User email not found. Please login again.');
       return;

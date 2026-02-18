@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { clubsAPI, superAdminAPI, chatAPI } from "../../lib/api";
+import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
+import toast from "react-hot-toast";
 
-export default function CustomStaffSidebar({ 
-  activeItem, 
-  setActiveItem, 
+export default function CustomStaffSidebar({
+  activeItem,
+  setActiveItem,
   menuItems = [],
   onSignOut = null,
   customRoleName = "Staff"
@@ -15,6 +16,8 @@ export default function CustomStaffSidebar({
 
   // Track previous notification count for sound alert
   const prevNotificationCount = useRef(null);
+  // Track previous approved leave count for sound alert
+  const prevApprovedLeaveCount = useRef(null);
 
   // Get clubId and fetch unread notification count
   const clubId = localStorage.getItem('clubId');
@@ -24,6 +27,17 @@ export default function CustomStaffSidebar({
     enabled: !!clubId,
     refetchInterval: 30000,
   });
+
+  // Fetch my approved leave applications (to detect when a leave gets approved)
+  const { data: approvedLeavesData } = useQuery({
+    queryKey: ["myApprovedLeaves", clubId],
+    queryFn: () => leaveAPI.getMyLeaveApplications(clubId, { status: 'Approved' }),
+    enabled: !!clubId,
+    refetchInterval: 10000,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
+  });
+  const approvedLeaveCount = approvedLeavesData?.total || 0;
 
   // Fetch unread chat counts
   const { data: unreadChatData } = useQuery({
@@ -38,17 +52,28 @@ export default function CustomStaffSidebar({
   // Play notification sound when new notification arrives
   useEffect(() => {
     const currentCount = unreadData?.unreadCount || 0;
-    
+
     // Only play sound if count increased (new notification)
     if (prevNotificationCount.current !== null && currentCount > prevNotificationCount.current) {
       const audio = new Audio('/audio/popup-alert.mp3');
       audio.volume = 0.5;
       audio.play().catch(err => console.log('Audio play failed:', err));
     }
-    
+
     // Update previous count
     prevNotificationCount.current = currentCount;
   }, [unreadData?.unreadCount]);
+
+  // Play sound when a leave request gets approved
+  useEffect(() => {
+    if (prevApprovedLeaveCount.current !== null && approvedLeaveCount > prevApprovedLeaveCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+      toast.success('🎉 Your leave request has been approved!', { duration: 5000 });
+    }
+    prevApprovedLeaveCount.current = approvedLeaveCount;
+  }, [approvedLeaveCount]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -74,7 +99,7 @@ export default function CustomStaffSidebar({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen, isMobile]);
-  
+
   // Fetch club info to get club code
   const { data: club } = useQuery({
     queryKey: ['club', clubId],
@@ -101,9 +126,8 @@ export default function CustomStaffSidebar({
 
       {/* Sidebar */}
       <aside
-        className={`sidebar-container fixed lg:static inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700 transform ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 transition-transform duration-300 ease-in-out`}
+        className={`sidebar-container fixed lg:static inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700 transform ${isOpen ? "translate-x-0" : "-translate-x-full"
+          } lg:translate-x-0 transition-transform duration-300 ease-in-out`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -120,7 +144,7 @@ export default function CustomStaffSidebar({
               <p className="text-white font-semibold truncate">{displayName}</p>
               <p className="text-gray-400 text-sm truncate">{userEmail}</p>
             </div>
-            
+
             {/* Club Code */}
             {club && (
               <div className="mt-4 bg-green-900/30 border border-green-500/50 rounded-lg p-3">
@@ -141,11 +165,10 @@ export default function CustomStaffSidebar({
                       setActiveItem(item);
                       if (isMobile) setIsOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                      activeItem === item
-                        ? "bg-purple-600 text-white"
-                        : "text-gray-300 hover:bg-slate-700"
-                    }`}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${activeItem === item
+                      ? "bg-purple-600 text-white"
+                      : "text-gray-300 hover:bg-slate-700"
+                      }`}
                   >
                     <span className="flex items-center justify-between w-full">
                       <span>{item}</span>

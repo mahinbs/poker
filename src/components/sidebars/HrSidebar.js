@@ -4,11 +4,11 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
-export default function HrSidebar({ 
-  activeItem, 
-  setActiveItem, 
+export default function HrSidebar({
+  activeItem,
+  setActiveItem,
   menuItems = [],
-  onSignOut = null 
+  onSignOut = null
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -21,6 +21,8 @@ export default function HrSidebar({
 
   // Track previous notification count for sound alert
   const prevNotificationCount = useRef(null);
+  // Track previous leave count for sound alert
+  const prevLeaveCount = useRef(null);
 
   // Get clubId and fetch unread notification count
   const clubId = localStorage.getItem('clubId');
@@ -56,17 +58,30 @@ export default function HrSidebar({
   // Play notification sound when new notification arrives
   useEffect(() => {
     const currentCount = unreadData?.unreadCount || 0;
-    
+
     // Only play sound if count increased (new notification)
     if (prevNotificationCount.current !== null && currentCount > prevNotificationCount.current) {
       const audio = new Audio('/audio/popup-alert.mp3');
       audio.volume = 0.5;
       audio.play().catch(err => console.log('Audio play failed:', err));
     }
-    
+
     // Update previous count
     prevNotificationCount.current = currentCount;
   }, [unreadData?.unreadCount]);
+
+  // Play sound when new leave request arrives
+  useEffect(() => {
+    const currentLeaveCount = pendingLeaveCount;
+
+    if (prevLeaveCount.current !== null && currentLeaveCount > prevLeaveCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+
+    prevLeaveCount.current = currentLeaveCount;
+  }, [pendingLeaveCount]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -92,7 +107,7 @@ export default function HrSidebar({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen, isMobile]);
-  
+
   // Fetch club info to get club code
   const { data: club } = useQuery({
     queryKey: ['club', clubId],
@@ -198,20 +213,19 @@ export default function HrSidebar({
       )}
 
       <aside
-        className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-purple-500/20 via-pink-600/30 to-rose-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${
-          isMobile
+        className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-purple-500/20 via-pink-600/30 to-rose-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${isMobile
             ? isOpen
               ? "translate-x-0"
               : "-translate-x-full"
             : "translate-x-0"
-        }`}
+          }`}
       >
         <div className="p-5 h-full flex flex-col min-w-0">
           <div className="mb-6">
             <div className="pt-11 lg:pt-0 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-300 to-rose-400 drop-shadow-lg mb-6">
               HR Portal
             </div>
-            <div 
+            <div
               onClick={() => setShowResetPassword(true)}
               className="flex items-center text-white min-w-0 cursor-pointer hover:opacity-90 transition-opacity p-2 -m-2 rounded-lg"
             >
@@ -223,7 +237,7 @@ export default function HrSidebar({
                 <div className="text-sm opacity-80 truncate">{userEmail}</div>
               </div>
             </div>
-            
+
             {/* Reset Password Modal - Rendered via Portal */}
             {showResetPassword && createPortal(
               <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]" onClick={() => setShowResetPassword(false)}>
@@ -255,7 +269,7 @@ export default function HrSidebar({
               </div>,
               document.body
             )}
-            
+
             {/* Show Club Code */}
             {club && club.code && (
               <div className="mb-6">
@@ -278,11 +292,10 @@ export default function HrSidebar({
                   setActiveItem(item);
                   if (isMobile) setIsOpen(false);
                 }}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md overflow-hidden ${
-                  activeItem === item
+                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md overflow-hidden ${activeItem === item
                     ? "bg-gradient-to-r from-purple-400 to-pink-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
                     : "bg-white/5 hover:bg-gradient-to-r hover:from-purple-400/20 hover:to-pink-500/20 text-white"
-                }`}
+                  }`}
               >
                 <span className="flex items-center justify-between">
                   <span className="block truncate">{item}</span>

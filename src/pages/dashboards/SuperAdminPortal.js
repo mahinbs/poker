@@ -41,7 +41,7 @@ export default function SuperAdminPortal() {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const superAdminUser = JSON.parse(localStorage.getItem('superadminuser') || '{}');
-    
+
     // Check if user is logged in (either from 'user' or 'superadminuser')
     if (!user.id && !superAdminUser.userId) {
       navigate('/super-admin/signin');
@@ -104,6 +104,7 @@ export default function SuperAdminPortal() {
   // Handle sign out
   const handleSignOut = () => {
     localStorage.clear();
+    sessionStorage.clear();
     navigate('/super-admin/signin');
   };
 
@@ -127,16 +128,16 @@ export default function SuperAdminPortal() {
     },
     onSuccess: () => {
       toast.success('Password reset successfully!');
-      
+
       // Update localStorage to clear mustResetPassword flag
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       user.mustResetPassword = false;
       localStorage.setItem('user', JSON.stringify(user));
-      
+
       const superAdminUser = JSON.parse(localStorage.getItem('superadminuser') || '{}');
       superAdminUser.mustResetPassword = false;
       localStorage.setItem('superadminuser', JSON.stringify(superAdminUser));
-      
+
       // Close modal and reset form
       setShowPasswordResetModal(false);
       setPasswordForm({
@@ -155,7 +156,7 @@ export default function SuperAdminPortal() {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const superAdminUser = JSON.parse(localStorage.getItem('superadminuser') || '{}');
     const email = user.email || superAdminUser.email;
-    
+
     if (!email) {
       toast.error('User email not found. Please login again.');
       return;
@@ -188,14 +189,14 @@ export default function SuperAdminPortal() {
           <div className="text-yellow-400 text-5xl mb-3">🔒</div>
           <h2 className="text-2xl font-bold text-white">Password Reset Required</h2>
           <p className="text-gray-400 mt-2">Please set a new password to continue</p>
-            </div>
+        </div>
 
         <form onSubmit={handlePasswordReset} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Current Password
-                      </label>
-                        <input
+            </label>
+            <input
               type="password"
               value={passwordForm.currentPassword}
               onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
@@ -203,13 +204,13 @@ export default function SuperAdminPortal() {
               placeholder="Enter temporary password"
               required
             />
-                                  </div>
+          </div>
 
-                    <div>
+          <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               New Password
-                      </label>
-                        <input
+            </label>
+            <input
               type="password"
               value={passwordForm.newPassword}
               onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
@@ -217,13 +218,13 @@ export default function SuperAdminPortal() {
               placeholder="Enter new password"
               required
             />
-                </div>
+          </div>
 
-                                <div>
+          <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Confirm New Password
-                      </label>
-                        <input
+            </label>
+            <input
               type="password"
               value={passwordForm.confirmPassword}
               onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
@@ -231,18 +232,18 @@ export default function SuperAdminPortal() {
               placeholder="Confirm new password"
               required
             />
-                              </div>
+          </div>
 
-                            <button
+          <button
             type="submit"
             disabled={resetPasswordMutation.isLoading}
             className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50"
           >
             {resetPasswordMutation.isLoading ? 'Resetting...' : 'Reset Password'}
-                            </button>
+          </button>
         </form>
-                          </div>
-                      </div>
+      </div>
+    </div>
   );
 
   // Render loading state - NO SIDEBAR
@@ -254,8 +255,8 @@ export default function SuperAdminPortal() {
           <div className="text-white text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-500 mx-auto mb-4"></div>
             <p className="text-xl">Loading clubs...</p>
-                                </div>
-                              </div>
+          </div>
+        </div>
       </>
     );
   }
@@ -270,14 +271,14 @@ export default function SuperAdminPortal() {
             <div className="text-red-400 text-6xl mb-4">⚠️</div>
             <p className="text-xl text-red-400 mb-2">Error loading clubs</p>
             <p className="text-gray-400 mb-8">{clubsError.message}</p>
-                      <button
+            <button
               onClick={handleSignOut}
               className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                      >
+            >
               Sign Out
-                      </button>
-                    </div>
-                        </div>
+            </button>
+          </div>
+        </div>
       </>
     );
   }
@@ -297,16 +298,16 @@ export default function SuperAdminPortal() {
             <div className="bg-slate-700 rounded-lg p-6 border border-slate-600 mb-8">
               <p className="text-sm text-gray-300">
                 📞 Need help? Contact Master Admin to set up your first club and start managing players, tables, and tournaments.
-                          </p>
-                        </div>
-                        <button
+              </p>
+            </div>
+            <button
               onClick={handleSignOut}
               className="w-full max-w-xs mx-auto bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg"
-                        >
+            >
               Sign Out
-                        </button>
-                      </div>
-                    </div>
+            </button>
+          </div>
+        </div>
       </>
     );
   }
@@ -361,7 +362,7 @@ export default function SuperAdminPortal() {
     );
   }
 
-                    return (
+  return (
     <>
       {/* Password Reset Modal */}
       {passwordResetModal}
@@ -384,15 +385,15 @@ export default function SuperAdminPortal() {
                 <h1 className="text-3xl font-bold text-white">
                   Dashboard - {selectedClub?.clubName || 'Loading...'}
                 </h1>
-                      </div>
+              </div>
 
               {/* Revenue Cards */}
               {revenueLoading ? (
                 <div className="text-white text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
                   <p>Loading revenue data...</p>
-                                    </div>
-                    ) : (
+                </div>
+              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Previous Day Revenue */}
                   <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
@@ -401,7 +402,7 @@ export default function SuperAdminPortal() {
                       {formatCurrency(revenueData?.previousDay?.revenue || 0)}
                     </p>
                     <p className="text-sm text-gray-500 mt-2">{revenueData?.previousDay?.date || '-'}</p>
-                                    </div>
+                  </div>
 
                   {/* Today's Revenue */}
                   <div className="bg-slate-800 rounded-xl p-6 border border-emerald-600">
@@ -410,7 +411,7 @@ export default function SuperAdminPortal() {
                       {formatCurrency(revenueData?.currentDay?.revenue || 0)}
                     </p>
                     <p className="text-sm text-gray-500 mt-2">{revenueData?.currentDay?.date || '-'}</p>
-                        </div>
+                  </div>
 
                   {/* Total Rake */}
                   <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
@@ -419,7 +420,7 @@ export default function SuperAdminPortal() {
                       {formatCurrency(revenueData?.currentDay?.rake || 0)}
                     </p>
                     <p className="text-sm text-gray-500 mt-2">10% of revenue</p>
-                          </div>
+                  </div>
 
                   {/* Previous Day Rake */}
                   <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
@@ -427,7 +428,7 @@ export default function SuperAdminPortal() {
                     <p className="text-3xl font-bold text-white">
                       {formatCurrency(revenueData?.previousDay?.rake || 0)}
                     </p>
-                      </div>
+                  </div>
 
                   {/* Previous Day Tips */}
                   <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
@@ -443,9 +444,9 @@ export default function SuperAdminPortal() {
                     <p className="text-3xl font-bold text-white">
                       {formatCurrency(revenueData?.currentDay?.tips || 0)}
                     </p>
-                        </div>
-                      </div>
-                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Player & Staff Counts */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -456,49 +457,49 @@ export default function SuperAdminPortal() {
                       <span className="text-gray-400">Total Players</span>
                       <span className="text-white font-semibold">
                         {playersLoading ? '...' : playersData?.players?.length || 0}
-                            </span>
-                      </div>
+                      </span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400">Pending Approval</span>
                       <span className="text-yellow-400 font-semibold">
                         {pendingLoading ? '...' : pendingPlayers.length}
                       </span>
-                </div>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400">Suspended</span>
                       <span className="text-red-400 font-semibold">
                         {suspendedLoading ? '...' : suspendedPlayers.length}
-                                </span>
-                              </div>
-                              </div>
-                            </div>
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
                   <h3 className="text-xl font-semibold text-white mb-4">Quick Actions</h3>
                   <div className="space-y-2">
-                              <button
+                    <button
                       onClick={() => setActiveItem("Player Management")}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg transition-colors"
                     >
                       Manage Players
-                              </button>
-                              <button
+                    </button>
+                    <button
                       onClick={() => setActiveItem("Player Approval")}
                       className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg transition-colors"
-            >
+                    >
                       Review Approvals ({pendingLoading ? '...' : pendingPlayers.length})
-                              </button>
-                              <button
+                    </button>
+                    <button
                       onClick={() => setActiveItem("Player Suspension")}
                       className="w-full bg-orange-600 hover:bg-orange-500 text-white py-2 rounded-lg transition-colors"
                     >
                       Suspended Players ({suspendedLoading ? '...' : suspendedPlayers.length})
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                    </div>
-                  )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Player Management - Unified with Tabs */}
           {activeItem === "Player Management" && (
@@ -558,55 +559,55 @@ export default function SuperAdminPortal() {
             <PayrollManagement selectedClubId={selectedClubId} />
           )}
 
-        {/* Bonus Management */}
-        {activeItem === "Bonus Management" && (
-          <BonusManagement selectedClubId={selectedClubId} />
-        )}
+          {/* Bonus Management */}
+          {activeItem === "Bonus Management" && (
+            <BonusManagement selectedClubId={selectedClubId} />
+          )}
 
-        {/* Affiliate Management */}
-        {activeItem === "Affiliates" && (
-          <AffiliateManagement selectedClubId={selectedClubId} />
-        )}
+          {/* Affiliate Management */}
+          {activeItem === "Affiliates" && (
+            <AffiliateManagement selectedClubId={selectedClubId} />
+          )}
 
-        {/* Transactions */}
-        {activeItem === "Transactions" && (
-          <FinancialOverrides selectedClubId={selectedClubId} />
-        )}
+          {/* Transactions */}
+          {activeItem === "Transactions" && (
+            <FinancialOverrides selectedClubId={selectedClubId} />
+          )}
 
-        {/* Other sections placeholder */}
-        {/* FNB Management */}
-        {activeItem === "FNB" && selectedClubId && (
-          <FNBManagement clubId={selectedClubId} />
-        )}
+          {/* Other sections placeholder */}
+          {/* FNB Management */}
+          {activeItem === "FNB" && selectedClubId && (
+            <FNBManagement clubId={selectedClubId} />
+          )}
 
-        {activeItem === "Chat" && selectedClubId && (
-          <ChatManagement clubId={selectedClubId} />
-        )}
+          {activeItem === "Chat" && selectedClubId && (
+            <ChatManagement clubId={selectedClubId} />
+          )}
 
-        {activeItem === "Reports & Analytics" && selectedClubId && (
-          <ReportsAnalytics clubId={selectedClubId} />
-        )}
+          {activeItem === "Reports & Analytics" && selectedClubId && (
+            <ReportsAnalytics clubId={selectedClubId} />
+          )}
 
-        {activeItem === "Audit Logs" && selectedClubId && (
-          <AuditLogsBackups clubId={selectedClubId} />
-        )}
+          {activeItem === "Audit Logs" && selectedClubId && (
+            <AuditLogsBackups clubId={selectedClubId} />
+          )}
 
-        {/* Rummy Management */}
-        {activeItem === "Rummy" && selectedClubId && (
-          <RummyManagement selectedClubId={selectedClubId} />
-        )}
+          {/* Rummy Management */}
+          {activeItem === "Rummy" && selectedClubId && (
+            <RummyManagement selectedClubId={selectedClubId} />
+          )}
 
-        {/* Notifications Inbox */}
-        {activeItem === "Notifications" && selectedClubId && (
-          <NotificationsInbox selectedClubId={selectedClubId} recipientType="staff" />
-        )}
+          {/* Notifications Inbox */}
+          {activeItem === "Notifications" && selectedClubId && (
+            <NotificationsInbox selectedClubId={selectedClubId} recipientType="staff" />
+          )}
 
-        {/* System Control */}
-        {activeItem === "System Control" && selectedClubId && (
-          <SystemControl clubId={selectedClubId} />
-        )}
+          {/* System Control */}
+          {activeItem === "System Control" && selectedClubId && (
+            <SystemControl clubId={selectedClubId} />
+          )}
 
-        {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Transactions", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
+          {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Transactions", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
             </div>
