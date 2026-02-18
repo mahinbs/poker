@@ -211,6 +211,8 @@ export default function MasterAdminDashboard() {
   };
 
   const handleSignOut = () => {
+    localStorage.clear();
+    sessionStorage.clear();
     authAPI.logout();
     navigate("/master-admin/signin");
   };

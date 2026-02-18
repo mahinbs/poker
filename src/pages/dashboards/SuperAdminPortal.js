@@ -104,6 +104,7 @@ export default function SuperAdminPortal() {
   // Handle sign out
   const handleSignOut = () => {
     localStorage.clear();
+    sessionStorage.clear();
     navigate('/super-admin/signin');
   };
 

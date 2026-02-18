@@ -481,6 +481,7 @@ export default function CashierDashboard() {
   // Handle sign out
   const handleSignOut = () => {
     localStorage.clear();
+    sessionStorage.clear();
     navigate('/login');
   };
 

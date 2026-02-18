@@ -186,11 +186,10 @@ export default function AffiliateDashboard() {
   ];
 
   const handleSignOut = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('staffuser');
-    localStorage.removeItem('clubId');
+    localStorage.clear();
+    sessionStorage.clear();
     navigate("/login");
-    };
+  };
 
     return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white font-sans">

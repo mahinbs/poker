@@ -136,9 +136,8 @@ export const authAPI = {
    * Logout
    */
   logout: () => {
-    Object.values(STORAGE_KEYS).forEach(key => {
-      localStorage.removeItem(key);
-    });
+    localStorage.clear();
+    sessionStorage.clear();
   },
 
   /**

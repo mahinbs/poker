@@ -147,6 +147,8 @@ export default function StaffDashboard() {
   ]);
 
   const handleSignOut = () => {
+    localStorage.clear();
+    sessionStorage.clear();
     navigate("/");
   };
 

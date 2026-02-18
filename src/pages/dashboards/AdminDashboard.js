@@ -133,6 +133,7 @@ export default function AdminDashboard() {
   // Handle sign out
   const handleSignOut = () => {
     localStorage.clear();
+    sessionStorage.clear();
     navigate('/login');
   };
 
