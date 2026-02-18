@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tablesAPI, waitlistAPI, clubsAPI, staffAPI, shiftsAPI, superAdminAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from '../../components/TableBuyOutManagement';
+import RakeCollection from '../../components/RakeCollection';
 
 /**
  * Comprehensive Table Management Component for Super Admin
@@ -38,6 +39,7 @@ export default function TableManagement({ selectedClubId }) {
     { id: "table-management", label: "Table Management" },
     { id: "table-buy-in", label: "Table Buy-In" },
     { id: "table-buy-out", label: "Table Buy-Out" },
+    { id: "rake-collection", label: "Rake Collection" },
     { id: "history", label: "History" },
   ];
 
@@ -108,8 +110,13 @@ export default function TableManagement({ selectedClubId }) {
             tables={tables}
           />
         )}
+
+        {/* Tab 5: Rake Collection */}
+        {activeTab === "rake-collection" && (
+          <RakeCollection clubId={selectedClubId} gameType="poker" />
+        )}
         
-        {/* Tab 5: History */}
+        {/* Tab 6: History */}
         {activeTab === "history" && (
           <HistoryView
             selectedClubId={selectedClubId}
@@ -317,6 +324,7 @@ function TableSessionControl({
   const [showSettlementModal, setShowSettlementModal] = useState(false);
   const [seatedPlayers, setSeatedPlayers] = useState([]);
   const [settlements, setSettlements] = useState({});
+  const [rakeAmount, setRakeAmount] = useState('');
 
   // Update selectedClubId when clubId prop changes
   useEffect(() => {
@@ -450,10 +458,16 @@ function TableSessionControl({
       amount: parseFloat(amount) || 0
     }));
 
+    const rakeNum = parseFloat(rakeAmount) || 0;
+
     // Confirm with admin
     const totalAmount = settlementsArray.reduce((sum, s) => sum + s.amount, 0);
-    if (window.confirm(`Settle ${settlementsArray.length} players for a total of ₹${totalAmount}? This will end the session.`)) {
-      settleAndEndMutation.mutate(settlementsArray);
+    const confirmMsg = rakeNum > 0
+      ? `Settle ${settlementsArray.length} players for a total of ₹${totalAmount} with ₹${rakeNum} rake? This will end the session.`
+      : `Settle ${settlementsArray.length} players for a total of ₹${totalAmount}? This will end the session.`;
+
+    if (window.confirm(confirmMsg)) {
+      settleAndEndMutation.mutate({ settlements: settlementsArray, rakeAmount: rakeNum || undefined });
     }
   };
 
@@ -690,13 +704,32 @@ function TableSessionControl({
             <div className="space-y-4 mb-6">
               {seatedPlayers.map(player => (
                 <div key={player.playerId} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="font-semibold text-white">{player.playerName}</div>
                       <div className="text-sm text-gray-400">Seat #{player.seatNumber}</div>
                     </div>
                     <div className="text-sm text-gray-400">
-                      Seated {new Date(player.seatedAt).toLocaleTimeString()}
+                      Seated {new Date(player.seatedAt).toLocaleTimeString('en-US', { hour12: true })}
+                    </div>
+                  </div>
+                  {/* Player Balance Info */}
+                  <div className="grid grid-cols-3 gap-2 mb-3 text-sm">
+                    <div className="bg-slate-800/60 rounded px-3 py-2 text-center">
+                      <div className="text-gray-400 text-xs">Buy-In</div>
+                      <div className="text-cyan-400 font-semibold">₹{(player.buyInAmount || 0).toLocaleString()}</div>
+                    </div>
+                    <div className="bg-slate-800/60 rounded px-3 py-2 text-center">
+                      <div className="text-gray-400 text-xs">Wallet Balance</div>
+                      <div className={`font-semibold ${(player.walletBalance || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        ₹{(player.walletBalance || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="bg-slate-800/60 rounded px-3 py-2 text-center">
+                      <div className="text-gray-400 text-xs">Credits</div>
+                      <div className="text-yellow-400 font-semibold">
+                        {(player.totalCredits || 0) > 0 ? `₹${(player.totalCredits || 0).toLocaleString()}` : '-'}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -716,11 +749,29 @@ function TableSessionControl({
               ))}
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-blue-600/20 border border-blue-500/30 rounded-lg mb-6">
+            <div className="flex items-center justify-between p-4 bg-blue-600/20 border border-blue-500/30 rounded-lg mb-4">
               <span className="text-blue-300 font-semibold">Total Settlement:</span>
               <span className="text-white text-2xl font-bold">
                 ₹{Object.values(settlements).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0).toLocaleString()}
               </span>
+            </div>
+
+            {/* Rake Collection Input */}
+            <div className="p-4 bg-amber-600/20 border border-amber-500/30 rounded-lg mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-amber-300 font-semibold whitespace-nowrap">🎰 Session Rake:</span>
+                <input
+                  type="number"
+                  value={rakeAmount}
+                  onChange={(e) => setRakeAmount(e.target.value)}
+                  className="flex-1 px-4 py-2 bg-slate-600 border border-amber-500/50 rounded-lg text-white text-lg font-semibold"
+                  placeholder="Enter rake amount (optional)"
+                  min="0"
+                  step="100"
+                />
+                <span className="text-white font-semibold">₹</span>
+              </div>
+              <p className="text-amber-300/70 text-xs mt-2">Rake will be recorded for this session automatically</p>
             </div>
 
             <div className="flex gap-4">
@@ -903,7 +954,7 @@ function TableHologramModal({ table, onClose, clubId }) {
         });
         if (response.ok) {
           const data = await response.json();
-          console.log('Club data fetched:', data); // Debug log
+
           setClubData(data);
         } else {
           console.error('Failed to fetch club data:', response.status, await response.text());
@@ -1030,7 +1081,6 @@ function TableHologramModal({ table, onClose, clubId }) {
 
   // Get club logo URL
   const clubLogoUrl = clubData?.logoUrl || null;
-  console.log('Club logo URL:', clubLogoUrl, 'Club data:', clubData); // Debug log
   
   const gameType = table.notes?.match(/Game Type: ([^|]+)/)?.[1]?.trim() || noteParts[1] || table.tableType;
   const stakes = table.notes?.match(/Stakes: ([^|]+)/)?.[1]?.trim() || noteParts[2]?.replace('Stakes:', '').trim() || `₹${table.minBuyIn || 0}/₹${table.maxBuyIn || 0}`;
@@ -1096,34 +1146,45 @@ function TableHologramModal({ table, onClose, clubId }) {
           </div>
         </div>
 
-        {/* Table Visualization */}
-        <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-green-800 to-green-900 rounded-[50%] border-8 border-yellow-600 shadow-2xl flex items-center justify-center">
-          {/* Center Logo - Show club logo or default */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-white rounded-full p-2 shadow-lg flex items-center justify-center w-24 h-24">
+        {/* Poker Table Visualization - Standard Oval Shape */}
+        <div className="relative w-full" style={{ aspectRatio: '1.8 / 1' }}>
+          {/* Outer Rail - Dark Wood */}
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-900 via-yellow-900 to-amber-950 shadow-2xl" style={{ borderRadius: '50%' }}>
+            {/* Padding Rail - Grey Cushion */}
+            <div className="absolute inset-[10px] bg-gradient-to-br from-slate-600 via-slate-500 to-slate-600" style={{ borderRadius: '50%' }}>
+              {/* Green Felt Surface */}
+              <div className="absolute inset-[8px] bg-gradient-to-br from-emerald-700 via-green-800 to-emerald-900 shadow-inner" style={{ borderRadius: '50%' }}>
+                {/* Subtle felt ring */}
+                <div className="absolute inset-[30px] border border-emerald-600/30" style={{ borderRadius: '50%' }}></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Center Logo - Club Logo */}
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="w-24 h-24 bg-white/15 rounded-full border-2 border-white/25 flex items-center justify-center shadow-xl backdrop-blur-sm overflow-hidden">
               {clubLogoUrl ? (
                 <>
                   <img 
                     src={clubLogoUrl} 
                     alt="Club Logo" 
-                    className="w-20 h-20 object-contain"
+                    className="w-full h-full object-contain rounded-full p-2"
                     onError={(e) => {
-                      console.error('Failed to load club logo:', clubLogoUrl);
                       e.target.style.display = 'none';
                       const fallback = e.target.parentElement.querySelector('.logo-fallback');
                       if (fallback) fallback.style.display = 'flex';
                     }}
                   />
-                  <div className="logo-fallback text-3xl font-bold text-gray-800 hidden items-center justify-center w-full h-full">♠️♥️</div>
+                  <div className="logo-fallback text-3xl font-bold text-white/40 hidden items-center justify-center w-full h-full">♠</div>
                 </>
               ) : (
-                <div className="text-3xl font-bold text-gray-800">♠️♥️</div>
+                <div className="text-3xl font-bold text-white/40">♠</div>
               )}
             </div>
           </div>
 
           {/* Dealer Position */}
-          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20">
             {dealerInfo && (
               <div className="mb-2 bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
                 <span>👤 {dealerInfo.name}</span>
@@ -1147,25 +1208,25 @@ function TableHologramModal({ table, onClose, clubId }) {
             </div>
           </div>
 
-          {/* Seats arranged in ellipse */}
+          {/* Seats arranged around oval */}
           {seats.map((seatNum) => {
             const angle = (360 / table.maxSeats) * (seatNum - 1);
             const radians = (angle - 90) * (Math.PI / 180);
-            const x = 50 + 40 * Math.cos(radians);
-            const y = 50 + 35 * Math.sin(radians);
+            const x = 50 + 42 * Math.cos(radians);
+            const y = 50 + 40 * Math.sin(radians);
             const isOccupied = occupiedSeats.includes(seatNum);
             const seatedPlayer = seatedPlayersData.find(p => p.seatNumber === seatNum);
 
             return (
               <div
                 key={seatNum}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20"
                 style={{ left: `${x}%`, top: `${y}%` }}
               >
                 <div
                   className={`w-16 h-16 rounded-full flex items-center justify-center font-bold text-lg transition-all cursor-pointer ${
                     isOccupied
-                      ? 'bg-blue-600 text-white border-2 border-blue-400'
+                      ? 'bg-blue-600 text-white border-2 border-blue-400 shadow-lg shadow-blue-500/30'
                       : 'bg-slate-700 text-gray-400 border-2 border-slate-600 hover:border-blue-500'
                   }`}
                   title={seatedPlayer ? seatedPlayer.playerName : `Seat ${seatNum}`}
@@ -1387,13 +1448,14 @@ function TableManagementView({ selectedClubId, tables, tablesLoading }) {
   );
 
   // For assign dealer: Only show dealers who have shifts today AND are not on leave
+  // Also filter to only poker dealers (gameType is 'poker' or not set)
   const dealersForAssignment = (availableDealersForToday?.dealers || []).filter(
-    dealer => !assignedDealerIds.has(dealer.id)
+    dealer => !assignedDealerIds.has(dealer.id) && dealer.gameType !== 'rummy'
   );
 
-  // For general display: Filter out dealers on leave
+  // For general display: Filter out dealers on leave, only show poker dealers
   const availableDealers = allDealers.filter(
-    dealer => !assignedDealerIds.has(dealer.id) && !dealersOnLeaveIds.has(dealer.id)
+    dealer => !assignedDealerIds.has(dealer.id) && !dealersOnLeaveIds.has(dealer.id) && dealer.gameType !== 'rummy'
   );
 
   // Assign dealer mutation
@@ -2838,8 +2900,20 @@ function TableBuyOutView({ selectedClubId, tables }) {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-300">Buy-In Amount:</span>
-                          <span className="font-semibold text-emerald-300">₹{(selectedPlayer.buyInAmount || 0).toLocaleString()}</span>
+                          <span className="font-semibold text-cyan-300">₹{(selectedPlayer.buyInAmount || 0).toLocaleString()}</span>
                         </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-300">Wallet Balance:</span>
+                          <span className={`font-semibold ${(selectedPlayer.walletBalance || 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                            ₹{(selectedPlayer.walletBalance || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        {(selectedPlayer.totalCredits || 0) > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">Credits Outstanding:</span>
+                            <span className="font-semibold text-yellow-300">₹{(selectedPlayer.totalCredits || 0).toLocaleString()}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div>
@@ -2851,7 +2925,9 @@ function TableBuyOutView({ selectedClubId, tables }) {
                         value={buyOutAmount}
                         onChange={(e) => setBuyOutAmount(e.target.value)}
                       />
-                      <p className="text-xs text-gray-400 mt-1">Player's current buy-in: ₹{selectedPlayer?.buyInAmount || 0}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Buy-in: ₹{selectedPlayer?.buyInAmount || 0} | Wallet: ₹{(selectedPlayer?.walletBalance || 0).toLocaleString()}
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-1">4. Reason (Optional)</label>
@@ -2941,10 +3017,9 @@ function HistoryView({ selectedClubId, tables }) {
         
         // Handle different response formats
         let transactions = Array.isArray(response) ? response : (response?.data || response?.transactions || []);
-        console.log('[HISTORY] Parsed transactions:', transactions.length, 'records');
-        if (transactions.length > 0) {
-          console.log('[HISTORY] Sample transaction:', transactions[0]);
-        }
+        // Filter to only poker game_type transactions (exclude rummy)
+        transactions = transactions.filter(t => t.game_type !== 'rummy');
+        console.log('[HISTORY] Parsed poker transactions:', transactions.length, 'records');
         
         return transactions;
       } catch (error) {

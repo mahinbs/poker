@@ -153,8 +153,9 @@ export default function CustomStaffDashboard() {
   ];
 
   const handleSignOut = () => {
-    localStorage.clear();
-    sessionStorage.clear();
+    localStorage.removeItem('user');
+    localStorage.removeItem('staffuser');
+    localStorage.removeItem('clubId');
     navigate("/login");
   };
 

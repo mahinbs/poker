@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fnbAPI } from '../../lib/api';
+import { supabase } from '../../lib/supabase';
+import toast from 'react-hot-toast';
 
 export default function OrderManagementTab({ clubId }) {
   const [orders, setOrders] = useState([]);
@@ -17,6 +19,50 @@ export default function OrderManagementTab({ clubId }) {
     loadOrders();
     loadStations();
   }, [clubId, filter, currentPage]);
+
+  // Supabase real-time: instant updates for FNB orders
+  useEffect(() => {
+    if (!clubId) return;
+
+    const channel = supabase
+      .channel(`fnb-orders-${clubId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'fnb_orders',
+          filter: `club_id=eq.${clubId}`,
+        },
+        (payload) => {
+          console.log('🍔 [REALTIME] New FNB order:', payload.new);
+          loadOrders();
+          toast('🍔 New FNB order received!', { icon: '🔔' });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'fnb_orders',
+          filter: `club_id=eq.${clubId}`,
+        },
+        (payload) => {
+          console.log('🍔 [REALTIME] FNB order updated:', payload.new?.status);
+          loadOrders();
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ [REALTIME] Subscribed to FNB orders for club:', clubId);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clubId]);
 
   const loadOrders = async () => {
     try {

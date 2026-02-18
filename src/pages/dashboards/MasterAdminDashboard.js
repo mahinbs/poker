@@ -52,6 +52,8 @@ export default function MasterAdminDashboard() {
     newTenantName: "",
     newSuperAdminName: "",
     newSuperAdminEmail: "",
+    pokerEnabled: true,
+    rummyEnabled: false,
   });
 
   const [logoFile, setLogoFile] = useState(null);
@@ -102,7 +104,7 @@ export default function MasterAdminDashboard() {
     "Dashboard",
     "Tenants Management",
     "Clubs Management",
-    "Rummy Settings",
+    "Game Settings",
     "Terms & Conditions",
     "Subscriptions",
     "Reports",
@@ -211,8 +213,6 @@ export default function MasterAdminDashboard() {
   };
 
   const handleSignOut = () => {
-    localStorage.clear();
-    sessionStorage.clear();
     authAPI.logout();
     navigate("/master-admin/signin");
   };
@@ -289,6 +289,8 @@ export default function MasterAdminDashboard() {
           gradient: gradientClass,
           logoUrl: clubForm.logoUrl || undefined,
           videoUrl: clubForm.videoUrl || undefined,
+          pokerEnabled: clubForm.pokerEnabled,
+          rummyEnabled: clubForm.rummyEnabled,
         });
         
         // Upload logo if file is selected
@@ -329,6 +331,8 @@ export default function MasterAdminDashboard() {
           gradient: gradientClass || undefined,
           logoUrl: clubForm.logoUrl || undefined,
           videoUrl: clubForm.videoUrl || undefined,
+          pokerEnabled: clubForm.pokerEnabled,
+          rummyEnabled: clubForm.rummyEnabled,
         });
         
         // Upload logo if file is selected
@@ -374,6 +378,8 @@ export default function MasterAdminDashboard() {
         newTenantName: "",
         newSuperAdminName: "",
         newSuperAdminEmail: "",
+        pokerEnabled: true,
+        rummyEnabled: false,
       });
       setLogoFile(null);
       
@@ -524,6 +530,21 @@ export default function MasterAdminDashboard() {
       loadDashboardData();
     } catch (err) {
       showToast('Failed to update Rummy mode: ' + err.message, 'error');
+    }
+  };
+
+  const handleUpdateGameAccess = async (clubId, updates) => {
+    const changeDesc = Object.entries(updates).map(([key, val]) => {
+      const label = key === 'pokerEnabled' ? 'Poker' : key === 'rummyEnabled' ? 'Rummy' : 'Tournaments';
+      return `${val ? 'enable' : 'disable'} ${label}`;
+    }).join(', ');
+
+    try {
+      await masterAdminAPI.updateClubGameAccess(clubId, updates);
+      showToast(`✅ Game access updated: ${changeDesc}`, 'success');
+      loadDashboardData();
+    } catch (err) {
+      showToast('Failed to update game access: ' + err.message, 'error');
     }
   };
 
@@ -937,12 +958,12 @@ export default function MasterAdminDashboard() {
             </section>
           )}
 
-            {/* RUMMY SETTINGS */}
-          {activeItem === "Rummy Settings" && (() => {
+            {/* GAME SETTINGS */}
+          {activeItem === "Game Settings" && (() => {
             const selectedClubData = clubs.find(c => c.id === selectedClubId);
             return (
               <section className="p-6 bg-gradient-to-r from-slate-800/50 via-slate-900/50 to-black/50 rounded-xl border border-slate-700">
-                <h2 className="text-2xl font-bold text-white mb-6">Rummy Mode Settings</h2>
+                <h2 className="text-2xl font-bold text-white mb-6">Game Settings</h2>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Club Selection */}
@@ -966,56 +987,72 @@ export default function MasterAdminDashboard() {
                     {selectedClubData && (
                       <div className="p-6 bg-slate-800/70 rounded-lg border border-slate-600">
                         <h4 className="font-bold text-lg mb-4 text-emerald-400">
-                          {selectedClubData.rummyEnabled ? 'Disable' : 'Enable'} Rummy Mode for {selectedClubData.name}
+                          Game Access Control for {selectedClubData.name}
                         </h4>
                         <p className="text-gray-300 text-sm mb-4">
-                          When enabled, the club's backend dashboard and player portal will show Rummy-specific features:
+                          Control which game types this club can access. Staff can only create tables and tournaments for enabled game types.
                         </p>
-                        <ul className="space-y-2 text-sm text-gray-400 mb-6">
-                          <li>• UI labels change from "Poker Table" to "Rummy Table"</li>
-                          <li>• Table shape switches to round for Rummy tables</li>
-                          <li>• Rummy variants become available in table creation</li>
-                          <li>• Rummy-specific rules and gameplay features are enabled</li>
-                        </ul>
-                        {selectedClubData.rummyEnabled ? (
+
+                        {/* Poker Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-slate-600 mb-3">
+                          <div>
+                            <div className="font-semibold text-white">♠️ Poker</div>
+                            <div className="text-xs text-gray-400">Poker tables and poker tournaments</div>
+                          </div>
                           <button
-                            onClick={() => handleUpdateRummyEnabled(selectedClubData.id, false)}
-                            className="w-full bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                            onClick={() => handleUpdateGameAccess(selectedClubData.id, { pokerEnabled: !selectedClubData.pokerEnabled })}
+                            className={`relative w-14 h-7 rounded-full transition-colors ${selectedClubData.pokerEnabled !== false ? 'bg-emerald-600' : 'bg-gray-600'}`}
                           >
-                            Disable Rummy Mode
+                            <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform ${selectedClubData.pokerEnabled !== false ? 'translate-x-7' : ''}`} />
                           </button>
-                        ) : (
+                        </div>
+
+                        {/* Rummy Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-slate-600 mb-3">
+                          <div>
+                            <div className="font-semibold text-white">🃏 Rummy</div>
+                            <div className="text-xs text-gray-400">Rummy tables and rummy tournaments</div>
+                          </div>
                           <button
-                            onClick={() => handleUpdateRummyEnabled(selectedClubData.id, true)}
-                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                            onClick={() => handleUpdateGameAccess(selectedClubData.id, { rummyEnabled: !selectedClubData.rummyEnabled })}
+                            className={`relative w-14 h-7 rounded-full transition-colors ${selectedClubData.rummyEnabled ? 'bg-emerald-600' : 'bg-gray-600'}`}
                           >
-                            Enable Rummy Mode
+                            <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform ${selectedClubData.rummyEnabled ? 'translate-x-7' : ''}`} />
                           </button>
-                        )}
+                        </div>
+
                         <p className="text-xs text-gray-500 mt-3">
-                          Note: Table creation and management is handled by club staff (Admin/Manager) in their respective portals, just like poker tables. This setting only enables/disables Rummy mode features for the club.
+                          Note: Each game type includes its own tables and tournaments. Disabling a game type prevents staff from creating new tables/tournaments of that type. Existing active sessions are not affected.
                         </p>
                   </div>
                     )}
                 </div>
 
-                  {/* Club Rummy Status */}
+                  {/* Club Game Access Status */}
                   <div>
-                    <h3 className="text-lg font-medium text-white mb-4">Club Rummy Status</h3>
+                    <h3 className="text-lg font-medium text-white mb-4">Club Game Access Status</h3>
                   <div className="space-y-3">
                       {clubs.map(club => (
-                        <div key={club.id} className="p-4 bg-slate-800/70 rounded-lg border border-slate-600 flex justify-between items-center">
-                        <div>
+                        <div key={club.id} className="p-4 bg-slate-800/70 rounded-lg border border-slate-600">
+                        <div className="flex justify-between items-center mb-2">
                             <div className="font-medium text-white">{club.name}</div>
-                            <div className="text-xs text-gray-400">Rummy Mode: {club.rummyEnabled ? 'Enabled' : 'Disabled'}</div>
                           </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            club.rummyEnabled
-                              ? 'bg-emerald-500/20 text-emerald-300'
-                              : 'bg-gray-500/20 text-gray-300'
-                          }`}>
-                            {club.rummyEnabled ? 'Enabled' : 'Disabled'}
-                        </span>
+                          <div className="flex gap-2 flex-wrap">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              club.pokerEnabled !== false
+                                ? 'bg-emerald-500/20 text-emerald-300'
+                                : 'bg-red-500/20 text-red-300'
+                            }`}>
+                              ♠️ Poker: {club.pokerEnabled !== false ? 'ON' : 'OFF'}
+                            </span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              club.rummyEnabled
+                                ? 'bg-emerald-500/20 text-emerald-300'
+                                : 'bg-gray-500/20 text-gray-300'
+                            }`}>
+                              🃏 Rummy: {club.rummyEnabled ? 'ON' : 'OFF'}
+                            </span>
+                          </div>
                       </div>
                     ))}
                   </div>
@@ -1426,6 +1463,53 @@ export default function MasterAdminDashboard() {
                     />
                         </div>
 
+                  {/* Game Access Control */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-amber-400">Game Access</h3>
+                    <p className="text-xs text-gray-400">Select which game types this club can access. You can change this later.</p>
+                    
+                    <div className="grid grid-cols-1 gap-3">
+                      {/* Poker Toggle */}
+                      <label className="flex items-center justify-between bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 cursor-pointer hover:border-slate-500 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">♠️</span>
+                          <div>
+                            <span className="text-white font-medium">Poker</span>
+                            <p className="text-xs text-gray-400">Poker tables and poker tournaments</p>
+                          </div>
+                        </div>
+                        <div
+                          onClick={() => setClubForm({...clubForm, pokerEnabled: !clubForm.pokerEnabled})}
+                          className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${clubForm.pokerEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                        >
+                          <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${clubForm.pokerEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                        </div>
+                      </label>
+
+                      {/* Rummy Toggle */}
+                      <label className="flex items-center justify-between bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 cursor-pointer hover:border-slate-500 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">🃏</span>
+                          <div>
+                            <span className="text-white font-medium">Rummy</span>
+                            <p className="text-xs text-gray-400">Rummy tables and rummy tournaments</p>
+                          </div>
+                        </div>
+                        <div
+                          onClick={() => setClubForm({...clubForm, rummyEnabled: !clubForm.rummyEnabled})}
+                          className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${clubForm.rummyEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                        >
+                          <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${clubForm.rummyEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                        </div>
+                      </label>
+
+                    </div>
+
+                    {!clubForm.pokerEnabled && !clubForm.rummyEnabled && (
+                      <p className="text-xs text-red-400">⚠ At least one game type should be enabled</p>
+                    )}
+                  </div>
+
                   {/* Branding */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium text-pink-400">Club Branding</h3>
@@ -1809,6 +1893,17 @@ export default function MasterAdminDashboard() {
                     {successData.logoUrl && (
                       <p className="text-emerald-400 text-sm mt-2">✅ Logo uploaded successfully</p>
                     )}
+                    <div className="mt-3 pt-3 border-t border-slate-700">
+                      <p className="text-gray-400 text-sm font-medium mb-2">Game Access:</p>
+                      <div className="flex flex-wrap gap-2">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${successData.club.pokerEnabled !== false ? 'bg-emerald-900/50 text-emerald-400' : 'bg-slate-700 text-gray-500'}`}>
+                          ♠️ Poker {successData.club.pokerEnabled !== false ? 'ON' : 'OFF'}
+                        </span>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${successData.club.rummyEnabled ? 'bg-emerald-900/50 text-emerald-400' : 'bg-slate-700 text-gray-500'}`}>
+                          🃏 Rummy {successData.club.rummyEnabled ? 'ON' : 'OFF'}
+                        </span>
+                      </div>
+                    </div>
                 </div>
               </div>
           )}

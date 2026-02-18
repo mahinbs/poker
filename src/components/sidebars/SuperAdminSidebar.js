@@ -21,7 +21,7 @@ const DEFAULT_MENU_ITEMS = [
   "FNB",
   "Chat",
   // "Financial Transactions", // Commented out - not needed for now
-  "Financial Overrides",
+  "Transactions",
   "Reports & Analytics",
   "Audit Logs",
   "System Control",
@@ -122,6 +122,7 @@ export default function SuperAdminSidebar({
 
   const selectedClub = clubs.find((c) => c.clubId === selectedClubId) || clubs[0];
   const isRummyEnabled = selectedClub?.rummyEnabled || false;
+  const isPokerEnabled = selectedClub?.pokerEnabled !== false;
 
   // Get user info from localStorage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -130,10 +131,12 @@ export default function SuperAdminSidebar({
   const displayName = user.displayName || superAdminUser.displayName || 'Root Administrator';
   const userRole = user.role || superAdminUser.role || 'SUPER_ADMIN';
 
-  // Add Rummy to menu items if enabled
-  const finalMenuItems = isRummyEnabled 
-    ? [...menuItems, "Rummy"]
-    : menuItems;
+  // Filter menu items based on game access, then add Rummy if enabled
+  let finalMenuItems = menuItems.filter(item => {
+    if (!isPokerEnabled && ["Tables & Waitlist", "Tournaments"].includes(item)) return false;
+    return true;
+  });
+  if (isRummyEnabled) finalMenuItems = [...finalMenuItems, "Rummy"];
 
   // Password reset mutation
   const resetPasswordMutation = useMutation({

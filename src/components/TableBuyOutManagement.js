@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { clubsAPI } from "../lib/api";
+import { supabase } from "../lib/supabase";
 import toast from "react-hot-toast";
 
 export default function TableBuyOutManagement({ clubId }) {
@@ -11,12 +12,55 @@ export default function TableBuyOutManagement({ clubId }) {
   const [rejectionReason, setRejectionReason] = useState("");
   const [cashoutAmount, setCashoutAmount] = useState("");
 
-  // Fetch pending buy-out requests
+  // Supabase real-time: instant updates for buy-out requests
+  useEffect(() => {
+    if (!clubId) return;
+
+    const channel = supabase
+      .channel(`buyout-requests-${clubId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'buyout_requests',
+          filter: `club_id=eq.${clubId}`,
+        },
+        (payload) => {
+          console.log('🔔 [REALTIME] New buy-out request:', payload.new);
+          queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
+          toast('💸 New buy-out request received!', { icon: '🔔' });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'buyout_requests',
+          filter: `club_id=eq.${clubId}`,
+        },
+        (payload) => {
+          console.log('🔄 [REALTIME] Buy-out request updated:', payload.new);
+          queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ [REALTIME] Subscribed to buy-out requests for club:', clubId);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clubId, queryClient]);
+
+  // Fetch pending buy-out requests (initial load + fallback)
   const { data: buyOutRequests = [], isLoading, refetch } = useQuery({
     queryKey: ['buyOutRequests', clubId],
     queryFn: () => clubsAPI.getBuyOutRequests(clubId),
     enabled: !!clubId,
-    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
   // Approve buy-out mutation

@@ -20,6 +20,10 @@ export const useWebSocket = (clubId, userId) => {
     const socket = io(`${WEBSOCKET_URL}/realtime`, {
       auth: { clubId, userId },
       transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 10000,
+      reconnectionAttempts: Infinity,
     });
 
     socketRef.current = socket;

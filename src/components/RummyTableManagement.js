@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { tablesAPI, waitlistAPI, staffAPI, shiftsAPI } from '../lib/api';
+import { tablesAPI, waitlistAPI, staffAPI, shiftsAPI, superAdminAPI } from '../lib/api';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from './TableBuyOutManagement';
+import RakeCollection from './RakeCollection';
 
 /**
  * Comprehensive Rummy Table Management Component
@@ -42,6 +43,8 @@ export default function RummyTableManagement({ selectedClubId }) {
     { id: "table-management", label: "Table Management" },
     { id: "table-buy-in", label: "Table Buy-In" },
     { id: "table-buy-out", label: "Table Buy-Out" },
+    { id: "rake-collection", label: "Rake Collection" },
+    { id: "history", label: "History" },
   ];
 
   return (
@@ -107,6 +110,19 @@ export default function RummyTableManagement({ selectedClubId }) {
         {/* Tab 4: Table Buy-Out */}
         {activeTab === "table-buy-out" && (
           <TableBuyOutView
+            selectedClubId={selectedClubId}
+            tables={tables}
+          />
+        )}
+
+        {/* Tab 5: Rake Collection */}
+        {activeTab === "rake-collection" && (
+          <RakeCollection clubId={selectedClubId} gameType="rummy" />
+        )}
+
+        {/* Tab 6: History */}
+        {activeTab === "history" && (
+          <RummyHistoryView
             selectedClubId={selectedClubId}
             tables={tables}
           />
@@ -305,6 +321,10 @@ function TableSessionControl({
 }) {
   const queryClient = useQueryClient();
   const [selectedClubId, setSelectedClubId] = useState(clubId);
+  const [showSettlementModal, setShowSettlementModal] = useState(false);
+  const [seatedPlayers, setSeatedPlayers] = useState([]);
+  const [settlements, setSettlements] = useState({});
+  const [rakeAmount, setRakeAmount] = useState('');
 
   // Update selectedClubId when clubId prop changes
   useEffect(() => {
@@ -345,7 +365,24 @@ function TableSessionControl({
     },
   });
 
-  // End session mutation
+  // Settle and end session mutation (same as Poker)
+  const settleAndEndMutation = useMutation({
+    mutationFn: async (settlementsData) => {
+      if (!selectedClubId) throw new Error('Club ID not found');
+      return await tablesAPI.settleAndEndSession(selectedClubId, table.id, settlementsData);
+    },
+    onSuccess: () => {
+      toast.success('All players settled and session ended successfully!');
+      queryClient.invalidateQueries(['rummy-tables', selectedClubId]);
+      setShowSettlementModal(false);
+      onClose();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to settle players');
+    },
+  });
+
+  // End session mutation (only used when no players are seated)
   const endSessionMutation = useMutation({
     mutationFn: async () => {
       if (!selectedClubId) throw new Error('Club ID not found');
@@ -387,9 +424,58 @@ function TableSessionControl({
     }
   };
 
-  const handleEndSession = () => {
-    if (window.confirm('Are you sure you want to end this session? This action cannot be undone.')) {
-      endSessionMutation.mutate();
+  const handleEndSession = async () => {
+    if (!selectedClubId) {
+      toast.error('Club ID not found');
+      return;
+    }
+
+    try {
+      const response = await tablesAPI.getSeatedPlayersForTable(selectedClubId, table.id);
+      
+      if (response.seatedPlayers && response.seatedPlayers.length > 0) {
+        setSeatedPlayers(response.seatedPlayers);
+        
+        const initialSettlements = {};
+        response.seatedPlayers.forEach(player => {
+          initialSettlements[player.playerId] = 0;
+        });
+        setSettlements(initialSettlements);
+        setRakeAmount('');
+        setShowSettlementModal(true);
+      } else {
+        if (window.confirm('No players are seated. End this session?')) {
+          endSessionMutation.mutate();
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching seated players:', error);
+      toast.error('Failed to fetch seated players');
+    }
+  };
+
+  const handleSettlementChange = (playerId, amount) => {
+    setSettlements(prev => ({
+      ...prev,
+      [playerId]: parseFloat(amount) || 0
+    }));
+  };
+
+  const handleConfirmSettlement = () => {
+    const settlementsArray = Object.entries(settlements).map(([playerId, amount]) => ({
+      playerId,
+      amount: parseFloat(amount) || 0
+    }));
+
+    const rakeNum = parseFloat(rakeAmount) || 0;
+
+    const totalAmount = settlementsArray.reduce((sum, s) => sum + s.amount, 0);
+    const confirmMsg = rakeNum > 0
+      ? `Settle ${settlementsArray.length} players for a total of \u20B9${totalAmount} with \u20B9${rakeNum} rake? This will end the session.`
+      : `Settle ${settlementsArray.length} players for a total of \u20B9${totalAmount}? This will end the session.`;
+
+    if (window.confirm(confirmMsg)) {
+      settleAndEndMutation.mutate({ settlements: settlementsArray, rakeAmount: rakeNum || undefined });
     }
   };
 
@@ -598,6 +684,131 @@ function TableSessionControl({
           </div>
         </div>
       </div>
+
+      {/* Settlement Modal - same as Poker */}
+      {showSettlementModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-emerald-500/50 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-white">🃏 Settle All Rummy Players</h3>
+              <button
+                onClick={() => setShowSettlementModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-6 p-4 bg-red-600/20 border border-red-500/30 rounded-lg">
+              <p className="text-sm text-red-300">
+                Enter the cash-out amount for each seated player. This will create transactions,
+                update balances, unseat all players, and end the session.
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              {seatedPlayers.map(player => (
+                <div key={player.playerId} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <div className="font-semibold text-white">{player.playerName}</div>
+                      <div className="text-sm text-gray-400">Seat #{player.seatNumber}</div>
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      Seated {new Date(player.seatedAt).toLocaleTimeString('en-US', { hour12: true })}
+                    </div>
+                  </div>
+                  {/* Player Balance Info */}
+                  <div className="grid grid-cols-3 gap-2 mb-3 text-sm">
+                    <div className="bg-slate-800/60 rounded px-3 py-2 text-center">
+                      <div className="text-gray-400 text-xs">Buy-In</div>
+                      <div className="text-cyan-400 font-semibold">₹{(player.buyInAmount || 0).toLocaleString()}</div>
+                    </div>
+                    <div className="bg-slate-800/60 rounded px-3 py-2 text-center">
+                      <div className="text-gray-400 text-xs">Wallet Balance</div>
+                      <div className={`font-semibold ${(player.walletBalance || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        ₹{(player.walletBalance || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="bg-slate-800/60 rounded px-3 py-2 text-center">
+                      <div className="text-gray-400 text-xs">Credits</div>
+                      <div className="text-yellow-400 font-semibold">
+                        {(player.totalCredits || 0) > 0 ? `₹${(player.totalCredits || 0).toLocaleString()}` : '-'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400 text-sm">Cash-out Amount:</span>
+                    <input
+                      type="number"
+                      value={settlements[player.playerId] || 0}
+                      onChange={(e) => handleSettlementChange(player.playerId, e.target.value)}
+                      className="flex-1 px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white text-lg font-semibold"
+                      placeholder="Enter amount"
+                      min="0"
+                      step="100"
+                    />
+                    <span className="text-white font-semibold">₹</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-emerald-600/20 border border-emerald-500/30 rounded-lg mb-4">
+              <span className="text-emerald-300 font-semibold">Total Settlement:</span>
+              <span className="text-white text-2xl font-bold">
+                ₹{Object.values(settlements).reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0).toLocaleString()}
+              </span>
+            </div>
+
+            {/* Rake Collection Input */}
+            <div className="p-4 bg-amber-600/20 border border-amber-500/30 rounded-lg mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-amber-300 font-semibold whitespace-nowrap">🎰 Session Rake:</span>
+                <input
+                  type="number"
+                  value={rakeAmount}
+                  onChange={(e) => setRakeAmount(e.target.value)}
+                  className="flex-1 px-4 py-2 bg-slate-600 border border-amber-500/50 rounded-lg text-white text-lg font-semibold"
+                  placeholder="Enter rake amount (optional)"
+                  min="0"
+                  step="100"
+                />
+                <span className="text-white font-semibold">₹</span>
+              </div>
+              <p className="text-amber-300/70 text-xs mt-2">Rake will be recorded for this rummy session automatically</p>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowSettlementModal(false)}
+                className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSettlement}
+                disabled={settleAndEndMutation.isLoading}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                {settleAndEndMutation.isLoading ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>✅</span>
+                    <span>Settle & End Session</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -609,7 +820,78 @@ function TableHologramModal({ table, onClose, clubId }) {
   const queryClient = useQueryClient();
   const [clubData, setClubData] = useState(null);
   const [sessionTime, setSessionTime] = useState('00:00:00');
-  
+  const [seatedPlayersData, setSeatedPlayersData] = useState([]);
+  const [activeTab, setActiveTab] = useState('view');
+  const [tableHistory, setTableHistory] = useState([]);
+
+  // Fetch table history (buy-ins and buy-outs for this table)
+  useEffect(() => {
+    const fetchTableHistory = async () => {
+      if (activeTab !== 'history') return;
+      try {
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
+        const tenantId = localStorage.getItem('tenantId');
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3333/api'}/clubs/${clubId}/transactions?tableNumber=${table.tableNumber}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'x-user-id': userId || '',
+            'x-tenant-id': tenantId || '',
+            'x-club-id': clubId,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const filtered = data.filter(t => 
+            (t.type === 'Buy In' || (t.type === 'Deposit' && t.notes?.includes(`Table ${table.tableNumber}`))) &&
+            (t.notes?.includes(`Table ${table.tableNumber}`) || t.description?.includes(`Table ${table.tableNumber}`))
+          ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          setTableHistory(filtered);
+        }
+      } catch (error) {
+        console.error('Error fetching table history:', error);
+      }
+    };
+    if (clubId && table?.tableNumber && activeTab === 'history') {
+      fetchTableHistory();
+    }
+  }, [clubId, table?.tableNumber, activeTab]);
+
+  // Fetch seated players for this table (same as poker)
+  useEffect(() => {
+    const fetchSeatedPlayers = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
+        const tenantId = localStorage.getItem('tenantId');
+        
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3333/api'}/clubs/${clubId}/tables/${table.id}/seated-players`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'x-user-id': userId || '',
+            'x-tenant-id': tenantId || '',
+            'x-club-id': clubId,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setSeatedPlayersData(data.seatedPlayers || []);
+        }
+      } catch (error) {
+        console.error('Error fetching seated players:', error);
+      }
+    };
+    
+    if (clubId && table?.id) {
+      fetchSeatedPlayers();
+      const interval = setInterval(fetchSeatedPlayers, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [clubId, table?.id]);
+
   // Extract dealer info from table notes
   const getDealerInfo = () => {
     if (!table.notes) return null;
@@ -765,16 +1047,18 @@ function TableHologramModal({ table, onClose, clubId }) {
   }, [table]);
 
   const seats = Array.from({ length: table.maxSeats }, (_, i) => i + 1);
-  const occupiedSeats = [];
+
+  // Get occupied seats from actual seated players data
+  const occupiedSeats = seatedPlayersData.map(p => p.seatNumber).filter(Boolean);
+
+  // Calculate table value from actual seated players' buy-ins
+  const tableValue = seatedPlayersData.reduce((total, player) => {
+    return total + (Number(player.buyInAmount) || 0);
+  }, 0);
 
   const clubLogoUrl = clubData?.logoUrl || null;
   const gameType = table.rummyVariant || table.notes?.split('|')[1]?.trim() || 'RUMMY';
   const stakes = `₹${table.minBuyIn || 0}/₹${table.maxBuyIn || 0}`;
-  
-  const tableValueMatch = table.notes?.match(/Table Value: ₹?([\d,]+)/);
-  const tableValue = tableValueMatch 
-    ? parseInt(tableValueMatch[1].replace(/,/g, '')) 
-    : (table.currentSeats || 0) * ((table.minBuyIn + table.maxBuyIn) / 2 || 25000);
 
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
@@ -794,6 +1078,32 @@ function TableHologramModal({ table, onClose, clubId }) {
           </button>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-2 border-b border-slate-700 mb-6">
+          <button
+            onClick={() => setActiveTab('view')}
+            className={`px-4 py-2 font-semibold transition-all ${
+              activeTab === 'view'
+                ? 'text-emerald-400 border-b-2 border-emerald-400'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Live View
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-4 py-2 font-semibold transition-all ${
+              activeTab === 'history'
+                ? 'text-emerald-400 border-b-2 border-emerald-400'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            History
+          </button>
+        </div>
+
+        {activeTab === 'view' ? (
+          <>
         {/* Table Value Display */}
         <div className="mb-6 flex justify-center">
           <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3 rounded-2xl shadow-xl border-2 border-emerald-400">
@@ -802,34 +1112,45 @@ function TableHologramModal({ table, onClose, clubId }) {
           </div>
         </div>
 
-        {/* Table Visualization */}
-        <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-green-800 to-green-900 rounded-[50%] border-8 border-emerald-600 shadow-2xl flex items-center justify-center">
-          {/* Center Logo */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-white rounded-full p-2 shadow-lg flex items-center justify-center w-24 h-24">
+        {/* Rummy Table Visualization - Standard Round Shape */}
+        <div className="relative w-full aspect-square max-w-[500px] mx-auto">
+          {/* Outer Rail - Dark Wood */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-900 via-yellow-900 to-amber-950 shadow-2xl">
+            {/* Padding Rail - Amber Cushion */}
+            <div className="absolute inset-[10px] rounded-full bg-gradient-to-br from-amber-700 via-amber-600 to-amber-700">
+              {/* Green Felt Surface */}
+              <div className="absolute inset-[8px] rounded-full bg-gradient-to-br from-emerald-700 via-green-800 to-emerald-900 shadow-inner">
+                {/* Subtle felt ring */}
+                <div className="absolute inset-[30px] rounded-full border border-emerald-600/30"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Center Logo - Club Logo */}
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="w-24 h-24 bg-white/15 rounded-full border-2 border-white/25 flex items-center justify-center shadow-xl backdrop-blur-sm overflow-hidden">
               {clubLogoUrl ? (
                 <>
                   <img 
                     src={clubLogoUrl} 
                     alt="Club Logo" 
-                    className="w-20 h-20 object-contain"
+                    className="w-full h-full object-contain rounded-full p-2"
                     onError={(e) => {
-                      console.error('Failed to load club logo:', clubLogoUrl);
                       e.target.style.display = 'none';
                       const fallback = e.target.parentElement.querySelector('.logo-fallback');
                       if (fallback) fallback.style.display = 'flex';
                     }}
                   />
-                  <div className="logo-fallback text-3xl font-bold text-gray-800 hidden items-center justify-center w-full h-full">🃏</div>
+                  <div className="logo-fallback text-3xl font-bold text-white/40 hidden items-center justify-center w-full h-full">🎴</div>
                 </>
               ) : (
-                <div className="text-3xl font-bold text-gray-800">🃏</div>
+                <div className="text-3xl font-bold text-white/40">🎴</div>
               )}
             </div>
           </div>
 
           {/* Dealer Position */}
-          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20">
             {dealerInfo && (
               <div className="mb-2 bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
                 <span>👤 {dealerInfo.name}</span>
@@ -853,32 +1174,44 @@ function TableHologramModal({ table, onClose, clubId }) {
             </div>
           </div>
 
-          {/* Seats arranged in ellipse */}
+          {/* Seats arranged in circle */}
           {seats.map((seatNum) => {
             const angle = (360 / table.maxSeats) * (seatNum - 1);
             const radians = (angle - 90) * (Math.PI / 180);
-            const x = 50 + 40 * Math.cos(radians);
-            const y = 50 + 35 * Math.sin(radians);
+            const radius = 42;
+            const x = 50 + radius * Math.cos(radians);
+            const y = 50 + radius * Math.sin(radians);
             const isOccupied = occupiedSeats.includes(seatNum);
+            const seatedPlayer = seatedPlayersData.find(p => p.seatNumber === seatNum);
 
             return (
               <div
                 key={seatNum}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20"
                 style={{ left: `${x}%`, top: `${y}%` }}
               >
                 <div
                   className={`w-16 h-16 rounded-full flex items-center justify-center font-bold text-lg transition-all cursor-pointer ${
                     isOccupied
-                      ? 'bg-emerald-600 text-white border-2 border-emerald-400'
+                      ? 'bg-emerald-600 text-white border-2 border-emerald-400 shadow-lg shadow-emerald-500/30'
                       : 'bg-slate-700 text-gray-400 border-2 border-slate-600 hover:border-emerald-500'
                   }`}
+                  title={seatedPlayer ? seatedPlayer.playerName : `Seat ${seatNum}`}
                 >
-                  {isOccupied ? 'P' + seatNum : seatNum}
+                  {isOccupied && seatedPlayer ? (
+                    seatedPlayer.playerName?.split(' ').map(n => n.charAt(0)).join('').substring(0, 2).toUpperCase()
+                  ) : (
+                    seatNum
+                  )}
                 </div>
-                <div className="text-center text-xs text-white mt-1">
-                  Seat {seatNum}
+                <div className="text-center text-xs text-white mt-1 whitespace-nowrap max-w-[80px] overflow-hidden text-ellipsis">
+                  {isOccupied && seatedPlayer ? seatedPlayer.playerName : `Seat ${seatNum}`}
                 </div>
+                {isOccupied && seatedPlayer && seatedPlayer.buyInAmount > 0 && (
+                  <div className="text-center text-[10px] text-yellow-300 bg-slate-800/80 px-1 rounded mt-0.5">
+                    ₹{Number(seatedPlayer.buyInAmount).toLocaleString()}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -928,6 +1261,72 @@ function TableHologramModal({ table, onClose, clubId }) {
             Close
           </button>
         </div>
+          </>
+        ) : (
+          /* History Tab */
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold text-white mb-4">Buy-In & Buy-Out History</h3>
+            {tableHistory.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                No transaction history for this table yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tableHistory.map((transaction, idx) => {
+                  const isBuyIn = transaction.type === 'Buy In';
+                  return (
+                    <div 
+                      key={transaction.id || idx} 
+                      className={`p-4 rounded-lg border-2 ${
+                        isBuyIn 
+                          ? 'bg-green-900/20 border-green-600/50' 
+                          : 'bg-orange-900/20 border-orange-600/50'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">
+                              {isBuyIn ? '💰' : '💵'}
+                            </span>
+                            <div>
+                              <div className="font-bold text-white">
+                                {transaction.playerName || transaction.player_name || 'Unknown Player'}
+                              </div>
+                              <div className="text-sm text-gray-400">
+                                {isBuyIn ? 'Buy-In' : 'Buy-Out'}
+                                {transaction.notes && ` • ${transaction.notes}`}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {new Date(transaction.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`text-right ${isBuyIn ? 'text-green-400' : 'text-orange-400'}`}>
+                          <div className="font-bold text-2xl">
+                            {isBuyIn ? '+' : ''}₹{Number(transaction.amount).toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {transaction.status}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={onClose}
+                className="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-lg font-bold text-white transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -996,13 +1395,14 @@ function RummyTableManagementView({ selectedClubId, tables, tablesLoading }) {
   );
 
   // For assign dealer: Only show dealers who have shifts today AND are not on leave
+  // Also filter to only rummy dealers (gameType is 'rummy' or not set)
   const dealersForAssignment = (availableDealersForToday?.dealers || []).filter(
-    dealer => !assignedDealerIds.has(dealer.id)
+    dealer => !assignedDealerIds.has(dealer.id) && dealer.gameType !== 'poker'
   );
 
-  // For general display: Filter out dealers on leave
+  // For general display: Filter out dealers on leave, only show rummy dealers
   const availableDealers = allDealers.filter(
-    dealer => !assignedDealerIds.has(dealer.id) && !dealersOnLeaveIds.has(dealer.id)
+    dealer => !assignedDealerIds.has(dealer.id) && !dealersOnLeaveIds.has(dealer.id) && dealer.gameType !== 'poker'
   );
 
   // Assign dealer mutation
@@ -1918,6 +2318,212 @@ function TableBuyOutView({ selectedClubId, tables }) {
         {activeSubTab === "player-requests" && (
           <TableBuyOutManagement clubId={selectedClubId} />
         )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Rummy History View Component (History Tab)
+// ============================================================================
+function RummyHistoryView({ selectedClubId, tables }) {
+  const [historyFilters, setHistoryFilters] = useState({
+    type: 'all',
+    search: '',
+    tableNumber: 'all',
+    page: 1,
+    perPage: 10,
+  });
+
+  const { data: allTransactions = [], isLoading: historyLoading } = useQuery({
+    queryKey: ['rummy-transactions', selectedClubId],
+    queryFn: async () => {
+      if (!selectedClubId) return [];
+      try {
+        const response = await superAdminAPI.getTransactions(selectedClubId, {});
+        let transactions = Array.isArray(response) ? response : (response?.data || response?.transactions || []);
+        // Filter to only rummy game_type transactions
+        return transactions.filter(t => t.game_type === 'rummy');
+      } catch (error) {
+        console.error('[RUMMY HISTORY] Error fetching transactions:', error);
+        return [];
+      }
+    },
+    enabled: !!selectedClubId,
+  });
+
+  const filteredHistory = allTransactions.filter(t => {
+    const isBuyIn = t.type === 'Buy In';
+    const isBuyOut = (t.type === 'Deposit' || t.type === 'Cashout') && 
+                     (t.notes?.toLowerCase().includes('buy-out') || 
+                      t.notes?.toLowerCase().includes('buyout') ||
+                      t.description?.toLowerCase().includes('buy-out') ||
+                      t.description?.toLowerCase().includes('buyout'));
+    
+    if (historyFilters.type === 'buy-in' && !isBuyIn) return false;
+    if (historyFilters.type === 'buy-out' && !isBuyOut) return false;
+    if (historyFilters.type === 'all' && !(isBuyIn || isBuyOut)) return false;
+    
+    if (historyFilters.tableNumber !== 'all') {
+      const tableMatch = t.notes?.includes(`Table ${historyFilters.tableNumber}`) || 
+                        t.description?.includes(`Table ${historyFilters.tableNumber}`) ||
+                        t.notes?.includes(`table ${historyFilters.tableNumber}`) ||
+                        t.description?.includes(`table ${historyFilters.tableNumber}`);
+      if (!tableMatch) return false;
+    }
+    
+    if (historyFilters.search) {
+      const search = historyFilters.search.toLowerCase();
+      const playerName = t.playerName || t.player_name || '';
+      const email = t.email || '';
+      return (
+        playerName.toLowerCase().includes(search) ||
+        email.toLowerCase().includes(search)
+      );
+    }
+    
+    return true;
+  });
+
+  const paginatedHistory = filteredHistory.slice(
+    (historyFilters.page - 1) * historyFilters.perPage,
+    historyFilters.page * historyFilters.perPage
+  );
+  
+  const totalPages = Math.ceil(filteredHistory.length / historyFilters.perPage);
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-emerald-600/30 via-teal-500/20 to-cyan-700/30 rounded-xl p-6 border border-emerald-800/40">
+        <h2 className="text-2xl font-bold mb-4">Rummy Buy-In & Buy-Out History</h2>
+        <p className="text-gray-300 text-sm mb-6">
+          View all rummy buy-in and buy-out transactions with advanced filters.
+        </p>
+        <div className="bg-white/10 p-5 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Filters</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Transaction Type</label>
+              <select 
+                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                value={historyFilters.type}
+                onChange={(e) => setHistoryFilters({...historyFilters, type: e.target.value, page: 1})}
+              >
+                <option value="all">All Transactions</option>
+                <option value="buy-in">Buy-In Only</option>
+                <option value="buy-out">Buy-Out Only</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Table</label>
+              <select 
+                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                value={historyFilters.tableNumber}
+                onChange={(e) => setHistoryFilters({...historyFilters, tableNumber: e.target.value, page: 1})}
+              >
+                <option value="all">All Tables</option>
+                {tables.map((table) => (
+                  <option key={table.id} value={table.tableNumber}>
+                    Table {table.tableNumber}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Search Player</label>
+              <input 
+                type="text"
+                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                placeholder="Player name or email..."
+                value={historyFilters.search}
+                onChange={(e) => setHistoryFilters({...historyFilters, search: e.target.value, page: 1})}
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white/10 p-5 rounded-lg mt-4">
+          <h3 className="text-lg font-semibold mb-4">
+            Transaction History ({filteredHistory.length} records)
+          </h3>
+          
+          {historyLoading ? (
+            <div className="text-center py-8 text-gray-400">Loading...</div>
+          ) : paginatedHistory.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">No rummy transactions found</div>
+          ) : (
+            <>
+              <div className="space-y-3 mb-6">
+                {paginatedHistory.map((transaction, idx) => {
+                  const isBuyIn = transaction.type === 'Buy In';
+                  return (
+                    <div 
+                      key={transaction.id || idx} 
+                      className={`p-4 rounded-lg border-2 ${
+                        isBuyIn 
+                          ? 'bg-green-900/20 border-green-600/50' 
+                          : 'bg-orange-900/20 border-orange-600/50'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">
+                              {isBuyIn ? '💰' : '💵'}
+                            </span>
+                            <div>
+                              <div className="font-bold text-white">
+                                {transaction.playerName || transaction.player_name || 'Unknown Player'}
+                              </div>
+                              <div className="text-sm text-gray-400">
+                                {isBuyIn ? 'Buy-In' : 'Buy-Out'}
+                                {transaction.notes && ` • ${transaction.notes}`}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {new Date(transaction.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`text-right ${isBuyIn ? 'text-green-400' : 'text-orange-400'}`}>
+                          <div className="font-bold text-2xl">
+                            {isBuyIn ? '+' : ''}₹{Number(transaction.amount).toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {transaction.status}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center gap-2 mt-4">
+                  <button
+                    onClick={() => setHistoryFilters({...historyFilters, page: Math.max(1, historyFilters.page - 1)})}
+                    disabled={historyFilters.page === 1}
+                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded-lg text-white"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-4 py-2 bg-slate-700 rounded-lg text-white">
+                    Page {historyFilters.page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setHistoryFilters({...historyFilters, page: Math.min(totalPages, historyFilters.page + 1)})}
+                    disabled={historyFilters.page >= totalPages}
+                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded-lg text-white"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

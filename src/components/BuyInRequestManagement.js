@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { clubsAPI } from "../lib/api";
+import { supabase } from "../lib/supabase";
 import toast from "react-hot-toast";
 
 export default function BuyInRequestManagement({ clubId }) {
@@ -9,12 +10,55 @@ export default function BuyInRequestManagement({ clubId }) {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
 
-  // Fetch pending buy-in requests
+  // Supabase real-time: instant notification when a new buy-in request is created
+  useEffect(() => {
+    if (!clubId) return;
+
+    const channel = supabase
+      .channel(`buyin-requests-${clubId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'buyin_requests',
+          filter: `club_id=eq.${clubId}`,
+        },
+        (payload) => {
+          console.log('🔔 [REALTIME] New buy-in request:', payload.new);
+          queryClient.invalidateQueries({ queryKey: ['buyInRequests', clubId] });
+          toast('💰 New buy-in request received!', { icon: '🔔' });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'buyin_requests',
+          filter: `club_id=eq.${clubId}`,
+        },
+        (payload) => {
+          console.log('🔄 [REALTIME] Buy-in request updated:', payload.new);
+          queryClient.invalidateQueries({ queryKey: ['buyInRequests', clubId] });
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ [REALTIME] Subscribed to buy-in requests for club:', clubId);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clubId, queryClient]);
+
+  // Fetch pending buy-in requests (initial load + fallback)
   const { data: buyInRequests = [], isLoading, refetch } = useQuery({
     queryKey: ['buyInRequests', clubId],
     queryFn: () => clubsAPI.getBuyInRequests(clubId),
     enabled: !!clubId,
-    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
   // Approve buy-in mutation

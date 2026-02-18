@@ -12,6 +12,7 @@
     "clear-cache": "node -e \"const fs = require('fs'); const path = require('path'); const cacheFile = path.join('node_modules', '.cache', '.eslintcache'); try { fs.unlinkSync(cacheFile); console.log('Cache cleared!'); } catch(e) { console.log('Cache file not found or already cleared.'); }\""
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.95.3",
     "@tanstack/react-query": "^5.90.12",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { staffAPI, leaveAPI } from "../lib/api";
+import { staffAPI, leaveAPI, clubsAPI } from "../lib/api";
 import toast from "react-hot-toast";
 import { storageService } from "../lib/storage";
 import RosterManagement from "./RosterManagement";
@@ -39,6 +39,14 @@ export default function StaffManagement({ selectedClubId }) {
     }
     return STAFF_ROLES;
   })();
+  // Fetch club data to check if both poker and rummy are enabled
+  const { data: clubData } = useQuery({
+    queryKey: ['club-data', selectedClubId],
+    queryFn: () => clubsAPI.getClub(selectedClubId),
+    enabled: !!selectedClubId,
+  });
+  const hasBothGames = clubData?.pokerEnabled && clubData?.rummyEnabled;
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
@@ -64,8 +72,11 @@ export default function StaffManagement({ selectedClubId }) {
     phone: "",
     employeeId: "",
     customRoleName: "",
+    gameType: "",
     aadharDocumentUrl: "",
     panDocumentUrl: "",
+    baseSalary: "",
+    salaryType: "Monthly",
   });
 
   const [suspendForm, setSuspendForm] = useState({ reason: "" });
@@ -219,12 +230,15 @@ export default function StaffManagement({ selectedClubId }) {
     setStaffForm({
       name: "",
       role: isHR ? "Staff" : isAdmin ? "Admin" : "Super Admin",
-        email: "",
-        phone: "",
+      email: "",
+      phone: "",
       employeeId: "",
       customRoleName: "",
+      gameType: "",
       aadharDocumentUrl: "",
       panDocumentUrl: "",
+      baseSalary: "",
+      salaryType: "Monthly",
     });
   };
 
@@ -239,6 +253,11 @@ export default function StaffManagement({ selectedClubId }) {
       return;
     }
 
+    if (hasBothGames && (staffForm.role === "Dealer" || staffForm.role === "Manager") && !staffForm.gameType) {
+      toast.error("Please select a game type for this " + staffForm.role.toLowerCase());
+      return;
+    }
+
     // Validate KYC documents - both are required
     if (!staffForm.aadharDocumentUrl) {
       toast.error("Aadhar document is required to create a staff member");
@@ -249,7 +268,13 @@ export default function StaffManagement({ selectedClubId }) {
       return;
     }
 
-    createMutation.mutate(staffForm);
+    const payload = { ...staffForm };
+    if (payload.baseSalary) {
+      payload.baseSalary = Number(payload.baseSalary);
+    } else {
+      delete payload.baseSalary;
+    }
+    createMutation.mutate(payload);
   };
 
   const handleEditStaff = (staff) => {
@@ -261,8 +286,11 @@ export default function StaffManagement({ selectedClubId }) {
       phone: staff.phone,
       employeeId: staff.employeeId || "",
       customRoleName: staff.customRoleName || "",
+      gameType: staff.gameType || "",
       aadharDocumentUrl: staff.aadharDocumentUrl || "",
       panDocumentUrl: staff.panDocumentUrl || "",
+      baseSalary: staff.baseSalary || "",
+      salaryType: staff.salaryType || "Monthly",
     });
     setShowEditModal(true);
   };
@@ -527,6 +555,14 @@ export default function StaffManagement({ selectedClubId }) {
                         {new Date(member.createdAt).toLocaleDateString()}
                       </p>
                     </div>
+                    {Number(member.baseSalary || 0) > 0 && (
+                      <div>
+                        <p className="text-sm text-gray-400">Salary</p>
+                        <p className="text-green-400 font-semibold">
+                          ₹{Number(member.baseSalary).toFixed(0)} / {member.salaryType || "Monthly"}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {member.status === "Suspended" && member.suspendedReason && (
@@ -643,6 +679,26 @@ export default function StaffManagement({ selectedClubId }) {
                                         </div>
               )}
 
+              {hasBothGames && (staffForm.role === "Dealer" || staffForm.role === "Manager") && (
+                <div>
+                  <label className="text-white text-sm mb-1 block">Game Type *</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    value={staffForm.gameType}
+                    onChange={(e) => setStaffForm({ ...staffForm, gameType: e.target.value })}
+                  >
+                    <option value="">Select game type</option>
+                    <option value="poker">♠ Poker</option>
+                    <option value="rummy">🃏 Rummy</option>
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {staffForm.role === "Dealer"
+                      ? "Dealer will only be assigned to tables of this game type"
+                      : "Manager will manage tables of this game type"}
+                  </p>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                                     <div>
                   <label className="text-white text-sm mb-1 block">Email *</label>
@@ -677,6 +733,31 @@ export default function StaffManagement({ selectedClubId }) {
                   onChange={(e) => setStaffForm({ ...staffForm, employeeId: e.target.value })}
                 />
                                         </div>
+
+              {/* Salary Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-white text-sm mb-1 block">Base Salary (Optional)</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    placeholder="0.00"
+                    value={staffForm.baseSalary}
+                    onChange={(e) => setStaffForm({ ...staffForm, baseSalary: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-white text-sm mb-1 block">Salary Type</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    value={staffForm.salaryType}
+                    onChange={(e) => setStaffForm({ ...staffForm, salaryType: e.target.value })}
+                  >
+                    <option value="Monthly">Monthly</option>
+                    <option value="Weekly">Weekly</option>
+                  </select>
+                </div>
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -793,6 +874,31 @@ export default function StaffManagement({ selectedClubId }) {
                   />
                                 </div>
               )}
+
+              {/* Salary Fields in Edit */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-white text-sm mb-1 block">Base Salary</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    placeholder="0.00"
+                    value={staffForm.baseSalary}
+                    onChange={(e) => setStaffForm({ ...staffForm, baseSalary: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-white text-sm mb-1 block">Salary Type</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    value={staffForm.salaryType}
+                    onChange={(e) => setStaffForm({ ...staffForm, salaryType: e.target.value })}
+                  >
+                    <option value="Monthly">Monthly</option>
+                    <option value="Weekly">Weekly</option>
+                  </select>
+                </div>
+              </div>
                                 </div>
 
             <div className="flex gap-3 mt-6">
@@ -980,6 +1086,14 @@ export default function StaffManagement({ selectedClubId }) {
                     <p className="text-sm text-gray-400 mb-1">Created At</p>
                     <p className="text-white">
                       {new Date(selectedStaff.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400 mb-1">Base Salary</p>
+                    <p className="text-green-400 font-semibold">
+                      {Number(selectedStaff.baseSalary || 0) > 0
+                        ? `₹${Number(selectedStaff.baseSalary).toFixed(2)} / ${selectedStaff.salaryType || "Monthly"}`
+                        : "Not Set"}
                     </p>
                   </div>
                 </div>

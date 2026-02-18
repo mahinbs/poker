@@ -75,11 +75,13 @@ export default function EmployeeSalary({ selectedClubId }) {
     setSelectedEmployee(null);
   };
 
-  const handleEmployeeClick = (staff) => {
-    setSelectedEmployee(staff);
+  const handleEmployeeClick = (employee) => {
+    setSelectedEmployee(employee);
     setSalaryForm({
       ...salaryForm,
-      staffId: staff.id,
+      staffId: employee.id,
+      baseSalary: Number(employee.baseSalary || 0) > 0 ? String(employee.baseSalary) : "",
+      payPeriod: employee.salaryType || "Monthly",
     });
     setShowProcessModal(true);
   };
@@ -174,6 +176,11 @@ export default function EmployeeSalary({ selectedClubId }) {
               <div className="text-white font-semibold">{employee.name}</div>
               <div className="text-sm text-gray-400">{employee.role}</div>
               <div className="text-xs text-gray-500 mt-1">{employee.email}</div>
+              {Number(employee.baseSalary || 0) > 0 && (
+                <div className="text-xs text-green-400 mt-1">
+                  ₹{Number(employee.baseSalary).toFixed(0)} / {employee.salaryType || "Monthly"}
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -285,9 +292,14 @@ export default function EmployeeSalary({ selectedClubId }) {
                   className="w-full px-3 py-2 bg-purple-800/50 border border-purple-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
                   value={salaryForm.staffId}
                   onChange={(e) => {
-                    const staff = staffData?.staff.find((s) => s.id === e.target.value);
-                    setSalaryForm({ ...salaryForm, staffId: e.target.value });
-                    setSelectedEmployee(staff);
+                    const selected = staffData?.staff.find((s) => s.id === e.target.value);
+                    setSalaryForm({
+                      ...salaryForm,
+                      staffId: e.target.value,
+                      baseSalary: selected && Number(selected.baseSalary || 0) > 0 ? String(selected.baseSalary) : salaryForm.baseSalary,
+                      payPeriod: selected?.salaryType || salaryForm.payPeriod,
+                    });
+                    setSelectedEmployee(selected);
                   }}
                 >
                   <option value="">Select an option</option>
@@ -342,6 +354,11 @@ export default function EmployeeSalary({ selectedClubId }) {
                   value={salaryForm.baseSalary}
                   onChange={(e) => setSalaryForm({ ...salaryForm, baseSalary: e.target.value })}
                 />
+                {selectedEmployee && Number(selectedEmployee.baseSalary || 0) > 0 && (
+                  <p className="text-xs text-green-400 mt-1">
+                    Staff configured salary: ₹{Number(selectedEmployee.baseSalary).toFixed(2)} / {selectedEmployee.salaryType || "Monthly"}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

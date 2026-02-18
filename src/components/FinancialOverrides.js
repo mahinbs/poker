@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { financialOverridesAPI } from "../lib/api";
 import toast from "react-hot-toast";
@@ -114,6 +114,39 @@ export default function FinancialOverrides({ selectedClubId }) {
   const totalPages = transactionsData?.totalPages || 1;
   const total = transactionsData?.total || 0;
 
+  // Compute summary stats (works for both player and staff)
+  const summaryStats = useMemo(() => {
+    const allTotal = transactions.reduce((s, t) => s + Number(t.amount || 0), 0);
+    const allByType = {};
+    transactions.forEach(t => {
+      const type = t.type || 'Other';
+      if (!allByType[type]) allByType[type] = { count: 0, amount: 0 };
+      allByType[type].count++;
+      allByType[type].amount += Number(t.amount || 0);
+    });
+
+    const pokerTxns = transactions.filter(t => t.gameType !== 'rummy');
+    const rummyTxns = transactions.filter(t => t.gameType === 'rummy');
+
+    const computeBreakdown = (txns) => {
+      const total = txns.reduce((s, t) => s + Number(t.amount || 0), 0);
+      const byType = {};
+      txns.forEach(t => {
+        const type = t.type || 'Other';
+        if (!byType[type]) byType[type] = { count: 0, amount: 0 };
+        byType[type].count++;
+        byType[type].amount += Number(t.amount || 0);
+      });
+      return { count: txns.length, total, byType };
+    };
+
+    return {
+      club: { count: transactions.length, total: allTotal, byType: allByType },
+      poker: computeBreakdown(pokerTxns),
+      rummy: computeBreakdown(rummyTxns),
+    };
+  }, [transactions]);
+
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case "completed":
@@ -130,6 +163,7 @@ export default function FinancialOverrides({ selectedClubId }) {
   };
 
   const getTypeColor = (type) => {
+    if (type.includes("Credit")) return "bg-yellow-900/30 text-yellow-400 border-yellow-700";
     if (type.includes("Bonus")) return "bg-purple-900/30 text-purple-400 border-purple-700";
     if (type.includes("Salary")) return "bg-blue-900/30 text-blue-400 border-blue-700";
     if (type.includes("Deposit")) return "bg-green-900/30 text-green-400 border-green-700";
@@ -138,11 +172,26 @@ export default function FinancialOverrides({ selectedClubId }) {
     return "bg-gray-900/30 text-gray-400 border-gray-700";
   };
 
+  const getGameTag = (gameType) => {
+    if (gameType === 'rummy') {
+      return (
+        <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1">
+          <span>🃏</span> Rummy
+        </span>
+      );
+    }
+    return (
+      <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 inline-flex items-center gap-1">
+        <span>♠</span> Poker
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-white">Financial Overrides</h2>
+        <h2 className="text-2xl font-bold text-white">Transactions</h2>
       </div>
 
       {/* Main Tabs */}
@@ -158,7 +207,7 @@ export default function FinancialOverrides({ selectedClubId }) {
               : "text-gray-400 hover:text-white"
           }`}
         >
-          👤 Player Transactions
+          Player Transactions
         </button>
         <button
           onClick={() => {
@@ -172,7 +221,7 @@ export default function FinancialOverrides({ selectedClubId }) {
               : "text-gray-400 hover:text-white"
           }`}
         >
-          👔 Staff Transactions
+          Staff Transactions
         </button>
       </div>
 
@@ -190,7 +239,7 @@ export default function FinancialOverrides({ selectedClubId }) {
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            💵 Dealer Cashouts
+            Dealer Cashouts
           </button>
           <button
             onClick={() => {
@@ -203,8 +252,86 @@ export default function FinancialOverrides({ selectedClubId }) {
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            💰 Salary & Bonuses
+            Salary & Bonuses
           </button>
+        </div>
+      )}
+
+      {/* Summary Cards */}
+      {!transactionsLoading && transactions.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Club Total */}
+          <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="text-lg font-bold text-cyan-300">Club Total</h3>
+            </div>
+            <div className="flex items-baseline gap-2 mb-3">
+              <span className="text-3xl font-bold text-white">{summaryStats.club.count}</span>
+              <span className="text-gray-400 text-sm">transactions</span>
+              <span className="ml-auto text-xl font-bold text-cyan-300">
+                ₹{summaryStats.club.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            {Object.keys(summaryStats.club.byType).length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {Object.entries(summaryStats.club.byType).map(([type, data]) => (
+                  <span key={type} className="text-xs bg-cyan-900/40 text-cyan-200 px-2 py-1 rounded border border-cyan-600/30">
+                    {type}: {data.count} (₹{data.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })})
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Poker Summary */}
+          <div className="bg-indigo-900/20 border border-indigo-500/30 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">♠</span>
+              <h3 className="text-lg font-bold text-indigo-300">Poker</h3>
+            </div>
+            <div className="flex items-baseline gap-2 mb-3">
+              <span className="text-3xl font-bold text-white">{summaryStats.poker.count}</span>
+              <span className="text-gray-400 text-sm">transactions</span>
+              <span className="ml-auto text-xl font-bold text-indigo-300">
+                ₹{summaryStats.poker.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            {Object.keys(summaryStats.poker.byType).length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {Object.entries(summaryStats.poker.byType).map(([type, data]) => (
+                  <span key={type} className="text-xs bg-indigo-900/40 text-indigo-200 px-2 py-1 rounded border border-indigo-600/30">
+                    {type}: {data.count} (₹{data.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })})
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Rummy Summary */}
+          <div className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">🃏</span>
+              <h3 className="text-lg font-bold text-amber-300">Rummy</h3>
+            </div>
+            <div className="flex items-baseline gap-2 mb-3">
+              <span className="text-3xl font-bold text-white">{summaryStats.rummy.count}</span>
+              <span className="text-gray-400 text-sm">transactions</span>
+              <span className="ml-auto text-xl font-bold text-amber-300">
+                ₹{summaryStats.rummy.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            {Object.keys(summaryStats.rummy.byType).length > 0 ? (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {Object.entries(summaryStats.rummy.byType).map(([type, data]) => (
+                  <span key={type} className="text-xs bg-amber-900/40 text-amber-200 px-2 py-1 rounded border border-amber-600/30">
+                    {type}: {data.count} (₹{data.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })})
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500">No rummy transactions yet</div>
+            )}
+          </div>
         </div>
       )}
 
@@ -232,6 +359,7 @@ export default function FinancialOverrides({ selectedClubId }) {
                 <thead>
                   <tr className="border-b border-slate-700">
                     <th className="text-left text-white font-semibold p-3">Type</th>
+                    <th className="text-center text-white font-semibold p-3">Game</th>
                     <th className="text-left text-white font-semibold p-3">
                       {activeTab === "players" ? "Player" : "Staff"} Name
                     </th>
@@ -261,6 +389,9 @@ export default function FinancialOverrides({ selectedClubId }) {
                             ✏️ Overridden
                           </span>
                         )}
+                      </td>
+                      <td className="p-3 text-center">
+                        {getGameTag(transaction.gameType)}
                       </td>
                       <td className="text-white p-3">{transaction.entityName}</td>
                       <td className="text-right p-3">
@@ -356,7 +487,7 @@ export default function FinancialOverrides({ selectedClubId }) {
       {showEditModal && selectedTransaction && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-blue-600 max-h-[85vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-white mb-6">✏️ Edit Transaction</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">Edit Transaction</h2>
 
             <div className="bg-blue-900/30 border border-blue-600 rounded-lg p-4 mb-6">
               <div className="text-xs text-blue-400 mb-1">Transaction Details:</div>
@@ -423,7 +554,7 @@ export default function FinancialOverrides({ selectedClubId }) {
       {showCancelModal && selectedTransaction && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-red-600 max-h-[85vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-white mb-6">❌ Cancel Transaction</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">Cancel Transaction</h2>
 
             <div className="bg-red-900/30 border border-red-600 rounded-lg p-4 mb-6">
               <div className="text-xs text-red-400 mb-1">Transaction Details:</div>

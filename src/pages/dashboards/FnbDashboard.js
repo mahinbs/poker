@@ -143,8 +143,9 @@ export default function FnbDashboard() {
   ];
 
   const handleSignOut = () => {
-    localStorage.clear();
-    sessionStorage.clear();
+    localStorage.removeItem('user');
+    localStorage.removeItem('fnb_staffuser');
+    localStorage.removeItem('clubId');
     navigate("/login");
   };
 

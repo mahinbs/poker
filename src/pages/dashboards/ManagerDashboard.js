@@ -9,7 +9,6 @@ import TableManagement from "./TableManagement";
 import PushNotifications from "./PushNotifications";
 import TournamentManagement from "../../components/TournamentManagement";
 import ChatManagement from "../../components/ChatManagement";
-import RakeCollection from "../../components/RakeCollection";
 import TableBuyOutManagement from "../../components/TableBuyOutManagement";
 import RummyManagement from "../../components/RummyManagement";
 import NotificationsInbox from "../../components/NotificationsInbox";
@@ -128,7 +127,6 @@ export default function ManagerDashboard() {
   // Handle sign out
   const handleSignOut = () => {
     localStorage.clear();
-    sessionStorage.clear();
     navigate('/login');
   };
 
@@ -447,11 +445,6 @@ export default function ManagerDashboard() {
             <TableBuyOutManagement clubId={clubId} />
           )} */}
 
-          {/* Rake Collection */}
-          {activeItem === "Rake Collection" && (
-            <RakeCollection clubId={clubId} />
-          )}
-
           {/* Push Notifications */}
           {activeItem === "Push Notifications" && (
             <PushNotifications selectedClubId={clubId} />
@@ -478,7 +471,7 @@ export default function ManagerDashboard() {
           )}
 
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Player Management", "Tables & Waitlist", /* "Table Buy-Out", */ "Rake Collection", "Push Notifications", "Tournaments", "Chat", "Rummy", "Notifications"].includes(activeItem) && (
+          {!["Dashboard", "Player Management", "Tables & Waitlist", /* "Table Buy-Out", */ "Push Notifications", "Tournaments", "Chat", "Rummy", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
             </div>

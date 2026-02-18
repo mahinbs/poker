@@ -9,4 +9,8 @@
 /CODE_OF_CONDUCT.md
 /SECURITY.md
 /CODEOWNERS
-/.env
+
+# Environment variables - NEVER commit
+.env
+.env.*
+!.env.example
