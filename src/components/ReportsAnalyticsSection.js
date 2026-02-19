@@ -73,7 +73,7 @@ export default function ReportsAnalyticsSection({
       [
         reportType,
         `${reportDateRange.start} to ${reportDateRange.end}`,
-        new Date().toLocaleString("en-IN"),
+        new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
       ],
       [],
       ...(data || []).map((row) =>
@@ -123,7 +123,8 @@ export default function ReportsAnalyticsSection({
       reportDateRange.end
     }</p>
             <p><strong>Generated:</strong> ${new Date().toLocaleString(
-              "en-IN"
+              "en-IN",
+              { timeZone: "Asia/Kolkata" }
             )}</p>
           </div>
           <table>
@@ -289,7 +290,7 @@ export default function ReportsAnalyticsSection({
         mockData = [
           ["Custom Report", "Compiled from multiple reports"],
           ["Report Types", customReportSelection.join(", ")],
-          ["Generated", new Date().toLocaleString("en-IN")],
+          ["Generated", new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })],
         ];
         break;
     }
@@ -1113,7 +1114,7 @@ export default function ReportsAnalyticsSection({
                             Registered:{" "}
                             {new Date(
                               player.registrationDate
-                            ).toLocaleDateString()}{" "}
+                            ).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}{" "}
                             • Last Active: {player.lastActive}
                           </div>
                         </div>

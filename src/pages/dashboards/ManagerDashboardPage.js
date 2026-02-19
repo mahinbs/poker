@@ -2626,13 +2626,13 @@ export default function ManagerDashboardPage() {
                                   Registered:{" "}
                                   {new Date(
                                     player.registrationDate
-                                  ).toLocaleDateString()}
+                                  ).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                                 </div>
                                 <div>
                                   Submitted:{" "}
                                   {new Date(
                                     player.submittedDate
-                                  ).toLocaleDateString()}
+                                  ).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                                 </div>
                                 <div className="md:col-span-2">
                                   Days Pending:{" "}

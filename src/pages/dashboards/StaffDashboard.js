@@ -312,7 +312,8 @@ export default function StaffDashboard() {
                                 </div>
                               </td>
                               <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-slate-400 text-xs sm:text-sm whitespace-nowrap">
-                                {new Date(user.joinedAt).toLocaleDateString(undefined, {
+                                {new Date(user.joinedAt).toLocaleDateString('en-IN', {
+                                  timeZone: 'Asia/Kolkata',
                                   year: 'numeric',
                                   month: 'short',
                                   day: 'numeric'

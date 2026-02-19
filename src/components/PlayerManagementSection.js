@@ -1535,7 +1535,7 @@ export default function PlayerManagementSection({
                           )}
                           {doc.uploadedAt && (
                             <p className="text-gray-400 text-xs mt-2">
-                              Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}
+                              Uploaded: {new Date(doc.uploadedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                             </p>
                           )}
                         </div>

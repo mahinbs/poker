@@ -1906,7 +1906,7 @@ export default function TournamentManagement({ selectedClubId }) {
                             </div>
                             {isPaused && (
                               <div className="mt-2 text-yellow-400/70 text-xs text-center">
-                                Tournament paused since {new Date(liveTournament.paused_at).toLocaleTimeString('en-US', { hour12: true })}
+                                Tournament paused since {new Date(liveTournament.paused_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true })}
                               </div>
                             )}
                           </div>
@@ -2007,8 +2007,8 @@ export default function TournamentManagement({ selectedClubId }) {
                     { label: 'Allow Add-on', value: (structure.allow_addon || t.allow_addon) ? 'Yes' : 'No', badge: true, positive: !!(structure.allow_addon || t.allow_addon) },
                     { label: 'Bounty Amount', value: (structure.bounty_amount || t.bounty_amount) ? `₹${Number(structure.bounty_amount || t.bounty_amount).toLocaleString()}` : null },
                     { label: 'Max Players', value: t.max_players },
-                    { label: 'Start Time', value: t.start_time ? new Date(t.start_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', hour12: true }) : null },
-                    { label: 'Session Started', value: t.session_started_at ? new Date(t.session_started_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', hour12: true }) : null },
+                    { label: 'Start Time', value: t.start_time ? new Date(t.start_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short', hour12: true }) : null },
+                    { label: 'Session Started', value: t.session_started_at ? new Date(t.session_started_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short', hour12: true }) : null },
                   ].filter(r => r.value !== null && r.value !== undefined && r.value !== '' && r.value !== 'N/A');
                   
                   const half = Math.ceil(detailRows.length / 2);
@@ -2150,15 +2150,10 @@ export default function TournamentManagement({ selectedClubId }) {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-slate-700">
-                          <th className="text-left py-3 px-4 text-gray-400 font-semibold">Player ID</th>
                           <th className="text-left py-3 px-4 text-gray-400 font-semibold">Name</th>
                           <th className="text-left py-3 px-4 text-gray-400 font-semibold">Mobile</th>
-                          {(selectedTournament.status === "active" || selectedTournament.status === "completed") && (
-                            <>
-                              <th className="text-right py-3 px-4 text-gray-400 font-semibold">Wallet Balance</th>
-                              <th className="text-right py-3 px-4 text-gray-400 font-semibold">Credits</th>
-                            </>
-                          )}
+                          <th className="text-right py-3 px-4 text-gray-400 font-semibold">Balance</th>
+                          <th className="text-right py-3 px-4 text-gray-400 font-semibold">Credits</th>
                           {selectedTournament.status === "active" && (
                             <>
                               <th className="text-center py-3 px-4 text-gray-400 font-semibold">Session</th>
@@ -2182,11 +2177,35 @@ export default function TournamentManagement({ selectedClubId }) {
                           const totalCredits = Number(player.total_credits || 0);
                           const isExited = player.is_exited;
                           
-                          // Calculate per-player session time
+                          // Calculate per-player session time (accounts for paused state)
                           let playerSessionTime = null;
+                          const tourneyData = liveTournament || selectedTournament;
+                          const tourneyPausedAt = tourneyData?.paused_at ? new Date(tourneyData.paused_at).getTime() : null;
+                          const tourneyTotalPausedSecs = parseInt(tourneyData?.total_paused_seconds) || 0;
+                          const tourneySessionStart = tourneyData?.session_started_at ? new Date(tourneyData.session_started_at).getTime() : null;
+                          const isTourneyPaused = !!tourneyData?.paused_at;
+
                           if (player.session_started_at && !isExited) {
                             const pStart = new Date(player.session_started_at).getTime();
-                            const pElapsed = Math.floor((Date.now() - pStart) / 1000);
+                            let pElapsed;
+                            if (isTourneyPaused && tourneyPausedAt) {
+                              // Freeze at pause time
+                              const endPoint = Math.max(pStart, tourneyPausedAt);
+                              pElapsed = Math.floor((endPoint - pStart) / 1000);
+                              // Subtract paused time that occurred after this player joined
+                              const pausedBeforeJoin = tourneySessionStart ? Math.max(0, tourneyTotalPausedSecs - Math.max(0, Math.floor((pStart - tourneySessionStart) / 1000) - Math.floor((Date.now() - tourneySessionStart) / 1000) + tourneyTotalPausedSecs)) : 0;
+                              // Simpler: use tournament elapsed minus player offset
+                              const tourneyElapsedUntilPause = Math.floor((tourneyPausedAt - tourneySessionStart) / 1000) - tourneyTotalPausedSecs;
+                              const playerOffset = Math.max(0, Math.floor((pStart - tourneySessionStart) / 1000));
+                              pElapsed = Math.max(0, tourneyElapsedUntilPause - playerOffset);
+                            } else {
+                              // Running: compute tournament effective elapsed, then subtract player's late-join offset
+                              const now = Date.now();
+                              const tourneyRawElapsed = tourneySessionStart ? Math.floor((now - tourneySessionStart) / 1000) : 0;
+                              const tourneyEffective = tourneyRawElapsed - tourneyTotalPausedSecs;
+                              const playerOffset = tourneySessionStart ? Math.max(0, Math.floor((pStart - tourneySessionStart) / 1000)) : 0;
+                              pElapsed = Math.max(0, tourneyEffective - playerOffset);
+                            }
                             const h = Math.floor(pElapsed / 3600);
                             const m = Math.floor((pElapsed % 3600) / 60);
                             const s = pElapsed % 60;
@@ -2206,7 +2225,6 @@ export default function TournamentManagement({ selectedClubId }) {
                               key={player.id}
                               className={`border-b border-slate-700/50 hover:bg-slate-700/30 ${isExited ? 'opacity-60' : ''}`}
                             >
-                              <td className="py-3 px-4 text-white font-mono">{player.player_id}</td>
                               <td className="py-3 px-4 text-white">
                                 {player.name}
                                 {isExited && (
@@ -2216,21 +2234,17 @@ export default function TournamentManagement({ selectedClubId }) {
                                 )}
                               </td>
                               <td className="py-3 px-4 text-white">{player.mobile}</td>
-                              {(selectedTournament.status === "active" || selectedTournament.status === "completed") && (
-                                <>
-                                  <td className={`py-3 px-4 text-right font-semibold ${walletBal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    ₹{walletBal.toFixed(2)}
-                                  </td>
-                                  <td className="py-3 px-4 text-right text-yellow-400 font-semibold">
-                                    {totalCredits > 0 ? `₹${totalCredits.toFixed(2)}` : '-'}
-                                  </td>
-                                </>
-                              )}
+                              <td className={`py-3 px-4 text-right font-semibold ${walletBal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                ₹{walletBal.toLocaleString()}
+                              </td>
+                              <td className="py-3 px-4 text-right text-yellow-400 font-semibold">
+                                {totalCredits > 0 ? `₹${totalCredits.toLocaleString()}` : '-'}
+                              </td>
                               {selectedTournament.status === "active" && (
                                 <>
                                   <td className="py-3 px-4 text-center">
                                     {playerSessionTime ? (
-                                      <span className={`font-mono text-xs tabular-nums ${isExited ? 'text-gray-500' : 'text-green-400'}`}>
+                                      <span className={`font-mono text-xs tabular-nums ${isExited ? 'text-gray-500' : isTourneyPaused ? 'text-yellow-300' : 'text-green-400'}`}>
                                         {playerSessionTime}
                                       </span>
                                     ) : (
@@ -2238,7 +2252,7 @@ export default function TournamentManagement({ selectedClubId }) {
                                     )}
                                     {isExited && player.exited_at && (
                                       <div className="text-[10px] text-gray-500 mt-0.5">
-                                        Ended {new Date(player.exited_at).toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' })}
+                                        Ended {new Date(player.exited_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true, hour: 'numeric', minute: '2-digit' })}
                                       </div>
                                     )}
                                   </td>

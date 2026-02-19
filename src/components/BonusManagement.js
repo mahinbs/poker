@@ -337,7 +337,7 @@ function PlayerBonusTab({ selectedClubId, activeSubTab, setActiveSubTab }) {
                           </td>
                           <td className="text-gray-400 p-3 text-sm">{bonus.reason || "-"}</td>
                           <td className="text-white p-3">
-                            {new Date(bonus.processedAt).toLocaleDateString()}
+                            {new Date(bonus.processedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                           </td>
                         </tr>
                       ))}
@@ -741,7 +741,7 @@ function StaffBonusTab({ selectedClubId, activeSubTab, setActiveSubTab }) {
                           </td>
                           <td className="text-gray-400 p-3 text-sm">{bonus.reason || "-"}</td>
                           <td className="text-white p-3">
-                            {new Date(bonus.processedAt).toLocaleDateString()}
+                            {new Date(bonus.processedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                           </td>
                         </tr>
                       ))}

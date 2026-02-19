@@ -483,7 +483,7 @@ export default function DealerTips({ selectedClubId }) {
                           <td className="text-right text-purple-400 p-3">
                             ₹{Number(tip.floorManagerAmount).toFixed(2)}
                           </td>
-                          <td className="text-white p-3">{new Date(tip.tipDate).toLocaleDateString()}</td>
+                          <td className="text-white p-3">{new Date(tip.tipDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
                           <td className="text-white p-3">
                             <span className="px-2 py-1 bg-green-600 rounded text-xs">{tip.status}</span>
                           </td>
@@ -635,7 +635,7 @@ export default function DealerTips({ selectedClubId }) {
                             ₹{Number(cashout.amount).toFixed(2)}
                           </td>
                           <td className="text-white p-3">
-                            {new Date(cashout.cashoutDate).toLocaleDateString()}
+                            {new Date(cashout.cashoutDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                           </td>
                           <td className="text-gray-400 p-3 text-sm">{cashout.notes || "-"}</td>
                         </tr>
@@ -801,18 +801,20 @@ export default function DealerTips({ selectedClubId }) {
                           <td className="p-3">
                             {cashout.gameType === "rummy" ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-900/40 border border-amber-600/40 text-amber-300 text-xs font-medium">
-                                Rummy
+                                🃏 Rummy
                               </span>
                             ) : cashout.gameType === "poker" ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-900/40 border border-indigo-600/40 text-indigo-300 text-xs font-medium">
-                                Poker
+                                ♠ Poker
                               </span>
                             ) : (
-                              <span className="text-gray-500 text-xs">-</span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-700/40 border border-slate-500/40 text-slate-300 text-xs font-medium">
+                                🎯 General
+                              </span>
                             )}
                           </td>
                           <td className="text-white p-3">
-                            {new Date(cashout.cashoutDate).toLocaleDateString()}
+                            {new Date(cashout.cashoutDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                           </td>
                           <td className="text-gray-400 p-3 text-sm">{cashout.notes || "-"}</td>
                         </tr>
@@ -1142,7 +1144,7 @@ export default function DealerTips({ selectedClubId }) {
                         .map((m) => (
                           <option key={m.id} value={m.id}>
                             {m.name}
-                            {m.gameType ? ` (${m.gameType === "rummy" ? "Rummy" : "Poker"})` : ""}
+                            {m.gameType ? ` (${m.gameType === "rummy" ? "Rummy" : m.gameType === "poker" ? "Poker" : "General"})` : ""}
                           </option>
                         ))}
                     </select>
@@ -1299,11 +1301,9 @@ export default function DealerTips({ selectedClubId }) {
                 <div className="text-xs text-purple-400 mb-1">Processing cashout for:</div>
                 <h3 className="text-white font-semibold text-xl">{selectedManager.name}</h3>
                 <p className="text-sm text-purple-300 mt-1">{selectedManager.email}</p>
-                {selectedManager.gameType && (
-                  <p className="text-xs text-purple-400 mt-1">
-                    Game: {selectedManager.gameType === "rummy" ? "Rummy" : "Poker"}
-                  </p>
-                )}
+                <p className="text-xs text-purple-400 mt-1">
+                  Game: {selectedManager.gameType === "rummy" ? "Rummy" : selectedManager.gameType === "poker" ? "Poker" : "General"}
+                </p>
               </div>
             )}
 

@@ -22,6 +22,7 @@ const DEFAULT_MENU_ITEMS = [
   "Chat",
   // "Financial Transactions", // Commented out - not needed for now
   "Transactions",
+  "Player Feedback",
   "Reports & Analytics",
   "Audit Logs",
   "System Control",

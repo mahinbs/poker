@@ -372,7 +372,7 @@ export default function PushNotifications({ selectedClubId }) {
                     </span>
                     {notification.sentAt && (
                       <span className="px-3 py-1 bg-purple-600 text-white text-sm font-semibold rounded">
-                        Sent {new Date(notification.sentAt).toLocaleDateString()}
+                        Sent {new Date(notification.sentAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                       </span>
                     )}
                   </div>

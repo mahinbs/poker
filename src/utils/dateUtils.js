@@ -1,179 +1,153 @@
 /**
  * Date and Time Utility Functions for IST (Indian Standard Time)
- * All dates/times in the application should use IST (UTC+5:30)
+ * All dates/times in the application use IST via Intl timeZone: 'Asia/Kolkata'
  */
 
-// IST offset from UTC in milliseconds (5 hours 30 minutes)
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+const IST_TZ = 'Asia/Kolkata';
 
 /**
- * Convert UTC date to IST Date object
- * @param {Date|string} date - UTC date
- * @returns {Date} IST date
- */
-export const toIST = (date) => {
-  if (!date) return null;
-  const utcDate = typeof date === 'string' ? new Date(date) : date;
-  return new Date(utcDate.getTime() + IST_OFFSET_MS);
-};
-
-/**
- * Convert IST date to UTC Date object
- * @param {Date} date - IST date
- * @returns {Date} UTC date
- */
-export const toUTC = (date) => {
-  if (!date) return null;
-  return new Date(date.getTime() - IST_OFFSET_MS);
-};
-
-/**
- * Format date in IST as DD/MM/YYYY
- * @param {Date|string} date - Date to format
- * @returns {string} Formatted date string
+ * Format date in IST as "18 Feb 2026"
  */
 export const formatDateIST = (date) => {
   if (!date) return '';
-  const istDate = toIST(date);
-  const day = String(istDate.getDate()).padStart(2, '0');
-  const month = String(istDate.getMonth() + 1).padStart(2, '0');
-  const year = istDate.getFullYear();
-  return `${day}/${month}/${year}`;
+  return new Date(date).toLocaleDateString('en-IN', {
+    timeZone: IST_TZ, day: '2-digit', month: 'short', year: 'numeric',
+  });
 };
 
 /**
- * Format time in IST as HH:MM:SS (24-hour format)
- * @param {Date|string} date - Date to format
- * @returns {string} Formatted time string
+ * Format time in IST as "11:30 pm"
  */
 export const formatTimeIST = (date) => {
   if (!date) return '';
-  const istDate = toIST(date);
-  const hours = String(istDate.getHours()).padStart(2, '0');
-  const minutes = String(istDate.getMinutes()).padStart(2, '0');
-  const seconds = String(istDate.getSeconds()).padStart(2, '0');
-  return `${hours}:${minutes}:${seconds}`;
+  return new Date(date).toLocaleTimeString('en-IN', {
+    timeZone: IST_TZ, hour: '2-digit', minute: '2-digit', hour12: true,
+  });
 };
 
 /**
- * Format date and time in IST as DD/MM/YYYY HH:MM:SS
- * @param {Date|string} date - Date to format
- * @returns {string} Formatted date-time string
+ * Format date+time in IST as "18 Feb 2026, 11:30 pm"
  */
 export const formatDateTimeIST = (date) => {
   if (!date) return '';
-  return `${formatDateIST(date)} ${formatTimeIST(date)}`;
+  return new Date(date).toLocaleString('en-IN', {
+    timeZone: IST_TZ, day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  });
 };
 
 /**
- * Format time in IST as HH:MM (without seconds)
- * @param {Date|string} date - Date to format
- * @returns {string} Formatted time string
+ * Format date in IST as "DD/MM/YYYY"
+ */
+export const formatDateSlashIST = (date) => {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('en-IN', {
+    timeZone: IST_TZ, day: '2-digit', month: '2-digit', year: 'numeric',
+  });
+};
+
+/**
+ * Format time short in IST as "11:30"
  */
 export const formatTimeShortIST = (date) => {
   if (!date) return '';
-  const istDate = toIST(date);
-  const hours = String(istDate.getHours()).padStart(2, '0');
-  const minutes = String(istDate.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
+  return new Date(date).toLocaleTimeString('en-IN', {
+    timeZone: IST_TZ, hour: '2-digit', minute: '2-digit', hour12: false,
+  });
 };
 
 /**
- * Format date in IST as readable format (e.g., "15 Jan 2024")
- * @param {Date|string} date - Date to format
- * @returns {string} Formatted date string
+ * Format as "medium" style "18 Feb 2026, 11:30:45 pm"
  */
-export const formatDateReadableIST = (date) => {
+export const formatFullIST = (date) => {
   if (!date) return '';
-  const istDate = toIST(date);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${istDate.getDate()} ${months[istDate.getMonth()]} ${istDate.getFullYear()}`;
+  return new Date(date).toLocaleString('en-IN', {
+    timeZone: IST_TZ, dateStyle: 'medium', timeStyle: 'medium',
+  });
 };
 
 /**
- * Get current IST date
- * @returns {Date} Current IST date
+ * Format just the date as DD/MM/YYYY for en-GB style
  */
-export const nowIST = () => {
-  return toIST(new Date());
+export const formatDateGB_IST = (date) => {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('en-GB', {
+    timeZone: IST_TZ, day: '2-digit', month: '2-digit', year: 'numeric',
+  });
 };
 
 /**
- * Get current IST date as ISO string for input[type="date"]
- * @returns {string} YYYY-MM-DD format in IST
+ * Alias for formatDateIST (backward compat)
+ */
+export const formatDateReadableIST = formatDateIST;
+
+/**
+ * Get any toLocaleString with IST forced
+ */
+export const toLocaleIST = (date, locale = 'en-IN', options = {}) => {
+  if (!date) return '';
+  return new Date(date).toLocaleString(locale, { timeZone: IST_TZ, ...options });
+};
+
+/**
+ * Get any toLocaleDateString with IST forced
+ */
+export const toLocaleDateIST = (date, locale = 'en-IN', options = {}) => {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString(locale, { timeZone: IST_TZ, ...options });
+};
+
+/**
+ * Get any toLocaleTimeString with IST forced
+ */
+export const toLocaleTimeIST = (date, locale = 'en-IN', options = {}) => {
+  if (!date) return '';
+  return new Date(date).toLocaleTimeString(locale, { timeZone: IST_TZ, ...options });
+};
+
+/**
+ * Get current date in IST as YYYY-MM-DD for date inputs
  */
 export const todayISTString = () => {
-  const now = nowIST();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: IST_TZ }).formatToParts(new Date());
+  const get = (type) => parts.find(p => p.type === type)?.value || '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
 };
 
 /**
- * Get current IST time as ISO string for input[type="datetime-local"]
- * @returns {string} YYYY-MM-DDTHH:MM format in IST
+ * Get current IST datetime as YYYY-MM-DDTHH:MM for datetime-local inputs
  */
 export const nowISTString = () => {
-  const now = nowIST();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  const d = new Date();
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: IST_TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d);
+  const get = (type) => parts.find(p => p.type === type)?.value || '';
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
 };
 
 /**
- * Format date for display with relative time (e.g., "Today", "Yesterday", or date)
- * @param {Date|string} date - Date to format
- * @returns {string} Formatted date string
- */
-export const formatRelativeDateIST = (date) => {
-  if (!date) return '';
-  const istDate = toIST(date);
-  const today = nowIST();
-  
-  // Reset time to midnight for comparison
-  const dateOnly = new Date(istDate.getFullYear(), istDate.getMonth(), istDate.getDate());
-  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  
-  const diffDays = Math.floor((todayOnly - dateOnly) / (1000 * 60 * 60 * 24));
-  
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  
-  return formatDateIST(date);
-};
-
-/**
- * Convert date string to IST for datetime-local input
- * @param {Date|string} date - Date to convert
- * @returns {string} YYYY-MM-DDTHH:MM format in IST
+ * Convert a date to IST datetime-local input value
  */
 export const toDateTimeLocalIST = (date) => {
   if (!date) return '';
-  const istDate = toIST(date);
-  const year = istDate.getFullYear();
-  const month = String(istDate.getMonth() + 1).padStart(2, '0');
-  const day = String(istDate.getDate()).padStart(2, '0');
-  const hours = String(istDate.getHours()).padStart(2, '0');
-  const minutes = String(istDate.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: IST_TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(new Date(date));
+  const get = (type) => parts.find(p => p.type === type)?.value || '';
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
 };
 
 /**
- * Convert date string to IST for date input
- * @param {Date|string} date - Date to convert
- * @returns {string} YYYY-MM-DD format in IST
+ * Convert a date to IST date input value (YYYY-MM-DD)
  */
 export const toDateIST = (date) => {
   if (!date) return '';
-  const istDate = toIST(date);
-  const year = istDate.getFullYear();
-  const month = String(istDate.getMonth() + 1).padStart(2, '0');
-  const day = String(istDate.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: IST_TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date(date));
+  const get = (type) => parts.find(p => p.type === type)?.value || '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
 };
-

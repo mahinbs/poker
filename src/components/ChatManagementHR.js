@@ -120,7 +120,7 @@ function StaffChatTab({ clubId }) {
                   {session.otherStaff?.name || session.staffRecipient?.name || session.staffInitiator?.name || 'Unknown Staff'}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {session.lastMessageAt ? new Date(session.lastMessageAt).toLocaleString() : ''}
+                  {session.lastMessageAt ? new Date(session.lastMessageAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''}
                 </p>
               </div>
             ))
@@ -155,7 +155,7 @@ function StaffChatTab({ clubId }) {
                   >
                     <p className="text-sm">{message.message}</p>
                     <p className="text-xs opacity-70 mt-1">
-                      {new Date(message.createdAt).toLocaleTimeString()}
+                      {new Date(message.createdAt).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}
                     </p>
                   </div>
                 </div>

@@ -215,8 +215,8 @@ export default function EmployeeSalary({ selectedClubId }) {
                     <tr key={payment.id} className="border-b border-slate-700 hover:bg-slate-700">
                       <td className="text-white p-3">{payment.staff?.name}</td>
                       <td className="text-white p-3 text-sm">
-                        {new Date(payment.periodStartDate).toLocaleDateString()} -{" "}
-                        {new Date(payment.periodEndDate).toLocaleDateString()}
+                        {new Date(payment.periodStartDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })} -{" "}
+                        {new Date(payment.periodEndDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                       </td>
                       <td className="text-white p-3">{payment.payPeriod}</td>
                       <td className="text-right text-white p-3">₹{Number(payment.baseSalary).toFixed(2)}</td>
@@ -230,7 +230,7 @@ export default function EmployeeSalary({ selectedClubId }) {
                         ₹{Number(payment.netAmount).toFixed(2)}
                       </td>
                       <td className="text-white p-3">
-                        {new Date(payment.paymentDate).toLocaleDateString()}
+                        {new Date(payment.paymentDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                       </td>
                     </tr>
                   ))}

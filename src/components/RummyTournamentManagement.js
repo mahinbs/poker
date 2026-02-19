@@ -593,7 +593,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                 <p>Entry Fee: ₹{tournament.entry_fee || tournament.buy_in || '0'}</p>
                 <p>Max Players: {tournament.max_players || 'N/A'}</p>
                 {tournament.start_time && (
-                  <p>Start: {new Date(tournament.start_time).toLocaleString()}</p>
+                  <p>Start: {new Date(tournament.start_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                 )}
               </div>
               <div className="mt-4 flex gap-2">
@@ -1318,7 +1318,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                           </div>
                           {isPaused && (
                             <div className="mt-2 text-yellow-400/70 text-xs text-center">
-                              Tournament paused since {new Date(liveTournament.paused_at).toLocaleTimeString('en-US', { hour12: true })}
+                              Tournament paused since {new Date(liveTournament.paused_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true })}
                             </div>
                           )}
                         </div>
@@ -1375,8 +1375,8 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                     { label: 'Late Registration', value: t.late_registration ? `${t.late_registration} min` : null },
                     { label: 'Payout Structure', value: t.payout_structure },
                     { label: 'Allow Re-entry', value: t.allow_reentry ? 'Yes' : 'No', badge: true, positive: !!t.allow_reentry },
-                    { label: 'Start Time', value: t.start_time ? new Date(t.start_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', hour12: true }) : null },
-                    { label: 'Session Started', value: t.session_started_at ? new Date(t.session_started_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', hour12: true }) : null },
+                    { label: 'Start Time', value: t.start_time ? new Date(t.start_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short', hour12: true }) : null },
+                    { label: 'Session Started', value: t.session_started_at ? new Date(t.session_started_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short', hour12: true }) : null },
                   ].filter(r => r.value !== null && r.value !== undefined && r.value !== '' && r.value !== 0);
                   
                   const half = Math.ceil(detailRows.length / 2);
@@ -1533,7 +1533,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                                     )}
                                     {isExited && player.exited_at && (
                                       <div className="text-[10px] text-gray-500 mt-0.5">
-                                        Ended {new Date(player.exited_at).toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' })}
+                                        Ended {new Date(player.exited_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true, hour: 'numeric', minute: '2-digit' })}
                                       </div>
                                     )}
                                   </td>

@@ -66,10 +66,11 @@ export default function MyShiftsDashboard({ selectedClubId }) {
   const formatTime = (dateTimeString) => {
     try {
       const date = new Date(dateTimeString);
-      return date.toLocaleTimeString('en-US', { 
+      return date.toLocaleTimeString('en-IN', { 
         hour: 'numeric', 
         minute: '2-digit',
-        hour12: true 
+        hour12: true,
+        timeZone: 'Asia/Kolkata'
       });
     } catch (error) {
       return dateTimeString;
@@ -83,8 +84,8 @@ export default function MyShiftsDashboard({ selectedClubId }) {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const isToday = date.toDateString() === today.toDateString();
-      const isTomorrow = date.toDateString() === tomorrow.toDateString();
+      const isToday = date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) === today.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      const isTomorrow = date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) === tomorrow.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
       if (isToday) return 'Today';
       if (isTomorrow) return 'Tomorrow';

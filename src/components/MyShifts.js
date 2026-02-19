@@ -48,10 +48,11 @@ export default function MyShifts({ selectedClubId, compact = false }) {
   const formatTime = (dateTimeString) => {
     try {
       const date = new Date(dateTimeString);
-      return date.toLocaleTimeString('en-US', { 
+      return date.toLocaleTimeString('en-IN', { 
         hour: '2-digit', 
         minute: '2-digit',
-        hour12: true 
+        hour12: true,
+        timeZone: 'Asia/Kolkata'
       });
     } catch (error) {
       return dateTimeString;
@@ -65,13 +66,13 @@ export default function MyShifts({ selectedClubId, compact = false }) {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const isToday = date.toDateString() === today.toDateString();
-      const isTomorrow = date.toDateString() === tomorrow.toDateString();
+      const isToday = date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) === today.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      const isTomorrow = date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) === tomorrow.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
       if (isToday) return 'Today';
       if (isTomorrow) return 'Tomorrow';
 
-      return `${WEEKDAYS[date.getDay()]}, ${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'short' })}`;
+      return `${WEEKDAYS[date.getDay()]}, ${date.getDate()} ${date.toLocaleDateString('en-IN', { month: 'short', timeZone: 'Asia/Kolkata' })}`;
     } catch (error) {
       return dateString;
     }
@@ -81,7 +82,7 @@ export default function MyShifts({ selectedClubId, compact = false }) {
     try {
       const date = new Date(dateString);
       const today = new Date();
-      return date.toDateString() === today.toDateString();
+      return date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) === today.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     } catch (error) {
       return false;
     }

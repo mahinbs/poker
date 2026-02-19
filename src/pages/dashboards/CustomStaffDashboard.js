@@ -257,10 +257,11 @@ function SalaryHistoryView({ clubId, staffId }) {
   const formatCurrency = (value) => `₹${(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('en-GB', {
+    return new Date(dateString).toLocaleDateString('en-IN', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata'
     });
   };
 
@@ -414,10 +415,11 @@ function BonusHistoryView({ clubId, staffId }) {
   const formatCurrency = (value) => `₹${(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('en-GB', {
+    return new Date(dateString).toLocaleDateString('en-IN', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata'
     });
   };
 
