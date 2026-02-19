@@ -203,20 +203,16 @@ export default function AffiliateDashboard() {
         />
 
         {/* Main Section */}
-        <main className="flex-1 lg:ml-0 min-w-0">
-          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 sm:py-10 space-y-8">
-            {/* Header */}
-            <header className="bg-gradient-to-r from-purple-600 via-blue-500 to-indigo-400 p-6 rounded-xl shadow-md flex justify-between items-center mt-16 lg:mt-0">
-              <div>
-                <h1 className="text-2xl font-bold text-white">Affiliate Portal - {activeItem}</h1>
-                <p className="text-gray-200 mt-1">Manage your referrals and transactions</p>
-              </div>
-              <button 
-                onClick={handleSignOut}
-                className="bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-lg shadow"
-              >
-                Sign Out
-              </button>
+        <main className="flex-1 lg:ml-64 min-w-0">
+          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 sm:py-10 space-y-8 mt-16 lg:mt-8">
+            {/* Header - cleaner design, Sign Out is in sidebar */}
+            <header className="bg-slate-800/80 backdrop-blur border border-slate-700 rounded-xl p-6 shadow-lg">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                Affiliate Portal — {activeItem}
+              </h1>
+              <p className="text-slate-400 mt-1 text-sm sm:text-base">
+                Manage your referrals and transactions
+              </p>
             </header>
 
             {!clubId && (
@@ -305,27 +301,27 @@ function ReferralPlayersView({ clubId, affiliateId }) {
   const paginatedPlayers = players.slice((currentPage - 1) * 10, currentPage * 10);
 
   return (
-    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-xl">
-      <h2 className="text-2xl font-bold text-white mb-6">My Referral Players</h2>
+    <div className="bg-slate-800/80 backdrop-blur rounded-xl p-6 border border-slate-700 shadow-lg">
+      <h2 className="text-xl font-bold text-white mb-6">Referral Players</h2>
       
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div>
+      <div className="flex flex-col sm:flex-row gap-4 mb-6 flex-wrap">
+        <div className="flex-1 min-w-[180px]">
           <label className="block text-sm font-medium text-gray-300 mb-1">Search by Name/Email</label>
           <input
             type="text"
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             placeholder="Search..."
-            className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
+            className="w-full px-4 py-2.5 bg-slate-700/80 border border-slate-600 text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
-                        </div>
-        <div>
+        </div>
+        <div className="min-w-[140px]">
           <label className="block text-sm font-medium text-gray-300 mb-1">KYC Status</label>
           <select
             value={filters.kycStatus}
             onChange={(e) => setFilters({ ...filters, kycStatus: e.target.value })}
-            className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
+            className="w-full px-4 py-2.5 bg-slate-700/80 border border-slate-600 text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           >
             <option value="">All</option>
             <option value="pending">Pending</option>
@@ -333,35 +329,34 @@ function ReferralPlayersView({ clubId, affiliateId }) {
             <option value="rejected">Rejected</option>
             <option value="verified">Verified</option>
           </select>
-                            </div>
-        <div>
+        </div>
+        <div className="min-w-[140px]">
           <label className="block text-sm font-medium text-gray-300 mb-1">From Date</label>
           <input
             type="date"
             value={filters.startDate}
             onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-            className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
+            className="w-full px-4 py-2.5 bg-slate-700/80 border border-slate-600 text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
-                        </div>
-        <div>
+        </div>
+        <div className="min-w-[140px]">
           <label className="block text-sm font-medium text-gray-300 mb-1">To Date</label>
           <input
             type="date"
             value={filters.endDate}
             onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-            className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
+            className="w-full px-4 py-2.5 bg-slate-700/80 border border-slate-600 text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
-                    </div>
-                </div>
-
-      <div className="mb-4 flex justify-end">
-        <button
-          onClick={() => setFilters({ search: "", kycStatus: "", startDate: "", endDate: "" })}
-          className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-semibold"
-        >
-          Clear Filters
-        </button>
-                    </div>
+        </div>
+        <div className="flex items-end">
+          <button
+            onClick={() => setFilters({ search: "", kycStatus: "", startDate: "", endDate: "" })}
+            className="px-4 py-2.5 rounded-lg font-medium text-slate-300 bg-slate-700/80 border border-slate-600 hover:bg-slate-600 hover:text-white transition-colors"
+          >
+            Clear Filters
+          </button>
+        </div>
+      </div>
 
       {paginatedPlayers.length > 0 ? (
         <>
@@ -373,8 +368,6 @@ function ReferralPlayersView({ clubId, affiliateId }) {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Phone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">KYC Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Total Spent</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Commission</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Created</th>
                                 </tr>
                             </thead>
@@ -393,12 +386,6 @@ function ReferralPlayersView({ clubId, affiliateId }) {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {getKycStatusBadge(player.kycStatus)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                      {formatCurrency(player.totalSpent || 0)}
-                                        </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-400 font-semibold">
-                      {formatCurrency(player.totalCommission || 0)}
-                                        </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                       {formatDate(player.createdAt)}
                                         </td>
@@ -430,9 +417,12 @@ function ReferralPlayersView({ clubId, affiliateId }) {
                         </div>
         </>
       ) : (
-        <div className="text-center py-8 text-gray-400">No referral players found.</div>
-                    )}
-                </div>
+        <div className="text-center py-12 text-slate-400 bg-slate-700/30 rounded-lg border border-slate-600/50">
+          <p className="text-lg">No referral players found.</p>
+          <p className="text-sm mt-1">Your referred players will appear here.</p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -475,48 +465,47 @@ function TransactionsView({ clubId, affiliateId }) {
   const totalPages = transactionsData?.totalPages || 1;
 
   return (
-    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-xl">
-      <h2 className="text-2xl font-bold text-white mb-6">My Transactions</h2>
+    <div className="bg-slate-800/80 backdrop-blur rounded-xl p-6 border border-slate-700 shadow-lg">
+      <h2 className="text-xl font-bold text-white mb-6">Transactions</h2>
       
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div>
+      <div className="flex flex-col sm:flex-row gap-4 mb-6 flex-wrap">
+        <div className="flex-1 min-w-[180px]">
           <label className="block text-sm font-medium text-gray-300 mb-1">Search</label>
           <input
             type="text"
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             placeholder="Search..."
-            className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
+            className="w-full px-4 py-2.5 bg-slate-700/80 border border-slate-600 text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
         </div>
-        <div>
+        <div className="min-w-[140px]">
           <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
           <input
             type="date"
             value={filters.startDate}
             onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-            className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
+            className="w-full px-4 py-2.5 bg-slate-700/80 border border-slate-600 text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
         </div>
-        <div>
+        <div className="min-w-[140px]">
           <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
           <input
             type="date"
             value={filters.endDate}
             onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-            className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
+            className="w-full px-4 py-2.5 bg-slate-700/80 border border-slate-600 text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
         </div>
-      </div>
-
-      <div className="mb-4 flex justify-end">
-        <button
-          onClick={() => setFilters({ search: "", startDate: "", endDate: "" })}
-          className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-semibold"
-        >
-          Clear Filters
-        </button>
+        <div className="flex items-end">
+          <button
+            onClick={() => setFilters({ search: "", startDate: "", endDate: "" })}
+            className="px-4 py-2.5 rounded-lg font-medium text-slate-300 bg-slate-700/80 border border-slate-600 hover:bg-slate-600 hover:text-white transition-colors"
+          >
+            Clear Filters
+          </button>
+        </div>
       </div>
 
       {transactions.length > 0 ? (
@@ -584,8 +573,11 @@ function TransactionsView({ clubId, affiliateId }) {
           </div>
         </>
       ) : (
-        <div className="text-center py-8 text-gray-400">No transactions found.</div>
-      )}
+        <div className="text-center py-12 text-slate-400 bg-slate-700/30 rounded-lg border border-slate-600/50">
+          <p className="text-lg">No transactions found.</p>
+          <p className="text-sm mt-1">Your commission and payment history will appear here.</p>
         </div>
-    );
+      )}
+    </div>
+  );
 }
