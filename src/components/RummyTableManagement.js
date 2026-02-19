@@ -717,7 +717,7 @@ function TableSessionControl({
                       <div className="text-sm text-gray-400">Seat #{player.seatNumber}</div>
                     </div>
                     <div className="text-sm text-gray-400">
-                      Seated {new Date(player.seatedAt).toLocaleTimeString('en-US', { hour12: true })}
+                      Seated {new Date(player.seatedAt).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true })}
                     </div>
                   </div>
                   {/* Player Balance Info */}
@@ -1298,7 +1298,7 @@ function TableHologramModal({ table, onClose, clubId }) {
                                 {transaction.notes && ` • ${transaction.notes}`}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
-                                {new Date(transaction.createdAt).toLocaleString()}
+                                {new Date(transaction.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
                               </div>
                             </div>
                           </div>
@@ -2480,7 +2480,7 @@ function RummyHistoryView({ selectedClubId, tables }) {
                                 {transaction.notes && ` • ${transaction.notes}`}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
-                                {new Date(transaction.createdAt).toLocaleString()}
+                                {new Date(transaction.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
                               </div>
                             </div>
                           </div>

@@ -467,7 +467,7 @@ export default function MasterAdminDashboard() {
       club.subscriptionPrice,
       club.status,
       club.subscriptionStatus,
-      new Date(club.createdAt).toLocaleDateString(),
+      new Date(club.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }),
     ]);
 
     const csvContent = [
@@ -768,7 +768,7 @@ export default function MasterAdminDashboard() {
                           <div className="flex justify-between items-start mb-4">
                             <div className="flex-1">
                               <h3 className="text-xl font-bold text-white">{tenant.name}</h3>
-                              <p className="text-gray-400 text-sm">Created: {new Date(tenant.createdAt).toLocaleDateString()}</p>
+                              <p className="text-gray-400 text-sm">Created: {new Date(tenant.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                     </div>
                             <div className="text-right">
                               <div className="text-2xl font-bold text-emerald-400">{tenantClubs.length}</div>
@@ -1271,8 +1271,8 @@ export default function MasterAdminDashboard() {
                   </div>
                               <div>
                                 <span className="text-gray-400">Created:</span>
-                                <span className="text-white ml-2">{new Date(club.createdAt).toLocaleDateString()}</span>
-                </div>
+                                <span className="text-white ml-2">{new Date(club.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</span>
+                              </div>
                               <div>
                                 <span className="text-gray-400">Monthly Price:</span>
                                 <span className="text-emerald-400 ml-2 font-bold text-lg">₹{club.subscriptionPrice}</span>

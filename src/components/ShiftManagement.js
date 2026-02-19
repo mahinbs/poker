@@ -274,18 +274,20 @@ export default function ShiftManagement({ selectedClubId }) {
   };
 
   const formatTime = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString("en-US", {
+    return new Date(timestamp).toLocaleTimeString("en-IN", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
+      timeZone: "Asia/Kolkata",
     });
   };
 
   const formatDateHeader = (date) => {
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString("en-IN", {
       weekday: "short",
       month: "short",
       day: "numeric",
+      timeZone: "Asia/Kolkata",
     });
   };
 
@@ -335,7 +337,7 @@ export default function ShiftManagement({ selectedClubId }) {
 
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-bold text-white">
-            {selectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            {selectedDate.toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" })}
           </h2>
           <button
             onClick={() => setSelectedDate(new Date())}

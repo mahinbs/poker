@@ -527,6 +527,19 @@ export default function StaffManagement({ selectedClubId }) {
                         ? member.customRoleName
                         : member.role}
                     </span>
+                    {member.gameType === 'poker' ? (
+                      <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500">
+                        ♠ Poker
+                      </span>
+                    ) : member.gameType === 'rummy' ? (
+                      <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-amber-500/20 text-amber-300 border border-amber-500">
+                        🃏 Rummy
+                      </span>
+                    ) : (
+                      <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-slate-500/20 text-slate-300 border border-slate-500">
+                        🎯 General
+                      </span>
+                    )}
                     {member.affiliateCode && (
                       <span className="inline-block px-3 py-1 rounded-full text-sm font-mono font-semibold bg-yellow-500/20 text-yellow-300 border border-yellow-500">
                         {member.affiliateCode}
@@ -552,7 +565,7 @@ export default function StaffManagement({ selectedClubId }) {
                     <div>
                       <p className="text-sm text-gray-400">Created</p>
                       <p className="text-white font-semibold">
-                        {new Date(member.createdAt).toLocaleDateString()}
+                        {new Date(member.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                       </p>
                     </div>
                     {Number(member.baseSalary || 0) > 0 && (
@@ -679,15 +692,15 @@ export default function StaffManagement({ selectedClubId }) {
                                         </div>
               )}
 
-              {hasBothGames && (staffForm.role === "Dealer" || staffForm.role === "Manager") && (
+              {(staffForm.role === "Dealer" || staffForm.role === "Manager") && (
                 <div>
-                  <label className="text-white text-sm mb-1 block">Game Type *</label>
+                  <label className="text-white text-sm mb-1 block">Game Type {hasBothGames ? '*' : '(Optional)'}</label>
                   <select
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
                     value={staffForm.gameType}
                     onChange={(e) => setStaffForm({ ...staffForm, gameType: e.target.value })}
                   >
-                    <option value="">Select game type</option>
+                    <option value="">General (No specific game)</option>
                     <option value="poker">♠ Poker</option>
                     <option value="rummy">🃏 Rummy</option>
                   </select>
@@ -873,6 +886,24 @@ export default function StaffManagement({ selectedClubId }) {
                     onChange={(e) => setStaffForm({ ...staffForm, customRoleName: e.target.value })}
                   />
                                 </div>
+              )}
+
+              {(staffForm.role === "Dealer" || staffForm.role === "Manager") && (
+                <div>
+                  <label className="text-white text-sm mb-1 block">Game Type</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    value={staffForm.gameType}
+                    onChange={(e) => setStaffForm({ ...staffForm, gameType: e.target.value })}
+                  >
+                    <option value="">General (No specific game)</option>
+                    <option value="poker">♠ Poker</option>
+                    <option value="rummy">🃏 Rummy</option>
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Assign a specific game to this {staffForm.role.toLowerCase()}
+                  </p>
+                </div>
               )}
 
               {/* Salary Fields in Edit */}
@@ -1083,9 +1114,27 @@ export default function StaffManagement({ selectedClubId }) {
                     </span>
                   </div>
                   <div>
+                    <p className="text-sm text-gray-400 mb-1">Game Type</p>
+                    <p>
+                      {selectedStaff.gameType === 'poker' ? (
+                        <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500">
+                          ♠ Poker
+                        </span>
+                      ) : selectedStaff.gameType === 'rummy' ? (
+                        <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-amber-500/20 text-amber-300 border border-amber-500">
+                          🃏 Rummy
+                        </span>
+                      ) : (
+                        <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-slate-500/20 text-slate-300 border border-slate-500">
+                          🎯 General
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-sm text-gray-400 mb-1">Created At</p>
                     <p className="text-white">
-                      {new Date(selectedStaff.createdAt).toLocaleString()}
+                      {new Date(selectedStaff.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
                     </p>
                   </div>
                   <div>
@@ -1106,7 +1155,7 @@ export default function StaffManagement({ selectedClubId }) {
                     {selectedStaff.suspendedAt && (
                       <p className="text-sm text-red-300 mt-2">
                         <strong>Suspended At:</strong>{" "}
-                        {new Date(selectedStaff.suspendedAt).toLocaleString()}
+                        {new Date(selectedStaff.suspendedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
                       </p>
                     )}
                   </div>

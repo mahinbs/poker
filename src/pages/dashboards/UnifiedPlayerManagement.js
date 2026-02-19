@@ -248,30 +248,38 @@ export default function UnifiedPlayerManagement({
     },
   });
 
-  // Field Update Requests Query (TODO: Add backend endpoint)
   const { data: fieldUpdateRequests = [], isLoading: fieldUpdatesLoading } = useQuery({
     queryKey: ['fieldUpdateRequests', selectedClubId],
-    queryFn: async () => {
-      // TODO: Replace with actual API call when backend endpoint is ready
-      // return await superAdminAPI.getFieldUpdateRequests(selectedClubId);
-      return [];
-    },
+    queryFn: () => superAdminAPI.getFieldUpdateRequests(selectedClubId),
     enabled: !!selectedClubId && activeTab === "field-updates",
+    refetchInterval: 10000,
   });
 
-  // Approve/Reject Field Update Mutation (TODO: Add backend endpoint)
-  const fieldUpdateMutation = useMutation({
-    mutationFn: async ({ requestId, approved, notes }) => {
-      // TODO: Replace with actual API call when backend endpoint is ready
-      // return await superAdminAPI.approveFieldUpdate(selectedClubId, requestId, approved, notes);
-      return { success: true };
-    },
+  const [rejectingId, setRejectingId] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+
+  const approveFieldMutation = useMutation({
+    mutationFn: ({ requestId }) => superAdminAPI.approveFieldUpdate(selectedClubId, requestId),
     onSuccess: () => {
-      toast.success('Field update request processed');
+      toast.success('Field update approved');
+      queryClient.invalidateQueries(['fieldUpdateRequests', selectedClubId]);
+      queryClient.invalidateQueries(['clubPlayers', selectedClubId]);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to approve field update');
+    },
+  });
+
+  const rejectFieldMutation = useMutation({
+    mutationFn: ({ requestId, reason }) => superAdminAPI.rejectFieldUpdate(selectedClubId, requestId, reason),
+    onSuccess: () => {
+      toast.success('Field update rejected');
+      setRejectingId(null);
+      setRejectReason('');
       queryClient.invalidateQueries(['fieldUpdateRequests', selectedClubId]);
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to process field update request');
+      toast.error(error.message || 'Failed to reject field update');
     },
   });
 
@@ -509,7 +517,7 @@ export default function UnifiedPlayerManagement({
                             </span>
                           </td>
                           <td className="px-6 py-4 text-gray-400 text-sm">
-                            {new Date(player.createdAt).toLocaleDateString()}
+                            {new Date(player.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex gap-2">
@@ -765,7 +773,7 @@ export default function UnifiedPlayerManagement({
                         <td className="px-6 py-4 text-gray-400">{player.email}</td>
                         <td className="px-6 py-4 text-gray-400">{player.phoneNumber || '-'}</td>
                         <td className="px-6 py-4 text-gray-400 text-sm">
-                          {new Date(player.registrationDate || player.createdAt).toLocaleDateString()}
+                          {new Date(player.registrationDate || player.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-1">
@@ -877,7 +885,8 @@ export default function UnifiedPlayerManagement({
                   <thead className="bg-slate-700">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Player Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Fields Updated</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Field</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Change</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Requested Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
@@ -886,69 +895,101 @@ export default function UnifiedPlayerManagement({
                   <tbody className="divide-y divide-slate-700">
                     {paginatedFieldUpdates.length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="px-6 py-8 text-center text-gray-400">
+                        <td colSpan="6" className="px-6 py-8 text-center text-gray-400">
                           No field update requests found
                         </td>
                       </tr>
                     ) : (
-                      paginatedFieldUpdates.map((request) => (
-                      <tr key={request.id} className="hover:bg-slate-750">
-                        <td className="px-6 py-4 font-medium">{request.playerName}</td>
-                        <td className="px-6 py-4">
-                          <div className="space-y-1">
-                            {request.fields?.map((field, idx) => (
-                              <div key={idx} className="text-sm">
-                                <span className="text-gray-400">{field.fieldName}:</span>{' '}
-                                <span className="text-gray-500 line-through">{field.currentValue || 'N/A'}</span>
-                                {' → '}
-                                <span className="text-emerald-400">{field.requestedValue}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-gray-400 text-sm">
-                          {new Date(request.requestedDate || request.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs font-semibold">
-                            {request.status || 'Pending'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => {
-                                fieldUpdateMutation.mutate({
-                                  requestId: request.id,
-                                  approved: true,
-                                  notes: 'Approved by Super Admin',
-                                });
-                              }}
-                              disabled={fieldUpdateMutation.isLoading}
-                              className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => {
-                                const reason = prompt('Enter rejection reason:');
-                                if (reason) {
-                                  fieldUpdateMutation.mutate({
-                                    requestId: request.id,
-                                    approved: false,
-                                    notes: reason,
-                                  });
-                                }
-                              }}
-                              disabled={fieldUpdateMutation.isLoading}
-                              className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                      paginatedFieldUpdates.map((request) => {
+                        const playerName = request.player?.name || request.player?.first_name
+                          ? `${request.player.first_name || ''} ${request.player.last_name || ''}`.trim()
+                          : 'Unknown';
+                        const fieldLabel = request.fieldName === 'phoneNumber' ? 'Phone' : request.fieldName === 'name' ? 'Name' : request.fieldName === 'email' ? 'Email' : request.fieldName;
+                        return (
+                          <tr key={request.id} className="hover:bg-slate-700/50">
+                            <td className="px-6 py-4 font-medium">{playerName}</td>
+                            <td className="px-6 py-4">
+                              <span className="px-2 py-1 bg-purple-600/20 text-purple-300 rounded text-xs font-semibold uppercase">
+                                {fieldLabel}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm">
+                              <span className="text-gray-500 line-through">{request.currentValue || 'N/A'}</span>
+                              {' → '}
+                              <span className="text-emerald-400 font-medium">{request.requestedValue}</span>
+                            </td>
+                            <td className="px-6 py-4 text-gray-400 text-sm">
+                              {new Date(request.createdAt).toLocaleDateString('en-IN', {
+                                timeZone: 'Asia/Kolkata',
+                                day: '2-digit', month: 'short', year: 'numeric',
+                              })}
+                              <br />
+                              <span className="text-xs text-gray-500">
+                                {new Date(request.createdAt).toLocaleTimeString('en-IN', {
+                                  timeZone: 'Asia/Kolkata',
+                                  hour: '2-digit', minute: '2-digit',
+                                })}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs font-semibold">
+                                Pending
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              {rejectingId === request.id ? (
+                                <div className="flex flex-col gap-2 min-w-[200px]">
+                                  <input
+                                    type="text"
+                                    value={rejectReason}
+                                    onChange={(e) => setRejectReason(e.target.value)}
+                                    placeholder="Rejection reason..."
+                                    className="px-3 py-1.5 bg-slate-700 border border-slate-600 rounded text-white text-sm"
+                                  />
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => {
+                                        if (!rejectReason.trim()) {
+                                          toast.error('Please enter a rejection reason');
+                                          return;
+                                        }
+                                        rejectFieldMutation.mutate({ requestId: request.id, reason: rejectReason.trim() });
+                                      }}
+                                      disabled={rejectFieldMutation.isLoading}
+                                      className="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50"
+                                    >
+                                      Confirm
+                                    </button>
+                                    <button
+                                      onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                                      className="bg-slate-600 hover:bg-slate-500 px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => approveFieldMutation.mutate({ requestId: request.id })}
+                                    disabled={approveFieldMutation.isLoading}
+                                    className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => setRejectingId(request.id)}
+                                    disabled={rejectFieldMutation.isLoading}
+                                    className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -1027,7 +1068,7 @@ export default function UnifiedPlayerManagement({
                               <td className="px-6 py-4 font-medium">{player.name}</td>
                               <td className="px-6 py-4 text-gray-400">{player.email}</td>
                               <td className="px-6 py-4 text-gray-400 text-sm">
-                                {player.suspendedAt ? new Date(player.suspendedAt).toLocaleDateString() : '-'}
+                                {player.suspendedAt ? new Date(player.suspendedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '-'}
                               </td>
                               <td className="px-6 py-4 text-gray-400 text-sm">
                                 {player.suspensionReason || player.reason || '-'}
@@ -1220,7 +1261,7 @@ export default function UnifiedPlayerManagement({
                     <div>
                       <p className="text-gray-400 text-sm mb-1">Registration Date</p>
                       <p className="text-white font-medium">
-                        {new Date(playerDetailsData.createdAt || selectedPlayerForDetails.createdAt).toLocaleDateString()}
+                        {new Date(playerDetailsData.createdAt || selectedPlayerForDetails.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                       </p>
                     </div>
                     <div>
@@ -1283,7 +1324,7 @@ export default function UnifiedPlayerManagement({
                                 </p>
                                 {doc.uploadedAt && (
                                   <p className="text-gray-400 text-sm">
-                                    📅 Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}
+                                    📅 Uploaded: {new Date(doc.uploadedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                                   </p>
                                 )}
                               </div>

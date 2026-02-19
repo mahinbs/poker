@@ -478,7 +478,7 @@ export default function AffiliateManagement({ selectedClubId }) {
                       {transactions.map((transaction) => (
                         <tr key={transaction.id} className="border-b border-slate-700 hover:bg-slate-700">
                           <td className="text-white p-3">
-                            {new Date(transaction.processedAt).toLocaleDateString()}
+                            {new Date(transaction.processedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                           </td>
                           <td className="text-white p-3">
                             {transaction.affiliate?.name || transaction.affiliate?.user?.email || "N/A"}
@@ -657,7 +657,7 @@ export default function AffiliateManagement({ selectedClubId }) {
                           ₹{Number(player.totalSpent || 0).toFixed(2)}
                         </td>
                         <td className="text-gray-400 p-3 text-sm">
-                          {new Date(player.createdAt).toLocaleDateString()}
+                          {new Date(player.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                         </td>
                       </tr>
                     ))}

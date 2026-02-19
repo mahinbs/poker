@@ -146,13 +146,14 @@ export default function NotificationsInbox({ selectedClubId, recipientType = "st
                   <div className="flex items-center gap-3 text-xs text-gray-400">
                     <span>
                       {new Date(notification.sentAt || notification.createdAt).toLocaleDateString(
-                        "en-US",
+                        "en-IN",
                         {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
+                          timeZone: "Asia/Kolkata",
                         }
                       )}
                     </span>
@@ -276,12 +277,13 @@ export default function NotificationsInbox({ selectedClubId, recipientType = "st
                 Sent on{" "}
                 {new Date(
                   selectedNotification.sentAt || selectedNotification.createdAt
-                ).toLocaleDateString("en-US", {
+                ).toLocaleDateString("en-IN", {
                   month: "long",
                   day: "numeric",
                   year: "numeric",
                   hour: "2-digit",
                   minute: "2-digit",
+                  timeZone: "Asia/Kolkata",
                 })}
               </span>
               {selectedNotification.isRead && selectedNotification.readAt && (

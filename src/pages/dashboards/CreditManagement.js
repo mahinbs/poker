@@ -208,7 +208,7 @@ export default function CreditManagement({ selectedClubId }) {
                         <p className="text-gray-400 text-sm">ID: {player.playerId || player.id}</p>
                         <p className="text-gray-400 text-sm">Email: {player.email}</p>
                         <p className="text-gray-400 text-sm">
-                          Balance: <span className="font-bold text-green-400">₹{player.balance || 0}</span>
+                          Balance: <span className={`font-bold ${(player.balance || 0) < 0 ? 'text-red-400' : 'text-green-400'}`}>₹{Number(player.balance || 0).toLocaleString()}</span>
                         </p>
                         {player.creditEnabled && (
                           <div className="mt-2 space-y-1">
@@ -286,7 +286,7 @@ export default function CreditManagement({ selectedClubId }) {
                           </p>
                         )}
                         <p className="text-gray-400 text-sm">
-                          Requested: {new Date(request.createdAt).toLocaleDateString()}
+                          Requested: {new Date(request.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                         </p>
                         {request.notes && (
                           <p className="text-gray-300 text-sm mt-2">
@@ -335,7 +335,7 @@ export default function CreditManagement({ selectedClubId }) {
             </p>
             <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500 rounded-lg">
               <p className="text-blue-400 text-sm">
-                Current Balance: ₹{selectedPlayer.balance || 0}
+                Current Balance: ₹{Number(selectedPlayer.balance || 0).toLocaleString()}
               </p>
             </div>
             <div className="mb-6">

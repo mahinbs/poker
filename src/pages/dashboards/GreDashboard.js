@@ -181,7 +181,7 @@ function TournamentManagementViewOnly({ selectedClubId }) {
                       <p className="text-sm text-gray-400">Buy-In: ₹{tournament.buyIn}</p>
                     )}
                     {tournament.startTime && (
-                      <p className="text-sm text-gray-400">Start: {new Date(tournament.startTime).toLocaleString()}</p>
+                      <p className="text-sm text-gray-400">Start: {new Date(tournament.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                     )}
                     {tournament.prizePool && (
                       <p className="text-sm text-gray-400">Prize Pool: ₹{tournament.prizePool}</p>
@@ -236,7 +236,7 @@ function TournamentManagementViewOnly({ selectedClubId }) {
               {selectedTournament.startTime && (
                                 <div>
                   <p className="text-gray-400 text-sm">Start Time</p>
-                  <p className="text-white font-semibold">{new Date(selectedTournament.startTime).toLocaleString()}</p>
+                  <p className="text-white font-semibold">{new Date(selectedTournament.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                                 </div>
               )}
               {selectedTournament.description && (
@@ -304,7 +304,7 @@ function RummyTournamentManagementViewOnly({ selectedClubId }) {
                       <p className="text-sm text-gray-400">Buy-In: ₹{tournament.buyIn}</p>
                     )}
                     {tournament.startTime && (
-                      <p className="text-sm text-gray-400">Start: {new Date(tournament.startTime).toLocaleString()}</p>
+                      <p className="text-sm text-gray-400">Start: {new Date(tournament.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                     )}
                     {tournament.prizePool && (
                       <p className="text-sm text-gray-400">Prize Pool: ₹{tournament.prizePool}</p>
@@ -363,7 +363,7 @@ function RummyTournamentManagementViewOnly({ selectedClubId }) {
               {selectedTournament.startTime && (
                 <div>
                   <p className="text-gray-400 text-sm">Start Time</p>
-                  <p className="text-white font-semibold">{new Date(selectedTournament.startTime).toLocaleString()}</p>
+                  <p className="text-white font-semibold">{new Date(selectedTournament.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                 </div>
               )}
               {selectedTournament.description && (

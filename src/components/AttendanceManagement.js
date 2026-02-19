@@ -168,10 +168,11 @@ export default function AttendanceManagement({ selectedClubId }) {
 
   const formatTime = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleTimeString('en-US', {
+    return new Date(dateString).toLocaleTimeString('en-IN', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true,
+      timeZone: 'Asia/Kolkata',
     });
   };
 
@@ -772,10 +773,11 @@ export default function AttendanceManagement({ selectedClubId }) {
 
   function formatDate(dateString) {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('en-GB', {
+    return new Date(dateString).toLocaleDateString('en-IN', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata'
     });
   }
 }

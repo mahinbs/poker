@@ -236,13 +236,13 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
     enabled: !!selectedClubId && !!selectedPlayerCashOut,
   });
 
-  // Get recent buy-ins
+  // Get recent club buy-ins ONLY (not table buy-in/buy-out)
   const { data: recentBuyIns = [] } = useQuery({
     queryKey: ["recentBuyIns", selectedClubId],
     queryFn: async () => {
       const transactions = await superAdminAPI.getTransactions(selectedClubId);
       return transactions
-        .filter(t => t.type === 'Deposit' || t.type === 'Buy In')
+        .filter(t => t.type === 'Club Buy In' || t.type === 'Deposit')
         .slice(0, 10);
     },
     enabled: !!selectedClubId,
@@ -254,9 +254,10 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
     queryFn: async () => {
       const allTransactions = await superAdminAPI.getTransactions(selectedClubId);
       
-      // Apply filters
+      // Show only club-level transactions (Club Buy In, Club Buy Out, Deposit, Cashout)
       let filtered = allTransactions.filter(t => 
-        t.type === 'Deposit' || t.type === 'Cashout' || t.type === 'Buy In'
+        t.type === 'Club Buy In' || t.type === 'Club Buy Out' || 
+        t.type === 'Deposit' || t.type === 'Cashout'
       );
 
       // Filter by type
@@ -741,7 +742,7 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
                       </div>
                     )}
                     <div className="text-gray-500 text-xs mt-2">
-                      Processed {new Date(txn.createdAt).toLocaleString()}
+                      Processed {new Date(txn.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
                     </div>
                   </div>
                 ))
@@ -1098,22 +1099,32 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
                         <tr key={txn.id} className="border-b border-slate-700 hover:bg-slate-700/50 transition-colors">
                           <td className="py-4 px-4">
                             <div className="text-white text-sm">
-                              {new Date(txn.createdAt).toLocaleDateString()}
+                              {new Date(txn.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                             </div>
                             <div className="text-gray-400 text-xs">
-                              {new Date(txn.createdAt).toLocaleTimeString()}
+                              {new Date(txn.createdAt).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}
                             </div>
                           </td>
                           <td className="py-4 px-4">
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span
                                 className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                  txn.type === 'Deposit' || txn.type === 'Buy In'
+                                  txn.type === 'Club Buy In' || txn.type === 'Deposit'
                                     ? 'bg-green-500/20 text-green-400'
-                                    : 'bg-blue-500/20 text-blue-400'
+                                    : txn.type === 'Club Buy Out' || txn.type === 'Cashout'
+                                    ? 'bg-blue-500/20 text-blue-400'
+                                    : txn.type === 'Table Buy In'
+                                    ? 'bg-yellow-500/20 text-yellow-400'
+                                    : txn.type === 'Table Buy Out'
+                                    ? 'bg-cyan-500/20 text-cyan-400'
+                                    : 'bg-gray-500/20 text-gray-400'
                                 }`}
                               >
-                                {txn.type === 'Deposit' || txn.type === 'Buy In' ? 'Buy-In' : 'Cash-Out'}
+                                {txn.type === 'Club Buy In' || txn.type === 'Deposit' ? 'Club Buy-In' 
+                                  : txn.type === 'Club Buy Out' || txn.type === 'Cashout' ? 'Club Cash-Out'
+                                  : txn.type === 'Table Buy In' ? 'Table Buy-In'
+                                  : txn.type === 'Table Buy Out' ? 'Table Buy-Out'
+                                  : txn.type}
                               </span>
                               {txn.gameType && (
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
@@ -1147,16 +1158,16 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
                             <div className="flex flex-col items-end">
                               <div
                                 className={`font-bold ${
-                                  txn.type === 'Deposit' || txn.type === 'Buy In'
+                                  txn.type === 'Club Buy In' || txn.type === 'Deposit'
                                     ? 'text-green-400'
                                     : 'text-blue-400'
                                 }`}
                               >
-                                {txn.type === 'Deposit' || txn.type === 'Buy In' ? '+' : '-'}₹{Number(txn.amount).toLocaleString()}
+                                {txn.type === 'Club Buy In' || txn.type === 'Deposit' ? '+' : '-'}₹{Number(txn.amount).toLocaleString()}
                               </div>
                               {txn.originalAmount && (
                                 <div className="text-xs text-gray-400 line-through mt-1">
-                                  {txn.type === 'Deposit' || txn.type === 'Buy In' ? '+' : '-'}₹{Number(txn.originalAmount).toLocaleString()}
+                                  {txn.type === 'Club Buy In' || txn.type === 'Deposit' ? '+' : '-'}₹{Number(txn.originalAmount).toLocaleString()}
                                 </div>
                               )}
                             </div>
@@ -1231,10 +1242,10 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
                 {/* Summary Stats */}
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-green-500/10 border border-green-500 rounded-lg p-4">
-                    <div className="text-green-400 text-sm mb-1">Total Buy-Ins</div>
+                    <div className="text-green-400 text-sm mb-1">Total Club Buy-Ins</div>
                     <div className="text-white text-2xl font-bold">
                       ₹{transactionHistory.transactions
-                        .filter(t => t.type === 'Deposit' || t.type === 'Buy In')
+                        .filter(t => t.type === 'Club Buy In' || t.type === 'Deposit')
                         .reduce((sum, t) => sum + Number(t.amount), 0)
                         .toLocaleString()}
                     </div>
@@ -1254,10 +1265,10 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
                     <div className="text-purple-400 text-sm mb-1">Net Flow</div>
                     <div className="text-white text-2xl font-bold">
                       ₹{(transactionHistory.transactions
-                        .filter(t => t.type === 'Deposit' || t.type === 'Buy In')
+                        .filter(t => t.type === 'Club Buy In' || t.type === 'Deposit')
                         .reduce((sum, t) => sum + Number(t.amount), 0) -
                         transactionHistory.transactions
-                        .filter(t => t.type === 'Cashout')
+                        .filter(t => t.type === 'Club Buy Out' || t.type === 'Cashout')
                         .reduce((sum, t) => sum + Number(t.amount), 0)
                       ).toLocaleString()}
                     </div>

@@ -203,7 +203,7 @@ export default function CreditFeatureSection({
                             Requested:{" "}
                             {new Date(
                               request.requestedDate
-                            ).toLocaleDateString()}
+                            ).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                           </div>
                         </div>
                       </div>
@@ -318,7 +318,7 @@ export default function CreditFeatureSection({
                             Requested:{" "}
                             {new Date(
                               disbursement.requestedDate
-                            ).toLocaleDateString()}
+                            ).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                           </div>
                         </div>
                       </div>

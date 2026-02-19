@@ -606,7 +606,12 @@ export default function SuperAdminPortal() {
           <SystemControl clubId={selectedClubId} />
         )}
 
-        {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Transactions", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
+        {/* Player Feedback */}
+        {activeItem === "Player Feedback" && selectedClubId && (
+          <PlayerFeedbackSection selectedClubId={selectedClubId} />
+        )}
+
+        {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Transactions", "Player Feedback", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
             </div>
@@ -614,5 +619,181 @@ export default function SuperAdminPortal() {
         </main>
       </div>
     </>
+  );
+}
+
+function PlayerFeedbackSection({ selectedClubId }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const limit = 10;
+
+  const { data: feedbackData, isLoading } = useQuery({
+    queryKey: ['playerFeedback', selectedClubId, currentPage, limit],
+    queryFn: () => superAdminAPI.getPlayerFeedback(selectedClubId, currentPage, limit),
+    enabled: !!selectedClubId,
+    keepPreviousData: true,
+  });
+
+  const feedback = feedbackData?.feedback || [];
+  const pagination = feedbackData?.pagination || { total: 0, page: 1, totalPages: 1 };
+
+  const sortedFeedback = [...feedback].sort((a, b) => {
+    const dir = sortOrder === 'asc' ? 1 : -1;
+    if (sortBy === 'date') {
+      return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }
+    if (sortBy === 'player') {
+      return dir * (a.player?.name || '').localeCompare(b.player?.name || '');
+    }
+    return 0;
+  });
+
+  const toggleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  };
+
+  return (
+    <div className="text-white space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Player Feedback</h1>
+        <span className="text-sm text-gray-400">
+          {pagination.total} total feedback{pagination.total !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading feedback...</p>
+        </div>
+      ) : feedback.length === 0 ? (
+        <div className="bg-slate-800 rounded-xl p-16 border border-slate-700 text-center">
+          <div className="text-6xl mb-4">💬</div>
+          <p className="text-xl text-gray-300">No feedback submitted yet</p>
+          <p className="text-gray-500 mt-2">Player feedback will appear here once submitted.</p>
+        </div>
+      ) : (
+        <>
+          <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-slate-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">
+                    <button onClick={() => toggleSort('player')} className="flex items-center gap-1 hover:text-white transition-colors">
+                      Player Name
+                      {sortBy === 'player' && (
+                        <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Feedback</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Rating</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">
+                    <button onClick={() => toggleSort('date')} className="flex items-center gap-1 hover:text-white transition-colors">
+                      Date
+                      {sortBy === 'date' && (
+                        <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700">
+                {sortedFeedback.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-700/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <span className="font-medium text-white">{item.player?.name || 'Unknown'}</span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-400">
+                      {item.player?.email || '—'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-300 max-w-md">
+                      <p className="line-clamp-3">{item.message}</p>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {item.rating ? (
+                        <span className="text-yellow-400">{'★'.repeat(item.rating)}{'☆'.repeat(5 - item.rating)}</span>
+                      ) : (
+                        <span className="text-gray-500">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-400 whitespace-nowrap">
+                      {new Date(item.createdAt).toLocaleDateString('en-IN', {
+                        timeZone: 'Asia/Kolkata',
+                        day: '2-digit', month: 'short', year: 'numeric',
+                      })}
+                      <br />
+                      <span className="text-xs text-gray-500">
+                        {new Date(item.createdAt).toLocaleTimeString('en-IN', {
+                          timeZone: 'Asia/Kolkata',
+                          hour: '2-digit', minute: '2-digit',
+                        })}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between bg-slate-800 rounded-xl p-4 border border-slate-700">
+              <span className="text-sm text-gray-400">
+                Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage <= 1}
+                  className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                  let page;
+                  if (pagination.totalPages <= 5) {
+                    page = i + 1;
+                  } else if (currentPage <= 3) {
+                    page = i + 1;
+                  } else if (currentPage >= pagination.totalPages - 2) {
+                    page = pagination.totalPages - 4 + i;
+                  } else {
+                    page = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        currentPage === page
+                          ? 'bg-gradient-to-r from-red-400 to-purple-600 text-white'
+                          : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
+                  disabled={currentPage >= pagination.totalPages}
+                  className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }

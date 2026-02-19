@@ -939,7 +939,8 @@ export const tournamentsAPI = {
    * Get tournament by ID
    */
   getTournamentById: async (clubId, tournamentId) => {
-    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}`);
+    const response = await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}`);
+    return response?.tournament || response;
   },
 
   /**
@@ -2035,6 +2036,29 @@ export const superAdminAPI = {
       method: 'POST',
       headers: { 'x-user-id': userId },
       body: JSON.stringify({ recipientType }),
+    });
+  },
+
+  // Player Feedback
+  getPlayerFeedback: async (clubId, page = 1, limit = 10) => {
+    return await apiRequest(`/clubs/${clubId}/player-feedback?page=${page}&limit=${limit}`);
+  },
+
+  // Player Field Update Requests
+  getFieldUpdateRequests: async (clubId) => {
+    return await apiRequest(`/clubs/${clubId}/player-field-updates/pending`);
+  },
+
+  approveFieldUpdate: async (clubId, requestId) => {
+    return await apiRequest(`/clubs/${clubId}/player-field-updates/${requestId}/approve`, {
+      method: 'POST',
+    });
+  },
+
+  rejectFieldUpdate: async (clubId, requestId, reason) => {
+    return await apiRequest(`/clubs/${clubId}/player-field-updates/${requestId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
     });
   },
 };

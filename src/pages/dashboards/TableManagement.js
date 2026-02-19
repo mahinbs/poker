@@ -710,7 +710,7 @@ function TableSessionControl({
                       <div className="text-sm text-gray-400">Seat #{player.seatNumber}</div>
                     </div>
                     <div className="text-sm text-gray-400">
-                      Seated {new Date(player.seatedAt).toLocaleTimeString('en-US', { hour12: true })}
+                      Seated {new Date(player.seatedAt).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true })}
                     </div>
                   </div>
                   {/* Player Balance Info */}
@@ -886,9 +886,11 @@ function TableHologramModal({ table, onClose, clubId }) {
         
         if (response.ok) {
           const data = await response.json();
-          // Filter for Buy In and Deposit (buy-out) transactions related to this table
+          // Filter for table-related transactions (Table Buy In, Table Buy Out, Club Buy In, Credit, Debit)
           const filtered = data.filter(t => 
-            (t.type === 'Buy In' || (t.type === 'Deposit' && t.notes?.includes(`Table ${table.tableNumber}`))) &&
+            (t.type === 'Table Buy In' || t.type === 'Table Buy Out' || t.type === 'Club Buy In' || 
+             t.type === 'Buy In' || t.type === 'Credit' || t.type === 'Debit' ||
+             (t.type === 'Deposit' && t.notes?.includes(`Table ${table.tableNumber}`))) &&
             (t.notes?.includes(`Table ${table.tableNumber}`) || t.description?.includes(`Table ${table.tableNumber}`))
           ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
           setTableHistory(filtered);
@@ -1306,8 +1308,9 @@ function TableHologramModal({ table, onClose, clubId }) {
             ) : (
               <div className="space-y-3">
                 {tableHistory.map((transaction, idx) => {
-                  const isBuyIn = transaction.type === 'Buy In';
-                  const isBuyOut = transaction.type === 'Deposit' && transaction.notes?.includes('buy-out');
+                  const isBuyIn = ['Table Buy In', 'Buy In', 'Club Buy In', 'Credit'].includes(transaction.type);
+                  const isBuyOut = ['Table Buy Out', 'Debit'].includes(transaction.type) || 
+                                   (transaction.type === 'Deposit' && transaction.notes?.includes('buy-out'));
                   
                   return (
                     <div 
@@ -1333,7 +1336,7 @@ function TableHologramModal({ table, onClose, clubId }) {
                                 {transaction.notes && ` • ${transaction.notes}`}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
-                                {new Date(transaction.createdAt).toLocaleString()}
+                                {new Date(transaction.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
                               </div>
                             </div>
                           </div>
@@ -3032,12 +3035,13 @@ function HistoryView({ selectedClubId, tables }) {
 
   // Filter history
   const filteredHistory = allTransactions.filter(t => {
-    const isBuyIn = t.type === 'Buy In';
-    const isBuyOut = (t.type === 'Deposit' || t.type === 'Cashout') && 
+    const isBuyIn = ['Table Buy In', 'Buy In', 'Club Buy In', 'Credit'].includes(t.type);
+    const isBuyOut = ['Table Buy Out', 'Club Buy Out', 'Debit'].includes(t.type) || 
+                     ((t.type === 'Deposit' || t.type === 'Cashout') && 
                      (t.notes?.toLowerCase().includes('buy-out') || 
                       t.notes?.toLowerCase().includes('buyout') ||
                       t.description?.toLowerCase().includes('buy-out') ||
-                      t.description?.toLowerCase().includes('buyout'));
+                      t.description?.toLowerCase().includes('buyout')));
     
     // Filter by type
     if (historyFilters.type === 'buy-in' && !isBuyIn) return false;
@@ -3143,12 +3147,13 @@ function HistoryView({ selectedClubId, tables }) {
             <>
               <div className="space-y-3 mb-6">
                 {paginatedHistory.map((transaction, idx) => {
-                  const isBuyIn = transaction.type === 'Buy In';
-                  const isBuyOut = (transaction.type === 'Deposit' || transaction.type === 'Cashout') && 
+                  const isBuyIn = ['Table Buy In', 'Buy In', 'Club Buy In', 'Credit'].includes(transaction.type);
+                  const isBuyOut = ['Table Buy Out', 'Club Buy Out', 'Debit'].includes(transaction.type) ||
+                                  ((transaction.type === 'Deposit' || transaction.type === 'Cashout') && 
                                   (transaction.notes?.toLowerCase().includes('buy-out') || 
                                    transaction.notes?.toLowerCase().includes('buyout') ||
                                    transaction.description?.toLowerCase().includes('buy-out') ||
-                                   transaction.description?.toLowerCase().includes('buyout'));
+                                   transaction.description?.toLowerCase().includes('buyout')));
                   
                   return (
                     <div 
@@ -3174,7 +3179,7 @@ function HistoryView({ selectedClubId, tables }) {
                                 {transaction.notes && ` • ${transaction.notes}`}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
-                                {new Date(transaction.createdAt).toLocaleString()}
+                                {new Date(transaction.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
                               </div>
                             </div>
                           </div>

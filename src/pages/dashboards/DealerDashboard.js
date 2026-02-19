@@ -308,18 +308,20 @@ function ShiftTimingsView({ clubId, dealerId }) {
   };
 
   const formatTime = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString("en-US", {
+    return new Date(timestamp).toLocaleTimeString("en-IN", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
+      timeZone: "Asia/Kolkata",
     });
   };
 
   const formatDateHeader = (date) => {
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString("en-IN", {
       weekday: "short",
       month: "short",
       day: "numeric",
+      timeZone: "Asia/Kolkata",
     });
   };
 
@@ -339,7 +341,7 @@ function ShiftTimingsView({ clubId, dealerId }) {
 
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-bold text-white">
-            {selectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            {selectedDate.toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" })}
           </h2>
           <button
             onClick={() => setSelectedDate(new Date())}
@@ -420,8 +422,9 @@ function ShiftTimingsView({ clubId, dealerId }) {
               <div key={shift.id} className="bg-slate-700 rounded-lg p-4 flex justify-between items-center">
                 <div>
                   <div className="text-white font-semibold">
-                    {new Date(shift.shiftDate).toLocaleDateString("en-US", {
+                    {new Date(shift.shiftDate).toLocaleDateString("en-IN", {
                       weekday: "long",
+                      timeZone: "Asia/Kolkata",
                       year: "numeric",
                       month: "long",
                       day: "numeric",
@@ -518,10 +521,11 @@ function TransactionsView({ clubId, dealerId }) {
   const formatCurrency = (value) => `₹${(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('en-GB', {
+    return new Date(dateString).toLocaleDateString('en-IN', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata'
     });
   };
 
@@ -660,10 +664,11 @@ function TipsView({ clubId, dealerId }) {
   const formatCurrency = (value) => `₹${(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('en-GB', {
+    return new Date(dateString).toLocaleDateString('en-IN', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata'
     });
   };
 
@@ -844,12 +849,13 @@ function TipSettingsView({ clubId, dealerId }) {
                 <span className="text-gray-300 text-sm">Last Updated:</span>
                 <p className="text-white">
                   {settings.updatedAt 
-                    ? new Date(settings.updatedAt).toLocaleDateString('en-GB', {
+                    ? new Date(settings.updatedAt).toLocaleDateString('en-IN', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        timeZone: 'Asia/Kolkata'
                       })
                     : 'N/A'}
                 </p>

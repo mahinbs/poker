@@ -312,7 +312,7 @@ function OrderCard({ order, onAccept, onReject, onMarkReady, onMarkDelivered }) 
         <div className="text-right">
           <p className="text-3xl font-bold text-orange-500">₹{order.totalAmount}</p>
           <p className="text-xs text-gray-400">
-            {new Date(order.createdAt).toLocaleString()}
+            {new Date(order.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
           </p>
           {order.invoiceNumber && (
             <p className="text-sm text-green-400 mt-1">Invoice: {order.invoiceNumber}</p>

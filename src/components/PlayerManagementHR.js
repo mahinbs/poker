@@ -314,7 +314,7 @@ export default function PlayerManagementHR({ selectedClubId }) {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-gray-400 text-sm">
-                            {new Date(request.requestedDate || request.createdAt).toLocaleDateString()}
+                            {new Date(request.requestedDate || request.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                           </td>
                           <td className="px-6 py-4">
                             <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs font-semibold">
@@ -475,7 +475,7 @@ export default function PlayerManagementHR({ selectedClubId }) {
                           )}
                           {doc.uploadedAt && (
                             <p className="text-gray-500 text-xs mt-1">
-                              Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}
+                              Uploaded: {new Date(doc.uploadedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                             </p>
                           )}
                         </div>

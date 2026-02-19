@@ -266,6 +266,7 @@ export default function AllOrdersView({ orders = [], onStatusUpdate }) {
                             {new Date(order.orderDate).toLocaleTimeString("en-IN", {
                               hour: "2-digit",
                               minute: "2-digit",
+                              timeZone: "Asia/Kolkata",
                             })}
                           </span>
                         </div>
@@ -363,6 +364,7 @@ export default function AllOrdersView({ orders = [], onStatusUpdate }) {
                             {new Date(history.timestamp).toLocaleTimeString("en-IN", {
                               hour: "2-digit",
                               minute: "2-digit",
+                              timeZone: "Asia/Kolkata",
                             })}{" "}
                             by {history.updatedBy}
                           </div>
@@ -456,6 +458,7 @@ export default function AllOrdersView({ orders = [], onStatusUpdate }) {
                       {new Date(order.deliveredAt).toLocaleTimeString("en-IN", {
                         hour: "2-digit",
                         minute: "2-digit",
+                        timeZone: "Asia/Kolkata",
                       })}
                     </div>
                   )}
