@@ -3,7 +3,7 @@
  * Connects to poker-crm-backend Socket.IO gateway
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
 
 const WEBSOCKET_URL = process.env.REACT_APP_WEBSOCKET_URL || 'http://localhost:3333';
@@ -71,6 +71,16 @@ export const useWebSocket = (clubId, userId) => {
       setEvents(prev => [...prev, { type: 'credit:approved', data, timestamp: Date.now() }]);
     });
 
+    socket.on('credit:requested', (data) => {
+      console.log('💳 Credit requested:', data);
+      setEvents(prev => [...prev, { type: 'credit:requested', data, timestamp: Date.now() }]);
+    });
+
+    socket.on('credit:rejected', (data) => {
+      console.log('💳 Credit rejected:', data);
+      setEvents(prev => [...prev, { type: 'credit:rejected', data, timestamp: Date.now() }]);
+    });
+
     socket.on('order:status', (data) => {
       console.log('🍔 Order status:', data);
       setEvents(prev => [...prev, { type: 'order:status', data, timestamp: Date.now() }]);
@@ -98,18 +108,18 @@ export const useWebSocket = (clubId, userId) => {
   };
 
   // Subscribe to custom event
-  const subscribe = (event, callback) => {
+  const subscribe = useCallback((event, callback) => {
     if (socketRef.current) {
       socketRef.current.on(event, callback);
     }
-  };
+  }, []);
 
   // Unsubscribe from custom event
-  const unsubscribe = (event, callback) => {
+  const unsubscribe = useCallback((event, callback) => {
     if (socketRef.current) {
       socketRef.current.off(event, callback);
     }
-  };
+  }, []);
 
   // Clear events
   const clearEvents = () => {

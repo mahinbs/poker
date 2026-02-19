@@ -23,9 +23,9 @@ const DEFAULT_MENU_ITEMS = [
   "Leave Management",
 ];
 
-export default function AdminSidebar({ 
-  activeItem, 
-  setActiveItem, 
+export default function AdminSidebar({
+  activeItem,
+  setActiveItem,
   menuItems = DEFAULT_MENU_ITEMS,
   onSignOut = null,
   clubInfo = null
@@ -41,6 +41,11 @@ export default function AdminSidebar({
 
   // Track previous notification count for sound alert
   const prevNotificationCount = useRef(null);
+  // Track previous leave count for sound alert
+  const prevLeaveCount = useRef(null);
+  // Track previous chat counts for sound alerts
+  const prevStaffChatCount = useRef(null);
+  const prevPlayerChatCount = useRef(null);
 
   const isRummyEnabled = clubInfo?.rummyEnabled || false;
   const isPokerEnabled = clubInfo?.pokerEnabled !== false;
@@ -86,17 +91,52 @@ export default function AdminSidebar({
   // Play notification sound when new notification arrives
   useEffect(() => {
     const currentCount = unreadData?.unreadCount || 0;
-    
+
     // Only play sound if count increased (new notification)
     if (prevNotificationCount.current !== null && currentCount > prevNotificationCount.current) {
       const audio = new Audio('/audio/popup-alert.mp3');
       audio.volume = 0.5;
       audio.play().catch(err => console.log('Audio play failed:', err));
     }
-    
+
     // Update previous count
     prevNotificationCount.current = currentCount;
   }, [unreadData?.unreadCount]);
+
+  // Play sound when new leave request arrives
+  useEffect(() => {
+    const currentLeaveCount = pendingLeaveCount;
+
+    if (prevLeaveCount.current !== null && currentLeaveCount > prevLeaveCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+
+    prevLeaveCount.current = currentLeaveCount;
+  }, [pendingLeaveCount]);
+
+  // Play sound when a new staff chat message arrives
+  useEffect(() => {
+    const staffChats = unreadChatData?.staffChats || 0;
+    if (prevStaffChatCount.current !== null && staffChats > prevStaffChatCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    prevStaffChatCount.current = staffChats;
+  }, [unreadChatData?.staffChats]);
+
+  // Play different sound when a new player chat message arrives
+  useEffect(() => {
+    const playerChats = unreadChatData?.playerChats || 0;
+    if (prevPlayerChatCount.current !== null && playerChats > prevPlayerChatCount.current) {
+      const audio = new Audio('/audio/notification-alert-2.wav');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    prevPlayerChatCount.current = playerChats;
+  }, [unreadChatData?.playerChats]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -129,7 +169,7 @@ export default function AdminSidebar({
   const userEmail = user.email || adminUser.email || 'admin@pokerroom.com';
   const displayName = user.displayName || adminUser.displayName || 'Admin';
   const userRole = user.role || adminUser.role || 'ADMIN';
-  
+
   // Fetch club info to get club code
   const { data: club } = useQuery({
     queryKey: ['club', clubId],
@@ -153,16 +193,16 @@ export default function AdminSidebar({
     },
     onSuccess: () => {
       toast.success('Password reset successfully!');
-      
+
       // Update localStorage to clear mustResetPassword flag
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       user.mustResetPassword = false;
       localStorage.setItem('user', JSON.stringify(user));
-      
+
       const adminUser = JSON.parse(localStorage.getItem('adminuser') || '{}');
       adminUser.mustResetPassword = false;
       localStorage.setItem('adminuser', JSON.stringify(adminUser));
-      
+
       setShowResetPassword(false);
       setPasswordForm({
         currentPassword: "",
@@ -180,7 +220,7 @@ export default function AdminSidebar({
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const adminUser = JSON.parse(localStorage.getItem('adminuser') || '{}');
     const email = user.email || adminUser.email;
-    
+
     if (!email) {
       toast.error('User email not found. Please login again.');
       return;
@@ -246,27 +286,26 @@ export default function AdminSidebar({
       )}
 
       <aside
-        className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-red-500/20 via-purple-600/30 to-indigo-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${
-          isMobile
-            ? isOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-            : "translate-x-0"
-        }`}
+        className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-red-500/20 via-purple-600/30 to-indigo-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${isMobile
+          ? isOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+          : "translate-x-0"
+          }`}
       >
         <div className="p-5 h-full flex flex-col min-w-0">
           <div className="mb-6">
             <div className="pt-11 lg:pt-0 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-indigo-400 drop-shadow-lg mb-6">
               Admin
             </div>
-            <div 
+            <div
               onClick={() => setShowResetPassword(true)}
               className="bg-white/10 rounded-xl p-4 mb-6 text-white shadow-inner cursor-pointer hover:bg-white/15 transition-colors"
             >
               <div className="text-lg font-semibold">{displayName}</div>
               <div className="text-sm opacity-80">{userEmail}</div>
             </div>
-            
+
             {/* Reset Password Modal - Rendered via Portal */}
             {showResetPassword && createPortal(
               <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]" onClick={() => setShowResetPassword(false)}>
@@ -344,7 +383,7 @@ export default function AdminSidebar({
               </div>,
               document.body
             )}
-            
+
             {/* Show Club Code */}
             {club && club.code && (
               <div className="mb-6">
@@ -367,11 +406,10 @@ export default function AdminSidebar({
                   setActiveItem(item);
                   if (isMobile) setIsOpen(false);
                 }}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md overflow-hidden ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-red-400 to-purple-600 text-white font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-red-400/20 hover:to-purple-500/20 text-white"
-                }`}
+                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md overflow-hidden ${activeItem === item
+                  ? "bg-gradient-to-r from-red-400 to-purple-600 text-white font-bold shadow-lg scale-[1.02]"
+                  : "bg-white/5 hover:bg-gradient-to-r hover:from-red-400/20 hover:to-purple-500/20 text-white"
+                  }`}
               >
                 <span className="flex items-center justify-between">
                   <span className="block truncate">{item}</span>

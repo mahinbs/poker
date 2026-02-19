@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { chatAPI } from "../../lib/api";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api';
 
-export default function MasterAdminSidebar({ 
-  activeItem, 
-  setActiveItem, 
+export default function MasterAdminSidebar({
+  activeItem,
+  setActiveItem,
   menuItems = [],
   onSignOut = null,
   userEmail = null,
-  userName = null 
+  userName = null
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -25,6 +27,44 @@ export default function MasterAdminSidebar({
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Track previous chat counts for sound alerts
+  const prevStaffChatCount = useRef(null);
+  const prevPlayerChatCount = useRef(null);
+
+  const clubId = localStorage.getItem('clubId');
+
+  // Fetch unread chat counts
+  const { data: unreadChatData } = useQuery({
+    queryKey: ["unreadChatCounts", clubId],
+    queryFn: () => chatAPI.getUnreadCounts(clubId),
+    enabled: !!clubId,
+    refetchInterval: 10000,
+  });
+
+  const totalUnreadChats = (unreadChatData?.staffChats || 0) + (unreadChatData?.playerChats || 0);
+
+  // Play sound when a new staff chat message arrives
+  useEffect(() => {
+    const staffChats = unreadChatData?.staffChats || 0;
+    if (prevStaffChatCount.current !== null && staffChats > prevStaffChatCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    prevStaffChatCount.current = staffChats;
+  }, [unreadChatData?.staffChats]);
+
+  // Play different sound when a new player chat message arrives
+  useEffect(() => {
+    const playerChats = unreadChatData?.playerChats || 0;
+    if (prevPlayerChatCount.current !== null && playerChats > prevPlayerChatCount.current) {
+      const audio = new Audio('/audio/notification-alert-2.wav');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    prevPlayerChatCount.current = playerChats;
+  }, [unreadChatData?.playerChats]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -92,13 +132,12 @@ export default function MasterAdminSidebar({
       )}
 
       <aside
-        className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-emerald-500/20 via-teal-600/30 to-cyan-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${
-          isMobile
-            ? isOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-            : "translate-x-0"
-        }`}
+        className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-emerald-500/20 via-teal-600/30 to-cyan-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${isMobile
+          ? isOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+          : "translate-x-0"
+          }`}
       >
         <div className="p-5 h-full flex flex-col min-w-0">
           <div className="mb-6">
@@ -106,7 +145,7 @@ export default function MasterAdminSidebar({
               Master Admin
             </div>
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                 className="flex items-center text-white min-w-0 w-full hover:bg-white/10 p-2 rounded-lg transition-colors"
               >
@@ -135,7 +174,7 @@ export default function MasterAdminSidebar({
                     <div className="text-white font-semibold text-sm mb-1">Profile</div>
                     <div className="text-gray-400 text-xs truncate">{userEmail || 'No email'}</div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => {
                       setShowPasswordModal(true);
                       setShowProfileDropdown(false);
@@ -160,11 +199,10 @@ export default function MasterAdminSidebar({
                   setActiveItem(item);
                   if (isMobile) setIsOpen(false);
                 }}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md overflow-hidden ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-emerald-400 to-cyan-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-emerald-400/20 hover:to-cyan-500/20 text-white"
-                }`}
+                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md overflow-hidden ${activeItem === item
+                  ? "bg-gradient-to-r from-emerald-400 to-cyan-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
+                  : "bg-white/5 hover:bg-gradient-to-r hover:from-emerald-400/20 hover:to-cyan-500/20 text-white"
+                  }`}
               >
                 <span className="block truncate">{item}</span>
               </button>
@@ -371,7 +409,7 @@ export default function MasterAdminSidebar({
 
                       setPasswordSuccess("Password changed successfully!");
                       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-                      
+
                       setTimeout(() => {
                         setShowPasswordModal(false);
                         setPasswordSuccess("");

@@ -62,7 +62,7 @@ export default function AdminDashboard() {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const adminUser = JSON.parse(localStorage.getItem('adminuser') || '{}');
     const currentUser = authAPI.getCurrentUser();
-    
+
     // Check if user is logged in
     if (!user.id && !adminUser.userId) {
       navigate('/login');
@@ -73,7 +73,7 @@ export default function AdminDashboard() {
     const isAdmin = user.role === 'ADMIN' || adminUser.userId || adminUser.role === 'ADMIN' || currentUser?.role === 'ADMIN';
     const isSuperAdmin = user.role === 'SUPER_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
     const isMasterAdmin = user.isMasterAdmin || currentUser?.isMasterAdmin;
-    
+
     if (!isAdmin && !isSuperAdmin && !isMasterAdmin) {
       // User is not Admin - redirect to their correct portal
       const role = currentUser?.role || user.role || adminUser.role;
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
         'DEALER': '/dealer',
         'AFFILIATE': '/affiliate',
       };
-      
+
       const redirectPath = role && roleDashboardMap[role] ? roleDashboardMap[role] : '/login';
       navigate(redirectPath, { replace: true });
       return;
@@ -133,6 +133,7 @@ export default function AdminDashboard() {
   // Handle sign out
   const handleSignOut = () => {
     localStorage.clear();
+    sessionStorage.clear();
     navigate('/login');
   };
 
@@ -155,16 +156,16 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       toast.success('Password reset successfully!');
-      
+
       // Update localStorage to clear mustResetPassword flag
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       user.mustResetPassword = false;
       localStorage.setItem('user', JSON.stringify(user));
-      
+
       const adminUser = JSON.parse(localStorage.getItem('adminuser') || '{}');
       adminUser.mustResetPassword = false;
       localStorage.setItem('adminuser', JSON.stringify(adminUser));
-      
+
       // Close modal and reset form
       setShowPasswordResetModal(false);
       setPasswordForm({
@@ -183,7 +184,7 @@ export default function AdminDashboard() {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const adminUser = JSON.parse(localStorage.getItem('adminuser') || '{}');
     const email = user.email || adminUser.email;
-    
+
     if (!email) {
       toast.error('User email not found. Please login again.');
       return;
@@ -216,10 +217,10 @@ export default function AdminDashboard() {
           <div className="text-yellow-400 text-5xl mb-3">🔒</div>
           <h2 className="text-2xl font-bold text-white">Password Reset Required</h2>
           <p className="text-gray-400 mt-2">Please set a new password to continue</p>
-            </div>
+        </div>
 
         <form onSubmit={handlePasswordReset} className="space-y-4">
-                      <div>
+          <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Current Password
             </label>
@@ -231,13 +232,13 @@ export default function AdminDashboard() {
               placeholder="Enter temporary password"
               required
             />
-                  </div>
+          </div>
 
-                      <div>
+          <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               New Password
-                      </label>
-                        <input
+            </label>
+            <input
               type="password"
               value={passwordForm.newPassword}
               onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
@@ -245,13 +246,13 @@ export default function AdminDashboard() {
               placeholder="Enter new password"
               required
             />
-                </div>
+          </div>
 
-                                <div>
+          <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Confirm New Password
-                      </label>
-                        <input
+            </label>
+            <input
               type="password"
               value={passwordForm.confirmPassword}
               onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
@@ -259,18 +260,18 @@ export default function AdminDashboard() {
               placeholder="Confirm new password"
               required
             />
-                                    </div>
+          </div>
 
-                            <button
+          <button
             type="submit"
             disabled={resetPasswordMutation.isLoading}
             className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50"
           >
             {resetPasswordMutation.isLoading ? 'Resetting...' : 'Reset Password'}
-                            </button>
+          </button>
         </form>
-                          </div>
-                      </div>
+      </div>
+    </div>
   );
 
   // Render loading state
@@ -282,8 +283,8 @@ export default function AdminDashboard() {
           <div className="text-white text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-500 mx-auto mb-4"></div>
             <p className="text-xl">Loading club data...</p>
-                                  </div>
-                                  </div>
+          </div>
+        </div>
       </>
     );
   }
@@ -337,14 +338,14 @@ export default function AdminDashboard() {
                 <h1 className="text-3xl font-bold text-white">
                   Dashboard - {clubInfo?.name || club?.name || 'Loading...'}
                 </h1>
-                  </div>
+              </div>
 
               {/* Revenue Cards */}
               {revenueLoading ? (
                 <div className="text-white text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
                   <p>Loading revenue data...</p>
-                      </div>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Previous Day Revenue */}
@@ -372,7 +373,7 @@ export default function AdminDashboard() {
                       {formatCurrency(revenueData?.currentDay?.rake || 0)}
                     </p>
                     <p className="text-sm text-gray-500 mt-2">10% of revenue</p>
-                      </div>
+                  </div>
 
                   {/* Previous Day Rake */}
                   <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
@@ -380,7 +381,7 @@ export default function AdminDashboard() {
                     <p className="text-3xl font-bold text-white">
                       {formatCurrency(revenueData?.previousDay?.rake || 0)}
                     </p>
-                </div>
+                  </div>
 
                   {/* Previous Day Tips */}
                   <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
@@ -388,7 +389,7 @@ export default function AdminDashboard() {
                     <p className="text-3xl font-bold text-white">
                       {formatCurrency(revenueData?.previousDay?.tips || 0)}
                     </p>
-                        </div>
+                  </div>
 
                   {/* Today's Tips */}
                   <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
@@ -396,9 +397,9 @@ export default function AdminDashboard() {
                     <p className="text-3xl font-bold text-white">
                       {formatCurrency(revenueData?.currentDay?.tips || 0)}
                     </p>
-                    </div>
                   </div>
-                )}
+                </div>
+              )}
 
               {/* Player & Staff Counts */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -407,49 +408,49 @@ export default function AdminDashboard() {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-400">Total Players</span>
-                                  <span className="text-white font-semibold">
+                      <span className="text-white font-semibold">
                         {playersLoading ? '...' : playersData?.players?.length || 0}
-                                  </span>
-                                </div>
+                      </span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400">Pending Approval</span>
                       <span className="text-yellow-400 font-semibold">
                         {pendingLoading ? '...' : pendingPlayers.length}
-                                  </span>
-                                </div>
+                      </span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400">Suspended</span>
                       <span className="text-red-400 font-semibold">
                         {suspendedLoading ? '...' : suspendedPlayers.length}
-                                  </span>
-                                </div>
-                                </div>
-                              </div>
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
                   <h3 className="text-xl font-semibold text-white mb-4">Quick Actions</h3>
                   <div className="space-y-2">
-                        <button
+                    <button
                       onClick={() => setActiveItem("Player Management")}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg transition-colors"
-                        >
+                    >
                       Manage Players
-                        </button>
-                        <button
+                    </button>
+                    <button
                       onClick={() => setActiveItem("Player Approval")}
                       className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg transition-colors"
                     >
                       Review Approvals ({pendingLoading ? '...' : pendingPlayers.length})
-                        </button>
-                        <button
+                    </button>
+                    <button
                       onClick={() => setActiveItem("Player Suspension")}
                       className="w-full bg-orange-600 hover:bg-orange-500 text-white py-2 rounded-lg transition-colors"
-                        >
+                    >
                       Suspended Players ({suspendedLoading ? '...' : suspendedPlayers.length})
-                        </button>
-                      </div>
-                    </div>
+                    </button>
                   </div>
+                </div>
+              </div>
             </div>
           )}
 

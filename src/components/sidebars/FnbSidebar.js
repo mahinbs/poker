@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { clubsAPI, superAdminAPI, chatAPI } from "../../lib/api";
+import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
 import toast from "react-hot-toast";
 
-export default function FnbSidebar({ 
-  activeItem, 
-  setActiveItem, 
+export default function FnbSidebar({
+  activeItem,
+  setActiveItem,
   menuItems = [],
-  onSignOut = null 
+  onSignOut = null
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -21,6 +21,11 @@ export default function FnbSidebar({
 
   // Track previous notification count for sound alert
   const prevNotificationCount = useRef(null);
+  // Track previous approved leave count for sound alert
+  const prevApprovedLeaveCount = useRef(null);
+  // Track previous chat counts for sound alerts
+  const prevStaffChatCount = useRef(null);
+  const prevPlayerChatCount = useRef(null);
 
   // Get clubId and fetch unread notification count
   const clubId = localStorage.getItem('clubId');
@@ -30,6 +35,17 @@ export default function FnbSidebar({
     enabled: !!clubId,
     refetchInterval: 30000,
   });
+
+  // Fetch my approved leave applications (to detect when a leave gets approved)
+  const { data: approvedLeavesData } = useQuery({
+    queryKey: ["myApprovedLeaves", clubId],
+    queryFn: () => leaveAPI.getMyLeaveApplications(clubId, { status: 'Approved' }),
+    enabled: !!clubId,
+    refetchInterval: 10000,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
+  });
+  const approvedLeaveCount = approvedLeavesData?.total || 0;
 
   // Fetch unread chat counts
   const { data: unreadChatData } = useQuery({
@@ -44,17 +60,50 @@ export default function FnbSidebar({
   // Play notification sound when new notification arrives
   useEffect(() => {
     const currentCount = unreadData?.unreadCount || 0;
-    
+
     // Only play sound if count increased (new notification)
     if (prevNotificationCount.current !== null && currentCount > prevNotificationCount.current) {
       const audio = new Audio('/audio/popup-alert.mp3');
       audio.volume = 0.5;
       audio.play().catch(err => console.log('Audio play failed:', err));
     }
-    
+
     // Update previous count
     prevNotificationCount.current = currentCount;
   }, [unreadData?.unreadCount]);
+
+  // Play sound when a leave request gets approved
+  useEffect(() => {
+    if (prevApprovedLeaveCount.current !== null && approvedLeaveCount > prevApprovedLeaveCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+      toast.success('🎉 Your leave request has been approved!', { duration: 5000 });
+    }
+    prevApprovedLeaveCount.current = approvedLeaveCount;
+  }, [approvedLeaveCount]);
+
+  // Play sound when a new staff chat message arrives
+  useEffect(() => {
+    const staffChats = unreadChatData?.staffChats || 0;
+    if (prevStaffChatCount.current !== null && staffChats > prevStaffChatCount.current) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    prevStaffChatCount.current = staffChats;
+  }, [unreadChatData?.staffChats]);
+
+  // Play different sound when a new player chat message arrives
+  useEffect(() => {
+    const playerChats = unreadChatData?.playerChats || 0;
+    if (prevPlayerChatCount.current !== null && playerChats > prevPlayerChatCount.current) {
+      const audio = new Audio('/audio/notification-alert-2.wav');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+    prevPlayerChatCount.current = playerChats;
+  }, [unreadChatData?.playerChats]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -80,7 +129,7 @@ export default function FnbSidebar({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen, isMobile]);
-  
+
   // Fetch club info to get club code
   const { data: club } = useQuery({
     queryKey: ['club', clubId],
@@ -186,20 +235,19 @@ export default function FnbSidebar({
       )}
 
       <aside
-        className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-orange-500/20 via-red-600/30 to-pink-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${
-          isMobile
-            ? isOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-            : "translate-x-0"
-        }`}
+        className={`sidebar-container fixed lg:sticky top-0 left-0 h-screen z-40 w-80 max-w-[90vw] bg-gradient-to-b from-orange-500/20 via-red-600/30 to-pink-700/30 border-r border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out overflow-y-auto overflow-x-hidden hide-scrollbar ${isMobile
+          ? isOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+          : "translate-x-0"
+          }`}
       >
         <div className="p-5 h-full flex flex-col min-w-0">
           <div className="mb-6">
             <div className="pt-11 lg:pt-0 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-300 to-pink-400 drop-shadow-lg mb-6">
               FNB Portal
             </div>
-            <div 
+            <div
               onClick={() => setShowResetPassword(true)}
               className="flex items-center text-white min-w-0 cursor-pointer hover:opacity-90 transition-opacity p-2 -m-2 rounded-lg"
             >
@@ -211,7 +259,7 @@ export default function FnbSidebar({
                 <div className="text-sm opacity-80 truncate">{userEmail}</div>
               </div>
             </div>
-            
+
             {/* Reset Password Modal - Rendered via Portal */}
             {showResetPassword && createPortal(
               <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]" onClick={() => setShowResetPassword(false)}>
@@ -243,7 +291,7 @@ export default function FnbSidebar({
               </div>,
               document.body
             )}
-            
+
             {/* Show Club Code */}
             {club && club.code && (
               <div className="mb-6">
@@ -266,11 +314,10 @@ export default function FnbSidebar({
                   setActiveItem(item);
                   if (isMobile) setIsOpen(false);
                 }}
-                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md overflow-hidden ${
-                  activeItem === item
-                    ? "bg-gradient-to-r from-orange-400 to-red-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
-                    : "bg-white/5 hover:bg-gradient-to-r hover:from-orange-400/20 hover:to-red-500/20 text-white"
-                }`}
+                className={`w-full text-left rounded-xl px-4 py-3 font-medium transition-all duration-300 shadow-md overflow-hidden ${activeItem === item
+                  ? "bg-gradient-to-r from-orange-400 to-red-600 text-gray-900 font-bold shadow-lg scale-[1.02]"
+                  : "bg-white/5 hover:bg-gradient-to-r hover:from-orange-400/20 hover:to-red-500/20 text-white"
+                  }`}
               >
                 <span className="flex items-center justify-between">
                   <span className="block truncate">{item}</span>

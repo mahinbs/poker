@@ -148,9 +148,7 @@ export default function DealerDashboard() {
   ];
 
   const handleSignOut = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('staffuser');
-    localStorage.removeItem('clubId');
+    localStorage.clear()
     navigate("/login");
   };
 
