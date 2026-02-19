@@ -2055,6 +2055,10 @@ export const superAdminAPI = {
     });
   },
 
+  getPlayerDocuments: async (clubId, playerId) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}/documents`);
+  },
+
   rejectFieldUpdate: async (clubId, requestId, reason) => {
     return await apiRequest(`/clubs/${clubId}/player-field-updates/${requestId}/reject`, {
       method: 'POST',

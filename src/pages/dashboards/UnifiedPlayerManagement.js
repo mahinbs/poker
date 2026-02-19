@@ -258,6 +258,7 @@ export default function UnifiedPlayerManagement({
 
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [docViewModal, setDocViewModal] = useState({ open: false, request: null, oldDocUrl: null, newDocUrl: null });
 
   const approveFieldMutation = useMutation({
     mutationFn: ({ requestId }) => superAdminAPI.approveFieldUpdate(selectedClubId, requestId),
@@ -933,19 +934,55 @@ export default function UnifiedPlayerManagement({
                         const playerName = request.player?.name || request.player?.first_name
                           ? `${request.player.first_name || ''} ${request.player.last_name || ''}`.trim()
                           : 'Unknown';
-                        const fieldLabel = request.fieldName === 'phoneNumber' ? 'Phone' : request.fieldName === 'name' ? 'Name' : request.fieldName === 'email' ? 'Email' : request.fieldName;
+                        const fieldLabelMap = { phoneNumber: 'Phone', name: 'Name', email: 'Email', government_id: 'Govt ID', pan_card: 'PAN Card' };
+                        const fieldLabel = fieldLabelMap[request.fieldName] || request.fieldName;
+                        const isDocField = ['government_id', 'pan_card'].includes(request.fieldName);
+
+                        const openDocView = async () => {
+                          setDocViewModal({ open: true, request, oldDocUrl: null, newDocUrl: null, loading: true });
+                          try {
+                            const playerId = request.playerId || request.player?.id;
+                            if (!playerId) throw new Error('No player ID');
+                            const result = await superAdminAPI.getPlayerDocuments(selectedClubId, playerId);
+                            const docs = result?.documents || [];
+                            const docType = request.fieldName;
+                            const matchingDocs = docs
+                              .filter(d => (d.type === docType || d.documentType === docType) && (d.url || d.fileUrl))
+                              .sort((a, b) => new Date(b.uploadedAt || b.createdAt || 0) - new Date(a.uploadedAt || a.createdAt || 0));
+                            const newDoc = matchingDocs[0]?.url || matchingDocs[0]?.fileUrl || null;
+                            const oldDoc = matchingDocs[1]?.url || matchingDocs[1]?.fileUrl || null;
+                            const requestedUrl = (request.requestedValue || '').startsWith('http') ? request.requestedValue : null;
+                            setDocViewModal({ open: true, request, oldDocUrl: oldDoc, newDocUrl: newDoc || requestedUrl, loading: false });
+                          } catch (err) {
+                            console.error('Failed to load documents:', err);
+                            const requestedUrl = (request.requestedValue || '').startsWith('http') ? request.requestedValue : null;
+                            setDocViewModal(prev => ({ ...prev, newDocUrl: requestedUrl, loading: false }));
+                          }
+                        };
+
                         return (
                           <tr key={request.id} className="hover:bg-slate-700/50">
                             <td className="px-6 py-4 font-medium">{playerName}</td>
                             <td className="px-6 py-4">
-                              <span className="px-2 py-1 bg-purple-600/20 text-purple-300 rounded text-xs font-semibold uppercase">
-                                {fieldLabel}
+                              <span className={`px-2 py-1 rounded text-xs font-semibold uppercase ${isDocField ? 'bg-blue-600/20 text-blue-300' : 'bg-purple-600/20 text-purple-300'}`}>
+                                {isDocField ? '📄 ' : ''}{fieldLabel}
                               </span>
                             </td>
                             <td className="px-6 py-4 text-sm">
-                              <span className="text-gray-500 line-through">{request.currentValue || 'N/A'}</span>
-                              {' → '}
-                              <span className="text-emerald-400 font-medium">{request.requestedValue}</span>
+                              {isDocField ? (
+                                <button
+                                  onClick={openDocView}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-lg text-xs font-medium border border-blue-500/30 transition-colors"
+                                >
+                                  🔍 View Old & New Document
+                                </button>
+                              ) : (
+                                <>
+                                  <span className="text-gray-500 line-through">{request.currentValue || 'N/A'}</span>
+                                  {' → '}
+                                  <span className="text-emerald-400 font-medium">{request.requestedValue}</span>
+                                </>
+                              )}
                             </td>
                             <td className="px-6 py-4 text-gray-400 text-sm">
                               {new Date(request.createdAt).toLocaleDateString('en-IN', {
@@ -1553,6 +1590,147 @@ export default function UnifiedPlayerManagement({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Comparison Modal */}
+      {docViewModal.open && docViewModal.request && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-4xl w-full border border-blue-600 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-white">
+                Document Comparison — {docViewModal.request.fieldName === 'government_id' ? 'Govt ID (Aadhaar)' : 'PAN Card'}
+              </h2>
+              <button
+                onClick={() => setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, loading: false })}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mb-4 p-3 bg-slate-700/50 rounded-lg">
+              <p className="text-sm text-gray-300">
+                <span className="text-white font-medium">
+                  {docViewModal.request.player?.name || `${docViewModal.request.player?.first_name || ''} ${docViewModal.request.player?.last_name || ''}`.trim() || 'Unknown Player'}
+                </span>
+                {' '}requested a document change on{' '}
+                <span className="text-blue-300">
+                  {new Date(docViewModal.request.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </p>
+            </div>
+
+            {docViewModal.loading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-400"></div>
+                <span className="ml-3 text-gray-400">Loading documents...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Old Document */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-red-300 flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                    Old Document
+                  </h3>
+                  <div className="bg-slate-700 rounded-lg border border-slate-600 p-4 min-h-[200px] flex items-center justify-center">
+                    {docViewModal.oldDocUrl ? (
+                      <div className="space-y-3 w-full">
+                        <img
+                          src={docViewModal.oldDocUrl}
+                          alt="Old document"
+                          className="max-w-full max-h-[400px] rounded-lg border border-slate-600 mx-auto object-contain"
+                          onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                        />
+                        <div style={{ display: 'none' }} className="text-center">
+                          <p className="text-gray-400 text-sm mb-2">Cannot preview this file type</p>
+                        </div>
+                        <a
+                          href={docViewModal.oldDocUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-center text-blue-400 hover:text-blue-300 text-sm underline"
+                        >
+                          Open in new tab
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-4xl mb-2">📄</p>
+                        <p className="text-gray-500 text-sm">No previous document found (first upload)</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* New Document */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-emerald-300 flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+                    New Document (Uploaded)
+                  </h3>
+                  <div className="bg-slate-700 rounded-lg border border-emerald-600/30 p-4 min-h-[200px] flex items-center justify-center">
+                    {docViewModal.newDocUrl ? (
+                      <div className="space-y-3 w-full">
+                        <img
+                          src={docViewModal.newDocUrl}
+                          alt="New document"
+                          className="max-w-full max-h-[400px] rounded-lg border border-emerald-600/30 mx-auto object-contain"
+                          onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                        />
+                        <div style={{ display: 'none' }} className="text-center">
+                          <p className="text-gray-400 text-sm mb-2">Cannot preview this file type</p>
+                        </div>
+                        <a
+                          href={docViewModal.newDocUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-center text-emerald-400 hover:text-emerald-300 text-sm underline"
+                        >
+                          Open in new tab
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-4xl mb-2">📄</p>
+                        <p className="text-gray-500 text-sm">New document not found</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6 justify-end">
+              <button
+                onClick={() => {
+                  setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, loading: false });
+                  approveFieldMutation.mutate({ requestId: docViewModal.request.id });
+                }}
+                disabled={approveFieldMutation.isLoading || docViewModal.loading}
+                className="bg-emerald-600 hover:bg-emerald-500 px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                ✓ Approve Change
+              </button>
+              <button
+                onClick={() => {
+                  setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, loading: false });
+                  setRejectingId(docViewModal.request.id);
+                }}
+                disabled={docViewModal.loading}
+                className="bg-red-600 hover:bg-red-500 px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                ✗ Reject Change
+              </button>
+              <button
+                onClick={() => setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, loading: false })}
+                className="bg-slate-700 hover:bg-slate-600 px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
