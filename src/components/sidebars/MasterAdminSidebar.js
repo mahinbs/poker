@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { chatAPI } from "../../lib/api";
+import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api';
 
@@ -33,13 +34,13 @@ export default function MasterAdminSidebar({
   const prevPlayerChatCount = useRef(null);
 
   const clubId = localStorage.getItem('clubId');
+  useAdminRealtime(clubId);
 
   // Fetch unread chat counts
   const { data: unreadChatData } = useQuery({
     queryKey: ["unreadChatCounts", clubId],
     queryFn: () => chatAPI.getUnreadCounts(clubId),
     enabled: !!clubId,
-    refetchInterval: 10000,
   });
 
   const totalUnreadChats = (unreadChatData?.staffChats || 0) + (unreadChatData?.playerChats || 0);

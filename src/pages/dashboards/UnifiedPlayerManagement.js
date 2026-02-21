@@ -253,7 +253,6 @@ export default function UnifiedPlayerManagement({
     queryKey: ['fieldUpdateRequests', selectedClubId],
     queryFn: () => superAdminAPI.getFieldUpdateRequests(selectedClubId),
     enabled: !!selectedClubId && activeTab === "field-updates",
-    refetchInterval: 10000,
   });
 
   const [rejectingId, setRejectingId] = useState(null);

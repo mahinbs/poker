@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
+import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 import toast from "react-hot-toast";
 
 const DEFAULT_MENU_ITEMS = [
@@ -59,11 +60,11 @@ export default function SuperAdminSidebar({
 
   // Get clubId and fetch unread notification count
   const clubId = selectedClubId || localStorage.getItem('clubId');
+  useAdminRealtime(clubId);
   const { data: unreadData } = useQuery({
     queryKey: ["unreadNotificationCount", clubId, "staff"],
     queryFn: () => superAdminAPI.getUnreadNotificationCount(clubId, "staff"),
     enabled: !!clubId,
-    refetchInterval: 30000,
   });
 
   // Fetch unread chat counts
@@ -71,7 +72,6 @@ export default function SuperAdminSidebar({
     queryKey: ["unreadChatCounts", clubId],
     queryFn: () => chatAPI.getUnreadCounts(clubId),
     enabled: !!clubId,
-    refetchInterval: 10000, // Refresh every 10 seconds for real-time updates
   });
 
   const totalUnreadChats = (unreadChatData?.staffChats || 0) + (unreadChatData?.playerChats || 0);
@@ -81,9 +81,6 @@ export default function SuperAdminSidebar({
     queryKey: ['pendingLeaveApplications', clubId],
     queryFn: () => leaveAPI.getPendingLeaveApplications(clubId),
     enabled: !!clubId,
-    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
-    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
-    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
   });
 
   const pendingLeaveCount = pendingLeaves?.length || 0;
@@ -93,9 +90,6 @@ export default function SuperAdminSidebar({
     queryKey: ["creditRequests", clubId],
     queryFn: () => superAdminAPI.getCreditRequests(clubId, 'Pending'),
     enabled: !!clubId,
-    refetchInterval: 10000,
-    refetchIntervalInBackground: true,
-    staleTime: 0,
   });
   const pendingCreditCount = creditRequests?.length || 0;
 

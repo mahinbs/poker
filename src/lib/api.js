@@ -1918,6 +1918,11 @@ export const superAdminAPI = {
     });
   },
 
+  // VIP Purchases (Admin view)
+  getVipPurchases: async (clubId, page = 1, limit = 10) => {
+    return await apiRequest(`/clubs/${clubId}/vip-purchases?page=${page}&limit=${limit}`);
+  },
+
   // VIP Product Image Upload
   createVipProductImageUploadUrl: async (clubId, filename) => {
     return await apiRequest(`/clubs/${clubId}/vip-products/upload-url`, {

@@ -8,7 +8,6 @@ export default function NotificationBadge({ selectedClubId, recipientType = "sta
     queryKey: ["unreadNotificationCount", selectedClubId, recipientType],
     queryFn: () => superAdminAPI.getUnreadNotificationCount(selectedClubId, recipientType),
     enabled: !!selectedClubId,
-    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const unreadCount = countData?.unreadCount || 0;

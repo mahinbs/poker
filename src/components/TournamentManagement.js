@@ -100,7 +100,6 @@ export default function TournamentManagement({ selectedClubId }) {
     queryKey: ["tournament-players", selectedClubId, selectedTournament?.id],
     queryFn: () => tournamentsAPI.getTournamentPlayers(selectedClubId, selectedTournament.id),
     enabled: !!selectedClubId && !!selectedTournament && (showDetailsModal || showEndModal),
-    refetchInterval: selectedTournament?.status === 'active' ? 10000 : false,
   });
 
   // Fetch tournament winners

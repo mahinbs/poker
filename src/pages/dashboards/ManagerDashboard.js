@@ -100,7 +100,6 @@ export default function ManagerDashboard() {
     queryKey: ['clubRevenue', clubId],
     queryFn: () => clubsAPI.getClubRevenue(clubId),
     enabled: !!clubId,
-    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   // Load players for club
