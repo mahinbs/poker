@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
+import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 import toast from "react-hot-toast";
 
 const DEFAULT_MENU_ITEMS = [
@@ -51,11 +52,11 @@ export default function ManagerSidebar({
 
   // Get clubId and fetch unread notification count
   const clubId = localStorage.getItem('clubId');
+  useAdminRealtime(clubId);
   const { data: unreadData } = useQuery({
     queryKey: ["unreadNotificationCount", clubId, "staff"],
     queryFn: () => superAdminAPI.getUnreadNotificationCount(clubId, "staff"),
     enabled: !!clubId,
-    refetchInterval: 30000,
   });
 
   // Fetch my approved leave applications (to detect when a leave gets approved)
@@ -63,9 +64,6 @@ export default function ManagerSidebar({
     queryKey: ["myApprovedLeaves", clubId],
     queryFn: () => leaveAPI.getMyLeaveApplications(clubId, { status: 'Approved' }),
     enabled: !!clubId,
-    refetchInterval: 10000,
-    refetchIntervalInBackground: true,
-    staleTime: 0,
   });
   const approvedLeaveCount = approvedLeavesData?.total || 0;
 
@@ -74,7 +72,6 @@ export default function ManagerSidebar({
     queryKey: ["unreadChatCounts", clubId],
     queryFn: () => chatAPI.getUnreadCounts(clubId),
     enabled: !!clubId,
-    refetchInterval: 10000, // Refresh every 10 seconds for real-time updates
   });
 
   const totalUnreadChats = (unreadChatData?.staffChats || 0) + (unreadChatData?.playerChats || 0);

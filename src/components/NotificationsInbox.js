@@ -15,7 +15,6 @@ export default function NotificationsInbox({ selectedClubId, recipientType = "st
     queryKey: ["notificationInbox", selectedClubId, recipientType],
     queryFn: () => superAdminAPI.getNotificationInbox(selectedClubId, recipientType),
     enabled: !!selectedClubId,
-    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const notifications = notificationsData?.notifications || [];

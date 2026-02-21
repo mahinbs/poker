@@ -76,9 +76,6 @@ export default function LeaveManagement({ clubId }) {
     queryKey: ['leavePolicies', clubId],
     queryFn: () => leaveAPI.getLeavePolicies(clubId),
     enabled: !!clubId && canManagePolicies,
-    refetchInterval: 30000, // Refetch every 30 seconds
-    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
-    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
   });
 
   // Filters state for my leaves page
@@ -95,9 +92,6 @@ export default function LeaveManagement({ clubId }) {
     queryKey: ['myLeaveApplications', clubId, myLeavesFilters],
     queryFn: () => leaveAPI.getMyLeaveApplications(clubId, myLeavesFilters),
     enabled: !!clubId && canApplyForLeaves,
-    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
-    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
-    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
   });
 
   const myLeaves = myLeavesData?.applications || [];
@@ -110,9 +104,6 @@ export default function LeaveManagement({ clubId }) {
     queryKey: ['leaveBalance', clubId],
     queryFn: () => leaveAPI.getLeaveBalance(clubId),
     enabled: !!clubId && canApplyForLeaves,
-    refetchInterval: 30000, // Refetch every 30 seconds
-    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
-    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
   });
 
   // Filters state for approve leaves page
@@ -131,9 +122,6 @@ export default function LeaveManagement({ clubId }) {
     queryKey: ['leaveApplicationsForApproval', clubId, approveFilters],
     queryFn: () => leaveAPI.getLeaveApplicationsForApproval(clubId, approveFilters),
     enabled: !!clubId && canApprove,
-    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
-    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
-    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
   });
 
   const approveLeaves = approveLeavesData?.applications || [];
@@ -146,9 +134,6 @@ export default function LeaveManagement({ clubId }) {
     queryKey: ['pendingLeaveApplications', clubId],
     queryFn: () => leaveAPI.getPendingLeaveApplications(clubId),
     enabled: !!clubId && canApprove,
-    refetchInterval: 10000, // Refetch every 10 seconds for real-time badge updates
-    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
-    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
   });
 
   // Create leave policy mutation

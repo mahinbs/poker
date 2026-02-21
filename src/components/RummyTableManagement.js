@@ -588,77 +588,24 @@ function TableSessionControl({
 
           <div className="mt-6 p-4 bg-slate-700/50 rounded-lg">
             <p className="text-sm text-gray-400 text-center">
-              Session parameters can be modified on the right panel.
+              Rummy tables have no minimum play time or call time — players can exit anytime.
             </p>
           </div>
         </div>
 
         {/* Right: Timing & Parameters */}
         <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <h3 className="text-xl font-bold text-white mb-4">Timing & Parameters</h3>
+          <h3 className="text-xl font-bold text-white mb-4">Session Settings</h3>
           
           <div className="space-y-6">
-            {/* Min Play Time */}
-            <div>
-              <div className="text-gray-400 text-sm font-medium mb-2">MIN PLAY TIME</div>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={sessionParams.minPlayTime}
-                  onChange={(e) => setSessionParams({ ...sessionParams, minPlayTime: e.target.value })}
-                  className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-lg font-semibold"
-                  min="30"
-                />
-                <button
-                  onClick={() => handleSetParameter('minPlayTime', sessionParams.minPlayTime)}
-                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white font-semibold transition-colors"
-                >
-                  Set
-                </button>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">Current: {sessionParams.minPlayTime} mins</div>
-            </div>
-
-            {/* Call Time */}
-            <div>
-              <div className="text-gray-400 text-sm font-medium mb-2">CALL TIME</div>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={sessionParams.callTime}
-                  onChange={(e) => setSessionParams({ ...sessionParams, callTime: e.target.value })}
-                  className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-lg font-semibold"
-                  min="1"
-                />
-                <button
-                  onClick={() => handleSetParameter('callTime', sessionParams.callTime)}
-                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white font-semibold transition-colors"
-                >
-                  Set
-                </button>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">Current: {sessionParams.callTime} mins</div>
-            </div>
-
-            {/* Cash-out Window */}
-            <div>
-              <div className="text-gray-400 text-sm font-medium mb-2">CASH-OUT WINDOW</div>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={sessionParams.cashOutWindow}
-                  onChange={(e) => setSessionParams({ ...sessionParams, cashOutWindow: e.target.value })}
-                  className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-lg font-semibold"
-                  min="1"
-                />
-                <button
-                  onClick={() => handleSetParameter('cashOutWindow', sessionParams.cashOutWindow)}
-                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white font-semibold transition-colors"
-                >
-                  Set
-                </button>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">Current: {sessionParams.cashOutWindow} mins</div>
+            {/* Rummy info banner */}
+            <div className="p-3 bg-emerald-900/30 border border-emerald-500/30 rounded-lg">
+              <div className="text-sm font-medium text-emerald-300 mb-1">Rummy Rules</div>
+              <ul className="text-xs text-emerald-400 space-y-1">
+                <li>• No minimum play time — players can exit anytime</li>
+                <li>• No call time required</li>
+                <li>• Rake can be collected multiple times per session</li>
+              </ul>
             </div>
 
             {/* Session Timeout */}

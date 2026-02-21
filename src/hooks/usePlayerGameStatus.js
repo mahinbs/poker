@@ -8,36 +8,27 @@ export function usePlayerGameStatus() {
   // Use centralized synchronization for immediate updates on seat assignments
   useGameStatusSync();
 
-  // UNIFIED FAST REFRESH INTERVALS (3 seconds) for immediate synchronization
-  // Get player's waitlist entries with aggressive refresh during active gaming
   const { data: waitlistEntries = [] } = useQuery({
     queryKey: ['/api/seat-requests', user?.id],
     enabled: !!user?.id,
-    refetchInterval: 3000, // Fast refresh for immediate seat assignment detection
-    staleTime: 1000, // Consider fresh for 1 second only
+    staleTime: 5000,
   });
 
-  // Get all tables to check status with fast refresh
   const { data: tables = [] } = useQuery({
     queryKey: ['/api/tables'],
-    refetchInterval: 3000, // Fast refresh for table status changes
-    staleTime: 2000, // Consider fresh for 2 seconds
+    staleTime: 5000,
   });
 
-  // Get player's seated info with fast refresh  
   const { data: seatedInfo = [] } = useQuery({
     queryKey: ['/api/table-seats', user?.id],
     enabled: !!user?.id,
-    refetchInterval: 3000, // Fast refresh for seated session detection
-    staleTime: 1000, // Consider fresh for 1 second only
+    staleTime: 5000,
   });
 
-  // Primary source: seat_requests data (contains both waitlist and seated status)
   const { data: seatRequestsData = [] } = useQuery({
     queryKey: ['/api/seat-requests', user?.id],
     enabled: !!user?.id,
-    refetchInterval: 3000, // Fast refresh for real-time status
-    staleTime: 1000, // Consider fresh for 1 second only
+    staleTime: 5000,
   });
 
   // Process the game status

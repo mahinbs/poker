@@ -95,9 +95,6 @@ export default function StaffManagement({ selectedClubId }) {
     queryKey: ['pendingLeaveApplications', selectedClubId],
     queryFn: () => leaveAPI.getPendingLeaveApplications(selectedClubId),
     enabled: !!selectedClubId,
-    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
-    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
-    staleTime: 0, // Always consider data stale to ensure fresh data on tab switch
   });
 
   const pendingLeaveCount = pendingLeaves?.length || 0;

@@ -472,7 +472,6 @@ export default function CashierDashboard() {
     queryKey: ['clubRevenue', clubId],
     queryFn: () => clubsAPI.getClubRevenue(clubId),
     enabled: !!clubId,
-    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   // Handle sign out

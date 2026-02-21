@@ -143,9 +143,16 @@ export default function RakeCollection({ clubId, gameType }) {
     <div className="space-y-6">
       {/* Collect Rake Section */}
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-        <h2 className="text-2xl font-bold mb-6 text-white">
-          Collect Rake from {gameType === 'rummy' ? 'Rummy' : gameType === 'poker' ? 'Poker' : ''} Table
-        </h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white">
+            Collect Rake from {gameType === 'rummy' ? 'Rummy' : gameType === 'poker' ? 'Poker' : ''} Table
+          </h2>
+          {gameType === 'rummy' && (
+            <span className="text-xs bg-emerald-900/40 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full">
+              Multiple collections per session
+            </span>
+          )}
+        </div>
         
         {tablesLoading ? (
           <div className="text-gray-400">Loading tables...</div>

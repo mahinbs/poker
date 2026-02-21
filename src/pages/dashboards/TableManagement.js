@@ -2716,7 +2716,6 @@ function TableBuyOutView({ selectedClubId, tables }) {
       return response?.seatedPlayers || [];
     },
     enabled: !!selectedClubId && !!selectedTableForBuyOut && activeSubTab === 'process-buyout',
-    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
   // Handle buy-out approval

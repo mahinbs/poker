@@ -96,7 +96,6 @@ export default function RummyTournamentManagement({ selectedClubId }) {
       return response?.players || response || [];
     },
     enabled: !!selectedClubId && !!selectedTournament && (showDetailsModal || showEndModal),
-    refetchInterval: selectedTournament?.status === 'active' ? 10000 : false,
   });
 
   // Fetch tournament winners (if completed)
