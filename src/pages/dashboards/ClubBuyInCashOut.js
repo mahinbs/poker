@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { superAdminAPI } from "../../lib/api";
+import { superAdminAPI, clubsAPI } from "../../lib/api";
+import { supabase } from "../../lib/supabase";
 import toast from "react-hot-toast";
 
 // Searchable Dropdown Component for Players
@@ -202,8 +203,51 @@ function SearchablePlayerDropdown({
 
 export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("buy-in"); // 'buy-in', 'cash-out', or 'history'
+  const [activeTab, setActiveTab] = useState("pending-requests"); // 'pending-requests', 'buy-in', 'cash-out', or 'history'
   
+  // Supabase real-time for buy-in requests
+  useEffect(() => {
+    if (!selectedClubId) return;
+    const channel = supabase
+      .channel(`club-buyin-requests-${selectedClubId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'buyin_requests',
+        filter: `club_id=eq.${selectedClubId}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['clubBuyInRequests', selectedClubId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedClubId, queryClient]);
+
+  // Fetch pending buy-in requests from players
+  const { data: pendingBuyInRequests = [], isLoading: requestsLoading, error: requestsError } = useQuery({
+    queryKey: ['clubBuyInRequests', selectedClubId],
+    queryFn: () => clubsAPI.getBuyInRequests(selectedClubId),
+    enabled: !!selectedClubId,
+    refetchInterval: 15000,
+  });
+
+  const approveBuyInMutation = useMutation({
+    mutationFn: ({ requestId, amount }) => clubsAPI.approveBuyInRequest(selectedClubId, requestId, { amount }),
+    onSuccess: () => {
+      toast.success("Buy-in request approved!");
+      queryClient.invalidateQueries({ queryKey: ['clubBuyInRequests', selectedClubId] });
+    },
+    onError: (error) => toast.error(error.message || "Failed to approve"),
+  });
+
+  const rejectBuyInMutation = useMutation({
+    mutationFn: ({ requestId, reason }) => clubsAPI.rejectBuyInRequest(selectedClubId, requestId, { reason }),
+    onSuccess: () => {
+      toast.success("Buy-in request rejected");
+      queryClient.invalidateQueries({ queryKey: ['clubBuyInRequests', selectedClubId] });
+    },
+    onError: (error) => toast.error(error.message || "Failed to reject"),
+  });
+
   // Transaction History States
   const [historyPage, setHistoryPage] = useState(1);
   const [historyFilters, setHistoryFilters] = useState({
@@ -573,10 +617,25 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 mb-6 border-b border-gray-700">
+      <div className="flex gap-4 mb-6 border-b border-gray-700 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab("pending-requests")}
+          className={`px-6 py-3 font-semibold transition-colors whitespace-nowrap relative ${
+            activeTab === "pending-requests"
+              ? "text-white border-b-2 border-orange-500 bg-orange-500/10"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          Pending Requests
+          {pendingBuyInRequests.filter(r => r.status === 'pending').length > 0 && (
+            <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
+              {pendingBuyInRequests.filter(r => r.status === 'pending').length}
+            </span>
+          )}
+        </button>
         <button
           onClick={() => setActiveTab("buy-in")}
-          className={`px-6 py-3 font-semibold transition-colors ${
+          className={`px-6 py-3 font-semibold transition-colors whitespace-nowrap ${
             activeTab === "buy-in"
               ? "text-white border-b-2 border-green-500 bg-green-500/10"
               : "text-gray-400 hover:text-white"
@@ -586,7 +645,7 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
         </button>
         <button
           onClick={() => setActiveTab("cash-out")}
-          className={`px-6 py-3 font-semibold transition-colors ${
+          className={`px-6 py-3 font-semibold transition-colors whitespace-nowrap ${
             activeTab === "cash-out"
               ? "text-white border-b-2 border-blue-500 bg-blue-500/10"
               : "text-gray-400 hover:text-white"
@@ -599,7 +658,7 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
             setActiveTab("history");
             setHistoryPage(1);
           }}
-          className={`px-6 py-3 font-semibold transition-colors ${
+          className={`px-6 py-3 font-semibold transition-colors whitespace-nowrap ${
             activeTab === "history"
               ? "text-white border-b-2 border-purple-500 bg-purple-500/10"
               : "text-gray-400 hover:text-white"
@@ -608,6 +667,129 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
           Transaction History
         </button>
       </div>
+
+      {/* Pending Buy-In Requests Tab */}
+      {activeTab === "pending-requests" && (
+        <div className="space-y-6">
+          <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Player Buy-In Requests</h2>
+              <div className="text-sm text-gray-400">
+                {pendingBuyInRequests.filter(r => r.status === 'pending').length} pending
+              </div>
+            </div>
+
+            {requestsLoading ? (
+              <div className="text-gray-400 text-center py-8">Loading buy-in requests...</div>
+            ) : requestsError ? (
+              <div className="text-center py-8">
+                <div className="text-red-400 mb-2">Failed to load buy-in requests</div>
+                <div className="text-gray-500 text-sm">{requestsError.message}</div>
+                <button
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ['clubBuyInRequests', selectedClubId] })}
+                  className="mt-3 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : pendingBuyInRequests.filter(r => r.status === 'pending').length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-5xl mb-4">📋</div>
+                <p className="text-xl text-gray-300">No pending buy-in requests</p>
+                <p className="text-gray-500 text-sm mt-2">
+                  When players request a buy-in from their table, it will appear here for approval
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingBuyInRequests.filter(r => r.status === 'pending').map((request) => (
+                  <div
+                    key={request.id}
+                    className="bg-slate-700 rounded-lg p-5 border border-slate-600 hover:border-orange-500/50 transition-all"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-bold text-white">{request.playerName}</h3>
+                          <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs font-semibold">
+                            PENDING
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-400">Table:</span>
+                            <span className="text-white ml-2 font-medium">
+                              {request.tableNumber ? `Table ${request.tableNumber}` : 'N/A'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">Seat:</span>
+                            <span className="text-white ml-2 font-medium">
+                              {request.seatNumber ? `Seat ${request.seatNumber}` : 'N/A'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">Requested Amount:</span>
+                            <span className="text-green-400 ml-2 font-bold text-lg">
+                              ₹{Number(request.requestedAmount || 0).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">Current Table Balance:</span>
+                            <span className="text-white ml-2 font-medium">
+                              ₹{Number(request.currentTableBalance || 0).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">Requested At:</span>
+                            <span className="text-white ml-2">
+                              {request.requestedAt ? new Date(request.requestedAt).toLocaleString('en-IN', {
+                                day: '2-digit', month: '2-digit', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata',
+                              }) : 'N/A'}
+                            </span>
+                          </div>
+                          {request.playerEmail && (
+                            <div>
+                              <span className="text-gray-400">Email:</span>
+                              <span className="text-white ml-2">{request.playerEmail}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Approve buy-in of ₹${Number(request.requestedAmount || 0).toLocaleString('en-IN')} for ${request.playerName}?`)) {
+                            approveBuyInMutation.mutate({ requestId: request.id, amount: request.requestedAmount || 0 });
+                          }
+                        }}
+                        disabled={approveBuyInMutation.isPending}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-all disabled:opacity-50"
+                      >
+                        {approveBuyInMutation.isPending ? "Processing..." : "Approve"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const reason = window.prompt("Reason for rejection:");
+                          if (reason && reason.trim()) {
+                            rejectBuyInMutation.mutate({ requestId: request.id, reason: reason.trim() });
+                          }
+                        }}
+                        disabled={rejectBuyInMutation.isPending}
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-all disabled:opacity-50"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Buy-In Tab Content */}
       {activeTab === "buy-in" && (

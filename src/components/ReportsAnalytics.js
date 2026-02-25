@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { FaUser, FaChartBar, FaDollarSign, FaCoins, FaTable, FaCreditCard, FaReceipt, FaGift, FaWrench, FaDownload, FaFilePdf, FaFileExcel } from 'react-icons/fa';
-import { getAuthHeaders } from '../lib/api';
+import { getAuthHeaders, apiRequest } from '../lib/api';
 
 export default function ReportsAnalytics({ clubId }) {
   const [selectedReport, setSelectedReport] = useState(null);
@@ -129,24 +129,46 @@ function ReportConfigurationModal({ report, clubId, onClose }) {
   const [generating, setGenerating] = useState(false);
   const [players, setPlayers] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
+  const [playerSearchLoading, setPlayerSearchLoading] = useState(false);
+  const [playerSearchError, setPlayerSearchError] = useState(null);
+  const searchDebounceRef = useRef(null);
 
-  // Search for players (for Individual Player Report)
-  const handlePlayerSearch = async (searchTerm) => {
-    if (searchTerm.length < 3) {
+  // Search for players (for Individual Player Report) - real API with selected club context
+  const handlePlayerSearch = useCallback(async (searchTerm) => {
+    const term = (searchTerm || '').trim();
+    if (term.length < 3) {
       setSearchResults([]);
+      setPlayerSearchError(null);
       return;
     }
-
+    if (!clubId) {
+      setSearchResults([]);
+      setPlayerSearchError('Please select a club first.');
+      return;
+    }
+    setPlayerSearchLoading(true);
+    setPlayerSearchError(null);
+    const headers = { ...getAuthHeaders(), 'x-club-id': clubId };
     try {
-      // Mock search - replace with actual API call
-      setSearchResults([
-        { id: '1', name: 'John Doe', email: 'john@example.com' },
-        { id: '2', name: 'Jane Smith', email: 'jane@example.com' }
-      ]);
+      const data = await apiRequest(
+        `/clubs/${clubId}/bonuses/players/list?search=${encodeURIComponent(term)}`,
+        { headers }
+      );
+      const list = (data?.players || []).map((p) => ({
+        id: p.id,
+        name: p.name || 'Unknown',
+        email: p.email || ''
+      }));
+      setSearchResults(list);
+      if (list.length === 0) setPlayerSearchError('No players found.');
     } catch (error) {
       console.error('Error searching players:', error);
+      setSearchResults([]);
+      setPlayerSearchError(error?.message || 'Search failed. Try again.');
+    } finally {
+      setPlayerSearchLoading(false);
     }
-  };
+  }, [clubId]);
 
   const handleGenerate = async () => {
     try {
@@ -217,27 +239,58 @@ function ReportConfigurationModal({ report, clubId, onClose }) {
               type="text"
               value={config.playerSearch}
               onChange={(e) => {
-                setConfig({ ...config, playerSearch: e.target.value });
-                handlePlayerSearch(e.target.value);
+                const v = e.target.value;
+                setConfig((c) => ({ ...c, playerSearch: v }));
+                if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                if (v.trim().length >= 3) {
+                  searchDebounceRef.current = setTimeout(() => handlePlayerSearch(v), 350);
+                } else {
+                  setSearchResults([]);
+                  setPlayerSearchError(null);
+                }
               }}
               placeholder="Search by name, ID, or email..."
               className="w-full px-4 py-3 bg-slate-700 text-white rounded-lg"
             />
-            {searchResults.length > 0 && (
-              <div className="mt-2 bg-slate-700 rounded-lg max-h-48 overflow-y-auto">
+            {playerSearchLoading && (
+              <p className="mt-2 text-white/70 text-sm">Searching…</p>
+            )}
+            {playerSearchError && !playerSearchLoading && (
+              <p className="mt-2 text-amber-400 text-sm">{playerSearchError}</p>
+            )}
+            {searchResults.length > 0 && !playerSearchLoading && (
+              <div className="mt-2 bg-slate-700 rounded-lg max-h-48 overflow-y-auto z-10 relative">
                 {searchResults.map((player) => (
                   <button
                     key={player.id}
-                    onClick={() => {
-                      setConfig({ ...config, playerId: player.id, playerSearch: player.name });
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setConfig((c) => ({ ...c, playerId: player.id, playerSearch: player.name }));
                       setSearchResults([]);
+                      setPlayerSearchError(null);
                     }}
-                    className="w-full text-left px-4 py-3 text-white hover:bg-slate-600 transition-colors"
+                    className="w-full text-left px-4 py-3 text-white hover:bg-slate-600 transition-colors cursor-pointer"
                   >
                     <div className="font-semibold">{player.name}</div>
                     <div className="text-sm text-white/60">{player.email}</div>
                   </button>
                 ))}
+              </div>
+            )}
+            {config.playerId && (
+              <div className="mt-3 flex items-center justify-between gap-2 px-4 py-3 bg-emerald-900/60 border border-emerald-500/50 rounded-lg">
+                <span className="text-emerald-200 text-sm font-medium">
+                  Selected player: <strong className="text-white">{config.playerSearch || 'Unknown'}</strong>
+                </span>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); setConfig((c) => ({ ...c, playerId: '', playerSearch: '' })); }}
+                  className="text-emerald-300 hover:text-white text-sm underline shrink-0"
+                >
+                  Clear
+                </button>
               </div>
             )}
           </div>
