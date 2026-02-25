@@ -55,10 +55,11 @@ export default function BuyInRequestManagement({ clubId }) {
   }, [clubId, queryClient]);
 
   // Fetch pending buy-in requests (initial load + fallback)
-  const { data: buyInRequests = [], isLoading, refetch } = useQuery({
+  const { data: buyInRequests = [], isLoading, error: fetchError, refetch } = useQuery({
     queryKey: ['buyInRequests', clubId],
     queryFn: () => clubsAPI.getBuyInRequests(clubId),
     enabled: !!clubId,
+    refetchInterval: 15000,
   });
 
   // Approve buy-in mutation
@@ -141,6 +142,17 @@ export default function BuyInRequestManagement({ clubId }) {
 
         {isLoading ? (
           <div className="text-gray-400 text-center py-8">Loading buy-in requests...</div>
+        ) : fetchError ? (
+          <div className="text-center py-8">
+            <div className="text-red-400 mb-2">Failed to load buy-in requests</div>
+            <div className="text-gray-500 text-sm mb-3">{fetchError.message}</div>
+            <button
+              onClick={() => refetch()}
+              className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm"
+            >
+              Retry
+            </button>
+          </div>
         ) : pendingRequests.length === 0 ? (
           <div className="text-gray-400 text-center py-8">No pending buy-in requests</div>
         ) : (
