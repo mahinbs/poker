@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import CustomSelect from "./common/CustomSelect";
+import { superAdminAPI } from "../lib/api";
 
 export default function PlayerManagementSection({
   userRole = "hr", // "superadmin", "admin", "manager", "hr", "cashier", "gre",
@@ -32,6 +33,11 @@ export default function PlayerManagementSection({
   const [showPlayerDetailsModal, setShowPlayerDetailsModal] = useState(false);
   const [loadingPlayerDetails, setLoadingPlayerDetails] = useState(false);
 
+  // Create player success modal (temp password)
+  const [showCreateSuccessModal, setShowCreateSuccessModal] = useState(false);
+  const [createSuccessData, setCreateSuccessData] = useState(null);
+  const [createPlayerLoading, setCreatePlayerLoading] = useState(false);
+
   // Player Creation state
   const [playerForm, setPlayerForm] = useState({
     name: "",
@@ -41,7 +47,6 @@ export default function PlayerManagementSection({
     referralCode: "",
     documentType: "",
     documentUrl: "",
-    initialBalance: 0,
   });
 
   // Player Suspension state
@@ -275,23 +280,51 @@ export default function PlayerManagementSection({
     alert(`Profile Update ${action === "approve" ? "Approved" : "Rejected"}`);
   };
 
-  const handleCreatePlayer = () => {
+  const handleCreatePlayer = async () => {
     if (!playerForm.name || !playerForm.email || !playerForm.phone) {
       alert("Please fill in all required fields (Name, Email, Phone)");
       return;
     }
-    alert(`Player "${playerForm.name}" created successfully!`);
-    // Reset form
-    setPlayerForm({
-      name: "",
-      email: "",
-      phone: "",
-      referredBy: "",
-      referralCode: "",
-      documentType: "",
-      documentUrl: "",
-      initialBalance: 0,
-    });
+    if (!clubId) {
+      alert("No club selected. Please select a club first.");
+      return;
+    }
+    setCreatePlayerLoading(true);
+    try {
+      const payload = {
+        name: playerForm.name.trim(),
+        email: playerForm.email.trim(),
+        phoneNumber: playerForm.phone.trim(),
+        affiliateCode: playerForm.referralCode?.trim() || undefined,
+        documentType: playerForm.documentType || undefined,
+        documentUrl: playerForm.documentUrl || undefined,
+      };
+      const data = await superAdminAPI.createPlayer(clubId, payload);
+      setCreateSuccessData({
+        player: {
+          name: data.name,
+          email: data.email,
+          tempPassword: data.tempPassword,
+        },
+      });
+      setShowCreateSuccessModal(true);
+      setPlayerForm({
+        name: "",
+        email: "",
+        phone: "",
+        referredBy: "",
+        referralCode: "",
+        documentType: "",
+        documentUrl: "",
+      });
+      if (setAllPlayers && onRefreshApprovals) {
+        onRefreshApprovals();
+      }
+    } catch (err) {
+      alert(err?.message || "Failed to create player. Please try again.");
+    } finally {
+      setCreatePlayerLoading(false);
+    }
   };
 
   // View player details with KYC documents
@@ -536,33 +569,43 @@ export default function PlayerManagementSection({
                   }
                 />
               </div>
-              <div>
-                <label className="text-white text-sm mb-2 block">
-                  Initial Balance (₹)
-                </label>
-                <input
-                  type="number"
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-                  placeholder="0"
-                  value={playerForm.initialBalance}
-                  onChange={(e) =>
-                    setPlayerForm({
-                      ...playerForm,
-                      initialBalance: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  min="0"
-                />
-              </div>
             </div>
             <button
               onClick={handleCreatePlayer}
-              className="mt-6 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-4 py-3 rounded-lg font-semibold shadow-lg"
+              disabled={createPlayerLoading}
+              className="mt-6 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:opacity-70 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-semibold shadow-lg"
             >
-              Create Player
+              {createPlayerLoading ? "Creating..." : "Create Player"}
             </button>
           </div>
         </section>
+      )}
+
+      {/* Create Player Success Modal (temp password) */}
+      {showCreateSuccessModal && createSuccessData?.player && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-gray-900 border border-purple-500/50 rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-white mb-2">Player created</h3>
+            <p className="text-gray-300 text-sm mb-4">
+              {createSuccessData.player.name} ({createSuccessData.player.email})
+            </p>
+            <div className="mb-4">
+              <label className="text-gray-400 text-sm block mb-1">Temporary password (share with player)</label>
+              <div className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white font-mono break-all select-all">
+                {createSuccessData.player.tempPassword ?? "Not provided"}
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setShowCreateSuccessModal(false);
+                setCreateSuccessData(null);
+              }}
+              className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-medium"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Player Approval Tab */}

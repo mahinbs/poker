@@ -1791,6 +1791,12 @@ export const superAdminAPI = {
     });
   },
 
+  deletePlayer: async (clubId, playerId) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}`, {
+      method: 'DELETE',
+    });
+  },
+
   getPendingApprovalPlayers: async (clubId) => {
     return await apiRequest(`/clubs/${clubId}/players-pending-approval`);
   },

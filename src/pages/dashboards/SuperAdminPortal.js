@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import UnifiedPlayerManagement from "./UnifiedPlayerManagement";
 import TableManagement from "./TableManagement";
 import ClubBuyInCashOut from "./ClubBuyInCashOut";
+import BuyInRequestManagement from "../../components/BuyInRequestManagement";
 import CreditManagement from "./CreditManagement";
 import VIPStore from "./VIPStore";
 import PushNotifications from "./PushNotifications";
@@ -529,6 +530,23 @@ export default function SuperAdminPortal() {
             <ClubBuyInCashOut selectedClubId={selectedClubId} />
           )}
 
+          {/* Club Buy-In Requests - same pattern as Credit Approval Requests */}
+          {activeItem === "Club Buy-In Requests" && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-2">Club Buy-In Requests</h1>
+                <p className="text-gray-400">Approve or reject buy-in requests from players seated at tables. Super Admin and staff with club buy-in access can approve.</p>
+              </div>
+              {selectedClubId ? (
+                <BuyInRequestManagement clubId={selectedClubId} />
+              ) : (
+                <div className="bg-slate-800 rounded-xl p-8 border border-slate-700 text-center">
+                  <p className="text-gray-400">Please select a club to view buy-in requests.</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Credit Management */}
           {activeItem === "Credit Management" && (
             <CreditManagement selectedClubId={selectedClubId} />
@@ -612,7 +630,7 @@ export default function SuperAdminPortal() {
             <PlayerFeedbackSection selectedClubId={selectedClubId} />
           )}
 
-          {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Transactions", "Player Feedback", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
+          {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Club Buy-In Requests", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Transactions", "Player Feedback", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
             </div>

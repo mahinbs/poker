@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { tablesAPI, waitlistAPI, staffAPI, shiftsAPI, superAdminAPI } from '../lib/api';
+import { tablesAPI, waitlistAPI, staffAPI, shiftsAPI, superAdminAPI, clubsAPI } from '../lib/api';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from './TableBuyOutManagement';
 import RakeCollection from './RakeCollection';
@@ -174,7 +174,8 @@ function LiveTablesView({ selectedClubId, tables, tablesLoading }) {
       sessionTimeout: parseInt(sessionTimeout),
     });
     
-    setSessionStatus(table.status === 'OCCUPIED' ? 'Active' : 'Paused');
+    // Session is active if table is OCCUPIED or has players seated
+    setSessionStatus((table.status === 'OCCUPIED' || (table.currentSeats > 0)) ? 'Active' : 'Paused');
   };
 
   return (
@@ -770,6 +771,21 @@ function TableHologramModal({ table, onClose, clubId }) {
   const [seatedPlayersData, setSeatedPlayersData] = useState([]);
   const [activeTab, setActiveTab] = useState('view');
   const [tableHistory, setTableHistory] = useState([]);
+  const [showRakeForm, setShowRakeForm] = useState(false);
+  const [rakeAmount, setRakeAmount] = useState('');
+  const [rakeNotes, setRakeNotes] = useState('');
+
+  const rakeCollectionMutation = useMutation({
+    mutationFn: (data) => clubsAPI.createRakeCollection(clubId, data),
+    onSuccess: () => {
+      toast.success('Rake collected for this table. You can collect again during the session.');
+      setRakeAmount('');
+      setRakeNotes('');
+      setShowRakeForm(false);
+      queryClient.invalidateQueries(['rakeCollections', clubId]);
+    },
+    onError: (err) => toast.error(err.message || 'Failed to save rake collection'),
+  });
 
   // Fetch table history (buy-ins and buy-outs for this table)
   useEffect(() => {
@@ -790,10 +806,12 @@ function TableHologramModal({ table, onClose, clubId }) {
         });
         if (response.ok) {
           const data = await response.json();
-          const filtered = data.filter(t => 
-            (t.type === 'Buy In' || (t.type === 'Deposit' && t.notes?.includes(`Table ${table.tableNumber}`))) &&
-            (t.notes?.includes(`Table ${table.tableNumber}`) || t.description?.includes(`Table ${table.tableNumber}`))
-          ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          const tableLabel = `Table ${table.tableNumber}`;
+          const filtered = (Array.isArray(data) ? data : []).filter(t => {
+            const isTableTxn = t.type === 'Table Buy In' || t.type === 'Table Buy Out' || t.type === 'Buy In' || (t.type === 'Deposit' && t.notes?.includes(tableLabel));
+            const mentionsTable = (t.notes || '').includes(tableLabel) || (t.description || '').includes(tableLabel);
+            return isTableTxn && mentionsTable;
+          }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
           setTableHistory(filtered);
         }
       } catch (error) {
@@ -834,7 +852,7 @@ function TableHologramModal({ table, onClose, clubId }) {
     
     if (clubId && table?.id) {
       fetchSeatedPlayers();
-      const interval = setInterval(fetchSeatedPlayers, 5000);
+      const interval = setInterval(fetchSeatedPlayers, 3000);
       return () => clearInterval(interval);
     }
   }, [clubId, table?.id]);
@@ -918,7 +936,8 @@ function TableHologramModal({ table, onClose, clubId }) {
       return;
     }
 
-    if (table.status === 'AVAILABLE' || table.status === 'PAUSED') {
+    // Show static paused elapsed if paused
+    if (table.status === 'PAUSED') {
       const pausedElapsedMatch = table.notes?.match(/Paused Elapsed: (\d+)/);
       if (pausedElapsedMatch) {
         const pausedElapsedSeconds = parseInt(pausedElapsedMatch[1], 10);
@@ -938,7 +957,8 @@ function TableHologramModal({ table, onClose, clubId }) {
       return;
     }
 
-    if (table.status !== 'OCCUPIED') {
+    // Run timer whenever table has players or is occupied
+    if (table.status !== 'OCCUPIED' && !(table.currentSeats > 0)) {
       setSessionTime('00:00:00');
       return;
     }
@@ -946,17 +966,25 @@ function TableHologramModal({ table, onClose, clubId }) {
     const sessionStartMatch = table.notes?.match(/Session Started: ([^|]+)/);
     const pausedElapsedMatch = table.notes?.match(/Paused Elapsed: (\d+)/);
     
-    if (!sessionStartMatch || !sessionStartMatch[1]) {
-      setSessionTime('00:00:00');
-      return;
+    // Fall back to first seated player's seatedAt time if no session start in notes
+    let sessionStartTime = null;
+    if (sessionStartMatch && sessionStartMatch[1]) {
+      sessionStartTime = new Date(sessionStartMatch[1].trim());
+    } else if (seatedPlayersData.length > 0) {
+      const earliest = seatedPlayersData
+        .filter(p => p.seatedAt)
+        .sort((a, b) => new Date(a.seatedAt) - new Date(b.seatedAt))[0];
+      if (earliest) sessionStartTime = new Date(earliest.seatedAt);
     }
 
-    const sessionStartTimeStr = sessionStartMatch[1].trim();
-    const sessionStartTime = new Date(sessionStartTimeStr);
-    
-    if (isNaN(sessionStartTime.getTime())) {
-      setSessionTime('00:00:00');
-      return;
+    if (!sessionStartTime || isNaN(sessionStartTime.getTime())) {
+      // Still show a running timer from now if players exist
+      if (table.currentSeats > 0) {
+        sessionStartTime = new Date();
+      } else {
+        setSessionTime('00:00:00');
+        return;
+      }
     }
 
     const pausedElapsedSeconds = pausedElapsedMatch ? parseInt(pausedElapsedMatch[1], 10) : 0;
@@ -991,7 +1019,7 @@ function TableHologramModal({ table, onClose, clubId }) {
     const interval = setInterval(updateTimer, 1000);
     
     return () => clearInterval(interval);
-  }, [table]);
+  }, [table, seatedPlayersData]);
 
   const seats = Array.from({ length: table.maxSeats }, (_, i) => i + 1);
 
@@ -1154,9 +1182,16 @@ function TableHologramModal({ table, onClose, clubId }) {
                 <div className="text-center text-xs text-white mt-1 whitespace-nowrap max-w-[80px] overflow-hidden text-ellipsis">
                   {isOccupied && seatedPlayer ? seatedPlayer.playerName : `Seat ${seatNum}`}
                 </div>
-                {isOccupied && seatedPlayer && seatedPlayer.buyInAmount > 0 && (
-                  <div className="text-center text-[10px] text-yellow-300 bg-slate-800/80 px-1 rounded mt-0.5">
-                    ₹{Number(seatedPlayer.buyInAmount).toLocaleString()}
+                {isOccupied && seatedPlayer && (
+                  <div className="text-center space-y-0.5 mt-0.5">
+                    <div className="text-[10px] text-yellow-300 bg-slate-800/80 px-1 rounded">
+                      Table: ₹{Number(seatedPlayer.buyInAmount || 0).toLocaleString()}
+                    </div>
+                    {(seatedPlayer.walletBalance !== undefined && seatedPlayer.walletBalance !== null) && (
+                      <div className="text-[10px] text-cyan-300 bg-slate-800/80 px-1 rounded">
+                        Wallet: ₹{Number(seatedPlayer.walletBalance || 0).toLocaleString()}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1164,11 +1199,11 @@ function TableHologramModal({ table, onClose, clubId }) {
           })}
         </div>
 
-        {/* Table Info */}
+        {/* Table Info - use real-time seated count from API */}
         <div className="mt-6 grid grid-cols-4 gap-4 bg-slate-800 p-4 rounded-lg">
           <div className="text-center">
             <div className="text-gray-400 text-sm">Players</div>
-            <div className="text-white font-bold text-xl">{table.currentSeats || 0}/{table.maxSeats}</div>
+            <div className="text-white font-bold text-xl">{seatedPlayersData.length}/{table.maxSeats}</div>
           </div>
           <div className="text-center">
             <div className="text-gray-400 text-sm">Table Value</div>
@@ -1181,26 +1216,87 @@ function TableHologramModal({ table, onClose, clubId }) {
           <div className="text-center">
             <div className="text-gray-400 text-sm">Status</div>
             <div className={`font-bold text-xl ${
-              table.status === 'OCCUPIED' ? 'text-green-400' :
-              table.status === 'AVAILABLE' ? 'text-yellow-400' :
+              (table.status === 'OCCUPIED' || table.currentSeats > 0) ? 'text-green-400' :
+              table.status === 'PAUSED' ? 'text-yellow-400' :
               'text-gray-400'
             }`}>
-              {table.status === 'OCCUPIED' ? 'Active' : 
-               table.status === 'AVAILABLE' ? 'Waiting' : 
-               table.status}
+              {table.status === 'PAUSED' ? 'Paused' :
+               (table.status === 'OCCUPIED' || table.currentSeats > 0) ? 'Active' : 
+               'Waiting'}
             </div>
           </div>
         </div>
 
-        {/* Session Timer */}
-        {(table.status === 'OCCUPIED' || (table.status === 'AVAILABLE' && table.notes?.includes('Paused Elapsed'))) && (
-          <div className="mt-4 bg-gradient-to-r from-emerald-600 to-teal-600 p-4 rounded-lg text-center">
-            <div className="text-emerald-100 text-sm mb-1">SESSION RUNNING TIME</div>
+        {/* Session Timer - always show when table has players or session is active */}
+        {(table.status === 'OCCUPIED' || table.status === 'PAUSED' || table.currentSeats > 0) && (
+          <div className={`mt-4 p-4 rounded-lg text-center ${table.status === 'PAUSED' ? 'bg-gradient-to-r from-yellow-700 to-orange-700' : 'bg-gradient-to-r from-emerald-600 to-teal-600'}`}>
+            <div className="text-white/70 text-xs mb-1 uppercase tracking-widest">
+              {table.status === 'PAUSED' ? 'SESSION PAUSED' : 'SESSION RUNNING'}
+            </div>
             <div className="text-white font-bold text-3xl font-mono">{sessionTime}</div>
           </div>
         )}
 
-        <div className="mt-6 flex justify-end">
+        {/* Collect Rake - Rummy allows multiple collections per session */}
+        {showRakeForm ? (
+          <div className="mt-6 p-4 bg-amber-900/30 border border-amber-500/50 rounded-lg">
+            <h4 className="text-white font-semibold mb-3">Collect Rake – Table {table.tableNumber}</h4>
+            <div className="grid grid-cols-1 gap-3 mb-3">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Amount (₹) *</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={rakeAmount}
+                  onChange={(e) => setRakeAmount(e.target.value)}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white"
+                  placeholder="e.g. 500"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Notes (optional)</label>
+                <input
+                  type="text"
+                  value={rakeNotes}
+                  onChange={(e) => setRakeNotes(e.target.value)}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white"
+                  placeholder="e.g. Round 1"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => rakeCollectionMutation.mutate({
+                  tableId: table.id,
+                  sessionDate: new Date().toISOString().split('T')[0],
+                  totalRakeAmount: parseFloat(rakeAmount) || 0,
+                  notes: rakeNotes || `Rake – Table ${table.tableNumber}`,
+                })}
+                disabled={rakeCollectionMutation.isPending || !rakeAmount || parseFloat(rakeAmount) <= 0}
+                className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-lg"
+              >
+                {rakeCollectionMutation.isPending ? 'Saving...' : 'Collect Rake'}
+              </button>
+              <button
+                onClick={() => { setShowRakeForm(false); setRakeAmount(''); setRakeNotes(''); }}
+                className="bg-slate-600 hover:bg-slate-500 text-white font-semibold px-4 py-2 rounded-lg"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="mt-6 flex justify-end gap-3">
+          {!showRakeForm && (
+            <button
+              onClick={() => setShowRakeForm(true)}
+              className="bg-amber-600 hover:bg-amber-500 px-6 py-3 rounded-lg font-bold text-white transition-colors"
+            >
+              Collect Rake
+            </button>
+          )}
           <button
             onClick={onClose}
             className="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-lg font-bold text-white transition-colors"
@@ -1220,7 +1316,7 @@ function TableHologramModal({ table, onClose, clubId }) {
             ) : (
               <div className="space-y-3">
                 {tableHistory.map((transaction, idx) => {
-                  const isBuyIn = transaction.type === 'Buy In';
+                  const isBuyIn = transaction.type === 'Table Buy In' || transaction.type === 'Buy In' || transaction.type === 'Club Buy In';
                   return (
                     <div 
                       key={transaction.id || idx} 
@@ -1632,8 +1728,17 @@ function RummyTableManagementView({ selectedClubId, tables, tablesLoading }) {
                 <p className="text-gray-400 text-sm mt-2">Click "Add New Table" to create your first rummy table</p>
               </div>
             ) : (
+              <>
+                {/* Only show tables with NO active session here. Tables with players are in Live Tables. */}
+                {tables.filter(t => !t.currentSeats || t.currentSeats === 0).length === 0 && (
+                  <div className="text-center py-8 bg-slate-700/50 rounded-xl border border-slate-600">
+                    <div className="text-4xl mb-3">🎯</div>
+                    <p className="text-white font-semibold">All tables have active sessions</p>
+                    <p className="text-gray-400 text-sm mt-1">View and manage them in the <strong>Live Rummy Tables</strong> tab</p>
+                  </div>
+                )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {tables.map((table) => (
+                {tables.filter(t => !t.currentSeats || t.currentSeats === 0).map((table) => (
                   <div
                     key={table.id}
                     className="bg-slate-700 rounded-xl p-5 border border-slate-600"
@@ -1669,16 +1774,14 @@ function RummyTableManagementView({ selectedClubId, tables, tablesLoading }) {
                     </div>
 
                     <div className="flex gap-2">
-                      {table.status === 'AVAILABLE' || table.status === 'CLOSED' ? (
-                        <button
-                          onClick={() => startSessionMutation.mutate(table.id)}
-                          disabled={startSessionMutation.isLoading}
-                          className="flex-1 bg-green-600 hover:bg-green-500 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
-                        >
-                          <span>▶</span>
-                          <span>Start Session</span>
-                        </button>
-                      ) : null}
+                      <button
+                        onClick={() => startSessionMutation.mutate(table.id)}
+                        disabled={startSessionMutation.isLoading}
+                        className="flex-1 bg-green-600 hover:bg-green-500 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                      >
+                        <span>▶</span>
+                        <span>{startSessionMutation.isLoading ? 'Starting…' : 'Start Session'}</span>
+                      </button>
                       <button
                         onClick={() => handleEditTable(table)}
                         className="flex-1 bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -1696,6 +1799,7 @@ function RummyTableManagementView({ selectedClubId, tables, tablesLoading }) {
                   </div>
                 ))}
               </div>
+              </>
             )}
           </div>
         )}
@@ -2005,11 +2109,93 @@ function RummyTableManagementView({ selectedClubId, tables, tablesLoading }) {
 // Table Buy-In View Component (Waitlist Management)
 // ============================================================================
 function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
+  const queryClient = useQueryClient();
+  const [selectedPlayer, setSelectedPlayer] = useState("");
+  const [selectedTable, setSelectedTable] = useState("");
+  const [selectedSeat, setSelectedSeat] = useState("");
+  const [selectedTableForView, setSelectedTableForView] = useState(null); // { table, waitlistEntry }
+
+  // Remove waitlist entry
+  const removeWaitlistMutation = useMutation({
+    mutationFn: (entryId) => waitlistAPI.deleteWaitlistEntry(selectedClubId, entryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['waitlist', selectedClubId]);
+      toast.success('Player removed from waitlist');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to remove from waitlist');
+    },
+  });
+
+  // Assign seat
+  const assignSeatMutation = useMutation({
+    mutationFn: ({ entryId, tableId }) =>
+      waitlistAPI.assignSeat(selectedClubId, entryId, { tableId, seatedBy: 'Super Admin' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['waitlist', selectedClubId]);
+      queryClient.invalidateQueries(['rummy-tables', selectedClubId]);
+      setSelectedPlayer("");
+      setSelectedTable("");
+      setSelectedSeat("");
+      toast.success('Seat assigned successfully');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to assign seat');
+    },
+  });
+
+  // Reorder waitlist
+  const reorderWaitlistMutation = useMutation({
+    mutationFn: ({ entryId, newPriority }) =>
+      waitlistAPI.updateWaitlistEntry(selectedClubId, entryId, { priority: newPriority }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['waitlist', selectedClubId]);
+      toast.success('Waitlist reordered');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to reorder waitlist');
+    },
+  });
+
+  // Sort pending waitlist entries by priority (desc) then createdAt (asc)
+  const pendingWaitlist = (Array.isArray(waitlist) ? waitlist : [])
+    .filter((e) => e.status === 'PENDING')
+    .sort((a, b) => {
+      const pa = a.priority || 0, pb = b.priority || 0;
+      if (pb !== pa) return pb - pa;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    })
+    .map((entry, index) => ({ ...entry, position: index + 1 }));
+
+  const handleViewTable = (entry) => {
+    // Try to match by tableType (RUMMY), fall back to any available table
+    let table = tables.find((t) => t.tableType === 'RUMMY' && t.status === 'AVAILABLE');
+    if (!table) table = tables.find((t) => t.status === 'AVAILABLE');
+    if (!table && tables.length > 0) table = tables[0];
+    if (table) {
+      setSelectedTableForView({ table, waitlistEntry: entry });
+    } else {
+      toast.error('No rummy tables available. Please create a rummy table first.');
+    }
+  };
+
+  const handleAssignSeat = () => {
+    if (!selectedPlayer || !selectedTable || !selectedSeat) {
+      toast.error('Please select player, table, and seat');
+      return;
+    }
+    assignSeatMutation.mutate({ entryId: selectedPlayer, tableId: selectedTable });
+  };
+
+  // Find max seats for selected table (for seat dropdown)
+  const selectedTableObj = tables.find((t) => t.id === selectedTable);
+  const maxSeatsForSelected = selectedTableObj?.maxSeats || 6;
+
   return (
     <div className="space-y-6">
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
         <h2 className="text-2xl font-bold mb-6">Waitlist Management</h2>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Current Waitlist */}
           <div className="bg-slate-700 rounded-xl p-5">
@@ -2019,30 +2205,38 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto mb-2"></div>
                 <p className="text-sm">Loading...</p>
               </div>
-            ) : waitlist.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                No players in waitlist
-              </div>
+            ) : pendingWaitlist.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">No players in waitlist</div>
             ) : (
-              <div className="space-y-3">
-                {waitlist.map((entry) => (
+              <div className="space-y-3 max-h-[520px] overflow-y-auto">
+                {pendingWaitlist.map((entry) => (
                   <div key={entry.id} className="bg-slate-600 p-4 rounded-lg">
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <div className="font-semibold text-white">{entry.playerName}</div>
-                        <div className="text-sm text-gray-400">Position: {entry.priority || 'N/A'}</div>
-                        <div className="text-sm text-gray-400">Table Type: {entry.tableType || 'Any'}</div>
+                        <div className="text-sm text-gray-400">Position: #{entry.position}</div>
+                        <div className="text-sm text-gray-400">Table Type: {entry.tableType || 'Rummy'}</div>
+                        {entry.requestedSeat && (
+                          <div className="text-sm text-rose-400">Requested Seat: {entry.requestedSeat}</div>
+                        )}
                       </div>
                       <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs font-semibold">
                         {entry.status}
                       </span>
                     </div>
                     <div className="flex gap-2 mt-3">
-                      <button className="flex-1 bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-sm font-medium transition-colors">
+                      <button
+                        onClick={() => handleViewTable(entry)}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-sm font-medium transition-colors"
+                      >
                         🎯 View Table
                       </button>
-                      <button className="flex-1 bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded text-sm font-medium transition-colors">
-                        Remove
+                      <button
+                        onClick={() => removeWaitlistMutation.mutate(entry.id)}
+                        disabled={removeWaitlistMutation.isLoading}
+                        className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 disabled:cursor-not-allowed px-3 py-1.5 rounded text-sm font-medium transition-colors"
+                      >
+                        {removeWaitlistMutation.isLoading ? 'Removing…' : 'Remove'}
                       </button>
                     </div>
                   </div>
@@ -2057,33 +2251,57 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Select Player</label>
-                <select className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white">
+                <select
+                  value={selectedPlayer}
+                  onChange={(e) => {
+                    setSelectedPlayer(e.target.value);
+                    // Auto-select first available rummy table
+                    const matchingTable = tables.find((t) => t.tableType === 'RUMMY');
+                    if (matchingTable) setSelectedTable(matchingTable.id);
+                    setSelectedSeat('');
+                  }}
+                  className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white"
+                >
                   <option value="">-- Select Player --</option>
-                  {waitlist.map((entry) => (
+                  {pendingWaitlist.map((entry) => (
                     <option key={entry.id} value={entry.id}>{entry.playerName}</option>
                   ))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Select Table</label>
-                <select className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white">
+                <select
+                  value={selectedTable}
+                  onChange={(e) => { setSelectedTable(e.target.value); setSelectedSeat(''); }}
+                  className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white"
+                >
                   <option value="">-- Select Table --</option>
                   {tables.map((table) => (
-                    <option key={table.id} value={table.id}>Table {table.tableNumber}</option>
+                    <option key={table.id} value={table.id}>
+                      Table {table.tableNumber} ({table.currentSeats || 0}/{table.maxSeats} seats)
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Seat Number</label>
-                <select className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white">
+                <select
+                  value={selectedSeat}
+                  onChange={(e) => setSelectedSeat(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white"
+                >
                   <option value="">-- Select Seat --</option>
-                  {[1, 2, 3, 4, 5, 6].map((seat) => (
+                  {Array.from({ length: maxSeatsForSelected }, (_, i) => i + 1).map((seat) => (
                     <option key={seat} value={seat}>Seat {seat}</option>
                   ))}
                 </select>
               </div>
-              <button className="w-full bg-purple-600 hover:bg-purple-500 px-4 py-3 rounded-lg font-semibold transition-colors">
-                Assign Seat
+              <button
+                onClick={handleAssignSeat}
+                disabled={!selectedPlayer || !selectedTable || !selectedSeat || assignSeatMutation.isLoading}
+                className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-3 rounded-lg font-semibold transition-colors"
+              >
+                {assignSeatMutation.isLoading ? 'Assigning…' : 'Assign Seat'}
               </button>
             </div>
           </div>
@@ -2098,13 +2316,29 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
           <div className="bg-slate-700 rounded-xl p-5">
             <h3 className="text-lg font-semibold mb-4">Call Players</h3>
             <div className="space-y-3">
-              <button className="w-full bg-green-600 hover:bg-green-500 px-4 py-3 rounded-lg font-semibold transition-colors">
+              <button
+                onClick={() => {
+                  const next = pendingWaitlist[0];
+                  if (!next) { toast.error('No players in waitlist'); return; }
+                  toast.success(`Called ${next.playerName} — Position #1`);
+                }}
+                className="w-full bg-green-600 hover:bg-green-500 px-4 py-3 rounded-lg font-semibold transition-colors"
+              >
                 Call Next Player
               </button>
-              <button className="w-full bg-emerald-600 hover:bg-emerald-500 px-4 py-3 rounded-lg font-semibold transition-colors">
+              <button
+                onClick={() => {
+                  if (pendingWaitlist.length === 0) { toast.error('No players in waitlist'); return; }
+                  toast.success(`Called all ${pendingWaitlist.length} players`);
+                }}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 px-4 py-3 rounded-lg font-semibold transition-colors"
+              >
                 Call All Players
               </button>
-              <button className="w-full bg-yellow-600 hover:bg-yellow-500 px-4 py-3 rounded-lg font-semibold transition-colors">
+              <button
+                onClick={() => toast('SMS feature coming soon')}
+                className="w-full bg-yellow-600 hover:bg-yellow-500 px-4 py-3 rounded-lg font-semibold transition-colors"
+              >
                 Send SMS Notification
               </button>
             </div>
@@ -2114,27 +2348,23 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
           <div className="bg-slate-700 rounded-xl p-5">
             <h3 className="text-lg font-semibold mb-4">Reorder Waitlist</h3>
             <div className="space-y-2">
-              {waitlist.length === 0 ? (
-                <div className="text-center py-8 text-gray-400 text-sm">
-                  No players to reorder
-                </div>
+              {pendingWaitlist.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 text-sm">No players to reorder</div>
               ) : (
-                waitlist.map((entry, index) => (
+                pendingWaitlist.map((entry, index) => (
                   <div key={entry.id} className="bg-slate-600 p-3 rounded flex justify-between items-center">
                     <span className="text-white">{index + 1}. {entry.playerName}</span>
                     <div className="flex gap-1">
                       <button
-                        disabled={index === 0}
+                        onClick={() => reorderWaitlistMutation.mutate({ entryId: entry.id, newPriority: (entry.priority || 0) + 1 })}
+                        disabled={index === 0 || reorderWaitlistMutation.isLoading}
                         className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-2 py-1 rounded text-xs transition-colors"
-                      >
-                        ↑
-                      </button>
+                      >↑</button>
                       <button
-                        disabled={index === waitlist.length - 1}
+                        onClick={() => reorderWaitlistMutation.mutate({ entryId: entry.id, newPriority: (entry.priority || 0) - 1 })}
+                        disabled={index === pendingWaitlist.length - 1 || reorderWaitlistMutation.isLoading}
                         className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-2 py-1 rounded text-xs transition-colors"
-                      >
-                        ↓
-                      </button>
+                      >↓</button>
                     </div>
                   </div>
                 ))
@@ -2143,6 +2373,141 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
           </div>
         </div>
       </div>
+
+      {/* View Table & Seat Assignment Modal */}
+      {selectedTableForView && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">
+                🃏 Assign Player to Rummy Table {selectedTableForView.table.tableNumber}
+              </h2>
+              <button
+                onClick={() => { setSelectedTableForView(null); setSelectedSeat(''); }}
+                className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded transition-colors"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Round Rummy Table Visualization */}
+            <div className="flex justify-center mb-6">
+              <div className="relative w-64 h-64 sm:w-72 sm:h-72">
+                {/* Outer rail */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-900 via-yellow-900 to-amber-950 shadow-2xl">
+                  {/* Cushion */}
+                  <div className="absolute inset-[8px] rounded-full bg-gradient-to-br from-rose-700 via-red-600 to-rose-700">
+                    {/* Felt */}
+                    <div className="absolute inset-[6px] rounded-full bg-gradient-to-br from-rose-900 via-rose-800 to-rose-950 shadow-inner">
+                      {/* Subtle inner ring */}
+                      <div className="absolute inset-[20px] rounded-full border border-rose-600/30"></div>
+
+                      {/* Seat positions arranged in circle */}
+                      {Array.from({ length: selectedTableForView.table.maxSeats || 6 }, (_, i) => {
+                        const total = selectedTableForView.table.maxSeats || 6;
+                        const angle = (i * (2 * Math.PI / total)) - Math.PI / 2;
+                        const r = 40;
+                        const x = 50 + r * Math.cos(angle);
+                        const y = 50 + r * Math.sin(angle);
+                        const isWaiting = selectedTableForView.waitlistEntry?.requestedSeat === (i + 1);
+                        return (
+                          <div
+                            key={i}
+                            className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                            style={{ left: `${x}%`, top: `${y}%` }}
+                          >
+                            <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center shadow-lg ${isWaiting ? 'bg-yellow-500 border-yellow-300 animate-pulse' : 'bg-slate-700/80 border-slate-500'}`}>
+                              <span className="text-white text-xs font-bold">{i + 1}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Center */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="text-2xl">🃏</div>
+                          <div className="text-white text-xs font-bold mt-1">
+                            {selectedTableForView.table.rummyVariant || 'Rummy'}
+                          </div>
+                          <div className="text-rose-300 text-[10px] mt-0.5">
+                            {selectedTableForView.table.currentSeats || 0}/{selectedTableForView.table.maxSeats} players
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Table Info */}
+            <div className="bg-slate-700 rounded-lg p-4 mb-4">
+              <h3 className="font-semibold text-lg mb-2">Table Information</h3>
+              <div className="grid grid-cols-2 gap-3 text-gray-300 text-sm">
+                <div><span className="text-gray-400">Type:</span> {selectedTableForView.table.tableType}</div>
+                <div><span className="text-gray-400">Seats:</span> {selectedTableForView.table.currentSeats}/{selectedTableForView.table.maxSeats}</div>
+                <div><span className="text-gray-400">Status:</span>
+                  <span className={`ml-2 px-2 py-0.5 rounded text-xs ${selectedTableForView.table.status === 'AVAILABLE' ? 'bg-green-600' : selectedTableForView.table.status === 'OCCUPIED' ? 'bg-yellow-600' : 'bg-gray-600'}`}>
+                    {selectedTableForView.table.status}
+                  </span>
+                </div>
+                <div><span className="text-gray-400">Available:</span> {(selectedTableForView.table.maxSeats || 6) - (selectedTableForView.table.currentSeats || 0)} seats</div>
+                {selectedTableForView.table.entryFee && <div><span className="text-gray-400">Entry Fee:</span> ₹{selectedTableForView.table.entryFee}</div>}
+                {selectedTableForView.table.pointsValue && <div><span className="text-gray-400">Points Value:</span> ₹{selectedTableForView.table.pointsValue}/pt</div>}
+              </div>
+            </div>
+
+            {/* Player Info */}
+            <div className="bg-slate-700 rounded-lg p-4 mb-4">
+              <h3 className="font-semibold text-lg mb-2">Player Waiting</h3>
+              <div className="grid grid-cols-2 gap-3 text-gray-300 text-sm">
+                <div><span className="text-gray-400">Name:</span> {selectedTableForView.waitlistEntry.playerName}</div>
+                <div><span className="text-gray-400">Position:</span> #{selectedTableForView.waitlistEntry.position || 'N/A'}</div>
+                <div><span className="text-gray-400">Requested Seat:</span> {selectedTableForView.waitlistEntry.requestedSeat || 'Any'}</div>
+                <div><span className="text-gray-400">Party Size:</span> {selectedTableForView.waitlistEntry.partySize || 1}</div>
+              </div>
+            </div>
+
+            {/* Seat Assignment */}
+            <div className="bg-slate-700 rounded-lg p-4">
+              <h3 className="font-semibold text-lg mb-4">Assign Seat</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Select Seat Number</label>
+                  <select
+                    value={selectedSeat}
+                    onChange={(e) => setSelectedSeat(e.target.value)}
+                    className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white"
+                  >
+                    <option value="">-- Choose a seat --</option>
+                    {Array.from({ length: selectedTableForView.table.maxSeats || 6 }, (_, i) => i + 1).map((seatNum) => (
+                      <option key={seatNum} value={seatNum}>
+                        Seat {seatNum}{selectedTableForView.waitlistEntry.requestedSeat === seatNum ? ' (Requested)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={() => {
+                    if (!selectedSeat) { toast.error('Please select a seat number'); return; }
+                    assignSeatMutation.mutate({
+                      entryId: selectedTableForView.waitlistEntry.id,
+                      tableId: selectedTableForView.table.id,
+                    });
+                    setSelectedTableForView(null);
+                    setSelectedSeat('');
+                  }}
+                  disabled={!selectedSeat || assignSeatMutation.isLoading}
+                  className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  {assignSeatMutation.isLoading ? 'Assigning…' : `Assign to Seat ${selectedSeat || '…'}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2282,15 +2647,24 @@ function RummyHistoryView({ selectedClubId, tables }) {
     perPage: 10,
   });
 
+  const rummyTableNumbers = (tables || []).filter(t => t.tableType === 'RUMMY').map(t => t.tableNumber);
+
   const { data: allTransactions = [], isLoading: historyLoading } = useQuery({
-    queryKey: ['rummy-transactions', selectedClubId],
+    queryKey: ['rummy-transactions', selectedClubId, rummyTableNumbers?.length],
     queryFn: async () => {
       if (!selectedClubId) return [];
       try {
         const response = await superAdminAPI.getTransactions(selectedClubId, {});
         let transactions = Array.isArray(response) ? response : (response?.data || response?.transactions || []);
-        // Filter to only rummy game_type transactions
-        return transactions.filter(t => t.game_type === 'rummy');
+        return transactions.filter(t => {
+          const gt = t.gameType || t.game_type;
+          if (gt === 'rummy') return true;
+          if (gt) return false;
+          // Backward compatibility: no game_type set - include if notes mention a rummy table number
+          const tableNumMatch = t.notes?.match(/Table\s*(\d+)/i) || t.description?.match(/Table\s*(\d+)/i);
+          const n = tableNumMatch ? parseInt(tableNumMatch[1], 10) : null;
+          return n != null && rummyTableNumbers.includes(n);
+        });
       } catch (error) {
         console.error('[RUMMY HISTORY] Error fetching transactions:', error);
         return [];

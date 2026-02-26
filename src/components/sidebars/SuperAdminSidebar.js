@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
+import { superAdminAPI, chatAPI, leaveAPI, clubsAPI } from "../../lib/api";
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 import toast from "react-hot-toast";
 
@@ -14,6 +14,7 @@ const DEFAULT_MENU_ITEMS = [
   "Affiliates",
   "Tables & Waitlist",
   "Club Buy-In",
+  "Club Buy-In Requests",
   "Credit Management",
   "VIP Store",
   "Push Notifications",
@@ -92,6 +93,14 @@ export default function SuperAdminSidebar({
     enabled: !!clubId,
   });
   const pendingCreditCount = creditRequests?.length || 0;
+
+  // Fetch pending club buy-in requests count
+  const { data: buyInRequests = [] } = useQuery({
+    queryKey: ["buyInRequests", clubId],
+    queryFn: () => clubsAPI.getBuyInRequests(clubId),
+    enabled: !!clubId,
+  });
+  const pendingBuyInCount = (buyInRequests || []).filter((r) => r.status === 'pending').length;
 
   // Play notification sound when new notification arrives
   useEffect(() => {
@@ -510,6 +519,11 @@ export default function SuperAdminSidebar({
                   {item === "Credit Management" && pendingCreditCount > 0 && (
                     <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
                       {pendingCreditCount > 9 ? "9+" : pendingCreditCount}
+                    </span>
+                  )}
+                  {item === "Club Buy-In Requests" && pendingBuyInCount > 0 && (
+                    <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
+                      {pendingBuyInCount > 9 ? "9+" : pendingBuyInCount}
                     </span>
                   )}
                 </span>
