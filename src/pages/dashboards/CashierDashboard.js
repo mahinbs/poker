@@ -762,6 +762,23 @@ export default function CashierDashboard() {
             <ClubBuyInCashOut selectedClubId={clubId} onBack={() => setActiveItem("Dashboard")} />
           )}
 
+          {/* Club Buy-In Requests - same as Credit Approval, direct tab for staff */}
+          {activeItem === "Club Buy-In Requests" && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-2">Club Buy-In Requests</h1>
+                <p className="text-gray-400">Approve or reject buy-in requests from players seated at tables.</p>
+              </div>
+              {clubId ? (
+                <BuyInRequestManagement clubId={clubId} />
+              ) : (
+                <div className="bg-slate-800 rounded-xl p-8 border border-slate-700 text-center">
+                  <p className="text-gray-400">Please select a club to view buy-in requests.</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Push Notifications */}
           {activeItem === "Push Notifications" && (
             <PushNotifications selectedClubId={clubId} />
@@ -798,7 +815,7 @@ export default function CashierDashboard() {
           )}
 
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Payroll Management", "Bonus Management", "Tables & Waitlist", "Club Buy-In", "Push Notifications", "Tournaments", "Chat", "Transactions", "Rummy", "Notifications"].includes(activeItem) && (
+          {!["Dashboard", "Payroll Management", "Bonus Management", "Tables & Waitlist", "Club Buy-In", "Club Buy-In Requests", "Push Notifications", "Tournaments", "Chat", "Transactions", "Rummy", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
             </div>

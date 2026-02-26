@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@supabase/supabase-js";
 import { superAdminAPI } from "../../lib/api";
 import toast from "react-hot-toast";
+
+const KYC_BUCKET = "kyc-docs";
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+const useClientUpload = Boolean(supabaseUrl && supabaseAnonKey);
 
 // Unified Player Management Component with 4 Tabs
 export default function UnifiedPlayerManagement({
@@ -31,7 +37,6 @@ export default function UnifiedPlayerManagement({
     panCard: "",
     aadhaarFile: null,
     panCardFile: null,
-    initialBalance: 0,
   });
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -90,75 +95,98 @@ export default function UnifiedPlayerManagement({
     enabled: !!selectedPlayerForDetails && !!selectedClubId && showPlayerDetailsModal,
   });
 
-  // Upload Document Mutation
+  // Upload Document Mutation (prefer client upload when REACT_APP_SUPABASE_* set – restart dev server after adding .env)
   const uploadDocumentMutation = useMutation({
-    mutationFn: async ({ playerId, file, documentType }) => {
+    mutationFn: async ({ playerId, file, documentType, clubId: payloadClubId }) => {
+      const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api';
+      const clubId = payloadClubId || selectedClubId;
+
+      if (useClientUpload && clubId) {
+        const ext = file.name?.split('.').pop() || 'pdf';
+        const filePath = `${clubId}/${playerId}/${documentType}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        const { error: uploadError } = await supabase.storage.from(KYC_BUCKET).upload(filePath, file, {
+          contentType: file.type || 'application/octet-stream',
+          upsert: true,
+        });
+        if (uploadError) throw new Error(uploadError.message || 'Failed to upload to storage');
+        const recordRes = await fetch(`${apiBase}/player-documents/record`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            playerId,
+            clubId,
+            documentType,
+            filePath,
+            fileName: file.name,
+            fileSize: file.size,
+            mimeType: file.type,
+          }),
+        });
+        if (!recordRes.ok) {
+          const err = await recordRes.json();
+          throw new Error(err.message || 'Failed to record document');
+        }
+        return recordRes.json();
+      }
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('type', documentType);
       formData.append('name', file.name);
-
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api'}/player-documents/upload`, {
+      const response = await fetch(`${apiBase}/player-documents/upload`, {
         method: 'POST',
-        headers: {
-          'x-player-id': playerId,
-          'x-club-id': selectedClubId,
-        },
+        headers: { 'x-player-id': playerId, 'x-club-id': clubId || selectedClubId },
         body: formData,
       });
-
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to upload document');
       }
-
       return response.json();
     },
   });
 
-  // Create Player Mutation
+  // Create Player Mutation: create player, then upload KYC; only show temp password after BOTH succeed. If upload fails, delete player and fail.
   const createPlayerMutation = useMutation({
-    mutationFn: async (data) => {
-      // First create the player
-      const playerData = await superAdminAPI.createPlayer(selectedClubId, data);
+    mutationFn: async (payload) => {
+      const { _aadhaarFile, _panCardFile, ...apiPayload } = payload;
+      const playerData = await superAdminAPI.createPlayer(selectedClubId, apiPayload);
 
-      // Then upload documents
-      const uploadPromises = [];
-
-      if (playerForm.aadhaarFile) {
-        uploadPromises.push(
-          uploadDocumentMutation.mutateAsync({
+      try {
+        if (_aadhaarFile) {
+          await uploadDocumentMutation.mutateAsync({
             playerId: playerData.id,
-            file: playerForm.aadhaarFile,
-            documentType: 'government_id', // Aadhaar is government_id
-          })
-        );
-      }
-
-      if (playerForm.panCardFile) {
-        uploadPromises.push(
-          uploadDocumentMutation.mutateAsync({
+            file: _aadhaarFile,
+            documentType: 'government_id',
+            clubId: selectedClubId,
+          });
+        }
+        if (_panCardFile) {
+          await uploadDocumentMutation.mutateAsync({
             playerId: playerData.id,
-            file: playerForm.panCardFile,
+            file: _panCardFile,
             documentType: 'pan_card',
-          })
-        );
-      }
-
-      // Wait for all uploads to complete
-      if (uploadPromises.length > 0) {
-        await Promise.all(uploadPromises);
+            clubId: selectedClubId,
+          });
+        }
+      } catch (uploadErr) {
+        try {
+          await superAdminAPI.deletePlayer(selectedClubId, playerData.id);
+        } catch (deleteErr) {
+          console.error('Rollback: failed to delete player after KYC upload failure', deleteErr);
+        }
+        throw new Error(uploadErr?.message || 'KYC document upload failed. Player was not created.');
       }
 
       return playerData;
     },
     onSuccess: (data) => {
-      // Show success modal with temp password
       setSuccessData({
         player: {
           name: data.name,
           email: data.email,
-          tempPassword: data.tempPassword,
+          tempPassword: data.tempPassword ?? 'Not provided',
         }
       });
       setShowSuccessModal(true);
@@ -170,7 +198,6 @@ export default function UnifiedPlayerManagement({
         panCard: "",
         aadhaarFile: null,
         panCardFile: null,
-        initialBalance: 0,
       });
       queryClient.invalidateQueries(['clubPlayers', selectedClubId]);
     },
@@ -335,14 +362,15 @@ export default function UnifiedPlayerManagement({
     }
 
     // Backend will generate password automatically - no need to send it
-    // Map referralCode to affiliateCode for backend
+    // Pass form data + files; mutation will create player then upload KYC; only show temp password after both succeed
     const formData = {
       name: playerForm.name,
       email: playerForm.email,
       phoneNumber: playerForm.phoneNumber,
       affiliateCode: playerForm.referralCode || undefined,
       panCard: playerForm.panCard || undefined,
-      initialBalance: playerForm.initialBalance || 0,
+      _aadhaarFile: playerForm.aadhaarFile,
+      _panCardFile: playerForm.panCardFile,
     };
 
     createPlayerMutation.mutate(formData);
@@ -592,8 +620,21 @@ export default function UnifiedPlayerManagement({
 
         {/* Tab 2: Create Players */}
         {activeTab === "create" && (
-          <div className="bg-slate-800 rounded-xl p-8 border border-slate-700">
+          <div className="relative bg-slate-800 rounded-xl p-8 border border-slate-700">
+            {/* Loading overlay - visible while create API is in progress */}
+            {(createPlayerMutation.isPending || createPlayerMutation.isLoading) && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl bg-slate-900/90 backdrop-blur-sm">
+                <div className="animate-spin rounded-full h-14 w-14 border-4 border-purple-500 border-t-transparent mb-4" />
+                <p className="text-white font-semibold text-lg">Creating player & uploading KYC documents...</p>
+                <p className="text-gray-400 text-sm mt-1">Temp password shown only after KYC upload succeeds</p>
+              </div>
+            )}
             <h2 className="text-2xl font-bold mb-6">Create New Player</h2>
+            {useClientUpload ? (
+              <p className="text-sm text-emerald-400/90 mb-4">KYC uploads from browser (avoids backend timeout).</p>
+            ) : (
+              <p className="text-sm text-amber-400/90 mb-4">Tip: Set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY in .env and restart dev server to upload from browser.</p>
+            )}
             {!selectedClubId && (
               <div className="mb-6 p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-lg">
                 <p className="text-yellow-400 font-semibold">⚠️ Please select a club from the sidebar dropdown to create a player</p>
@@ -697,27 +738,17 @@ export default function UnifiedPlayerManagement({
                   )}
                   <p className="text-xs text-gray-400 mt-1">Upload PAN card document (JPG, PNG, or PDF, max 5MB)</p>
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Initial Balance (₹)</label>
-                  <input
-                    type="number"
-                    value={playerForm.initialBalance}
-                    onChange={(e) => setPlayerForm({ ...playerForm, initialBalance: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-                    min="0"
-                  />
-                </div>
               </div>
               <div className="flex gap-4 mt-6">
                 <button
                   type="submit"
-                  disabled={createPlayerMutation.isLoading || uploadDocumentMutation.isLoading || !selectedClubId}
+                  disabled={(createPlayerMutation.isPending || createPlayerMutation.isLoading) || !selectedClubId}
                   className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                 >
-                  {(createPlayerMutation.isLoading || uploadDocumentMutation.isLoading) ? (
+                  {(createPlayerMutation.isPending || createPlayerMutation.isLoading) ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      <span>Creating Player & Uploading Documents...</span>
+                      <span>Creating player & uploading KYC...</span>
                     </>
                   ) : !selectedClubId ? (
                     'Select a Club First'
@@ -1220,7 +1251,7 @@ export default function UnifiedPlayerManagement({
                   <p className="text-white"><span className="text-gray-400">Email:</span> {successData.player.email}</p>
                   <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-3 mt-2">
                     <p className="text-yellow-400 text-sm font-medium mb-1">⚠️ Temporary Password</p>
-                    <p className="text-yellow-100 font-mono text-lg font-bold">{successData.player.tempPassword}</p>
+                    <p className="text-yellow-100 font-mono text-lg font-bold">{successData?.player?.tempPassword ?? 'Not provided'}</p>
                     <p className="text-yellow-300 text-xs mt-1">Player must reset password on first login</p>
                   </div>
                 </div>

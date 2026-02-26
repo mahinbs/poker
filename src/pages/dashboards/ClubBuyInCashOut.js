@@ -311,7 +311,7 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
 
       // Filter by game type (poker/rummy)
       if (historyFilters.gameType) {
-        filtered = filtered.filter(t => t.gameType === historyFilters.gameType);
+        filtered = filtered.filter(t => (t.gameType || t.game_type) === historyFilters.gameType);
       }
 
       // Filter by player name
@@ -1308,13 +1308,13 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
                                   : txn.type === 'Table Buy Out' ? 'Table Buy-Out'
                                   : txn.type}
                               </span>
-                              {txn.gameType && (
+                              {(txn.gameType || txn.game_type) && (
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                  txn.gameType === 'poker' 
+                                  (txn.gameType || txn.game_type) === 'poker' 
                                     ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' 
                                     : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                                 }`}>
-                                  {txn.gameType === 'poker' ? '♠ Poker' : '🃏 Rummy'}
+                                  {(txn.gameType || txn.game_type) === 'poker' ? '♠ Poker' : '🃏 Rummy'}
                                 </span>
                               )}
                               {txn.isOverridden && (
