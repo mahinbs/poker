@@ -13,6 +13,9 @@ export default function TournamentManagement({ selectedClubId }) {
   const [exitingPlayer, setExitingPlayer] = useState(null);
   const [exitBalance, setExitBalance] = useState("");
   const [exitNotes, setExitNotes] = useState("");
+  const [showAddonModal, setShowAddonModal] = useState(false);
+  const [addonPlayer, setAddonPlayer] = useState(null);
+  const [addonAmount, setAddonAmount] = useState("");
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [editingTournament, setEditingTournament] = useState(null);
   const [viewMode, setViewMode] = useState("details"); // 'details' or 'players'
@@ -327,12 +330,38 @@ export default function TournamentManagement({ selectedClubId }) {
   };
 
   const handleRebuy = (player, type = 'rebuy') => {
-    const actionLabel = type === 'rebuy' ? 'Rebuy' : type === 'reentry' ? 'Re-enter' : 'Add-on';
+    if (type === 'addon') {
+      const tourney = liveTournament || selectedTournament;
+      setAddonPlayer(player);
+      setAddonAmount(String(parseFloat(tourney?.buy_in || 0)));
+      setShowAddonModal(true);
+      return;
+    }
+    const actionLabel = type === 'rebuy' ? 'Rebuy' : 'Re-enter';
     const tourney = liveTournament || selectedTournament;
     const buyIn = parseFloat(tourney?.buy_in || 0);
-    if (window.confirm(`${actionLabel} for ${player.name}? This will charge ₹${buyIn} buy-in.`)) {
+    if (window.confirm(`${actionLabel} for ${player.name}? This will charge ₹${buyIn} from their wallet.`)) {
       rebuyMutation.mutate({ playerId: player.id, type });
     }
+  };
+
+  const handleConfirmAddon = () => {
+    if (!addonPlayer) return;
+    const amount = parseFloat(addonAmount);
+    if (!amount || amount <= 0) {
+      toast.error("Please enter a valid add-on amount");
+      return;
+    }
+    rebuyMutation.mutate(
+      { playerId: addonPlayer.id, type: 'addon', amount },
+      {
+        onSuccess: () => {
+          setShowAddonModal(false);
+          setAddonPlayer(null);
+          setAddonAmount("");
+        },
+      }
+    );
   };
 
   // Calculate current tournament level from elapsed time
@@ -2525,6 +2554,68 @@ export default function TournamentManagement({ selectedClubId }) {
                 onClick={() => {
                   setShowEndModal(false);
                   setWinnersForm([]);
+                }}
+                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add-on Modal */}
+      {showAddonModal && addonPlayer && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-purple-600">
+            <h3 className="text-xl font-bold text-white mb-4">Add-on for {addonPlayer.name}</h3>
+
+            <div className="bg-slate-700/50 rounded-lg p-4 mb-4 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400 text-sm">Player</span>
+                <span className="text-white font-semibold">{addonPlayer.name}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400 text-sm">Wallet Balance</span>
+                <span className={`font-semibold ${Number(addonPlayer.wallet_balance || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  ₹{Number(addonPlayer.wallet_balance || 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400 text-sm">Total Invested</span>
+                <span className="text-yellow-400 font-semibold">₹{Number(addonPlayer.total_invested || 0).toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-white text-sm mb-1 block">Add-on Amount (deducted from wallet)</label>
+              <input
+                type="number"
+                className="w-full px-3 py-2 bg-slate-700 border border-purple-500 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                placeholder="Enter amount"
+                value={addonAmount}
+                onChange={(e) => setAddonAmount(e.target.value)}
+              />
+              {Number(addonAmount) > Number(addonPlayer.wallet_balance || 0) && (
+                <p className="text-xs text-red-400 mt-1">
+                  Amount exceeds wallet balance (₹{Number(addonPlayer.wallet_balance || 0).toFixed(2)})
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleConfirmAddon}
+                disabled={rebuyMutation.isLoading || !addonAmount || Number(addonAmount) <= 0}
+                className="flex-1 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
+              >
+                {rebuyMutation.isLoading ? "Processing..." : `Add-on ₹${addonAmount || 0}`}
+              </button>
+              <button
+                onClick={() => {
+                  setShowAddonModal(false);
+                  setAddonPlayer(null);
+                  setAddonAmount("");
                 }}
                 className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
               >
