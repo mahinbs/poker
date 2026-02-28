@@ -1036,6 +1036,13 @@ export const tournamentsAPI = {
       body: JSON.stringify(data),
     });
   },
+
+  increaseBlind: async (clubId, tournamentId, data) => {
+    return await apiRequest(`/clubs/${clubId}/tournaments/${tournamentId}/increase-blind`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // =============================================================================

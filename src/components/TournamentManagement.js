@@ -16,6 +16,9 @@ export default function TournamentManagement({ selectedClubId }) {
   const [showAddonModal, setShowAddonModal] = useState(false);
   const [addonPlayer, setAddonPlayer] = useState(null);
   const [addonAmount, setAddonAmount] = useState("");
+  const [showIncreaseBlindModal, setShowIncreaseBlindModal] = useState(false);
+  const [increaseBlindSb, setIncreaseBlindSb] = useState("");
+  const [increaseBlindBb, setIncreaseBlindBb] = useState("");
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [editingTournament, setEditingTournament] = useState(null);
   const [viewMode, setViewMode] = useState("details"); // 'details' or 'players'
@@ -46,6 +49,8 @@ export default function TournamentManagement({ selectedClubId }) {
     entry_fee: "",
     starting_chips: "",
     blind_structure: "Standard",
+    starting_sb: "",
+    starting_bb: "",
     number_of_levels: 15,
     minutes_per_level: 15,
     break_structure: "Every 4 levels",
@@ -211,6 +216,22 @@ export default function TournamentManagement({ selectedClubId }) {
     },
   });
 
+  // Increase blind mutation
+  const increaseBlindMutation = useMutation({
+    mutationFn: (data) => tournamentsAPI.increaseBlind(selectedClubId, selectedTournament.id, data),
+    onSuccess: (result) => {
+      toast.success(result.message || "Blinds updated!");
+      queryClient.invalidateQueries(["tournaments", selectedClubId]);
+      queryClient.invalidateQueries(["tournament-details", selectedClubId, selectedTournament?.id]);
+      setShowIncreaseBlindModal(false);
+      setIncreaseBlindSb("");
+      setIncreaseBlindBb("");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update blinds");
+    },
+  });
+
   // Pause tournament mutation
   const pauseMutation = useMutation({
     mutationFn: () => tournamentsAPI.pauseTournament(selectedClubId, selectedTournament.id),
@@ -364,6 +385,29 @@ export default function TournamentManagement({ selectedClubId }) {
     );
   };
 
+  const handleOpenIncreaseBlind = () => {
+    const t = liveTournament || selectedTournament;
+    let structure = t?.structure;
+    if (typeof structure === 'string') {
+      try { structure = JSON.parse(structure); } catch { structure = {}; }
+    }
+    const sb = structure?.current_sb ?? "";
+    const bb = structure?.current_bb ?? "";
+    setIncreaseBlindSb(sb !== "" ? String(sb) : "");
+    setIncreaseBlindBb(bb !== "" ? String(bb) : "");
+    setShowIncreaseBlindModal(true);
+  };
+
+  const handleConfirmIncreaseBlind = () => {
+    const sb = parseFloat(increaseBlindSb);
+    const bb = parseFloat(increaseBlindBb);
+    if (!Number.isFinite(sb) || !Number.isFinite(bb) || sb < 0 || bb < 0) {
+      toast.error("Please enter valid small blind and big blind values");
+      return;
+    }
+    increaseBlindMutation.mutate({ smallBlind: sb, bigBlind: bb });
+  };
+
   // Calculate current tournament level from elapsed time
   const getTournamentLevelInfo = useCallback(() => {
     const tourney = tournamentDetails || selectedTournament;
@@ -466,6 +510,8 @@ export default function TournamentManagement({ selectedClubId }) {
       entry_fee: "",
       starting_chips: "",
       blind_structure: "Standard",
+      starting_sb: "",
+      starting_bb: "",
       number_of_levels: 15,
       minutes_per_level: 15,
       break_structure: "Every 4 levels",
@@ -503,6 +549,8 @@ export default function TournamentManagement({ selectedClubId }) {
       entry_fee: tournamentForm.entry_fee ? parseFloat(tournamentForm.entry_fee) : undefined,
       starting_chips: parseInt(tournamentForm.starting_chips) || 0,
       blind_structure: tournamentForm.blind_structure,
+      starting_sb: tournamentForm.starting_sb ? parseFloat(tournamentForm.starting_sb) : undefined,
+      starting_bb: tournamentForm.starting_bb ? parseFloat(tournamentForm.starting_bb) : undefined,
       number_of_levels: parseInt(tournamentForm.number_of_levels) || 15,
       minutes_per_level: parseInt(tournamentForm.minutes_per_level) || 15,
       break_structure: tournamentForm.break_structure,
@@ -582,6 +630,8 @@ export default function TournamentManagement({ selectedClubId }) {
       entry_fee: tournament.entry_fee?.toString() || structure.entry_fee?.toString() || "",
       starting_chips: tournament.starting_chips?.toString() || structure.starting_chips?.toString() || "",
       blind_structure: structure.blind_structure || tournament.blind_structure || "Standard",
+      starting_sb: structure.starting_sb != null ? String(structure.starting_sb) : (tournament.starting_sb != null ? String(tournament.starting_sb) : ""),
+      starting_bb: structure.starting_bb != null ? String(structure.starting_bb) : (tournament.starting_bb != null ? String(tournament.starting_bb) : ""),
       number_of_levels: structure.number_of_levels || tournament.number_of_levels || 15,
       minutes_per_level: structure.minutes_per_level || tournament.minutes_per_level || 15,
       break_structure: structure.break_structure || tournament.break_structure || "Every 4 levels",
@@ -620,6 +670,8 @@ export default function TournamentManagement({ selectedClubId }) {
       entry_fee: tournamentForm.entry_fee ? parseFloat(tournamentForm.entry_fee) : undefined,
       starting_chips: parseInt(tournamentForm.starting_chips) || 0,
       blind_structure: tournamentForm.blind_structure,
+      starting_sb: tournamentForm.starting_sb ? parseFloat(tournamentForm.starting_sb) : undefined,
+      starting_bb: tournamentForm.starting_bb ? parseFloat(tournamentForm.starting_bb) : undefined,
       number_of_levels: parseInt(tournamentForm.number_of_levels) || 15,
       minutes_per_level: parseInt(tournamentForm.minutes_per_level) || 15,
       break_structure: tournamentForm.break_structure,
@@ -1028,6 +1080,33 @@ export default function TournamentManagement({ selectedClubId }) {
                     />
                   </div>
                 )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Starting small blind (optional)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
+                      placeholder="e.g. 25"
+                      value={tournamentForm.starting_sb}
+                      onChange={(e) => setTournamentForm({ ...tournamentForm, starting_sb: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Starting big blind (optional)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
+                      placeholder="e.g. 50"
+                      value={tournamentForm.starting_bb}
+                      onChange={(e) => setTournamentForm({ ...tournamentForm, starting_bb: e.target.value })}
+                    />
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -1490,6 +1569,33 @@ export default function TournamentManagement({ selectedClubId }) {
                     />
                   </div>
                 )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Starting small blind (optional)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="e.g. 25"
+                      value={tournamentForm.starting_sb}
+                      onChange={(e) => setTournamentForm({ ...tournamentForm, starting_sb: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Starting big blind (optional)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      placeholder="e.g. 50"
+                      value={tournamentForm.starting_bb}
+                      onChange={(e) => setTournamentForm({ ...tournamentForm, starting_bb: e.target.value })}
+                    />
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -1974,6 +2080,39 @@ export default function TournamentManagement({ selectedClubId }) {
                           </div>
                         </div>
                       )}
+
+                      {/* Current round and blinds (active tournament) */}
+                      {liveTournament?.status === 'active' && (() => {
+                        let structure = liveTournament.structure;
+                        if (typeof structure === 'string') {
+                          try { structure = JSON.parse(structure); } catch { structure = {}; }
+                        }
+                        const round = structure?.current_round;
+                        const sb = structure?.current_sb;
+                        const bb = structure?.current_bb;
+                        const hasBlinds = sb != null || bb != null;
+                        return (
+                          <div className="mt-3 flex flex-wrap items-center gap-3">
+                            <div className="bg-amber-900/30 rounded-lg px-4 py-2 border border-amber-500/30 flex items-center gap-2">
+                              <span className="text-amber-400 text-xs font-medium">Round</span>
+                              <span className="text-amber-200 font-bold">{round != null ? round : '–'}</span>
+                            </div>
+                            <div className="bg-amber-900/30 rounded-lg px-4 py-2 border border-amber-500/30 flex items-center gap-2">
+                              <span className="text-amber-400 text-xs font-medium">Blinds</span>
+                              <span className="text-amber-200 font-bold">
+                                {hasBlinds ? `${sb ?? '–'} / ${bb ?? '–'}` : 'Not set'}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleOpenIncreaseBlind}
+                              className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+                            >
+                              Increase Blind
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
@@ -2616,6 +2755,62 @@ export default function TournamentManagement({ selectedClubId }) {
                   setShowAddonModal(false);
                   setAddonPlayer(null);
                   setAddonAmount("");
+                }}
+                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Increase Blind Modal */}
+      {showIncreaseBlindModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-amber-600">
+            <h3 className="text-xl font-bold text-white mb-4">Increase Blind</h3>
+            <p className="text-gray-400 text-sm mb-4">Enter the new small blind and big blind. The round will advance by one.</p>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="text-white text-sm mb-1 block">Small blind</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className="w-full px-3 py-2 bg-slate-700 border border-amber-500 rounded-lg text-white focus:ring-2 focus:ring-amber-500"
+                  placeholder="e.g. 50"
+                  value={increaseBlindSb}
+                  onChange={(e) => setIncreaseBlindSb(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-white text-sm mb-1 block">Big blind</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className="w-full px-3 py-2 bg-slate-700 border border-amber-500 rounded-lg text-white focus:ring-2 focus:ring-amber-500"
+                  placeholder="e.g. 100"
+                  value={increaseBlindBb}
+                  onChange={(e) => setIncreaseBlindBb(e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">BB is typically 2× SB.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleConfirmIncreaseBlind}
+                disabled={increaseBlindMutation.isLoading || increaseBlindSb === "" || increaseBlindBb === ""}
+                className="flex-1 bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
+              >
+                {increaseBlindMutation.isLoading ? "Updating..." : "Confirm"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowIncreaseBlindModal(false);
+                  setIncreaseBlindSb("");
+                  setIncreaseBlindBb("");
                 }}
                 className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
               >
