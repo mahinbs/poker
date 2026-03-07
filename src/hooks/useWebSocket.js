@@ -91,6 +91,11 @@ export const useWebSocket = (clubId, userId) => {
       setEvents(prev => [...prev, { type: 'tournament:updated', data, timestamp: Date.now() }]);
     });
 
+    socket.on('tournament:blinds-updated', (data) => {
+      console.log('🎯 Tournament blinds updated:', data);
+      setEvents(prev => [...prev, { type: 'tournament:blinds-updated', data, timestamp: Date.now() }]);
+    });
+
     // Cleanup
     return () => {
       if (socket) {

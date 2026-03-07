@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tournamentsAPI, clubsAPI } from "../lib/api";
 import toast from "react-hot-toast";
+import { useWebSocket } from "../hooks/useWebSocket";
 
 export default function TournamentManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
@@ -90,18 +91,74 @@ export default function TournamentManagement({ selectedClubId }) {
     fetchClubLogo();
   }, [selectedClubId]);
 
-  // Fetch tournaments
+  // WebSocket for real-time blind updates (use events array — reliable even before socket connects)
+  const { events: wsEvents } = useWebSocket(selectedClubId, null);
+  const lastBlindEventRef = useRef(null);
+
+  // Listen for blind auto-increase events via events array (avoids subscribe() timing race)
+  useEffect(() => {
+    const blindEvents = wsEvents.filter(
+      (e) => e.type === 'tournament:blinds-updated' && e.data?.clubId === selectedClubId
+    );
+    if (!blindEvents.length) return;
+    const latest = blindEvents[blindEvents.length - 1];
+    if (lastBlindEventRef.current === latest.timestamp) return;
+    lastBlindEventRef.current = latest.timestamp;
+
+    const t = latest.data?.tournament;
+    if (!t) return;
+
+    const newStructure = { current_round: t.currentRound, current_sb: t.currentSb, current_bb: t.currentBb, ...t.structure };
+
+    // Immediately patch tournaments list cache (no refetch needed)
+    queryClient.setQueryData(["tournaments", selectedClubId], (old) => {
+      if (!old) return old;
+      const list = Array.isArray(old) ? old : (old.tournaments || []);
+      const patched = list.map((item) =>
+        item.id === t.id ? { ...item, structure: { ...item.structure, ...newStructure } } : item
+      );
+      return Array.isArray(old) ? patched : { ...old, tournaments: patched };
+    });
+
+    // Immediately patch tournamentDetails cache so liveTournament updates without a refetch
+    queryClient.setQueryData(["tournament-details", selectedClubId, t.id], (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        structure: { ...old.structure, ...newStructure },
+        currentRound: t.currentRound,
+        currentSb: t.currentSb,
+        currentBb: t.currentBb,
+      };
+    });
+
+    // Also update selectedTournament state
+    setSelectedTournament((prev) =>
+      prev && prev.id === t.id
+        ? { ...prev, structure: { ...prev.structure, ...newStructure } }
+        : prev
+    );
+
+    // Toast notification for staff
+    toast.success(`🏆 Level ${t.currentRound} — SB ${t.currentSb} / BB ${t.currentBb}`, { duration: 4000 });
+  }, [wsEvents, selectedClubId, queryClient]);
+
+  // Fetch tournaments (poll every 5s so blind values stay fresh in cards + synced to selectedTournament)
   const { data: tournamentsData, isLoading: tournamentsLoading } = useQuery({
     queryKey: ["tournaments", selectedClubId],
     queryFn: () => tournamentsAPI.getTournaments(selectedClubId),
     enabled: !!selectedClubId,
+    refetchInterval: 5000,
+    staleTime: 0,
   });
 
-  // Fetch tournament details
+  // Fetch tournament details (poll every 5s when detail modal is open for live blind updates)
   const { data: tournamentDetails, isLoading: detailsLoading } = useQuery({
     queryKey: ["tournament-details", selectedClubId, selectedTournament?.id],
     queryFn: () => tournamentsAPI.getTournamentById(selectedClubId, selectedTournament.id),
     enabled: !!selectedClubId && !!selectedTournament && showDetailsModal,
+    refetchInterval: showDetailsModal ? 5000 : false,
+    staleTime: 0,
   });
 
   // Fetch tournament players (auto-refetch every 10s for active tournaments)
@@ -280,37 +337,37 @@ export default function TournamentManagement({ selectedClubId }) {
     },
   });
 
-  // Session timer for active tournaments (accounts for paused time)
+  // Keep a stable ref to the active tournament data so the timer interval
+  // can read the latest values without being recreated on every refetch.
+  const liveTourneyRef = useRef(null);
   useEffect(() => {
-    const tourney = tournamentDetails || selectedTournament;
-    if (!tourney?.session_started_at || tourney?.status !== 'active') {
-      setSessionElapsed(0);
-      return;
-    }
+    liveTourneyRef.current = tournamentDetails || selectedTournament;
+  }, [tournamentDetails, selectedTournament]);
 
-    const startTime = new Date(tourney.session_started_at).getTime();
-    const totalPausedSeconds = parseInt(tourney.total_paused_seconds) || 0;
-    const isPaused = !!tourney.paused_at;
-    const pausedAtTime = tourney.paused_at ? new Date(tourney.paused_at).getTime() : null;
-    
-    const updateElapsed = () => {
-      const now = Date.now();
-      const totalRawSeconds = Math.floor((now - startTime) / 1000);
-      
-      if (isPaused && pausedAtTime) {
-        // When paused, freeze the timer at the moment it was paused
+  // Session timer — created once, reads from ref so refetches don't reset it
+  useEffect(() => {
+    const tick = () => {
+      const tourney = liveTourneyRef.current;
+      if (!tourney?.session_started_at || tourney?.status !== 'active') {
+        setSessionElapsed(0);
+        return;
+      }
+      const startTime = new Date(tourney.session_started_at).getTime();
+      const totalPausedSeconds = parseInt(tourney.total_paused_seconds) || 0;
+      const isPaused = !!tourney.paused_at;
+      if (isPaused && tourney.paused_at) {
+        const pausedAtTime = new Date(tourney.paused_at).getTime();
         const elapsedUntilPause = Math.floor((pausedAtTime - startTime) / 1000);
         setSessionElapsed(elapsedUntilPause - totalPausedSeconds);
       } else {
-        // Running: subtract total accumulated paused time
+        const totalRawSeconds = Math.floor((Date.now() - startTime) / 1000);
         setSessionElapsed(totalRawSeconds - totalPausedSeconds);
       }
     };
-
-    updateElapsed();
-    const interval = isPaused ? null : setInterval(updateElapsed, 1000);
-    return () => { if (interval) clearInterval(interval); };
-  }, [tournamentDetails, selectedTournament]);
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, []); // empty deps: interval runs for component lifetime, reads liveTourneyRef
 
   const formatSessionTime = useCallback((totalSeconds) => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -482,12 +539,18 @@ export default function TournamentManagement({ selectedClubId }) {
     // Late registration check
     const lateRegOpen = lateRegistration > 0 && elapsedMinutes <= lateRegistration;
 
+    // Break timer in seconds for MM:SS display
+    const breakTimeRemainingSeconds = onBreak
+      ? Math.max(0, Math.ceil(breakTimeRemaining * 60))
+      : 0;
+
     return {
       currentLevel,
       numberOfLevels,
       minutesPerLevel,
       onBreak,
       breakTimeRemaining,
+      breakTimeRemainingSeconds,
       timeRemainingInLevel: Math.ceil(timeRemainingInLevel),
       timeRemainingSeconds,
       lateRegOpen,
@@ -503,46 +566,12 @@ export default function TournamentManagement({ selectedClubId }) {
 
   const levelInfo = getTournamentLevelInfo();
 
-  // Auto-increase blinds when a new level starts (double current blinds).
+  // Keep lastAutoBlindLevel in sync for display; blinds are auto-increased by the backend every 30s.
   useEffect(() => {
-    if (!levelInfo) return;
-
-    const tourney = tournamentDetails || selectedTournament;
-    if (!tourney || tourney.status !== "active") return;
-
-    let structure = tourney.structure || {};
-    if (typeof structure === "string") {
-      try {
-        structure = JSON.parse(structure);
-      } catch {
-        structure = {};
-      }
-    }
-
-    const currentLevel = levelInfo.currentLevel;
-    if (!currentLevel || currentLevel <= 1) {
-      // Initialize tracking without changing blinds on level 1
-      if (lastAutoBlindLevel === null) {
-        setLastAutoBlindLevel(currentLevel || 1);
-      }
-      return;
-    }
-
-    // Avoid repeating for the same level
-    if (lastAutoBlindLevel === currentLevel) return;
-
-    const baseSb = typeof structure.current_sb === "number" ? structure.current_sb : structure.starting_sb;
-    const baseBb = typeof structure.current_bb === "number" ? structure.current_bb : structure.starting_bb;
-
-    if (typeof baseSb !== "number" || typeof baseBb !== "number") return;
-
-    const newSb = baseSb * 2;
-    const newBb = baseBb * 2;
-
-    // Fire-and-forget; realtime + polling will update both admin and player UIs
-    increaseBlindMutation.mutate({ smallBlind: newSb, bigBlind: newBb });
-    setLastAutoBlindLevel(currentLevel);
-  }, [levelInfo, tournamentDetails, selectedTournament, lastAutoBlindLevel, increaseBlindMutation]);
+    if (!levelInfo?.currentLevel) return;
+    if (lastAutoBlindLevel === levelInfo.currentLevel) return;
+    setLastAutoBlindLevel(levelInfo.currentLevel);
+  }, [levelInfo?.currentLevel, lastAutoBlindLevel]);
 
   const resetForm = () => {
     setTournamentForm({
@@ -775,7 +804,24 @@ export default function TournamentManagement({ selectedClubId }) {
   const players = playersData?.players || playersData || [];
   const winners = winnersData?.winners || [];
 
-  // Use tournamentDetails for live data (includes session_started_at)
+  // Auto-sync selectedTournament + cache from the polled list (5s fallback for blind updates)
+  useEffect(() => {
+    if (!selectedTournament || !tournamentsData) return;
+    const list = Array.isArray(tournamentsData) ? tournamentsData : (tournamentsData.tournaments || []);
+    const fresh = list.find(t => t.id === selectedTournament.id);
+    if (!fresh?.structure) return;
+    const prevSb = selectedTournament.structure?.current_sb;
+    const freshSb = fresh.structure?.current_sb;
+    if (prevSb === freshSb) return; // no change — skip
+    // Patch both state and query cache
+    setSelectedTournament(prev => prev ? { ...prev, structure: { ...fresh.structure } } : prev);
+    queryClient.setQueryData(["tournament-details", selectedClubId, fresh.id], (old) => {
+      if (!old) return old;
+      return { ...old, structure: { ...old.structure, ...fresh.structure }, currentRound: fresh.structure?.current_round, currentSb: fresh.structure?.current_sb, currentBb: fresh.structure?.current_bb };
+    });
+  }, [tournamentsData, selectedClubId, queryClient]);
+
+  // Use tournamentDetails for live data (falls back to selectedTournament which is auto-synced)
   const liveTournament = tournamentDetails || selectedTournament;
 
   const getStatusColor = (status) => {
@@ -2108,14 +2154,18 @@ export default function TournamentManagement({ selectedClubId }) {
                             <div className={`text-xs mb-1 ${levelInfo.onBreak ? 'text-yellow-400' : 'text-blue-400'}`}>
                               {levelInfo.onBreak ? 'ON BREAK' : 'Current Level'}
                             </div>
-                            <div className={`text-2xl font-bold ${levelInfo.onBreak ? 'text-yellow-300' : 'text-blue-300'}`}>
-                              {levelInfo.onBreak ? `${levelInfo.breakTimeRemaining}m` : `${levelInfo.currentLevel} / ${levelInfo.numberOfLevels}`}
+                            <div className={`text-2xl font-bold font-mono tabular-nums ${levelInfo.onBreak ? 'text-yellow-300' : 'text-blue-300'}`}>
+                              {levelInfo.onBreak
+                                ? `${Math.floor(levelInfo.breakTimeRemainingSeconds / 60)}:${(levelInfo.breakTimeRemainingSeconds % 60).toString().padStart(2, '0')}`
+                                : `${levelInfo.currentLevel} / ${levelInfo.numberOfLevels}`}
                             </div>
                           </div>
                           <div className="bg-purple-900/30 rounded-lg p-3 text-center border border-purple-500/30">
-                            <div className="text-purple-400 text-xs mb-1">Time Left in Level</div>
+                            <div className="text-purple-400 text-xs mb-1">{levelInfo.onBreak ? 'Break Time Left' : 'Time Left in Level'}</div>
                             <div className="text-2xl font-bold text-purple-300 font-mono tabular-nums">
-                              {levelInfo.onBreak ? '--:--' : `${Math.floor(levelInfo.timeRemainingSeconds / 60)}:${(levelInfo.timeRemainingSeconds % 60).toString().padStart(2, '0')}`}
+                              {levelInfo.onBreak
+                                ? `${Math.floor(levelInfo.breakTimeRemainingSeconds / 60)}:${(levelInfo.breakTimeRemainingSeconds % 60).toString().padStart(2, '0')}`
+                                : `${Math.floor(levelInfo.timeRemainingSeconds / 60)}:${(levelInfo.timeRemainingSeconds % 60).toString().padStart(2, '0')}`}
                             </div>
                           </div>
                           <div className="bg-slate-800/50 rounded-lg p-3 text-center border border-slate-700">
@@ -2165,8 +2215,8 @@ export default function TournamentManagement({ selectedClubId }) {
                               Increase Blind
                             </button>
                             <p className="w-full text-xs text-amber-300/80">
-                              Note (staff only): Blinds will auto‑double at the start of each new level based on the tournament clock. Use
-                              <span className="font-semibold"> Increase Blind</span> if you need to override them manually.
+                              Note (staff only): Blinds auto-increase on the server every 30s when a new level starts. Use
+                              <span className="font-semibold"> Increase Blind</span> to override manually.
                             </p>
                           </div>
                         );
