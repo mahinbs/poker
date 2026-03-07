@@ -24,6 +24,7 @@ export default function TournamentManagement({ selectedClubId }) {
   const [viewMode, setViewMode] = useState("details"); // 'details' or 'players'
   const [clubLogoUrl, setClubLogoUrl] = useState(null);
   const [sessionElapsed, setSessionElapsed] = useState(0);
+  const [lastAutoBlindLevel, setLastAutoBlindLevel] = useState(null);
 
   // Tournament type options
   const tournamentTypes = [
@@ -502,6 +503,47 @@ export default function TournamentManagement({ selectedClubId }) {
 
   const levelInfo = getTournamentLevelInfo();
 
+  // Auto-increase blinds when a new level starts (double current blinds).
+  useEffect(() => {
+    if (!levelInfo) return;
+
+    const tourney = tournamentDetails || selectedTournament;
+    if (!tourney || tourney.status !== "active") return;
+
+    let structure = tourney.structure || {};
+    if (typeof structure === "string") {
+      try {
+        structure = JSON.parse(structure);
+      } catch {
+        structure = {};
+      }
+    }
+
+    const currentLevel = levelInfo.currentLevel;
+    if (!currentLevel || currentLevel <= 1) {
+      // Initialize tracking without changing blinds on level 1
+      if (lastAutoBlindLevel === null) {
+        setLastAutoBlindLevel(currentLevel || 1);
+      }
+      return;
+    }
+
+    // Avoid repeating for the same level
+    if (lastAutoBlindLevel === currentLevel) return;
+
+    const baseSb = typeof structure.current_sb === "number" ? structure.current_sb : structure.starting_sb;
+    const baseBb = typeof structure.current_bb === "number" ? structure.current_bb : structure.starting_bb;
+
+    if (typeof baseSb !== "number" || typeof baseBb !== "number") return;
+
+    const newSb = baseSb * 2;
+    const newBb = baseBb * 2;
+
+    // Fire-and-forget; realtime + polling will update both admin and player UIs
+    increaseBlindMutation.mutate({ smallBlind: newSb, bigBlind: newBb });
+    setLastAutoBlindLevel(currentLevel);
+  }, [levelInfo, tournamentDetails, selectedTournament, lastAutoBlindLevel, increaseBlindMutation]);
+
   const resetForm = () => {
     setTournamentForm({
       name: "",
@@ -536,7 +578,13 @@ export default function TournamentManagement({ selectedClubId }) {
   };
 
   const handleCreateTournament = () => {
-    if (!tournamentForm.name || !tournamentForm.buy_in || !tournamentForm.starting_chips) {
+    if (
+      !tournamentForm.name ||
+      !tournamentForm.buy_in ||
+      !tournamentForm.starting_chips ||
+      !tournamentForm.starting_sb ||
+      !tournamentForm.starting_bb
+    ) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -657,7 +705,13 @@ export default function TournamentManagement({ selectedClubId }) {
   };
 
   const handleUpdateTournament = () => {
-    if (!tournamentForm.name || !tournamentForm.buy_in || !tournamentForm.starting_chips) {
+    if (
+      !tournamentForm.name ||
+      !tournamentForm.buy_in ||
+      !tournamentForm.starting_chips ||
+      !tournamentForm.starting_sb ||
+      !tournamentForm.starting_bb
+    ) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -1083,7 +1137,7 @@ export default function TournamentManagement({ selectedClubId }) {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-white text-sm mb-1 block">Starting small blind (optional)</label>
+                    <label className="text-white text-sm mb-1 block">Starting small blind *</label>
                     <input
                       type="number"
                       min="0"
@@ -1095,7 +1149,7 @@ export default function TournamentManagement({ selectedClubId }) {
                     />
                   </div>
                   <div>
-                    <label className="text-white text-sm mb-1 block">Starting big blind (optional)</label>
+                    <label className="text-white text-sm mb-1 block">Starting big blind *</label>
                     <input
                       type="number"
                       min="0"
@@ -1572,7 +1626,7 @@ export default function TournamentManagement({ selectedClubId }) {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-white text-sm mb-1 block">Starting small blind (optional)</label>
+                    <label className="text-white text-sm mb-1 block">Starting small blind *</label>
                     <input
                       type="number"
                       min="0"
@@ -1584,7 +1638,7 @@ export default function TournamentManagement({ selectedClubId }) {
                     />
                   </div>
                   <div>
-                    <label className="text-white text-sm mb-1 block">Starting big blind (optional)</label>
+                    <label className="text-white text-sm mb-1 block">Starting big blind *</label>
                     <input
                       type="number"
                       min="0"
@@ -2110,6 +2164,10 @@ export default function TournamentManagement({ selectedClubId }) {
                             >
                               Increase Blind
                             </button>
+                            <p className="w-full text-xs text-amber-300/80">
+                              Note (staff only): Blinds will auto‑double at the start of each new level based on the tournament clock. Use
+                              <span className="font-semibold"> Increase Blind</span> if you need to override them manually.
+                            </p>
                           </div>
                         );
                       })()}

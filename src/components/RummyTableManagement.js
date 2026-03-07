@@ -2129,8 +2129,8 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
 
   // Assign seat
   const assignSeatMutation = useMutation({
-    mutationFn: ({ entryId, tableId }) =>
-      waitlistAPI.assignSeat(selectedClubId, entryId, { tableId, seatedBy: 'Super Admin' }),
+    mutationFn: ({ entryId, tableId, seatNumber }) =>
+      waitlistAPI.assignSeat(selectedClubId, entryId, { tableId, seatedBy: 'Super Admin', seatNumber: seatNumber != null ? parseInt(seatNumber, 10) : undefined }),
     onSuccess: () => {
       queryClient.invalidateQueries(['waitlist', selectedClubId]);
       queryClient.invalidateQueries(['rummy-tables', selectedClubId]);
@@ -2158,8 +2158,9 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
   });
 
   // Sort pending waitlist entries by priority (desc) then createdAt (asc)
+  // Rummy section: only show waitlist entries that requested rummy (case-insensitive; legacy null = poker, shown on Poker only)
   const pendingWaitlist = (Array.isArray(waitlist) ? waitlist : [])
-    .filter((e) => e.status === 'PENDING')
+    .filter((e) => e.status === 'PENDING' && String(e.requestedGameType || '').toUpperCase() === 'RUMMY')
     .sort((a, b) => {
       const pa = a.priority || 0, pb = b.priority || 0;
       if (pb !== pa) return pb - pa;
@@ -2184,7 +2185,7 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
       toast.error('Please select player, table, and seat');
       return;
     }
-    assignSeatMutation.mutate({ entryId: selectedPlayer, tableId: selectedTable });
+    assignSeatMutation.mutate({ entryId: selectedPlayer, tableId: selectedTable, seatNumber: selectedSeat ? parseInt(selectedSeat, 10) : undefined });
   };
 
   // Find max seats for selected table (for seat dropdown)
@@ -2494,6 +2495,7 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
                     assignSeatMutation.mutate({
                       entryId: selectedTableForView.waitlistEntry.id,
                       tableId: selectedTableForView.table.id,
+                      seatNumber: parseInt(selectedSeat, 10)
                     });
                     setSelectedTableForView(null);
                     setSelectedSeat('');

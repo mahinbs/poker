@@ -1269,13 +1269,16 @@ function TableHologramModal({ table, onClose, clubId }) {
           <div className="text-center">
             <div className="text-gray-400 text-sm">Status</div>
             <div className={`font-bold text-xl ${
-              table.status === 'OCCUPIED' ? 'text-green-400' :
+              // Treat any table with seated players as Active, otherwise Waiting/other
+              (table.status === 'OCCUPIED' || table.currentSeats > 0) ? 'text-green-400' :
               table.status === 'AVAILABLE' ? 'text-yellow-400' :
               'text-gray-400'
             }`}>
-              {table.status === 'OCCUPIED' ? 'Active' : 
-               table.status === 'AVAILABLE' ? 'Waiting' : 
-               table.status}
+              {(table.status === 'OCCUPIED' || table.currentSeats > 0)
+                ? 'Active'
+                : table.status === 'AVAILABLE'
+                ? 'Waiting'
+                : table.status}
             </div>
           </div>
         </div>
@@ -1381,8 +1384,8 @@ function TableManagementView({ selectedClubId, tables, tablesLoading }) {
   const [selectedTableForDealer, setSelectedTableForDealer] = useState("");
   const [selectedDealer, setSelectedDealer] = useState("");
   
-  // Filter: Only non-Rummy tables for regular table management
-  const regularTables = tables.filter(t => t.tableType !== 'RUMMY');
+  // Filter: Only non-Rummy (poker) tables — case-insensitive so "RUMMY"/"Rummy" never slip in
+  const regularTables = tables.filter(t => String(t.tableType || '').toUpperCase() !== 'RUMMY');
   
   const [tableForm, setTableForm] = useState({
     tableName: "",
@@ -2157,6 +2160,10 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const itemsPerPage = 10;
+  // Local poker tables list for this view (non-RUMMY, case-insensitive)
+  const regularTables = (tables || []).filter(
+    (t) => String(t.tableType || "").toUpperCase() !== "RUMMY"
+  );
 
   // Remove waitlist entry mutation
   const removeWaitlistMutation = useMutation({
@@ -2172,8 +2179,8 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
 
   // Assign seat mutation
   const assignSeatMutation = useMutation({
-    mutationFn: ({ entryId, tableId, seatedBy }) => 
-      waitlistAPI.assignSeat(selectedClubId, entryId, { tableId, seatedBy: seatedBy || 'Super Admin' }),
+    mutationFn: ({ entryId, tableId, seatedBy, seatNumber }) => 
+      waitlistAPI.assignSeat(selectedClubId, entryId, { tableId, seatedBy: seatedBy || 'Super Admin', seatNumber: seatNumber != null ? parseInt(seatNumber, 10) : undefined }),
     onSuccess: () => {
       queryClient.invalidateQueries(['waitlist', selectedClubId]);
       queryClient.invalidateQueries(['tables', selectedClubId]);
@@ -2208,7 +2215,8 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
     assignSeatMutation.mutate({
       entryId: selectedPlayer,
       tableId: selectedTable,
-      seatedBy: 'Super Admin'
+      seatedBy: 'Super Admin',
+      seatNumber: selectedSeat ? parseInt(selectedSeat, 10) : undefined
     });
   };
 
@@ -2225,30 +2233,26 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
   };
 
   const handleViewTable = (entry) => {
-    // Find table associated with this waitlist entry
-    // Try to match by tableType first, then fall back to first available table
-    let table = tables.find(t => t.tableType === entry.tableType);
-    
-    // If no match by tableType, find any AVAILABLE table with empty seats
+    // Poker page: only consider poker tables (non-RUMMY, case-insensitive)
+    const pokerTables = tables.filter(t => String(t.tableType || '').toUpperCase() !== 'RUMMY');
+    let table = pokerTables.find(t => t.tableType === entry.tableType);
     if (!table) {
-      table = tables.find(t => t.status === 'AVAILABLE' && t.currentSeats < t.maxSeats);
+      table = pokerTables.find(t => t.status === 'AVAILABLE' && t.currentSeats < t.maxSeats);
     }
-    
-    // If still no match, just take the first table
-    if (!table && tables.length > 0) {
-      table = tables[0];
+    if (!table && pokerTables.length > 0) {
+      table = pokerTables[0];
     }
-    
     if (table) {
       setSelectedTableForView({ table, waitlistEntry: entry });
     } else {
-      toast.error('No tables available. Please create a table first.');
+      toast.error('No poker tables available. Please create a poker table first.');
     }
   };
 
   // Sort waitlist by position (priority DESC, then createdAt ASC)
+  // Poker Table Management: only show waitlist entries for poker (not rummy; case-insensitive)
   const pendingWaitlist = waitlist
-    .filter(e => e.status === 'PENDING')
+    .filter(e => e.status === 'PENDING' && String(e.requestedGameType || '').toUpperCase() !== 'RUMMY')
     .sort((a, b) => {
       // Sort by priority descending first
       const priorityA = a.priority || 0;
@@ -2419,19 +2423,15 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
                     if (playerId) {
                       const playerEntry = pendingWaitlist.find(entry => entry.id === playerId);
                       if (playerEntry) {
-                        // Find matching table by tableType
-                        let matchingTable = tables.find(t => t.tableType === playerEntry.tableType);
-                        
-                        // If no exact match, find any AVAILABLE table with seats
+                        // Poker page: only poker tables (non-RUMMY, case-insensitive)
+                        const pokerTables = tables.filter(t => String(t.tableType || '').toUpperCase() !== 'RUMMY');
+                        let matchingTable = pokerTables.find(t => t.tableType === playerEntry.tableType);
                         if (!matchingTable) {
-                          matchingTable = tables.find(t => t.status === 'AVAILABLE' && t.currentSeats < t.maxSeats);
+                          matchingTable = pokerTables.find(t => t.status === 'AVAILABLE' && t.currentSeats < t.maxSeats);
                         }
-                        
-                        // Fall back to first table
-                        if (!matchingTable && tables.length > 0) {
-                          matchingTable = tables[0];
+                        if (!matchingTable && pokerTables.length > 0) {
+                          matchingTable = pokerTables[0];
                         }
-                        
                         setSelectedTable(matchingTable?.id || '');
                         
                         // Auto-select requested seat if available
@@ -2484,7 +2484,7 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
                   disabled={true}
                 >
                   <option value="">-- No table selected --</option>
-                  {tables.map((table) => (
+                  {regularTables.map((table) => (
                     <option key={table.id} value={table.id}>
                       Table {table.tableNumber} ({table.currentSeats}/{table.maxSeats}) - {table.status}
                     </option>
@@ -2673,7 +2673,8 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
                     assignSeatMutation.mutate({
                       entryId: selectedTableForView.waitlistEntry.id,
                       tableId: selectedTableForView.table.id,
-                      seatedBy: 'Super Admin'
+                      seatedBy: 'Super Admin',
+                      seatNumber: selectedSeat ? parseInt(selectedSeat, 10) : undefined
                     });
                     setSelectedTableForView(null);
                     setSelectedSeat('');
