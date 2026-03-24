@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fnbAPI } from '../../lib/api';
-import { supabase } from '../../lib/supabase';
+import { io as socketIO } from 'socket.io-client';
 import toast from 'react-hot-toast';
 
 export default function OrderManagementTab({ clubId }) {
@@ -20,48 +20,23 @@ export default function OrderManagementTab({ clubId }) {
     loadStations();
   }, [clubId, filter, currentPage]);
 
-  // Supabase real-time: instant updates for FNB orders
+  // Socket.IO: instant updates for FNB orders
   useEffect(() => {
     if (!clubId) return;
-
-    const channel = supabase
-      .channel(`fnb-orders-${clubId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'fnb_orders',
-          filter: `club_id=eq.${clubId}`,
-        },
-        (payload) => {
-          console.log('🍔 [REALTIME] New FNB order:', payload.new);
-          loadOrders();
-          toast('🍔 New FNB order received!', { icon: '🔔' });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'fnb_orders',
-          filter: `club_id=eq.${clubId}`,
-        },
-        (payload) => {
-          console.log('🍔 [REALTIME] FNB order updated:', payload.new?.status);
-          loadOrders();
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ [REALTIME] Subscribed to FNB orders for club:', clubId);
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const wsBase = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api').replace(/\/api$/, '');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const userId = localStorage.getItem('userId');
+    const socket = socketIO(`${wsBase}/realtime`, {
+      auth: { clubId, userId, token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+    });
+    socket.on('connect', () => socket.emit('subscribe:club', { clubId, userId }));
+    socket.on('fnb:order-updated', () => {
+      console.log('🍔 [SOCKET] FNB order updated');
+      loadOrders();
+    });
+    return () => { socket.disconnect(); };
   }, [clubId]);
 
   const loadOrders = async () => {

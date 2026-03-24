@@ -512,6 +512,7 @@ export default function SuperAdminPortal() {
               pendingLoading={pendingLoading}
               suspendedPlayers={suspendedPlayers}
               suspendedLoading={suspendedLoading}
+              allowPermanentDelete={true}
               onRefresh={() => {
                 queryClient.invalidateQueries(['pendingPlayers', selectedClubId]);
                 queryClient.invalidateQueries(['clubPlayers', selectedClubId]);

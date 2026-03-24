@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { superAdminAPI, clubsAPI } from "../../lib/api";
-import { supabase } from "../../lib/supabase";
+import { io as socketIO } from 'socket.io-client';
 import toast from "react-hot-toast";
 
 // Searchable Dropdown Component for Players
@@ -205,21 +205,25 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("pending-requests"); // 'pending-requests', 'buy-in', 'cash-out', or 'history'
   
-  // Supabase real-time for buy-in requests
+  // Socket.IO real-time for buy-in requests
   useEffect(() => {
     if (!selectedClubId) return;
-    const channel = supabase
-      .channel(`club-buyin-requests-${selectedClubId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'buyin_requests',
-        filter: `club_id=eq.${selectedClubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['clubBuyInRequests', selectedClubId] });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const wsBase = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api').replace(/\/api$/, '');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const userId = localStorage.getItem('userId');
+    const socket = socketIO(`${wsBase}/realtime`, {
+      auth: { clubId: selectedClubId, userId, token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+    });
+    socket.on('connect', () => socket.emit('subscribe:club', { clubId: selectedClubId, userId }));
+    socket.on('buyin:new-request', () => {
+      queryClient.invalidateQueries({ queryKey: ['clubBuyInRequests', selectedClubId] });
+    });
+    socket.on('buyin:updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['clubBuyInRequests', selectedClubId] });
+    });
+    return () => { socket.disconnect(); };
   }, [selectedClubId, queryClient]);
 
   // Fetch pending buy-in requests from players

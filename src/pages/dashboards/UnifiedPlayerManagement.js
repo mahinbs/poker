@@ -18,7 +18,8 @@ export default function UnifiedPlayerManagement({
   pendingLoading,
   suspendedPlayers = [],
   suspendedLoading = false,
-  onRefresh
+  onRefresh,
+  allowPermanentDelete = false,
 }) {
   const [activeTab, setActiveTab] = useState("all"); // "all", "create", "approval", "field-updates"
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,7 +36,8 @@ export default function UnifiedPlayerManagement({
     phoneNumber: "",
     referralCode: "",
     panCard: "",
-    aadhaarFile: null,
+    aadhaarFrontFile: null,
+    aadhaarBackFile: null,
     panCardFile: null,
   });
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -51,6 +53,7 @@ export default function UnifiedPlayerManagement({
     duration: '',
   });
   const queryClient = useQueryClient();
+  const [deletingPlayerId, setDeletingPlayerId] = useState(null);
 
   // Fetch player details and documents
   const { data: playerDetailsData, isLoading: playerDetailsLoading } = useQuery({
@@ -61,8 +64,10 @@ export default function UnifiedPlayerManagement({
       // Fetch documents
       let documents = [];
       try {
+        const _staffToken = localStorage.getItem('authToken') || localStorage.getItem('token');
         const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api'}/player-documents/my`, {
           headers: {
+            ...(_staffToken ? { 'Authorization': `Bearer ${_staffToken}` } : {}),
             'x-player-id': selectedPlayerForDetails.id,
             'x-club-id': selectedClubId,
           },
@@ -110,9 +115,13 @@ export default function UnifiedPlayerManagement({
           upsert: true,
         });
         if (uploadError) throw new Error(uploadError.message || 'Failed to upload to storage');
+        const _staffToken2 = localStorage.getItem('authToken') || localStorage.getItem('token');
         const recordRes = await fetch(`${apiBase}/player-documents/record`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(_staffToken2 ? { 'Authorization': `Bearer ${_staffToken2}` } : {}),
+          },
           body: JSON.stringify({
             playerId,
             clubId,
@@ -134,9 +143,14 @@ export default function UnifiedPlayerManagement({
       formData.append('file', file);
       formData.append('type', documentType);
       formData.append('name', file.name);
+      const _staffToken3 = localStorage.getItem('authToken') || localStorage.getItem('token');
       const response = await fetch(`${apiBase}/player-documents/upload`, {
         method: 'POST',
-        headers: { 'x-player-id': playerId, 'x-club-id': clubId || selectedClubId },
+        headers: {
+          ...(_staffToken3 ? { 'Authorization': `Bearer ${_staffToken3}` } : {}),
+          'x-player-id': playerId,
+          'x-club-id': clubId || selectedClubId,
+        },
         body: formData,
       });
       if (!response.ok) {
@@ -150,15 +164,23 @@ export default function UnifiedPlayerManagement({
   // Create Player Mutation: create player, then upload KYC; only show temp password after BOTH succeed. If upload fails, delete player and fail.
   const createPlayerMutation = useMutation({
     mutationFn: async (payload) => {
-      const { _aadhaarFile, _panCardFile, ...apiPayload } = payload;
+      const { _aadhaarFrontFile, _aadhaarBackFile, _panCardFile, ...apiPayload } = payload;
       const playerData = await superAdminAPI.createPlayer(selectedClubId, apiPayload);
 
       try {
-        if (_aadhaarFile) {
+        if (_aadhaarFrontFile) {
           await uploadDocumentMutation.mutateAsync({
             playerId: playerData.id,
-            file: _aadhaarFile,
-            documentType: 'government_id',
+            file: _aadhaarFrontFile,
+            documentType: 'aadhaar_front',
+            clubId: selectedClubId,
+          });
+        }
+        if (_aadhaarBackFile) {
+          await uploadDocumentMutation.mutateAsync({
+            playerId: playerData.id,
+            file: _aadhaarBackFile,
+            documentType: 'aadhaar_back',
             clubId: selectedClubId,
           });
         }
@@ -196,7 +218,8 @@ export default function UnifiedPlayerManagement({
         phoneNumber: "",
         referralCode: "",
         panCard: "",
-        aadhaarFile: null,
+        aadhaarFrontFile: null,
+        aadhaarBackFile: null,
         panCardFile: null,
       });
       queryClient.invalidateQueries(['clubPlayers', selectedClubId]);
@@ -276,6 +299,28 @@ export default function UnifiedPlayerManagement({
     },
   });
 
+  // Permanent Delete Player Mutation (Super Admin only)
+  const deletePlayerMutation = useMutation({
+    mutationFn: async (playerId) => {
+      if (!selectedClubId) throw new Error('Club is required');
+      setDeletingPlayerId(playerId);
+      return await superAdminAPI.deletePlayer(selectedClubId, playerId);
+    },
+    onSuccess: () => {
+      toast.success('Player deleted permanently');
+      onRefresh?.();
+      queryClient.invalidateQueries(['clubPlayers', selectedClubId]);
+      queryClient.invalidateQueries(['pendingPlayers', selectedClubId]);
+      queryClient.invalidateQueries(['suspendedPlayers', selectedClubId]);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to delete player');
+    },
+    onSettled: () => {
+      setDeletingPlayerId(null);
+    },
+  });
+
   const { data: fieldUpdateRequests = [], isLoading: fieldUpdatesLoading, isFetching: fieldUpdatesFetching, refetch: refetchFieldUpdates } = useQuery({
     queryKey: ['fieldUpdateRequests', selectedClubId],
     queryFn: () => superAdminAPI.getFieldUpdateRequests(selectedClubId),
@@ -330,8 +375,12 @@ export default function UnifiedPlayerManagement({
     }
 
     // Validate files
-    if (!playerForm.aadhaarFile) {
-      toast.error('Please upload Aadhaar document');
+    if (!playerForm.aadhaarFrontFile) {
+      toast.error('Please upload Aadhaar Front document');
+      return;
+    }
+    if (!playerForm.aadhaarBackFile) {
+      toast.error('Please upload Aadhaar Back document');
       return;
     }
     if (!playerForm.panCardFile) {
@@ -341,8 +390,12 @@ export default function UnifiedPlayerManagement({
 
     // Validate file sizes (5MB max)
     const maxSize = 5 * 1024 * 1024; // 5MB
-    if (playerForm.aadhaarFile.size > maxSize) {
-      toast.error('Aadhaar document must be less than 5MB');
+    if (playerForm.aadhaarFrontFile.size > maxSize) {
+      toast.error('Aadhaar Front document must be less than 5MB');
+      return;
+    }
+    if (playerForm.aadhaarBackFile.size > maxSize) {
+      toast.error('Aadhaar Back document must be less than 5MB');
       return;
     }
     if (playerForm.panCardFile.size > maxSize) {
@@ -352,8 +405,12 @@ export default function UnifiedPlayerManagement({
 
     // Validate file types
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-    if (!allowedTypes.includes(playerForm.aadhaarFile.type)) {
-      toast.error('Aadhaar document must be JPG, PNG, or PDF');
+    if (!allowedTypes.includes(playerForm.aadhaarFrontFile.type)) {
+      toast.error('Aadhaar Front document must be JPG, PNG, or PDF');
+      return;
+    }
+    if (!allowedTypes.includes(playerForm.aadhaarBackFile.type)) {
+      toast.error('Aadhaar Back document must be JPG, PNG, or PDF');
       return;
     }
     if (!allowedTypes.includes(playerForm.panCardFile.type)) {
@@ -369,7 +426,8 @@ export default function UnifiedPlayerManagement({
       phoneNumber: playerForm.phoneNumber,
       affiliateCode: playerForm.referralCode || undefined,
       panCard: playerForm.panCard || undefined,
-      _aadhaarFile: playerForm.aadhaarFile,
+      _aadhaarFrontFile: playerForm.aadhaarFrontFile,
+      _aadhaarBackFile: playerForm.aadhaarBackFile,
       _panCardFile: playerForm.panCardFile,
     };
 
@@ -582,6 +640,23 @@ export default function UnifiedPlayerManagement({
                                   Suspend
                                 </button>
                               )}
+                              {allowPermanentDelete && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const confirmed = window.confirm(
+                                      `Delete ${player.name} permanently? This cannot be undone.`
+                                    );
+                                    if (!confirmed) return;
+                                    deletePlayerMutation.mutate(player.id);
+                                  }}
+                                  disabled={deletePlayerMutation.isLoading && deletingPlayerId === player.id}
+                                  className="bg-rose-900 hover:bg-rose-800 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                                  title="Permanent delete (Super Admin only)"
+                                >
+                                  {deletePlayerMutation.isLoading && deletingPlayerId === player.id ? 'Deleting...' : 'Delete'}
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -701,23 +776,42 @@ export default function UnifiedPlayerManagement({
                   <p className="text-xs text-gray-400 mt-1">Format: 5 letters, 4 digits, 1 letter (e.g., ABCDE1234F)</p>
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Aadhaar Document *</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Aadhaar Front *</label>
                   <input
                     type="file"
                     accept="image/jpeg,image/jpg,image/png,application/pdf"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        setPlayerForm({ ...playerForm, aadhaarFile: file });
+                        setPlayerForm({ ...playerForm, aadhaarFrontFile: file });
                       }
                     }}
                     className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
                     required
                   />
-                  {playerForm.aadhaarFile && (
-                    <p className="text-xs text-emerald-400 mt-1">✓ {playerForm.aadhaarFile.name}</p>
+                  {playerForm.aadhaarFrontFile && (
+                    <p className="text-xs text-emerald-400 mt-1">✓ {playerForm.aadhaarFrontFile.name}</p>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">Upload Aadhaar card (JPG, PNG, or PDF, max 5MB)</p>
+                  <p className="text-xs text-gray-400 mt-1">Upload Aadhaar front image/document (JPG, PNG, or PDF, max 5MB)</p>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Aadhaar Back *</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setPlayerForm({ ...playerForm, aadhaarBackFile: file });
+                      }
+                    }}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
+                    required
+                  />
+                  {playerForm.aadhaarBackFile && (
+                    <p className="text-xs text-emerald-400 mt-1">✓ {playerForm.aadhaarBackFile.name}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">Upload Aadhaar back image/document (JPG, PNG, or PDF, max 5MB)</p>
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-300 mb-1">PAN Card Document *</label>
@@ -964,9 +1058,17 @@ export default function UnifiedPlayerManagement({
                         const playerName = request.player?.name || request.player?.first_name
                           ? `${request.player.first_name || ''} ${request.player.last_name || ''}`.trim()
                           : 'Unknown';
-                        const fieldLabelMap = { phoneNumber: 'Phone', name: 'Name', email: 'Email', government_id: 'Govt ID', pan_card: 'PAN Card' };
+                        const fieldLabelMap = {
+                          phoneNumber: 'Phone',
+                          name: 'Name',
+                          email: 'Email',
+                          government_id: 'Aadhaar (Legacy)',
+                          aadhaar_front: 'Aadhaar Front',
+                          aadhaar_back: 'Aadhaar Back',
+                          pan_card: 'PAN Card',
+                        };
                         const fieldLabel = fieldLabelMap[request.fieldName] || request.fieldName;
-                        const isDocField = ['government_id', 'pan_card'].includes(request.fieldName);
+                        const isDocField = ['government_id', 'aadhaar_front', 'aadhaar_back', 'pan_card'].includes(request.fieldName);
 
                         const openDocView = async () => {
                           setDocViewModal({ open: true, request, oldDocUrl: null, newDocUrl: null, loading: true });
@@ -1383,6 +1485,12 @@ export default function UnifiedPlayerManagement({
                           if (typeLower === 'government_id' || typeLower === 'aadhaar' || typeLower === 'aadhar') {
                             return 'Aadhaar Card';
                           }
+                          if (typeLower === 'aadhaar_front' || typeLower === 'aadhar_front') {
+                            return 'Aadhaar Front';
+                          }
+                          if (typeLower === 'aadhaar_back' || typeLower === 'aadhar_back') {
+                            return 'Aadhaar Back';
+                          }
                           if (typeLower === 'pan_card' || typeLower === 'pan') {
                             return 'PAN Card';
                           }
@@ -1631,7 +1739,15 @@ export default function UnifiedPlayerManagement({
           <div className="bg-slate-800 rounded-xl p-6 max-w-4xl w-full border border-blue-600 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-white">
-                Document Comparison — {docViewModal.request.fieldName === 'government_id' ? 'Govt ID (Aadhaar)' : 'PAN Card'}
+                Document Comparison — {
+                  docViewModal.request.fieldName === 'government_id'
+                    ? 'Aadhaar (Legacy)'
+                    : docViewModal.request.fieldName === 'aadhaar_front'
+                      ? 'Aadhaar Front'
+                      : docViewModal.request.fieldName === 'aadhaar_back'
+                        ? 'Aadhaar Back'
+                        : 'PAN Card'
+                }
               </h2>
               <button
                 onClick={() => setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, loading: false })}

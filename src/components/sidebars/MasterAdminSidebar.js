@@ -390,10 +390,12 @@ export default function MasterAdminSidebar({
                     try {
                       setChangingPassword(true);
                       // Call API to change password
+                      const _maToken = localStorage.getItem('authToken') || localStorage.getItem('token');
                       const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
                         method: 'POST',
                         headers: {
-                          'Content-Type': 'application/json'
+                          'Content-Type': 'application/json',
+                          ...(_maToken ? { 'Authorization': `Bearer ${_maToken}` } : {}),
                         },
                         body: JSON.stringify({
                           email: userEmail,

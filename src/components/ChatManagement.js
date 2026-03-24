@@ -107,11 +107,12 @@ function StaffChatTab({ clubId, showNotification }) {
     
     // Set up WebSocket for real-time session updates
     const userId = localStorage.getItem('userId');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
     if (clubId && userId) {
       const WEBSOCKET_URL = process.env.REACT_APP_WEBSOCKET_URL || process.env.REACT_APP_API_BASE_URL?.replace('/api', '') || 'http://localhost:3333';
       console.log('🔌 Connecting to WebSocket:', `${WEBSOCKET_URL}/realtime`, 'userId:', userId, 'clubId:', clubId);
       const socket = io(`${WEBSOCKET_URL}/realtime`, {
-        auth: { clubId, userId },
+        auth: { clubId, userId, token },
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,
@@ -628,10 +629,11 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
     
     // Set up WebSocket for real-time updates
     const userId = localStorage.getItem('userId');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
     if (clubId && userId) {
       const WEBSOCKET_URL = process.env.REACT_APP_WEBSOCKET_URL || process.env.REACT_APP_API_BASE_URL?.replace('/api', '') || 'http://localhost:3333';
       const socket = io(`${WEBSOCKET_URL}/realtime`, {
-        auth: { clubId, userId },
+        auth: { clubId, userId, token },
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,

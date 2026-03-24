@@ -1,11 +1,14 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
+import { io } from 'socket.io-client';
+
+const WEBSOCKET_URL = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api')
+  .replace(/\/api$/, '');
 
 /**
- * Centralized Supabase Realtime hook for admin panel.
- * Replaces all sidebar and dashboard polling with push-based updates.
- * Each admin component that needs live data should call this once.
+ * Centralized Socket.IO hook for admin panel real-time updates.
+ * Replaces all Supabase Realtime subscriptions with JWT-authenticated Socket.IO events.
+ * Staff subscribe to the club channel to receive push-based updates for all relevant tables.
  */
 export function useAdminRealtime(clubId) {
   const queryClient = useQueryClient();
@@ -13,193 +16,133 @@ export function useAdminRealtime(clubId) {
   useEffect(() => {
     if (!clubId) return;
 
-    const channels = [];
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const userId = localStorage.getItem('userId');
 
-    // Credit requests (replaces 10s polling in SuperAdminSidebar)
-    const creditChannel = supabase
-      .channel(`admin-credits-${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'credit_requests',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['creditRequests', clubId] });
-      })
-      .subscribe();
-    channels.push(creditChannel);
+    const socket = io(`${WEBSOCKET_URL}/realtime`, {
+      auth: { clubId, userId, token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 2000,
+      reconnectionAttempts: Infinity,
+    });
 
-    // Leave applications (replaces 10s polling in 7+ sidebars)
-    const leaveChannel = supabase
-      .channel(`admin-leaves-${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'leave_applications',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['pendingLeaveApplications', clubId] });
-        queryClient.invalidateQueries({ queryKey: ['myApprovedLeaves', clubId] });
-        queryClient.invalidateQueries({ queryKey: ['leavePolicies', clubId] });
-      })
-      .subscribe();
-    channels.push(leaveChannel);
+    socket.on('connect', () => {
+      console.log('✅ [ADMIN SOCKET] Connected, subscribing to club:', clubId);
+      socket.emit('subscribe:club', { clubId, userId });
+    });
 
-    // Chat messages (replaces 10s polling in 9+ sidebars)
-    const chatChannel = supabase
-      .channel(`admin-chats-${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'chat_messages',
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubId] });
-      })
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'chat_sessions',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubId] });
-      })
-      .subscribe();
-    channels.push(chatChannel);
+    // Credit requests
+    socket.on('credit:status-changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['creditRequests', clubId] });
+    });
+    socket.on('credit:new-request', () => {
+      queryClient.invalidateQueries({ queryKey: ['creditRequests', clubId] });
+    });
 
-    // Notifications (replaces 30s polling in 9+ sidebars)
-    const notifChannel = supabase
-      .channel(`admin-notifs-${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'push_notifications',
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount', clubId, 'staff'] });
-        queryClient.invalidateQueries({ queryKey: ['notificationInbox'] });
-      })
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'notification_read_status',
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount', clubId, 'staff'] });
-      })
-      .subscribe();
-    channels.push(notifChannel);
+    // Leave applications
+    socket.on('leave:updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['pendingLeaveApplications', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['myApprovedLeaves', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['leavePolicies', clubId] });
+    });
 
-    // Player profile change requests (replaces 10s polling)
-    const profileChannel = supabase
-      .channel(`admin-profile-requests-${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'player_profile_change_requests',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['fieldUpdateRequests', clubId] });
-      })
-      .subscribe();
-    channels.push(profileChannel);
+    // Chat messages & sessions
+    socket.on('chat:new-message', () => {
+      queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubId] });
+    });
+    socket.on('chat:session-updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubId] });
+    });
 
-    // Tournaments (replaces 10s polling)
-    const tournamentChannel = supabase
-      .channel(`admin-tournaments-${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'tournaments',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['tournaments'] });
-        queryClient.invalidateQueries({ queryKey: ['tournament-players'] });
-      })
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'tournament_players',
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['tournament-players'] });
-      })
-      .subscribe();
-    channels.push(tournamentChannel);
+    // Notifications
+    socket.on('notification:new', () => {
+      queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount', clubId, 'staff'] });
+      queryClient.invalidateQueries({ queryKey: ['notificationInbox'] });
+    });
+    socket.on('notification:read-status-changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount', clubId, 'staff'] });
+    });
 
-    // Financial transactions (replaces revenue polling)
-    const txnChannel = supabase
-      .channel(`admin-txns-${clubId}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'financial_transactions',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['clubRevenue', clubId] });
-        queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      })
-      .subscribe();
-    channels.push(txnChannel);
+    // Player profile change requests
+    socket.on('profile-request:updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['fieldUpdateRequests', clubId] });
+    });
 
-    // Buy-in requests (real-time for staff to see new requests instantly)
-    const buyinChannel = supabase
-      .channel(`admin-buyins-${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'buyin_requests',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['buyInRequests', clubId] });
-      })
-      .subscribe();
-    channels.push(buyinChannel);
+    // Tournaments
+    socket.on('tournament:updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['tournament-players'] });
+    });
+    socket.on('tournament:player-updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament-players'] });
+    });
+    socket.on('tournament:blinds-updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+    });
 
-    // Buy-out requests (real-time for staff to see new requests instantly)
-    const buyoutChannel = supabase
-      .channel(`admin-buyouts-${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'buyout_requests',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
-      })
-      .subscribe();
-    channels.push(buyoutChannel);
+    // Financial transactions
+    socket.on('transaction:new', () => {
+      queryClient.invalidateQueries({ queryKey: ['clubRevenue', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    });
+
+    // Buy-in requests
+    socket.on('buyin:new-request', () => {
+      queryClient.invalidateQueries({ queryKey: ['buyInRequests', clubId] });
+    });
+    socket.on('buyin:updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['buyInRequests', clubId] });
+    });
+
+    // Buy-out requests
+    socket.on('buyout:new-request', () => {
+      queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
+    });
+    socket.on('buyout:updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
+    });
 
     // FNB orders
-    const fnbChannel = supabase
-      .channel(`admin-fnb-${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'fnb_orders',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['fnbOrders'] });
-      })
-      .subscribe();
-    channels.push(fnbChannel);
+    socket.on('fnb:order-updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['fnbOrders'] });
+    });
 
-    // Players table changes (balance updates, KYC, etc.)
-    const playerChannel = supabase
-      .channel(`admin-players-${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'players',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubId] });
-      })
-      .subscribe();
-    channels.push(playerChannel);
+    // Players table changes (balance, KYC, etc.)
+    socket.on('player:updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubId] });
+    });
+    socket.on('kyc:status-changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubId] });
+    });
 
     // Staff changes
-    const staffChannel = supabase
-      .channel(`admin-staff-${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'staff',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['clubStaff', clubId] });
-      })
-      .subscribe();
-    channels.push(staffChannel);
+    socket.on('staff:updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['clubStaff', clubId] });
+    });
 
-    // Table seat changes (replaces 5s polling in TableManagement)
-    const tableChannel = supabase
-      .channel(`admin-tables-${clubId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'tables',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['tables'] });
-        queryClient.invalidateQueries({ queryKey: ['seatedPlayers'] });
-      })
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'waitlist_entries',
-        filter: `club_id=eq.${clubId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['waitlist'] });
-        queryClient.invalidateQueries({ queryKey: ['seatedPlayers'] });
-      })
-      .subscribe();
-    channels.push(tableChannel);
+    // Tables and waitlist
+    socket.on('table:status-changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['tables'] });
+      queryClient.invalidateQueries({ queryKey: ['seatedPlayers'] });
+    });
+    socket.on('tables:updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['tables'] });
+    });
+    socket.on('waitlist:status-changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['waitlist'] });
+      queryClient.invalidateQueries({ queryKey: ['seatedPlayers'] });
+    });
+    socket.on('waitlist:position-updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['waitlist'] });
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('🔌 [ADMIN SOCKET] Disconnected:', reason);
+    });
 
     return () => {
-      channels.forEach(ch => supabase.removeChannel(ch));
+      socket.disconnect();
     };
   }, [clubId, queryClient]);
 }

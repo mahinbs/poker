@@ -99,6 +99,11 @@ export const authAPI = {
     if (data.user) {
       localStorage.setItem(STORAGE_KEYS.USER_ID, data.user.id);
       localStorage.setItem(STORAGE_KEYS.USER_EMAIL, data.user.email);
+      if (data.token) {
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.token);
+        // Backward compatibility for legacy fetch helpers/components.
+        localStorage.setItem('token', data.token);
+      }
       
       // Store full user object for profile display
       localStorage.setItem('user', JSON.stringify({
@@ -139,6 +144,7 @@ export const authAPI = {
     Object.values(STORAGE_KEYS).forEach(key => {
       localStorage.removeItem(key);
     });
+    localStorage.removeItem('token');
   },
 
   /**

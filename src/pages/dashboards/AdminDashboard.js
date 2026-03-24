@@ -463,6 +463,7 @@ export default function AdminDashboard() {
               pendingLoading={pendingLoading}
               suspendedPlayers={suspendedPlayers}
               suspendedLoading={suspendedLoading}
+              allowPermanentDelete={false}
               onRefresh={() => {
                 queryClient.invalidateQueries(['pendingPlayers', clubId]);
                 queryClient.invalidateQueries(['clubPlayers', clubId]);

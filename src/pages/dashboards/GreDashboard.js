@@ -10,6 +10,7 @@ import ChatManagement from "../../components/ChatManagement";
 import TableView from "../../components/hologram/TableView";
 import NotificationsInbox from "../../components/NotificationsInbox";
 import LeaveManagement from "../../components/LeaveManagement";
+import TableManagement from "./TableManagement";
 
 // View-only Tables component for GRE (without buy-in requests)
 function TableManagementViewOnly({ selectedClubId }) {
@@ -596,6 +597,7 @@ export default function GreDashboard() {
                 pendingLoading={pendingLoading}
                 suspendedPlayers={suspendedPlayers}
                 suspendedLoading={suspendedLoading}
+                allowPermanentDelete={false}
                 onRefresh={() => {
                   queryClient.invalidateQueries(['pendingPlayers', clubId]);
                   queryClient.invalidateQueries(['clubPlayers', clubId]);
@@ -605,9 +607,9 @@ export default function GreDashboard() {
             </div>
           )}
 
-          {/* Tables & Waitlist - View Only */}
+          {/* Tables & Waitlist */}
           {activeItem === "Tables & Waitlist" && clubId && (
-            <TableManagementViewOnly selectedClubId={clubId} />
+            <TableManagement selectedClubId={clubId} />
           )}
 
           {/* Tournaments - View Only */}

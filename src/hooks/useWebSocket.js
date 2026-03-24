@@ -15,10 +15,11 @@ export const useWebSocket = (clubId, userId) => {
 
   useEffect(() => {
     if (!clubId) return;
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
 
     // Create Socket.IO connection
     const socket = io(`${WEBSOCKET_URL}/realtime`, {
-      auth: { clubId, userId },
+      auth: { clubId, userId, token },
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { clubsAPI } from "../lib/api";
-import { supabase } from "../lib/supabase";
+import { io as socketIO } from 'socket.io-client';
 import toast from "react-hot-toast";
 
 export default function TableBuyOutManagement({ clubId }) {
@@ -12,48 +12,27 @@ export default function TableBuyOutManagement({ clubId }) {
   const [rejectionReason, setRejectionReason] = useState("");
   const [cashoutAmount, setCashoutAmount] = useState("");
 
-  // Supabase real-time: instant updates for buy-out requests
+  // Socket.IO: instant updates for buy-out requests
   useEffect(() => {
     if (!clubId) return;
-
-    const channel = supabase
-      .channel(`buyout-requests-${clubId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'buyout_requests',
-          filter: `club_id=eq.${clubId}`,
-        },
-        (payload) => {
-          console.log('🔔 [REALTIME] New buy-out request:', payload.new);
-          queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
-          toast('💸 New buy-out request received!', { icon: '🔔' });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'buyout_requests',
-          filter: `club_id=eq.${clubId}`,
-        },
-        (payload) => {
-          console.log('🔄 [REALTIME] Buy-out request updated:', payload.new);
-          queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ [REALTIME] Subscribed to buy-out requests for club:', clubId);
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const wsBase = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api').replace(/\/api$/, '');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const userId = localStorage.getItem('userId');
+    const socket = socketIO(`${wsBase}/realtime`, {
+      auth: { clubId, userId, token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+    });
+    socket.on('connect', () => socket.emit('subscribe:club', { clubId, userId }));
+    socket.on('buyout:new-request', () => {
+      console.log('🔔 [SOCKET] New buy-out request received');
+      queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
+      toast('💸 New buy-out request received!', { icon: '🔔' });
+    });
+    socket.on('buyout:updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
+    });
+    return () => { socket.disconnect(); };
   }, [clubId, queryClient]);
 
   // Fetch pending buy-out requests (initial load + fallback)
