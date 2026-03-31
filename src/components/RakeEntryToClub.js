@@ -59,7 +59,7 @@ export default function RakeEntryToClub() {
       totalRakeAmount: parseFloat(totalRakeAmount),
       notes: notes,
       enteredBy: "Cashier",
-      enteredAt: new Date().toLocaleString("en-IN"),
+      enteredAt: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
       status: "entered",
     };
 

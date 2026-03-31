@@ -524,7 +524,7 @@ export default function AdminDashboard() {
 
           {/* Reports & Analytics */}
           {activeItem === "Reports & Analytics" && clubId && (
-            <ReportsAnalytics clubId={clubId} />
+            <ReportsAnalytics clubId={clubId} allowCustomReport={false} />
           )}
 
           {/* System Control */}

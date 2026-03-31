@@ -11,7 +11,6 @@ import PushNotifications from "./PushNotifications";
 import ChatManagement from "../../components/ChatManagement";
 import FinancialOverrides from "../../components/FinancialOverrides";
 import TableView from "../../components/hologram/TableView";
-import BuyInRequestManagement from "../../components/BuyInRequestManagement";
 import NotificationsInbox from "../../components/NotificationsInbox";
 import LeaveManagement from "../../components/LeaveManagement";
 import MyShiftsDashboard from "../../components/MyShiftsDashboard";
@@ -215,7 +214,7 @@ function TournamentManagementViewOnly({ selectedClubId }) {
                       <p className="text-sm text-gray-400">Buy-In: ₹{tournament.buyIn}</p>
                     )}
                     {tournament.startTime && (
-                      <p className="text-sm text-gray-400">Start: {new Date(tournament.startTime).toLocaleString()}</p>
+                      <p className="text-sm text-gray-400">Start: {new Date(tournament.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                     )}
                     {tournament.prizePool && (
                       <p className="text-sm text-gray-400">Prize Pool: ₹{tournament.prizePool}</p>
@@ -270,7 +269,7 @@ function TournamentManagementViewOnly({ selectedClubId }) {
               {selectedTournament.startTime && (
                 <div>
                   <p className="text-gray-400 text-sm">Start Time</p>
-                  <p className="text-white font-semibold">{new Date(selectedTournament.startTime).toLocaleString()}</p>
+                  <p className="text-white font-semibold">{new Date(selectedTournament.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                 </div>
               )}
               {selectedTournament.description && (
@@ -338,7 +337,7 @@ function RummyTournamentManagementViewOnly({ selectedClubId }) {
                       <p className="text-sm text-gray-400">Buy-In: ₹{tournament.buyIn}</p>
                     )}
                     {tournament.startTime && (
-                      <p className="text-sm text-gray-400">Start: {new Date(tournament.startTime).toLocaleString()}</p>
+                      <p className="text-sm text-gray-400">Start: {new Date(tournament.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                     )}
                     {tournament.prizePool && (
                       <p className="text-sm text-gray-400">Prize Pool: ₹{tournament.prizePool}</p>
@@ -397,7 +396,7 @@ function RummyTournamentManagementViewOnly({ selectedClubId }) {
               {selectedTournament.startTime && (
                 <div>
                   <p className="text-gray-400 text-sm">Start Time</p>
-                  <p className="text-white font-semibold">{new Date(selectedTournament.startTime).toLocaleString()}</p>
+                  <p className="text-white font-semibold">{new Date(selectedTournament.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                 </div>
               )}
               {selectedTournament.description && (
@@ -762,23 +761,6 @@ export default function CashierDashboard() {
             <ClubBuyInCashOut selectedClubId={clubId} onBack={() => setActiveItem("Dashboard")} />
           )}
 
-          {/* Club Buy-In Requests - same as Credit Approval, direct tab for staff */}
-          {activeItem === "Club Buy-In Requests" && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-3xl font-bold text-white mb-2">Club Buy-In Requests</h1>
-                <p className="text-gray-400">Approve or reject buy-in requests from players seated at tables.</p>
-              </div>
-              {clubId ? (
-                <BuyInRequestManagement clubId={clubId} />
-              ) : (
-                <div className="bg-slate-800 rounded-xl p-8 border border-slate-700 text-center">
-                  <p className="text-gray-400">Please select a club to view buy-in requests.</p>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Push Notifications */}
           {activeItem === "Push Notifications" && (
             <PushNotifications selectedClubId={clubId} />
@@ -815,7 +797,7 @@ export default function CashierDashboard() {
           )}
 
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Payroll Management", "Bonus Management", "Tables & Waitlist", "Club Buy-In", "Club Buy-In Requests", "Push Notifications", "Tournaments", "Chat", "Transactions", "Rummy", "Notifications"].includes(activeItem) && (
+          {!["Dashboard", "Payroll Management", "Bonus Management", "Tables & Waitlist", "Club Buy-In", "Push Notifications", "Tournaments", "Chat", "Transactions", "Rummy", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
             </div>

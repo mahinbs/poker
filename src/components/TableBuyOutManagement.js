@@ -12,6 +12,23 @@ export default function TableBuyOutManagement({ clubId }) {
   const [rejectionReason, setRejectionReason] = useState("");
   const [cashoutAmount, setCashoutAmount] = useState("");
 
+  const { data: selectedPlayerBalance } = useQuery({
+    queryKey: ['buyout-player-balance', clubId, selectedRequest?.playerId],
+    queryFn: () => clubsAPI.getPlayerBalance(clubId, selectedRequest.playerId),
+    enabled: !!clubId && !!selectedRequest?.playerId && showApproveModal,
+  });
+
+  const { data: liveSeatedPlayer } = useQuery({
+    queryKey: ['buyout-live-seated-player', clubId, selectedRequest?.playerId],
+    queryFn: async () => {
+      const seatedPlayers = await clubsAPI.getSeatedPlayers(clubId);
+      return Array.isArray(seatedPlayers)
+        ? seatedPlayers.find((p) => String(p?.playerId) === String(selectedRequest?.playerId))
+        : null;
+    },
+    enabled: !!clubId && !!selectedRequest?.playerId && showApproveModal,
+  });
+
   // Socket.IO: instant updates for buy-out requests
   useEffect(() => {
     if (!clubId) return;
@@ -109,18 +126,39 @@ export default function TableBuyOutManagement({ clubId }) {
 
   const formatDateTime = (dateString) => {
     if (!dateString) return "";
-    const date = new Date(dateString);
+    let normalized = String(dateString).trim();
+    // Normalize "YYYY-MM-DD HH:mm:ss" to ISO first, then treat timezone-less timestamps as UTC.
+    normalized = normalized.replace(' ', 'T');
+    const hasTimezone = /([zZ]|[+\-]\d{2}:\d{2}|[+\-]\d{2})$/.test(normalized);
+    if (!hasTimezone) {
+      normalized = `${normalized}Z`;
+    } else if (/[+\-]\d{2}$/.test(normalized)) {
+      // Convert +00 / +05 style offsets into +00:00 / +05:00 so Date parses reliably.
+      normalized = `${normalized}:00`;
+    }
+    const date = new Date(normalized);
+    if (Number.isNaN(date.getTime())) return String(dateString);
     return date.toLocaleString('en-IN', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      second: '2-digit',
       timeZone: 'Asia/Kolkata',
+      hour12: true,
     });
   };
 
   const pendingRequests = buyOutRequests.filter(r => r.status === 'pending');
+  const resolvedTableBalance = Number(
+    liveSeatedPlayer?.buyInAmount ??
+    selectedPlayerBalance?.tableBalance ??
+    selectedRequest?.currentTableBalance ??
+    0
+  );
+  const resolvedCreditOnTable = Number(selectedPlayerBalance?.creditUsedOnTable || 0);
+  const resolvedCashOnTable = Math.max(0, resolvedTableBalance - resolvedCreditOnTable);
 
   return (
     <div className="space-y-6">
@@ -206,6 +244,33 @@ export default function TableBuyOutManagement({ clubId }) {
                 <div>
                   <span className="text-gray-400">Call Time:</span>
                   <span className="text-white font-semibold ml-2">{formatDateTime(selectedRequest.callTimeStartedAt)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Table Balance Breakdown (before cashout completion) */}
+            <div className="bg-emerald-900/20 border border-emerald-700/50 rounded-lg p-4 mb-4">
+              <div className="text-sm text-emerald-100">
+                <p className="font-semibold mb-2">💰 Table Balance Before Cashout</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="bg-slate-800/60 rounded p-3">
+                    <div className="text-xs text-emerald-200/80">Cash on Table</div>
+                    <div className="text-lg font-bold text-white">
+                      ₹{Number(resolvedCashOnTable || 0).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/60 rounded p-3">
+                    <div className="text-xs text-emerald-200/80">Credit on Table</div>
+                    <div className="text-lg font-bold text-white">
+                      ₹{Number(resolvedCreditOnTable || 0).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/60 rounded p-3">
+                    <div className="text-xs text-emerald-200/80">Total Table Balance</div>
+                    <div className="text-lg font-bold text-white">
+                      ₹{Number(resolvedTableBalance || 0).toLocaleString('en-IN')}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -861,6 +861,7 @@ export default function FNBSections({ forceTab = null }) {
                           day: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
+                          timeZone: "Asia/Kolkata",
                         }),
                       };
                       setGeneratedBill(invoice);

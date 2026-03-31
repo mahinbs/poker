@@ -231,7 +231,6 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
     queryKey: ['clubBuyInRequests', selectedClubId],
     queryFn: () => clubsAPI.getBuyInRequests(selectedClubId),
     enabled: !!selectedClubId,
-    refetchInterval: 15000,
   });
 
   const approveBuyInMutation = useMutation({

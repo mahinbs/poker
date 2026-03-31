@@ -2,6 +2,147 @@ import React, { useState, useEffect, useRef } from 'react';
 import { chatAPI, staffAPI, authAPI } from '../lib/api';
 import { FaUser, FaComments, FaSearch, FaPaperPlane, FaCircle, FaTimes, FaPlus } from 'react-icons/fa';
 import { io } from 'socket.io-client';
+import { useQueryClient } from '@tanstack/react-query';
+
+/** India Standard Time (no DST) — deterministic clock from UTC ms; avoids Intl/browser-TZ flicker. */
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+/** Naive `YYYY-MM-DD hh:mm:ss` / ISO without offset → UTC instant (matches DB UTC wall clock). */
+function naiveUtcComponentsToMs(s) {
+  const t = String(s).trim();
+  if (/[zZ]/.test(t) || /[+-]\d{2}:?\d{2}$/.test(t)) return null;
+  const re = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(\.\d+)?/;
+  const m = t.match(re);
+  if (!m) return null;
+  const frac = m[7] ? parseFloat(m[7]) : 0;
+  const msInSecond = Math.min(999, Math.round(frac * 1000));
+  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6], msInSecond);
+}
+
+/**
+ * Parse any API/socket value to UTC epoch ms.
+ * Prefer `createdAtUtcMs` on message rows when present.
+ */
+function parseChatInstantMs(value) {
+  if (value == null || value === '') return Date.now();
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value < 1e12 ? value * 1000 : value;
+  }
+  if (value instanceof Date) {
+    const t = value.getTime();
+    return Number.isNaN(t) ? Date.now() : t;
+  }
+  let s = String(value).trim();
+  const manual = naiveUtcComponentsToMs(s);
+  if (manual != null) return manual;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(s) && !/[zZ+]/.test(s) && !/-\d{2}:\d{2}$/.test(s)) {
+    s = `${s}Z`;
+  } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?$/.test(s)) {
+    s = `${s.replace(' ', 'T')}Z`;
+  }
+  const ms = Date.parse(s);
+  return Number.isNaN(ms) ? Date.now() : ms;
+}
+
+function getChatUtcMs(row) {
+  if (row && typeof row.createdAtUtcMs === 'number' && Number.isFinite(row.createdAtUtcMs)) {
+    return row.createdAtUtcMs;
+  }
+  return parseChatInstantMs(row?.createdAt != null ? row.createdAt : row);
+}
+
+function toUtcMs(value) {
+  return parseChatInstantMs(value);
+}
+
+/** Collapse duplicate player rows (same text, same sender type, ~same time) for staff player-chat view. */
+function dedupeNearDuplicateChatRowsBySender(list, senderType) {
+  const sorted = [...list].sort((a, b) => getChatUtcMs(a) - getChatUtcMs(b));
+  const out = [];
+  for (const m of sorted) {
+    if (m.senderType !== senderType) {
+      out.push(m);
+      continue;
+    }
+    const t = getChatUtcMs(m);
+    const idx = out.findIndex(
+      (o) =>
+        o.senderType === senderType &&
+        (o.message || '').trim() === (m.message || '').trim() &&
+        Math.abs(getChatUtcMs(o) - t) < 120000,
+    );
+    if (idx < 0) {
+      out.push(m);
+      continue;
+    }
+    const o = out[idx];
+    const oTemp = String(o.id).startsWith('temp-');
+    const mTemp = String(m.id).startsWith('temp-');
+    out[idx] = oTemp && !mTemp ? m : mTemp && !oTemp ? o : t >= getChatUtcMs(o) ? m : o;
+  }
+  return out;
+}
+
+/** Calendar date YYYY-MM-DD in IST for the given instant */
+function istCalendarKey(ms) {
+  const d = new Date(ms + IST_OFFSET_MS);
+  const y = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${mo}-${day}`;
+}
+
+/** Whole-day difference in IST between two instants (0 = same IST day). */
+function istCalendarDiffDays(msMsg, msNow) {
+  const km = istCalendarKey(msMsg);
+  const kn = istCalendarKey(msNow);
+  if (km === kn) return 0;
+  const [ym, mm, dm] = km.split('-').map(Number);
+  const [yn, mn, dn] = kn.split('-').map(Number);
+  const tm = Date.UTC(ym, mm - 1, dm);
+  const tn = Date.UTC(yn, mn - 1, dn);
+  return Math.round((tn - tm) / 86400000);
+}
+
+/** HH:mm always in IST (fixed offset, no Intl clock). */
+function formatIstHm(ms) {
+  const d = new Date(ms + IST_OFFSET_MS);
+  const h = String(d.getUTCHours()).padStart(2, '0');
+  const m = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function formatIstDateLong(ms) {
+  const d = new Date(ms + IST_OFFSET_MS);
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const mon = months[d.getUTCMonth()];
+  const y = d.getUTCFullYear();
+  return `${day} ${mon} ${y}`;
+}
+
+/** Always store ISO UTC string */
+function coerceCreatedAtToIso(value) {
+  try {
+    return new Date(parseChatInstantMs(value)).toISOString();
+  } catch (e) {
+    return new Date().toISOString();
+  }
+}
+
+function formatChatListTime(dateValue) {
+  if (!dateValue) return '';
+  const ms = parseChatInstantMs(dateValue);
+  const now = Date.now();
+  const diffDays = istCalendarDiffDays(ms, now);
+
+  if (diffDays <= 0) {
+    return formatIstHm(ms);
+  }
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return formatIstDateLong(ms);
+}
 
 export default function ChatManagement({ clubId, hidePlayerChat = false }) {
   const [activeTab, setActiveTab] = useState('staff');
@@ -90,6 +231,7 @@ export default function ChatManagement({ clubId, hidePlayerChat = false }) {
 // ==================== STAFF CHAT TAB ====================
 
 function StaffChatTab({ clubId, showNotification }) {
+  const queryClient = useQueryClient();
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -284,7 +426,14 @@ function StaffChatTab({ clubId, showNotification }) {
             sessions.map((session) => (
               <div
                 key={session.id}
-                onClick={() => setSelectedSession(session)}
+                onClick={() => {
+                  setSelectedSession(session);
+                  // Clear local unread badge immediately, then sync sidebar unread count.
+                  setSessions((prev) =>
+                    prev.map((s) => (s.id === session.id ? { ...s, unreadCount: 0 } : s))
+                  );
+                  queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubId] });
+                }}
                 className={`p-3 rounded-lg cursor-pointer transition-all ${
                   selectedSession?.id === session.id
                     ? 'bg-blue-600'
@@ -310,6 +459,9 @@ function StaffChatTab({ clubId, showNotification }) {
                 {session.subject && (
                   <div className="text-white/70 text-sm mt-1 truncate">{session.subject}</div>
                 )}
+                <div className="text-white/50 text-xs mt-1">
+                  {formatChatListTime(session.lastMessageAt)}
+                </div>
               </div>
             ))
           )}
@@ -416,6 +568,7 @@ function StaffChatTab({ clubId, showNotification }) {
 // ==================== PLAYER CHAT TAB ====================
 
 function PlayerChatTab({ clubId }) {
+  const queryClient = useQueryClient();
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -426,8 +579,44 @@ function PlayerChatTab({ clubId }) {
 
   useEffect(() => {
     loadSessions();
-    const interval = setInterval(loadSessions, 5000); // Refresh every 5 seconds for real-time
-    return () => clearInterval(interval);
+
+    const userId = localStorage.getItem('userId');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    if (!clubId || !userId) return;
+
+    const WEBSOCKET_URL =
+      process.env.REACT_APP_WEBSOCKET_URL ||
+      process.env.REACT_APP_API_BASE_URL?.replace('/api', '') ||
+      'http://localhost:3333';
+
+    const socket = io(`${WEBSOCKET_URL}/realtime`, {
+      auth: { clubId, userId, token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 10000,
+      reconnectionAttempts: Infinity,
+    });
+
+    socket.on('connect', () => {
+      socket.emit('subscribe:club', { clubId, userId });
+      socket.emit('subscribe:staff', { staffId: userId, clubId });
+    });
+
+    socket.on('chat:new-message', () => {
+      loadSessions();
+      queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubId] });
+    });
+
+    socket.on('chat:session-updated', () => {
+      loadSessions();
+      queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubId] });
+    });
+
+    return () => {
+      socket.emit('unsubscribe:club', { clubId });
+      socket.disconnect();
+    };
   }, [clubId, currentPage, search, status]);
 
   const loadSessions = async () => {
@@ -513,7 +702,13 @@ function PlayerChatTab({ clubId }) {
             sessions.map((session) => (
               <div
                 key={session.id}
-                onClick={() => setSelectedSession(session)}
+                onClick={() => {
+                  setSelectedSession(session);
+                  setSessions((prev) =>
+                    prev.map((s) => (s.id === session.id ? { ...s, unreadCount: 0 } : s))
+                  );
+                  queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubId] });
+                }}
                 className={`p-3 rounded-lg cursor-pointer transition-all ${
                   selectedSession?.id === session.id
                     ? 'bg-orange-600'
@@ -542,6 +737,9 @@ function PlayerChatTab({ clubId }) {
                 {session.lastMessage && (
                   <div className="text-white/60 text-xs mt-1 truncate">{session.lastMessage}</div>
                 )}
+                <div className="text-white/50 text-xs mt-1">
+                  {formatChatListTime(session.lastMessageAt)}
+                </div>
               </div>
             ))
           )}
@@ -597,6 +795,7 @@ function PlayerChatTab({ clubId }) {
 // ==================== CHAT WINDOW ====================
 
 function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, onDelete, onSessionUpdate }) {
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -604,6 +803,17 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
   const [deleting, setDeleting] = useState(false);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
+  const getCurrentUserInfo = () => {
+    const currentUser = authAPI.getCurrentUser();
+    return {
+      id: localStorage.getItem('userId') || currentUser?.id || '',
+      email: currentUser?.email?.toLowerCase?.() || '',
+      name:
+        currentUser?.name ||
+        currentUser?.displayName ||
+        (currentUser?.email ? currentUser.email.split('@')[0] : 'You'),
+    };
+  };
 
   const refreshSession = async () => {
     if (isPlayerChat || !session?.id) return;
@@ -624,9 +834,6 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
     if (!isPlayerChat && session && (!session.otherStaff || !session.otherStaff.name)) {
       refreshSession();
     }
-    // Set up polling as fallback (every 10 seconds)
-    const interval = setInterval(loadMessages, 10000);
-    
     // Set up WebSocket for real-time updates
     const userId = localStorage.getItem('userId');
     const token = localStorage.getItem('authToken') || localStorage.getItem('token');
@@ -647,16 +854,35 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
         socket.emit('subscribe:staff', { staffId: userId, clubId });
       });
 
+      let profileStaffId = null;
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        profileStaffId = u.staffId || null;
+      } catch (e) {
+        profileStaffId = null;
+      }
+
+      const isOwnStaffSocketEcho = (raw) => {
+        if (!raw || raw.senderType !== 'staff') return false;
+        const senderUid = raw.senderStaffUserId || raw.senderStaff?.userId;
+        const senderSid = raw.senderStaffId || raw.senderStaff?.id;
+        if (userId && senderUid && String(senderUid) === String(userId)) return true;
+        if (profileStaffId && senderSid && String(senderSid) === String(profileStaffId)) return true;
+        return false;
+      };
+
       // Listen for new chat messages (general updates)
       socket.on('chat:new-message', (data) => {
         if (data.sessionId === session.id) {
-          // Add the new message to the list if it's not already there
-          setMessages(prev => {
-            const exists = prev.some(m => m.id === data.message.id);
-            if (!exists) {
-              return [...prev, data.message];
-            }
-            return prev;
+          if (isOwnStaffSocketEcho(data.message)) {
+            return;
+          }
+          setMessages((prev) => {
+            const normalized = normalizeIncomingMessage(data.message);
+            const exists = prev.some((m) => m.id === normalized.id);
+            if (exists) return prev;
+            const next = [...prev, normalized].sort((a, b) => getChatUtcMs(a) - getChatUtcMs(b));
+            return isPlayerChat ? dedupeNearDuplicateChatRowsBySender(next, 'player') : next;
           });
         }
       });
@@ -664,15 +890,15 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
       // Listen for direct messages (targeted to this specific staff member)
       socket.on('chat:new-message-direct', (data) => {
         if (data.sessionId === session.id) {
-          // Add the new message to the list if it's not already there
-          setMessages(prev => {
-            const exists = prev.some(m => m.id === data.message.id);
-            if (!exists) {
-              // Play notification sound or show visual notification
-              console.log('New direct message received:', data.message);
-              return [...prev, data.message];
-            }
-            return prev;
+          if (isOwnStaffSocketEcho(data.message)) {
+            return;
+          }
+          setMessages((prev) => {
+            const normalized = normalizeIncomingMessage(data.message);
+            const exists = prev.some((m) => m.id === normalized.id);
+            if (exists) return prev;
+            const next = [...prev, normalized].sort((a, b) => getChatUtcMs(a) - getChatUtcMs(b));
+            return isPlayerChat ? dedupeNearDuplicateChatRowsBySender(next, 'player') : next;
           });
         }
       });
@@ -688,14 +914,11 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
       socketRef.current = socket;
 
       return () => {
-        clearInterval(interval);
         if (socket) {
           socket.emit('unsubscribe:club', { clubId });
           socket.disconnect();
         }
       };
-    } else {
-      return () => clearInterval(interval);
     }
   }, [session.id, clubId]);
 
@@ -707,7 +930,35 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
     try {
       setLoading(true);
       const result = await chatAPI.getSessionMessages(clubId, session.id);
-      setMessages(result.messages);
+      const serverMessages = (result.messages || []).map((m) => normalizeIncomingMessage(m));
+      // Keep unsent optimistic messages so they don't blink/disappear during polling.
+      setMessages((prev) => {
+        const optimistic = prev.filter((m) => String(m.id).startsWith('temp-'));
+        const merged = [...serverMessages];
+        optimistic.forEach((tempMsg) => {
+          const matched = serverMessages.some(
+            (m) =>
+              m.message === tempMsg.message &&
+              m.senderName === tempMsg.senderName &&
+              m.senderType === tempMsg.senderType &&
+              Math.abs(getChatUtcMs(m) - getChatUtcMs(tempMsg)) < 20000
+          );
+          if (!matched) merged.push(tempMsg);
+        });
+        merged.sort((a, b) => getChatUtcMs(a) - getChatUtcMs(b));
+        const seen = new Set();
+        let next = merged.filter((m) => {
+          if (seen.has(m.id)) return false;
+          seen.add(m.id);
+          return true;
+        });
+        if (isPlayerChat) {
+          next = dedupeNearDuplicateChatRowsBySender(next, 'player');
+        }
+        return next;
+      });
+      // Opening a session marks messages read on backend; force sidebar unread badge refresh immediately.
+      queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubId] });
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
@@ -715,29 +966,103 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
     }
   };
 
-  // Convert UTC to IST (UTC+5:30)
-  const formatISTTime = (utcDate) => {
-    const date = new Date(utcDate);
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-    const istDate = new Date(date.getTime() + istOffset);
-    return istDate.toLocaleTimeString('en-IN', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false 
-    });
+  const formatMessageTime = (messageOrDate) => {
+    const ms =
+      messageOrDate &&
+      typeof messageOrDate === 'object' &&
+      !Array.isArray(messageOrDate) &&
+      'createdAt' in messageOrDate
+        ? getChatUtcMs(messageOrDate)
+        : parseChatInstantMs(messageOrDate);
+    const now = Date.now();
+    const diffDays = istCalendarDiffDays(ms, now);
+
+    if (diffDays <= 0) {
+      return formatIstHm(ms);
+    }
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return formatIstDateLong(ms);
+  };
+
+  const normalizeIncomingMessage = (incoming, fallbackText = '', fallbackCreatedAt) => {
+    const currentUser = getCurrentUserInfo();
+    const createdAt = coerceCreatedAtToIso(
+      incoming?.createdAt ?? fallbackCreatedAt ?? new Date(),
+    );
+    const createdAtUtcMs =
+      typeof incoming?.createdAtUtcMs === 'number' && Number.isFinite(incoming.createdAtUtcMs)
+        ? incoming.createdAtUtcMs
+        : parseChatInstantMs(createdAt);
+    return {
+      ...incoming,
+      id: incoming?.id || `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      message: incoming?.message ?? fallbackText,
+      senderType: incoming?.senderType || 'staff',
+      senderName: incoming?.senderName || currentUser.name,
+      createdAt,
+      createdAtUtcMs,
+      senderStaff: incoming?.senderStaff || {
+        id: incoming?.senderStaffId,
+        userId: incoming?.senderStaffUserId || currentUser.id,
+        email: incoming?.senderStaffEmail || currentUser.email,
+        name: incoming?.senderName || currentUser.name,
+      },
+      senderStaffId: incoming?.senderStaffId || incoming?.senderStaff?.id,
+      isRead: typeof incoming?.isRead === 'boolean' ? incoming.isRead : true,
+    };
   };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || sending) return;
+    const text = newMessage.trim();
+    const now = new Date().toISOString();
+    const currentUser = getCurrentUserInfo();
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     try {
       setSending(true);
-      await chatAPI.sendMessage(clubId, session.id, newMessage.trim());
       setNewMessage('');
-      loadMessages();
+
+      // Optimistic append for instant WhatsApp-like UX.
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: tempId,
+          message: text,
+          senderType: 'staff',
+          senderName: currentUser.name,
+          senderStaff: { userId: currentUser.id, email: currentUser.email, name: currentUser.name },
+          createdAt: now,
+          createdAtUtcMs: Date.parse(now),
+          isRead: true,
+          _optimistic: true,
+        },
+      ]);
+
+      const response = await chatAPI.sendMessage(clubId, session.id, text);
+      const serverMessage = normalizeIncomingMessage(response?.message || response, text, now);
+
+      setMessages((prev) => {
+        const alreadyHasServer = prev.some((m) => m.id === serverMessage.id);
+        let next;
+        if (alreadyHasServer) {
+          next = prev.filter((m) => m.id !== tempId);
+        } else {
+          next = prev.map((m) => (m.id === tempId ? serverMessage : m));
+        }
+        const seen = new Set();
+        return next.filter((m) => {
+          if (seen.has(m.id)) return false;
+          seen.add(m.id);
+          return true;
+        });
+      });
     } catch (error) {
+      // Remove optimistic message if send fails.
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setNewMessage(text);
       alert('Failed to send message');
     } finally {
       setSending(false);
@@ -887,6 +1212,14 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
             const currentUser = authAPI.getCurrentUser();
             const currentUserEmail = currentUser?.email?.toLowerCase();
             const currentUserId = localStorage.getItem('userId');
+            const currentUserName = currentUser?.name?.toLowerCase?.() || currentUser?.displayName?.toLowerCase?.();
+            const otherStaffId = session?.otherStaff?.id;
+            const initiator = session?.staffInitiator;
+            const recipient = session?.staffRecipient;
+            const currentStaffId =
+              (initiator && ((initiator.userId && initiator.userId === currentUserId) || (initiator.email && initiator.email.toLowerCase() === currentUserEmail)) && initiator.id) ||
+              (recipient && ((recipient.userId && recipient.userId === currentUserId) || (recipient.email && recipient.email.toLowerCase() === currentUserEmail)) && recipient.id) ||
+              null;
             
             return messages.map((message) => {
             // For player chat: player messages on left (green), staff messages on right (blue)
@@ -897,30 +1230,50 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
               // Player chat: staff messages are "own" (right side, blue)
               isOwn = message.senderType === 'staff';
             } else {
-              // Staff chat: check if message is from current user
-                // Use userId first (most reliable), then fall back to email matching
-                const messageSenderUserId = message.senderStaff?.userId;
+              // Staff chat: check if message is from current user.
+              // Handle both full payloads (senderStaff object) and realtime compact payloads (senderStaffId only).
+              const messageSenderStaffId = message.senderStaff?.id || message.senderStaffId;
+              const messageSenderUserId = message.senderStaff?.userId;
               const senderEmail = message.senderStaff?.email?.toLowerCase();
+              const senderName = message.senderName?.toLowerCase?.();
                 
                 isOwn = (currentUserId && messageSenderUserId === currentUserId) || 
-                        (currentUserEmail && senderEmail === currentUserEmail);
+                        (currentUserEmail && senderEmail === currentUserEmail) ||
+                        // Strong match by staff ID if we can resolve current user's staff row in this session.
+                        (currentStaffId && messageSenderStaffId && messageSenderStaffId === currentStaffId) ||
+                        // For compact realtime payload, infer ownership by comparing sender staff ID with the "other staff" in this session.
+                        // In a 1:1 staff chat, if sender is NOT other staff, it must be current user.
+                        (messageSenderStaffId && otherStaffId && messageSenderStaffId !== otherStaffId) ||
+                        // Last-resort fallback to sender name for immediate paint stability.
+                        (!!currentUserName && !!senderName && senderName === currentUserName);
             }
             
             return (
-              <div
-                key={message.id}
-                className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`max-w-[70%] ${isOwn ? 'bg-blue-600' : 'bg-green-600'} rounded-lg p-3`}>
-                  <div className="text-white/80 text-xs mb-1">
+              <div key={message.id} className="flex w-full min-w-0">
+                <div
+                  className={`flex min-w-0 max-w-[min(100%,22rem)] shrink-0 flex-col gap-1 ${
+                    isOwn ? 'ml-auto items-end' : 'mr-auto items-start'
+                  }`}
+                >
+                  <div
+                    className={`text-white/80 text-xs px-0.5 ${isOwn ? 'text-right' : 'text-left'}`}
+                  >
                     {message.senderName}
                     {isPlayerChat && message.senderType === 'staff' && message.senderStaff?.role && (
                       <span className="text-white/60 ml-1">({message.senderStaff.role})</span>
                     )}
                   </div>
-                  <div className="text-white">{message.message}</div>
-                  <div className="text-white/50 text-xs mt-1">
-                    {formatISTTime(message.createdAt)}
+                  <div
+                    className={`w-full min-w-0 overflow-visible rounded-lg px-3 pt-2.5 pb-2 ${
+                      isOwn ? 'bg-blue-600' : 'bg-green-600'
+                    }`}
+                  >
+                    <div className="text-white whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                      {message.message}
+                    </div>
+                    <div className="text-white/50 text-xs mt-1.5 pb-0.5 tabular-nums leading-normal">
+                      {formatMessageTime(message)}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -7,8 +7,9 @@ import toast from "react-hot-toast";
  * Rummy Tournament Management Component
  * Handles CRUD operations for Rummy tournaments with rummy-specific fields
  */
-export default function RummyTournamentManagement({ selectedClubId }) {
+export default function RummyTournamentManagement({ selectedClubId, permissions = {} }) {
   const queryClient = useQueryClient();
+  const canManageTournaments = permissions.canManageTournaments !== false;
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -531,12 +532,14 @@ export default function RummyTournamentManagement({ selectedClubId }) {
     <div className="text-white space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Rummy Tournaments</h2>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-medium"
-        >
-          + Create Rummy Tournament
-        </button>
+        {canManageTournaments && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-medium"
+          >
+            + Create Rummy Tournament
+          </button>
+        )}
       </div>
 
       {/* Tournaments List */}
@@ -548,12 +551,14 @@ export default function RummyTournamentManagement({ selectedClubId }) {
       ) : tournaments.length === 0 ? (
         <div className="bg-slate-800 rounded-xl p-8 border border-slate-700 text-center">
           <p className="text-gray-400 mb-4">No rummy tournaments found</p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg"
-          >
-            Create First Rummy Tournament
-          </button>
+          {canManageTournaments && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg"
+            >
+              Create First Rummy Tournament
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -607,7 +612,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                 >
                   View Details
                 </button>
-                {tournament.status === 'scheduled' && (
+                {canManageTournaments && tournament.status === 'scheduled' && (
                   <>
                     <button
                       onClick={(e) => {
@@ -640,7 +645,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                   </button>
                   </>
                 )}
-                {tournament.status === 'active' && (
+                {canManageTournaments && tournament.status === 'active' && (
                   <>
                     {tournament.paused_at ? (
                       <button
@@ -684,7 +689,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
       )}
 
       {/* Create Tournament Modal */}
-      {showCreateModal && (
+      {canManageTournaments && showCreateModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setShowCreateModal(false)}>
           <div className="bg-slate-800 rounded-xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-slate-700" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-2xl font-bold mb-6">Create Rummy Tournament</h2>
@@ -925,7 +930,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
       )}
 
       {/* Edit Tournament Modal - Same form structure as Create */}
-      {showEditModal && editingTournament && (
+      {canManageTournaments && showEditModal && editingTournament && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => {
           setShowEditModal(false);
           setEditingTournament(null);
@@ -1307,12 +1312,16 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                               {formatSessionTime(sessionElapsed)}
                             </div>
                             <div className="flex items-center gap-2">
-                              {isPaused ? (
-                                <button onClick={handleResumeTournament} disabled={resumeMutation.isLoading} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50">▶ Resume</button>
-                              ) : (
-                                <button onClick={handlePauseTournament} disabled={pauseMutation.isLoading} className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50">⏸ Pause</button>
+                              {canManageTournaments && (
+                                <>
+                                  {isPaused ? (
+                                    <button onClick={handleResumeTournament} disabled={resumeMutation.isLoading} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50">▶ Resume</button>
+                                  ) : (
+                                    <button onClick={handlePauseTournament} disabled={pauseMutation.isLoading} className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50">⏸ Pause</button>
+                                  )}
+                                  <button onClick={handleStopTournament} disabled={stopMutation.isLoading} className="bg-red-700 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50">⏹ Stop</button>
+                                </>
                               )}
-                              <button onClick={handleStopTournament} disabled={stopMutation.isLoading} className="bg-red-700 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50">⏹ Stop</button>
                             </div>
                           </div>
                           {isPaused && (
@@ -1422,10 +1431,12 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                       <div className={`text-2xl font-mono font-bold ${liveTournament?.paused_at ? 'text-yellow-300' : 'text-green-300'} tabular-nums`}>
                         {formatSessionTime(sessionElapsed)}
                       </div>
-                      {liveTournament?.paused_at ? (
-                        <button onClick={handleResumeTournament} disabled={resumeMutation.isLoading} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50">▶ Resume</button>
-                      ) : (
-                        <button onClick={handlePauseTournament} disabled={pauseMutation.isLoading} className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50">⏸ Pause</button>
+                      {canManageTournaments && (
+                        liveTournament?.paused_at ? (
+                          <button onClick={handleResumeTournament} disabled={resumeMutation.isLoading} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50">▶ Resume</button>
+                        ) : (
+                          <button onClick={handlePauseTournament} disabled={pauseMutation.isLoading} className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50">⏸ Pause</button>
+                        )
                       )}
                     </div>
                   </div>
@@ -1466,7 +1477,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                               <th className="text-right py-3 px-4 text-gray-400 font-semibold">Prize</th>
                             </>
                           )}
-                          {selectedTournament.status === "active" && (
+                          {canManageTournaments && selectedTournament.status === "active" && (
                             <th className="text-center py-3 px-4 text-gray-400 font-semibold">Action</th>
                           )}
                         </tr>
@@ -1559,7 +1570,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                                   </td>
                                 </>
                               )}
-                              {selectedTournament.status === "active" && (
+                              {canManageTournaments && selectedTournament.status === "active" && (
                                 <td className="py-3 px-4 text-center">
                                   <div className="flex gap-1 justify-center flex-wrap">
                                     {!isExited && (
@@ -1645,7 +1656,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
               >
                 Close
               </button>
-              {selectedTournament.status === 'scheduled' && (
+              {canManageTournaments && selectedTournament.status === 'scheduled' && (
                 <>
                   <button
                     onClick={(e) => {
@@ -1668,7 +1679,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
                 </button>
                 </>
               )}
-              {selectedTournament.status === 'active' && (
+              {canManageTournaments && selectedTournament.status === 'active' && (
                 <>
                   <button
                     onClick={() => {
@@ -1696,7 +1707,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
       )}
 
       {/* End Tournament Modal */}
-      {showEndModal && selectedTournament && (
+      {canManageTournaments && showEndModal && selectedTournament && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-slate-800 rounded-xl p-6 max-w-5xl w-full border border-orange-600 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-white mb-4">
@@ -1853,7 +1864,7 @@ export default function RummyTournamentManagement({ selectedClubId }) {
       )}
 
       {/* Exit Player Modal */}
-      {showExitPlayerModal && exitingPlayer && (
+      {canManageTournaments && showExitPlayerModal && exitingPlayer && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
           <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-red-600">
             <h2 className="text-xl font-bold text-white mb-4">Exit Player from Tournament</h2>

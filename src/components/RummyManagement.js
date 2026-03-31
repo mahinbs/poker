@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import RummyTournamentManagement from "./RummyTournamentManagement";
 import RummyTableManagement from "./RummyTableManagement";
 
@@ -8,8 +8,15 @@ import RummyTableManagement from "./RummyTableManagement";
  * Only visible when rummy is enabled for the club
  * Uses rummy-specific components with rummy-specific fields
  */
-export default function RummyManagement({ selectedClubId }) {
-  const [activeTab, setActiveTab] = useState("tournaments"); // "tournaments" or "tables"
+export default function RummyManagement({ selectedClubId, permissions = {} }) {
+  const showRummyTournaments = permissions.showRummyTournaments !== false;
+  const [activeTab, setActiveTab] = useState(showRummyTournaments ? "tournaments" : "tables"); // "tournaments" or "tables"
+
+  useEffect(() => {
+    if (!showRummyTournaments && activeTab === "tournaments") {
+      setActiveTab("tables");
+    }
+  }, [showRummyTournaments, activeTab]);
 
   if (!selectedClubId) {
     return (
@@ -30,16 +37,18 @@ export default function RummyManagement({ selectedClubId }) {
 
       {/* Tabs */}
       <div className="flex gap-4 border-b border-slate-700">
-        <button
-          onClick={() => setActiveTab("tournaments")}
-          className={`px-6 py-3 font-medium transition-colors ${
-            activeTab === "tournaments"
-              ? "text-emerald-400 border-b-2 border-emerald-400"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          Rummy Tournaments
-        </button>
+        {showRummyTournaments && (
+          <button
+            onClick={() => setActiveTab("tournaments")}
+            className={`px-6 py-3 font-medium transition-colors ${
+              activeTab === "tournaments"
+                ? "text-emerald-400 border-b-2 border-emerald-400"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Rummy Tournaments
+          </button>
+        )}
         <button
           onClick={() => setActiveTab("tables")}
           className={`px-6 py-3 font-medium transition-colors ${
@@ -54,12 +63,12 @@ export default function RummyManagement({ selectedClubId }) {
 
       {/* Content */}
       <div className="mt-6">
-        {activeTab === "tournaments" && (
-          <RummyTournamentManagement selectedClubId={selectedClubId} />
+        {showRummyTournaments && activeTab === "tournaments" && (
+          <RummyTournamentManagement selectedClubId={selectedClubId} permissions={permissions} />
         )}
 
         {activeTab === "tables" && (
-          <RummyTableManagement selectedClubId={selectedClubId} />
+          <RummyTableManagement selectedClubId={selectedClubId} permissions={permissions} />
         )}
       </div>
     </div>

@@ -38,7 +38,6 @@ export default function BuyInRequestManagement({ clubId }) {
     queryKey: ['buyInRequests', clubId],
     queryFn: () => clubsAPI.getBuyInRequests(clubId),
     enabled: !!clubId,
-    refetchInterval: 15000,
   });
 
   // Approve buy-in mutation

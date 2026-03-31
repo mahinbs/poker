@@ -19,6 +19,34 @@ const STAFF_ROLES = [
   { value: "Staff", label: "Staff (Custom Role)" },
 ];
 
+const DOC_IMAGE_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const DOC_PDF_MIME_TYPES = ["application/pdf"];
+const DOC_ALLOWED_MIME_TYPES = [...DOC_IMAGE_MIME_TYPES, ...DOC_PDF_MIME_TYPES];
+
+function getAadhaarDocMeta(value) {
+  if (!value || typeof value !== "string") {
+    return { mode: "single", singleUrl: "" };
+  }
+  try {
+    const parsed = JSON.parse(value);
+    if (
+      parsed &&
+      parsed.type === "aadhaar_dual_image" &&
+      typeof parsed.frontUrl === "string" &&
+      typeof parsed.backUrl === "string"
+    ) {
+      return {
+        mode: "dual-image",
+        frontUrl: parsed.frontUrl,
+        backUrl: parsed.backUrl,
+      };
+    }
+  } catch (_err) {
+    // Not JSON, treat as legacy/single URL.
+  }
+  return { mode: "single", singleUrl: value };
+}
+
 export default function StaffManagement({ selectedClubId }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("staff"); // 'staff', 'roster', or 'leave'
@@ -82,6 +110,9 @@ export default function StaffManagement({ selectedClubId }) {
   const [suspendForm, setSuspendForm] = useState({ reason: "" });
   const [uploadingAadhar, setUploadingAadhar] = useState(false);
   const [uploadingPan, setUploadingPan] = useState(false);
+  const [aadharUploadMode, setAadharUploadMode] = useState("");
+  const [aadharFrontDocumentUrl, setAadharFrontDocumentUrl] = useState("");
+  const [aadharBackDocumentUrl, setAadharBackDocumentUrl] = useState("");
 
   // Fetch staff
   const { data: staffData, isLoading: staffLoading } = useQuery({
@@ -204,21 +235,43 @@ export default function StaffManagement({ selectedClubId }) {
   });
 
   const handleFileUpload = async (file, type) => {
-    if (type === "aadhar") setUploadingAadhar(true);
+    if (!DOC_ALLOWED_MIME_TYPES.includes(file?.type || "")) {
+      toast.error("Only JPG, PNG, WEBP, or PDF files are allowed");
+      return;
+    }
+    if ((type === "aadhar_front" || type === "aadhar_back") && !DOC_IMAGE_MIME_TYPES.includes(file.type)) {
+      toast.error("Aadhaar Front/Back must be image files only");
+      return;
+    }
+    if (type === "aadhar_pdf" && !DOC_PDF_MIME_TYPES.includes(file.type)) {
+      toast.error("Aadhaar PDF upload requires a PDF file");
+      return;
+    }
+
+    if (type.startsWith("aadhar")) setUploadingAadhar(true);
     else setUploadingPan(true);
 
     try {
       const url = await storageService.uploadDocument(file, selectedClubId, "staff-kyc");
-      if (type === "aadhar") {
-        setStaffForm({ ...staffForm, aadharDocumentUrl: url });
+      if (type === "aadhar_pdf") {
+        setStaffForm((prev) => ({ ...prev, aadharDocumentUrl: url }));
+        setAadharFrontDocumentUrl("");
+        setAadharBackDocumentUrl("");
+        toast.success("Aadhaar PDF uploaded successfully");
+      } else if (type === "aadhar_front") {
+        setAadharFrontDocumentUrl(url);
+        toast.success("Aadhaar Front uploaded successfully");
+      } else if (type === "aadhar_back") {
+        setAadharBackDocumentUrl(url);
+        toast.success("Aadhaar Back uploaded successfully");
       } else {
-        setStaffForm({ ...staffForm, panDocumentUrl: url });
+        setStaffForm((prev) => ({ ...prev, panDocumentUrl: url }));
+        toast.success("PAN card uploaded successfully");
       }
-      toast.success(`${type === "aadhar" ? "Aadhar" : "PAN"} card uploaded successfully`);
     } catch (error) {
-      toast.error(`Failed to upload ${type === "aadhar" ? "Aadhar" : "PAN"} card`);
+      toast.error("Failed to upload document");
     } finally {
-      if (type === "aadhar") setUploadingAadhar(false);
+      if (type.startsWith("aadhar")) setUploadingAadhar(false);
       else setUploadingPan(false);
     }
   };
@@ -237,6 +290,9 @@ export default function StaffManagement({ selectedClubId }) {
       baseSalary: "",
       salaryType: "Monthly",
     });
+    setAadharUploadMode("");
+    setAadharFrontDocumentUrl("");
+    setAadharBackDocumentUrl("");
   };
 
   const handleCreateStaff = () => {
@@ -255,17 +311,38 @@ export default function StaffManagement({ selectedClubId }) {
       return;
     }
 
-    // Validate KYC documents - both are required
-    if (!staffForm.aadharDocumentUrl) {
-      toast.error("Aadhar document is required to create a staff member");
+    if (!aadharUploadMode) {
+      toast.error("Please select Aadhaar upload type (Image or PDF)");
       return;
     }
+
+    // Validate Aadhaar docs based on upload mode.
+    if (aadharUploadMode === "image") {
+      if (!aadharFrontDocumentUrl || !aadharBackDocumentUrl) {
+        toast.error("Please upload Aadhaar Front and Aadhaar Back images");
+        return;
+      }
+    } else if (!staffForm.aadharDocumentUrl) {
+      toast.error("Please upload Aadhaar PDF document");
+      return;
+    }
+
     if (!staffForm.panDocumentUrl) {
       toast.error("PAN document is required to create a staff member");
       return;
     }
 
-    const payload = { ...staffForm };
+    const payload = {
+      ...staffForm,
+      aadharDocumentUrl:
+        aadharUploadMode === "image"
+          ? JSON.stringify({
+              type: "aadhaar_dual_image",
+              frontUrl: aadharFrontDocumentUrl,
+              backUrl: aadharBackDocumentUrl,
+            })
+          : staffForm.aadharDocumentUrl,
+    };
     if (payload.baseSalary) {
       payload.baseSalary = Number(payload.baseSalary);
     } else {
@@ -349,6 +426,9 @@ export default function StaffManagement({ selectedClubId }) {
   };
 
   const staff = staffData?.staff || [];
+  const selectedStaffAadhaarMeta = selectedStaff
+    ? getAadhaarDocMeta(selectedStaff.aadharDocumentUrl)
+    : { mode: "single", singleUrl: "" };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -769,35 +849,82 @@ export default function StaffManagement({ selectedClubId }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <label className="text-white text-sm mb-1 block">Aadhar Card</label>
+                  <label className="text-white text-sm mb-1 block">Aadhaar Upload Type *</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    value={aadharUploadMode}
+                    onChange={(e) => {
+                      const mode = e.target.value;
+                      setAadharUploadMode(mode);
+                      setAadharFrontDocumentUrl("");
+                      setAadharBackDocumentUrl("");
+                      setStaffForm((prev) => ({ ...prev, aadharDocumentUrl: "" }));
+                    }}
+                  >
+                    <option value="">Select Aadhaar upload type</option>
+                    <option value="image">Image (Front + Back)</option>
+                    <option value="pdf">Single PDF (Front & Back together)</option>
+                  </select>
+                </div>
+
+                {aadharUploadMode === "image" && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-white text-sm mb-1 block">Aadhaar Front *</label>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "aadhar_front")}
+                        disabled={uploadingAadhar}
+                      />
+                      {aadharFrontDocumentUrl && <p className="text-sm text-green-400 mt-1">✓ Uploaded</p>}
+                    </div>
+                    <div>
+                      <label className="text-white text-sm mb-1 block">Aadhaar Back *</label>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "aadhar_back")}
+                        disabled={uploadingAadhar}
+                      />
+                      {aadharBackDocumentUrl && <p className="text-sm text-green-400 mt-1">✓ Uploaded</p>}
+                    </div>
+                  </div>
+                )}
+
+                {aadharUploadMode === "pdf" && (
+                  <div>
+                    <label className="text-white text-sm mb-1 block">Aadhaar PDF *</label>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "aadhar_pdf")}
+                      disabled={uploadingAadhar}
+                    />
+                    {staffForm.aadharDocumentUrl && <p className="text-sm text-green-400 mt-1">✓ Uploaded</p>}
+                  </div>
+                )}
+
+                {uploadingAadhar && <p className="text-sm text-gray-400 mt-1">Uploading Aadhaar...</p>}
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">PAN Card *</label>
                   <input
                     type="file"
-                    accept="image/*,application/pdf"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
-                    onChange={(e) => e.target.files[0] && handleFileUpload(e.target.files[0], "aadhar")}
-                    disabled={uploadingAadhar}
-                  />
-                  {uploadingAadhar && <p className="text-sm text-gray-400 mt-1">Uploading...</p>}
-                  {staffForm.aadharDocumentUrl && (
-                    <p className="text-sm text-green-400 mt-1">✓ Uploaded</p>
-                  )}
-                                    </div>
-
-                                    <div>
-                  <label className="text-white text-sm mb-1 block">PAN Card</label>
-                                        <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
-                    onChange={(e) => e.target.files[0] && handleFileUpload(e.target.files[0], "pan")}
+                    onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "pan")}
                     disabled={uploadingPan}
                   />
-                  {uploadingPan && <p className="text-sm text-gray-400 mt-1">Uploading...</p>}
+                  {uploadingPan && <p className="text-sm text-gray-400 mt-1">Uploading PAN...</p>}
                   {staffForm.panDocumentUrl && <p className="text-sm text-green-400 mt-1">✓ Uploaded</p>}
-                                    </div>
-                                </div>
+                </div>
+              </div>
                             </div>
 
             <div className="flex gap-3 mt-6">
@@ -1165,39 +1292,66 @@ export default function StaffManagement({ selectedClubId }) {
                   KYC Documents
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Aadhar Card */}
+                  {/* Aadhaar Card */}
                   <div>
-                    <p className="text-sm text-gray-400 mb-2">Aadhar Card</p>
+                    <p className="text-sm text-gray-400 mb-2">Aadhaar Card</p>
                     {selectedStaff.aadharDocumentUrl ? (
                       <div className="space-y-2">
                         <div className="bg-slate-600 rounded-lg p-4 border border-slate-500">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className="text-2xl">🆔</span>
-                              <span className="text-white">Aadhar Card</span>
+                              <span className="text-white">
+                                {selectedStaffAadhaarMeta.mode === "dual-image"
+                                  ? "Aadhaar Front + Back"
+                                  : "Aadhaar Card"}
+                              </span>
                             </div>
                             <span className="text-green-400 text-sm">✓ Uploaded</span>
                           </div>
                         </div>
-                        <a
-                          href={selectedStaff.aadharDocumentUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-center"
-                        >
-                          View Document
-                        </a>
-                        <a
-                          href={selectedStaff.aadharDocumentUrl}
-                          download
-                          className="block w-full bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-center"
-                        >
-                          Download Document
-                        </a>
+                        {selectedStaffAadhaarMeta.mode === "dual-image" ? (
+                          <>
+                            <a
+                              href={selectedStaffAadhaarMeta.frontUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-center"
+                            >
+                              View Aadhaar Front
+                            </a>
+                            <a
+                              href={selectedStaffAadhaarMeta.backUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-center"
+                            >
+                              View Aadhaar Back
+                            </a>
+                          </>
+                        ) : (
+                          <>
+                            <a
+                              href={selectedStaff.aadharDocumentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-center"
+                            >
+                              View Document
+                            </a>
+                            <a
+                              href={selectedStaff.aadharDocumentUrl}
+                              download
+                              className="block w-full bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-center"
+                            >
+                              Download Document
+                            </a>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="bg-slate-600 rounded-lg p-4 border border-slate-500 border-dashed">
-                        <p className="text-gray-400 text-center">No Aadhar card uploaded</p>
+                        <p className="text-gray-400 text-center">No Aadhaar card uploaded</p>
                       </div>
                     )}
                   </div>
@@ -1250,12 +1404,29 @@ export default function StaffManagement({ selectedClubId }) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedStaff.aadharDocumentUrl && (
                       <div>
-                        <p className="text-sm text-gray-400 mb-2">Aadhar Card Preview</p>
+                        <p className="text-sm text-gray-400 mb-2">
+                          {selectedStaffAadhaarMeta.mode === "dual-image"
+                            ? "Aadhaar Front/Back Preview"
+                            : "Aadhaar Card Preview"}
+                        </p>
                         <div className="bg-slate-900 rounded-lg p-4 border border-slate-600">
-                          {selectedStaff.aadharDocumentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                          {selectedStaffAadhaarMeta.mode === "dual-image" ? (
+                            <div className="grid grid-cols-1 gap-3">
+                              <img
+                                src={selectedStaffAadhaarMeta.frontUrl}
+                                alt="Aadhaar Front"
+                                className="w-full h-auto rounded-lg max-h-64 object-contain"
+                              />
+                              <img
+                                src={selectedStaffAadhaarMeta.backUrl}
+                                alt="Aadhaar Back"
+                                className="w-full h-auto rounded-lg max-h-64 object-contain"
+                              />
+                            </div>
+                          ) : selectedStaff.aadharDocumentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                             <img
                               src={selectedStaff.aadharDocumentUrl}
-                              alt="Aadhar Card"
+                              alt="Aadhaar Card"
                               className="w-full h-auto rounded-lg max-h-64 object-contain"
                               onError={(e) => {
                                 e.target.style.display = "none";

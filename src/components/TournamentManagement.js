@@ -4,8 +4,9 @@ import { tournamentsAPI, clubsAPI } from "../lib/api";
 import toast from "react-hot-toast";
 import { useWebSocket } from "../hooks/useWebSocket";
 
-export default function TournamentManagement({ selectedClubId }) {
+export default function TournamentManagement({ selectedClubId, permissions = {} }) {
   const queryClient = useQueryClient();
+  const canManageTournaments = permissions.canManageTournaments !== false;
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -143,21 +144,19 @@ export default function TournamentManagement({ selectedClubId }) {
     toast.success(`🏆 Level ${t.currentRound} — SB ${t.currentSb} / BB ${t.currentBb}`, { duration: 4000 });
   }, [wsEvents, selectedClubId, queryClient]);
 
-  // Fetch tournaments (poll every 5s so blind values stay fresh in cards + synced to selectedTournament)
+  // Fetch tournaments (socket events keep this live via cache invalidation/patching)
   const { data: tournamentsData, isLoading: tournamentsLoading } = useQuery({
     queryKey: ["tournaments", selectedClubId],
     queryFn: () => tournamentsAPI.getTournaments(selectedClubId),
     enabled: !!selectedClubId,
-    refetchInterval: 5000,
     staleTime: 0,
   });
 
-  // Fetch tournament details (poll every 5s when detail modal is open for live blind updates)
+  // Fetch tournament details (socket events keep this live while modal is open)
   const { data: tournamentDetails, isLoading: detailsLoading } = useQuery({
     queryKey: ["tournament-details", selectedClubId, selectedTournament?.id],
     queryFn: () => tournamentsAPI.getTournamentById(selectedClubId, selectedTournament.id),
     enabled: !!selectedClubId && !!selectedTournament && showDetailsModal,
-    refetchInterval: showDetailsModal ? 5000 : false,
     staleTime: 0,
   });
 
@@ -841,12 +840,14 @@ export default function TournamentManagement({ selectedClubId }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-white">Tournament Management</h1>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all"
-        >
-          ➕ Create Tournament
-        </button>
+        {canManageTournaments && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all"
+          >
+            ➕ Create Tournament
+          </button>
+        )}
       </div>
 
       {/* Tournaments List */}
@@ -933,7 +934,7 @@ export default function TournamentManagement({ selectedClubId }) {
                   View Details
                 </button>
 
-                {tournament.status === "scheduled" && (
+                {canManageTournaments && tournament.status === "scheduled" && (
                   <>
                     <button
                       onClick={() => handleEditTournament(tournament)}
@@ -950,7 +951,7 @@ export default function TournamentManagement({ selectedClubId }) {
                   </>
                 )}
 
-                {tournament.status === "active" && (
+                {canManageTournaments && tournament.status === "active" && (
                   <>
                     {tournament.paused_at ? (
                       <button
@@ -998,7 +999,7 @@ export default function TournamentManagement({ selectedClubId }) {
                   </button>
                 )}
 
-                {tournament.status === "scheduled" && (
+                {canManageTournaments && tournament.status === "scheduled" && (
                   <button
                     onClick={() => handleDeleteTournament(tournament.id, tournament.name)}
                     className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
@@ -1013,7 +1014,7 @@ export default function TournamentManagement({ selectedClubId }) {
       )}
 
       {/* Create Tournament Modal */}
-      {showCreateModal && (
+      {canManageTournaments && showCreateModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-slate-800 rounded-xl p-6 max-w-4xl w-full border border-emerald-600 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-white mb-6">Create New Tournament</h2>
@@ -1501,7 +1502,7 @@ export default function TournamentManagement({ selectedClubId }) {
       )}
 
       {/* Edit Tournament Modal - Same form structure as Create */}
-      {showEditModal && editingTournament && (
+      {canManageTournaments && showEditModal && editingTournament && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-slate-800 rounded-xl p-6 max-w-4xl w-full border border-purple-600 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-white mb-6">Edit Tournament: {editingTournament.name}</h2>
@@ -2111,32 +2112,34 @@ export default function TournamentManagement({ selectedClubId }) {
                               <div className={`text-4xl font-mono font-bold ${isPaused ? 'text-yellow-300' : 'text-green-300'} tabular-nums`}>
                                 {formatSessionTime(sessionElapsed)}
                               </div>
-                              <div className="flex items-center gap-2">
-                                {isPaused ? (
+                              {canManageTournaments && (
+                                <div className="flex items-center gap-2">
+                                  {isPaused ? (
+                                    <button
+                                      onClick={handleResumeTournament}
+                                      disabled={resumeMutation.isLoading}
+                                      className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
+                                    >
+                                      ▶ Resume
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={handlePauseTournament}
+                                      disabled={pauseMutation.isLoading}
+                                      className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
+                                    >
+                                      ⏸ Pause
+                                    </button>
+                                  )}
                                   <button
-                                    onClick={handleResumeTournament}
-                                    disabled={resumeMutation.isLoading}
-                                    className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
+                                    onClick={handleStopTournament}
+                                    disabled={stopMutation.isLoading}
+                                    className="bg-red-700 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
                                   >
-                                    ▶ Resume
+                                    ⏹ Stop
                                   </button>
-                                ) : (
-                                  <button
-                                    onClick={handlePauseTournament}
-                                    disabled={pauseMutation.isLoading}
-                                    className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
-                                  >
-                                    ⏸ Pause
-                                  </button>
-                                )}
-                                <button
-                                  onClick={handleStopTournament}
-                                  disabled={stopMutation.isLoading}
-                                  className="bg-red-700 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
-                                >
-                                  ⏹ Stop
-                                </button>
-                              </div>
+                                </div>
+                              )}
                             </div>
                             {isPaused && (
                               <div className="mt-2 text-yellow-400/70 text-xs text-center">
@@ -2207,16 +2210,22 @@ export default function TournamentManagement({ selectedClubId }) {
                                 {hasBlinds ? `${sb ?? '–'} / ${bb ?? '–'}` : 'Not set'}
                               </span>
                             </div>
-                            <button
-                              type="button"
-                              onClick={handleOpenIncreaseBlind}
-                              className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-                            >
-                              Increase Blind
-                            </button>
+                            {canManageTournaments && (
+                              <button
+                                type="button"
+                                onClick={handleOpenIncreaseBlind}
+                                className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+                              >
+                                Increase Blind
+                              </button>
+                            )}
                             <p className="w-full text-xs text-amber-300/80">
-                              Note (staff only): Blinds auto-increase on the server every 30s when a new level starts. Use
-                              <span className="font-semibold"> Increase Blind</span> to override manually.
+                              Note (staff only): Blinds auto-increase on the server every 30s when a new level starts.
+                              {canManageTournaments && (
+                                <>
+                                  {' '}Use <span className="font-semibold">Increase Blind</span> to override manually.
+                                </>
+                              )}
                             </p>
                           </div>
                         );
@@ -2323,7 +2332,7 @@ export default function TournamentManagement({ selectedClubId }) {
                   >
                     Close
                   </button>
-                  {selectedTournament.status === 'scheduled' && (
+                  {canManageTournaments && selectedTournament.status === 'scheduled' && (
                     <>
                       <button
                         onClick={() => {
@@ -2343,7 +2352,7 @@ export default function TournamentManagement({ selectedClubId }) {
                       </button>
                     </>
                   )}
-                  {selectedTournament.status === 'active' && (
+                  {canManageTournaments && selectedTournament.status === 'active' && (
                     <>
                       <button
                         onClick={() => setShowEndModal(true)}
@@ -2381,10 +2390,12 @@ export default function TournamentManagement({ selectedClubId }) {
                         <div className={`text-2xl font-mono font-bold ${liveTournament?.paused_at ? 'text-yellow-300' : 'text-green-300'} tabular-nums`}>
                           {formatSessionTime(sessionElapsed)}
                         </div>
-                        {liveTournament?.paused_at ? (
-                          <button onClick={handleResumeTournament} disabled={resumeMutation.isLoading} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50">▶ Resume</button>
-                        ) : (
-                          <button onClick={handlePauseTournament} disabled={pauseMutation.isLoading} className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50">⏸ Pause</button>
+                        {canManageTournaments && (
+                          liveTournament?.paused_at ? (
+                            <button onClick={handleResumeTournament} disabled={resumeMutation.isLoading} className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50">▶ Resume</button>
+                          ) : (
+                            <button onClick={handlePauseTournament} disabled={pauseMutation.isLoading} className="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50">⏸ Pause</button>
+                          )
                         )}
                       </div>
                     </div>
@@ -2441,7 +2452,7 @@ export default function TournamentManagement({ selectedClubId }) {
                               <th className="text-right py-3 px-4 text-gray-400 font-semibold">Prize</th>
                             </>
                           )}
-                          {selectedTournament.status === "active" && (
+                          {canManageTournaments && selectedTournament.status === "active" && (
                             <th className="text-center py-3 px-4 text-gray-400 font-semibold">Action</th>
                           )}
                         </tr>
@@ -2561,7 +2572,7 @@ export default function TournamentManagement({ selectedClubId }) {
                                   </td>
                                 </>
                               )}
-                              {selectedTournament.status === "active" && (
+                              {canManageTournaments && selectedTournament.status === "active" && (
                                 <td className="py-3 px-4 text-center">
                                   <div className="flex gap-1 justify-center flex-wrap">
                                     {!isExited && (
@@ -2658,7 +2669,7 @@ export default function TournamentManagement({ selectedClubId }) {
       )}
 
       {/* End Tournament Modal */}
-      {showEndModal && selectedTournament && (
+      {canManageTournaments && showEndModal && selectedTournament && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-slate-800 rounded-xl p-6 max-w-5xl w-full border border-orange-600 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-white mb-4">
@@ -2812,7 +2823,7 @@ export default function TournamentManagement({ selectedClubId }) {
       )}
 
       {/* Add-on Modal */}
-      {showAddonModal && addonPlayer && (
+      {canManageTournaments && showAddonModal && addonPlayer && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
           <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-purple-600">
             <h3 className="text-xl font-bold text-white mb-4">Add-on for {addonPlayer.name}</h3>
@@ -2874,7 +2885,7 @@ export default function TournamentManagement({ selectedClubId }) {
       )}
 
       {/* Increase Blind Modal */}
-      {showIncreaseBlindModal && (
+      {canManageTournaments && showIncreaseBlindModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
           <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-amber-600">
             <h3 className="text-xl font-bold text-white mb-4">Increase Blind</h3>
@@ -2930,7 +2941,7 @@ export default function TournamentManagement({ selectedClubId }) {
       )}
 
       {/* Exit Player Modal */}
-      {showExitPlayerModal && exitingPlayer && (
+      {canManageTournaments && showExitPlayerModal && exitingPlayer && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
           <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-red-600">
             <h2 className="text-xl font-bold text-white mb-4">Exit Player from Tournament</h2>

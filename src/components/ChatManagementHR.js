@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { chatAPI } from '../lib/api';
+import { io } from 'socket.io-client';
 import { FaUser, FaSearch, FaPaperPlane, FaCircle, FaTimes, FaPlus } from 'react-icons/fa';
 
 // HR-restricted Chat - Staff Chat Only
@@ -11,20 +12,58 @@ function StaffChatTab({ clubId }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
 
   useEffect(() => {
-    if (clubId) {
+    if (!clubId) return;
+    loadSessions();
+
+    // WebSocket for real-time session + message updates
+    const wsBase = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api').replace(/\/api$/, '');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const userId = localStorage.getItem('userId');
+    const socket = io(`${wsBase}/realtime`, {
+      auth: { clubId, userId, token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+    });
+    socketRef.current = socket;
+    socket.on('connect', () => {
+      socket.emit('subscribe:club', { clubId, userId });
+      socket.emit('subscribe:staff', { staffId: userId, clubId });
+    });
+    socket.on('chat:new-message', (data) => {
+      // Refresh session list (unread counts) regardless of which session
       loadSessions();
-    }
+      // If the message belongs to the open session, reload messages
+      setSelectedSession((current) => {
+        if (current && data?.sessionId === current.id) {
+          loadMessagesForSession(current);
+        }
+        return current;
+      });
+    });
+    socket.on('chat:new-message-direct', (data) => {
+      const currentUserId = localStorage.getItem('userId');
+      if (data?.recipientStaffUserId === currentUserId) {
+        loadSessions();
+        setSelectedSession((current) => {
+          if (current && data?.sessionId === current.id) {
+            loadMessagesForSession(current);
+          }
+          return current;
+        });
+      }
+    });
+    socket.on('chat:session-updated', () => loadSessions());
+    return () => { socket.disconnect(); socketRef.current = null; };
   }, [clubId]);
 
   useEffect(() => {
     if (selectedSession) {
-      loadMessages();
-      const interval = setInterval(loadMessages, 3000);
-      return () => clearInterval(interval);
+      loadMessagesForSession(selectedSession);
     }
-  }, [selectedSession]);
+  }, [selectedSession?.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -42,10 +81,10 @@ function StaffChatTab({ clubId }) {
     }
   };
 
-  const loadMessages = async () => {
-    if (!selectedSession) return;
+  const loadMessagesForSession = async (session) => {
+    if (!session) return;
     try {
-      const response = await chatAPI.getSessionMessages(clubId, selectedSession.id, { page: 1, limit: 100 });
+      const response = await chatAPI.getSessionMessages(clubId, session.id, { page: 1, limit: 100 });
       setMessages(response.messages || []);
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -54,12 +93,14 @@ function StaffChatTab({ clubId }) {
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedSession) return;
+    const text = newMessage.trim();
+    setNewMessage('');
     try {
-      await chatAPI.sendMessage(clubId, selectedSession.id, newMessage);
-      setNewMessage('');
-      loadMessages();
+      await chatAPI.sendMessage(clubId, selectedSession.id, text);
+      loadMessagesForSession(selectedSession);
     } catch (error) {
       console.error('Error sending message:', error);
+      setNewMessage(text);
     }
   };
 

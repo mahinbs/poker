@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { apiRequest } from '../lib/api';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -88,14 +88,26 @@ export default function MyShifts({ selectedClubId, compact = false }) {
     }
   };
 
-  const upcomingShifts = shifts
-    .filter(shift => {
-      const shiftDate = new Date(shift.shiftDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return shiftDate >= today;
-    })
-    .slice(0, compact ? 5 : 14);
+  const calendarKeyKolkata = (dateInput) => {
+    const d = new Date(dateInput);
+    return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  };
+
+  const upcomingShifts = useMemo(() => {
+    const todayKey = calendarKeyKolkata(new Date());
+    const sorted = [...shifts].sort((a, b) => new Date(a.shiftDate) - new Date(b.shiftDate));
+    const seen = new Set();
+    const out = [];
+    for (const shift of sorted) {
+      const k = calendarKeyKolkata(shift.shiftDate);
+      if (k < todayKey) continue;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(shift);
+      if (out.length >= (compact ? 5 : 14)) break;
+    }
+    return out;
+  }, [shifts, compact]);
 
   if (loading) {
     return (

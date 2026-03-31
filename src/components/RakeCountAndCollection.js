@@ -86,7 +86,7 @@ export default function RakeCountAndCollection() {
       totalRakeAmount: parseFloat(totalRakeAmount),
       notes: notes,
       collectedBy: "Manager",
-      collectedAt: new Date().toLocaleString("en-IN"),
+      collectedAt: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
       status: "collected",
     };
 

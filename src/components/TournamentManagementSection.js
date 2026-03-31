@@ -976,7 +976,7 @@ export default function TournamentManagementSection({
                         <div>
                           <span className="text-gray-400">Start:</span>{" "}
                           <span className="text-white">
-                            {new Date(tournament.startTime).toLocaleString("en-IN")}
+                            {new Date(tournament.startTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
                           </span>
                         </div>
                       </div>
@@ -1189,7 +1189,7 @@ export default function TournamentManagementSection({
                     <div>
                       <label className="text-gray-400 text-xs">Start Time</label>
                       <div className="text-white">
-                        {new Date(selectedTournament.startTime).toLocaleString("en-IN")}
+                        {new Date(selectedTournament.startTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
                       </div>
                     </div>
                   </div>

@@ -2,10 +2,10 @@ import React, { useState, useCallback, useRef } from 'react';
 import { FaUser, FaChartBar, FaDollarSign, FaCoins, FaTable, FaCreditCard, FaReceipt, FaGift, FaWrench, FaDownload, FaFilePdf, FaFileExcel } from 'react-icons/fa';
 import { getAuthHeaders, apiRequest } from '../lib/api';
 
-export default function ReportsAnalytics({ clubId }) {
+export default function ReportsAnalytics({ clubId, allowCustomReport = false }) {
   const [selectedReport, setSelectedReport] = useState(null);
 
-  const reportTypes = [
+  const allReportTypes = [
     {
       id: 'individual_player',
       name: 'Individual Player Report',
@@ -67,9 +67,13 @@ export default function ReportsAnalytics({ clubId }) {
       name: 'Custom Report',
       icon: <FaWrench className="text-5xl" />,
       color: 'from-gray-500 to-slate-500',
-      description: 'Compile multiple reports'
+      description: 'Super Admin only — combine multiple reports in one export'
     }
   ];
+
+  const reportTypes = allowCustomReport
+    ? allReportTypes
+    : allReportTypes.filter((r) => r.id !== 'custom');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
@@ -77,7 +81,9 @@ export default function ReportsAnalytics({ clubId }) {
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 rounded-lg mb-6">
           <h1 className="text-3xl font-bold text-white">Reports & Analytics</h1>
-          <p className="text-white/80 mt-2">Generate comprehensive reports with real-time data</p>
+          <p className="text-white/80 mt-2">
+            Date range applies to all reports. Exports match club database totals; F&amp;B is always separate from wallet.
+          </p>
         </div>
 
         {/* Report Type Cards */}
@@ -157,7 +163,8 @@ function ReportConfigurationModal({ report, clubId, onClose }) {
       const list = (data?.players || []).map((p) => ({
         id: p.id,
         name: p.name || 'Unknown',
-        email: p.email || ''
+        email: p.email || '',
+        tiltId: p.playerId || p.tiltId || '',
       }));
       setSearchResults(list);
       if (list.length === 0) setPlayerSearchError('No players found.');
@@ -249,7 +256,7 @@ function ReportConfigurationModal({ report, clubId, onClose }) {
                   setPlayerSearchError(null);
                 }
               }}
-              placeholder="Search by name, ID, or email..."
+              placeholder="Search by name, email, or Tilt ID..."
               className="w-full px-4 py-3 bg-slate-700 text-white rounded-lg"
             />
             {playerSearchLoading && (
@@ -275,6 +282,9 @@ function ReportConfigurationModal({ report, clubId, onClose }) {
                   >
                     <div className="font-semibold">{player.name}</div>
                     <div className="text-sm text-white/60">{player.email}</div>
+                    {player.tiltId ? (
+                      <div className="text-xs text-cyan-400/90 font-mono mt-0.5">Tilt ID: {player.tiltId}</div>
+                    ) : null}
                   </button>
                 ))}
               </div>
@@ -319,7 +329,7 @@ function ReportConfigurationModal({ report, clubId, onClose }) {
               Select Multiple Report Types to Compile
             </label>
             <div className="grid grid-cols-2 gap-3">
-              {['cumulative_player', 'daily_transactions', 'daily_rake', 'credit_transactions', 'expenses', 'bonus'].map((type) => (
+              {['cumulative_player', 'daily_transactions', 'daily_rake', 'per_table_transactions', 'credit_transactions', 'expenses', 'bonus'].map((type) => (
                 <label key={type} className="flex items-center gap-2 bg-slate-700 p-3 rounded-lg cursor-pointer hover:bg-slate-600">
                   <input
                     type="checkbox"

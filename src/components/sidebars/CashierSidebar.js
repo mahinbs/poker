@@ -12,7 +12,6 @@ const DEFAULT_MENU_ITEMS = [
   "Bonus Management",
   "Tables & Waitlist", // View-only live tables
   "Club Buy-In",
-  "Club Buy-In Requests",
   "Push Notifications",
   "Tournaments", // View-only
   "Chat",

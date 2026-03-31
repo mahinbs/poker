@@ -13,6 +13,11 @@ export const storageService = {
    */
   uploadDocument: async (file, clubId, folder = 'documents') => {
     try {
+      const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+      if (!allowedMimeTypes.includes(file?.type || '')) {
+        throw new Error('Only JPG, PNG, WEBP, and PDF files are allowed');
+      }
+
       // Generate a unique filename
       const timestamp = Date.now();
       const randomStr = Math.random().toString(36).substring(2, 15);

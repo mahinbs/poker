@@ -199,6 +199,13 @@ export const clubsAPI = {
     return await apiRequest(`/clubs/${clubId}/players/${playerId}`);
   },
 
+  updatePlayer: async (clubId, playerId, playerData) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}`, {
+      method: 'PUT',
+      body: JSON.stringify(playerData),
+    });
+  },
+
   /**
    * Get club revenue data (revenue, rake, tips)
    */
@@ -1847,6 +1854,13 @@ export const superAdminAPI = {
 
   getPlayer: async (clubId, playerId) => {
     return await apiRequest(`/clubs/${clubId}/players/${playerId}`);
+  },
+
+  updatePlayer: async (clubId, playerId, playerData) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}`, {
+      method: 'PUT',
+      body: JSON.stringify(playerData),
+    });
   },
 
   // Get all players (alias for getAllPlayers)

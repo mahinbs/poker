@@ -11,6 +11,8 @@ import TableView from "../../components/hologram/TableView";
 import NotificationsInbox from "../../components/NotificationsInbox";
 import LeaveManagement from "../../components/LeaveManagement";
 import TableManagement from "./TableManagement";
+import TournamentManagement from "../../components/TournamentManagement";
+import RummyManagement from "../../components/RummyManagement";
 
 // View-only Tables component for GRE (without buy-in requests)
 function TableManagementViewOnly({ selectedClubId }) {
@@ -609,12 +611,22 @@ export default function GreDashboard() {
 
           {/* Tables & Waitlist */}
           {activeItem === "Tables & Waitlist" && clubId && (
-            <TableManagement selectedClubId={clubId} />
+            <TableManagement
+              selectedClubId={clubId}
+              permissions={{
+                canManageTables: false,
+                canAssignSeat: true,
+                visibleTabs: ["live-tables", "table-buy-in", "table-buy-out"],
+              }}
+            />
           )}
 
-          {/* Tournaments - View Only */}
+          {/* Tournaments */}
           {activeItem === "Tournaments" && clubId && (
-            <TournamentManagementViewOnly selectedClubId={clubId} />
+            <TournamentManagement
+              selectedClubId={clubId}
+              permissions={{ canManageTournaments: false }}
+            />
           )}
 
           {/* Chat Management */}
@@ -637,9 +649,18 @@ export default function GreDashboard() {
             <LeaveManagement clubId={clubId} userRole="GRE" />
           )}
 
-          {/* Rummy Tournaments - View Only */}
+          {/* Rummy Management */}
           {activeItem === "Rummy" && clubId && (
-            <RummyTournamentManagementViewOnly selectedClubId={clubId} />
+            <RummyManagement
+              selectedClubId={clubId}
+              permissions={{
+                canManageTables: false,
+                canAssignSeat: true,
+                canManageTournaments: false,
+                showRummyTournaments: false,
+                visibleTabs: ["live-tables", "table-buy-in", "table-buy-out"],
+              }}
+            />
           )}
 
           {/* Fallback for unknown menu items */}

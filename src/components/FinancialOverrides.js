@@ -151,7 +151,11 @@ export default function FinancialOverrides({ selectedClubId }) {
 
     if (searchName.trim()) {
       const q = searchName.toLowerCase().trim();
-      data = data.filter(t => (t.entityName || "").toLowerCase().includes(q));
+      data = data.filter((t) => {
+        const name = (t.entityName || "").toLowerCase();
+        const tilt = (t.tiltId || "").toLowerCase();
+        return name.includes(q) || tilt.includes(q);
+      });
     }
 
     if (filterDateFrom) {
@@ -179,6 +183,10 @@ export default function FinancialOverrides({ selectedClubId }) {
         case "name":
           valA = (a.entityName || "").toLowerCase();
           valB = (b.entityName || "").toLowerCase();
+          break;
+        case "tiltId":
+          valA = (a.tiltId || "").toLowerCase();
+          valB = (b.tiltId || "").toLowerCase();
           break;
         case "amount":
           valA = Number(a.amount || 0);
@@ -545,10 +553,16 @@ export default function FinancialOverrides({ selectedClubId }) {
         {/* Search & Filter Bar */}
         <div className="flex flex-wrap gap-3 mb-4 items-end">
           <div className="flex-1 min-w-[200px]">
-            <label className="text-xs text-gray-400 mb-1 block">Search by {nameLabel} Name</label>
+            <label className="text-xs text-gray-400 mb-1 block">
+              Search by {nameLabel} name{activeTab === "players" ? " or Tilt ID" : ""}
+            </label>
             <input
               type="text"
-              placeholder={`Search ${nameLabel.toLowerCase()} name...`}
+              placeholder={
+                activeTab === "players"
+                  ? "Search by name or Tilt ID..."
+                  : `Search ${nameLabel.toLowerCase()} name...`
+              }
               value={searchName}
               onChange={(e) => { setSearchName(e.target.value); setCurrentPage(1); }}
               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm placeholder-gray-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
@@ -589,6 +603,7 @@ export default function FinancialOverrides({ selectedClubId }) {
                     <SortHeader field="type" label="Type" />
                     <SortHeader field="game" label="Game" align="center" />
                     <SortHeader field="name" label={`${nameLabel} Name`} />
+                    <SortHeader field="tiltId" label="Tilt ID" />
                     <SortHeader field="amount" label="Amount" align="right" />
                     <SortHeader field="status" label="Status" align="center" />
                     <SortHeader field="date" label="Date" />
@@ -620,6 +635,11 @@ export default function FinancialOverrides({ selectedClubId }) {
                         {getGameTag(transaction.gameType)}
                       </td>
                       <td className="text-white p-3 font-medium">{transaction.entityName}</td>
+                      <td className="text-slate-300 p-3 font-mono text-sm">
+                        {activeTab === "players"
+                          ? transaction.tiltId || "—"
+                          : "—"}
+                      </td>
                       <td className="text-right p-3">
                         <div className="flex flex-col items-end">
                           <span className="text-white font-semibold">₹{Number(transaction.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>

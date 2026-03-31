@@ -21,6 +21,11 @@ export default function MyShiftsDashboard({ selectedClubId }) {
     }
   }, [selectedClubId]);
 
+  const calendarKeyKolkata = (dateInput) => {
+    const d = new Date(dateInput);
+    return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  };
+
   const loadMyShifts = async () => {
     try {
       const today = new Date();
@@ -36,24 +41,25 @@ export default function MyShiftsDashboard({ selectedClubId }) {
 
       if (response.success) {
         const shifts = response.shifts || [];
-        
-        // Find today's shift
-        const todayStr = today.toISOString().split('T')[0];
-        const today_shift = shifts.find(s => 
-          s.shiftDate.split('T')[0] === todayStr
-        );
+        const todayKey = calendarKeyKolkata(today);
+
+        const today_shift = shifts.find((s) => calendarKeyKolkata(s.shiftDate) === todayKey);
         setTodayShift(today_shift || null);
 
-        // Get next 3 upcoming shifts (excluding today)
-        const upcoming = shifts
-          .filter(s => {
-            const shiftDate = new Date(s.shiftDate);
-            shiftDate.setHours(0, 0, 0, 0);
-            const todayDate = new Date();
-            todayDate.setHours(0, 0, 0, 0);
-            return shiftDate > todayDate;
-          })
-          .slice(0, 3);
+        // After today: one row per calendar day (Kolkata) — avoids duplicate "Tomorrow" if DB has two rows for same day
+        const future = shifts
+          .filter((s) => calendarKeyKolkata(s.shiftDate) > todayKey)
+          .sort((a, b) => new Date(a.shiftDate) - new Date(b.shiftDate));
+
+        const seenDays = new Set();
+        const upcoming = [];
+        for (const s of future) {
+          const k = calendarKeyKolkata(s.shiftDate);
+          if (seenDays.has(k)) continue;
+          seenDays.add(k);
+          upcoming.push(s);
+          if (upcoming.length >= 3) break;
+        }
         setUpcomingShifts(upcoming);
       }
     } catch (error) {

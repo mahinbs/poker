@@ -20,6 +20,19 @@ export default function OrderManagementTab({ clubId }) {
     loadStations();
   }, [clubId, filter, currentPage]);
 
+  // Keep selected order details fresh in open modals after real-time refresh.
+  useEffect(() => {
+    if (!selectedOrder?.id) return;
+    const updated = (orders || []).find((o) => o.id === selectedOrder.id);
+    if (updated) {
+      setSelectedOrder(updated);
+    } else {
+      setSelectedOrder(null);
+      setShowAcceptModal(false);
+      setShowRejectModal(false);
+    }
+  }, [orders, selectedOrder?.id]);
+
   // Socket.IO: instant updates for FNB orders
   useEffect(() => {
     if (!clubId) return;
@@ -35,6 +48,7 @@ export default function OrderManagementTab({ clubId }) {
     socket.on('fnb:order-updated', () => {
       console.log('🍔 [SOCKET] FNB order updated');
       loadOrders();
+      loadStations();
     });
     return () => { socket.disconnect(); };
   }, [clubId]);

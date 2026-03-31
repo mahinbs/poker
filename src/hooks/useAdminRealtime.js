@@ -72,13 +72,19 @@ export function useAdminRealtime(clubId) {
     // Tournaments
     socket.on('tournament:updated', () => {
       queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['rummy-tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['tournament-details'] });
+      queryClient.invalidateQueries({ queryKey: ['rummy-tournament-details'] });
       queryClient.invalidateQueries({ queryKey: ['tournament-players'] });
+      queryClient.invalidateQueries({ queryKey: ['rummy-tournament-players'] });
     });
     socket.on('tournament:player-updated', () => {
       queryClient.invalidateQueries({ queryKey: ['tournament-players'] });
+      queryClient.invalidateQueries({ queryKey: ['rummy-tournament-players'] });
     });
     socket.on('tournament:blinds-updated', () => {
       queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['rummy-tournaments'] });
     });
 
     // Financial transactions
@@ -93,19 +99,36 @@ export function useAdminRealtime(clubId) {
     });
     socket.on('buyin:updated', () => {
       queryClient.invalidateQueries({ queryKey: ['buyInRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['seatedPlayers'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     });
 
     // Buy-out requests
     socket.on('buyout:new-request', () => {
       queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['buyout-player-balance', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['buyout-live-seated-player', clubId] });
     });
     socket.on('buyout:updated', () => {
       queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['buyout-player-balance', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['buyout-live-seated-player', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['seatedPlayers'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     });
 
     // FNB orders
     socket.on('fnb:order-updated', () => {
       queryClient.invalidateQueries({ queryKey: ['fnbOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['fnbOrders', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['kitchenStations', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['stationStats', clubId] });
+    });
+
+    // VIP store (purchases + product list for staff)
+    socket.on('vip:store-updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['vipProducts', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['vipPurchases', clubId] });
     });
 
     // Players table changes (balance, KYC, etc.)
@@ -131,10 +154,12 @@ export function useAdminRealtime(clubId) {
     });
     socket.on('waitlist:status-changed', () => {
       queryClient.invalidateQueries({ queryKey: ['waitlist'] });
+      queryClient.invalidateQueries({ queryKey: ['waitlist', clubId] });
       queryClient.invalidateQueries({ queryKey: ['seatedPlayers'] });
     });
     socket.on('waitlist:position-updated', () => {
       queryClient.invalidateQueries({ queryKey: ['waitlist'] });
+      queryClient.invalidateQueries({ queryKey: ['waitlist', clubId] });
     });
 
     socket.on('disconnect', (reason) => {

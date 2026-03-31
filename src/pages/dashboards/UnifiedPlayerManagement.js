@@ -8,6 +8,9 @@ const KYC_BUCKET = "kyc-docs";
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const useClientUpload = Boolean(supabaseUrl && supabaseAnonKey);
+const DOC_IMAGE_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const DOC_PDF_MIME_TYPES = ["application/pdf"];
+const DOC_ALLOWED_MIME_TYPES = [...DOC_IMAGE_MIME_TYPES, ...DOC_PDF_MIME_TYPES];
 
 // Unified Player Management Component with 4 Tabs
 export default function UnifiedPlayerManagement({
@@ -34,10 +37,13 @@ export default function UnifiedPlayerManagement({
     name: "",
     email: "",
     phoneNumber: "",
+    tiltId: "",
     referralCode: "",
     panCard: "",
+    aadhaarUploadMode: "",
     aadhaarFrontFile: null,
     aadhaarBackFile: null,
+    aadhaarPdfFile: null,
     panCardFile: null,
   });
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -45,6 +51,9 @@ export default function UnifiedPlayerManagement({
   const [successData, setSuccessData] = useState(null);
   const [showPlayerDetailsModal, setShowPlayerDetailsModal] = useState(false);
   const [selectedPlayerForDetails, setSelectedPlayerForDetails] = useState(null);
+  const [showTiltIdModal, setShowTiltIdModal] = useState(false);
+  const [selectedPlayerForTiltId, setSelectedPlayerForTiltId] = useState(null);
+  const [manualTiltId, setManualTiltId] = useState("");
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [playerToSuspend, setPlayerToSuspend] = useState(null);
   const [suspendForm, setSuspendForm] = useState({
@@ -164,23 +173,32 @@ export default function UnifiedPlayerManagement({
   // Create Player Mutation: create player, then upload KYC; only show temp password after BOTH succeed. If upload fails, delete player and fail.
   const createPlayerMutation = useMutation({
     mutationFn: async (payload) => {
-      const { _aadhaarFrontFile, _aadhaarBackFile, _panCardFile, ...apiPayload } = payload;
+      const { _aadhaarUploadMode, _aadhaarFrontFile, _aadhaarBackFile, _aadhaarPdfFile, _panCardFile, ...apiPayload } = payload;
       const playerData = await superAdminAPI.createPlayer(selectedClubId, apiPayload);
 
       try {
-        if (_aadhaarFrontFile) {
+        if (_aadhaarUploadMode === "image") {
+          if (_aadhaarFrontFile) {
+            await uploadDocumentMutation.mutateAsync({
+              playerId: playerData.id,
+              file: _aadhaarFrontFile,
+              documentType: 'aadhaar_front',
+              clubId: selectedClubId,
+            });
+          }
+          if (_aadhaarBackFile) {
+            await uploadDocumentMutation.mutateAsync({
+              playerId: playerData.id,
+              file: _aadhaarBackFile,
+              documentType: 'aadhaar_back',
+              clubId: selectedClubId,
+            });
+          }
+        } else if (_aadhaarUploadMode === "pdf" && _aadhaarPdfFile) {
           await uploadDocumentMutation.mutateAsync({
             playerId: playerData.id,
-            file: _aadhaarFrontFile,
-            documentType: 'aadhaar_front',
-            clubId: selectedClubId,
-          });
-        }
-        if (_aadhaarBackFile) {
-          await uploadDocumentMutation.mutateAsync({
-            playerId: playerData.id,
-            file: _aadhaarBackFile,
-            documentType: 'aadhaar_back',
+            file: _aadhaarPdfFile,
+            documentType: 'government_id',
             clubId: selectedClubId,
           });
         }
@@ -208,6 +226,7 @@ export default function UnifiedPlayerManagement({
         player: {
           name: data.name,
           email: data.email,
+          tiltId: data.tiltId || data.playerId || 'Auto-generated',
           tempPassword: data.tempPassword ?? 'Not provided',
         }
       });
@@ -216,10 +235,13 @@ export default function UnifiedPlayerManagement({
         name: "",
         email: "",
         phoneNumber: "",
+        tiltId: "",
         referralCode: "",
         panCard: "",
+        aadhaarUploadMode: "",
         aadhaarFrontFile: null,
         aadhaarBackFile: null,
+        aadhaarPdfFile: null,
         panCardFile: null,
       });
       queryClient.invalidateQueries(['clubPlayers', selectedClubId]);
@@ -321,6 +343,23 @@ export default function UnifiedPlayerManagement({
     },
   });
 
+  const updateTiltIdMutation = useMutation({
+    mutationFn: async ({ playerId, tiltId }) => {
+      return await superAdminAPI.updatePlayer(selectedClubId, playerId, { tiltId });
+    },
+    onSuccess: () => {
+      toast.success('Tilt ID updated successfully');
+      setShowTiltIdModal(false);
+      setSelectedPlayerForTiltId(null);
+      setManualTiltId("");
+      queryClient.invalidateQueries(['clubPlayers', selectedClubId]);
+      queryClient.invalidateQueries(['playerDetails', selectedClubId]);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update Tilt ID');
+    },
+  });
+
   const { data: fieldUpdateRequests = [], isLoading: fieldUpdatesLoading, isFetching: fieldUpdatesFetching, refetch: refetchFieldUpdates } = useQuery({
     queryKey: ['fieldUpdateRequests', selectedClubId],
     queryFn: () => superAdminAPI.getFieldUpdateRequests(selectedClubId),
@@ -374,13 +413,23 @@ export default function UnifiedPlayerManagement({
       }
     }
 
-    // Validate files
-    if (!playerForm.aadhaarFrontFile) {
-      toast.error('Please upload Aadhaar Front document');
+    if (!playerForm.aadhaarUploadMode) {
+      toast.error('Please select Aadhaar upload type (Image or PDF)');
       return;
     }
-    if (!playerForm.aadhaarBackFile) {
-      toast.error('Please upload Aadhaar Back document');
+
+    // Validate files
+    if (playerForm.aadhaarUploadMode === "image") {
+      if (!playerForm.aadhaarFrontFile) {
+        toast.error('Please upload Aadhaar Front document');
+        return;
+      }
+      if (!playerForm.aadhaarBackFile) {
+        toast.error('Please upload Aadhaar Back document');
+        return;
+      }
+    } else if (!playerForm.aadhaarPdfFile) {
+      toast.error('Please upload Aadhaar PDF document');
       return;
     }
     if (!playerForm.panCardFile) {
@@ -390,12 +439,17 @@ export default function UnifiedPlayerManagement({
 
     // Validate file sizes (5MB max)
     const maxSize = 5 * 1024 * 1024; // 5MB
-    if (playerForm.aadhaarFrontFile.size > maxSize) {
-      toast.error('Aadhaar Front document must be less than 5MB');
-      return;
-    }
-    if (playerForm.aadhaarBackFile.size > maxSize) {
-      toast.error('Aadhaar Back document must be less than 5MB');
+    if (playerForm.aadhaarUploadMode === "image") {
+      if (playerForm.aadhaarFrontFile.size > maxSize) {
+        toast.error('Aadhaar Front document must be less than 5MB');
+        return;
+      }
+      if (playerForm.aadhaarBackFile.size > maxSize) {
+        toast.error('Aadhaar Back document must be less than 5MB');
+        return;
+      }
+    } else if (playerForm.aadhaarPdfFile.size > maxSize) {
+      toast.error('Aadhaar PDF document must be less than 5MB');
       return;
     }
     if (playerForm.panCardFile.size > maxSize) {
@@ -404,17 +458,21 @@ export default function UnifiedPlayerManagement({
     }
 
     // Validate file types
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-    if (!allowedTypes.includes(playerForm.aadhaarFrontFile.type)) {
-      toast.error('Aadhaar Front document must be JPG, PNG, or PDF');
+    if (playerForm.aadhaarUploadMode === "image") {
+      if (!DOC_IMAGE_MIME_TYPES.includes(playerForm.aadhaarFrontFile.type)) {
+        toast.error('Aadhaar Front must be an image file (JPG, PNG, WEBP)');
+        return;
+      }
+      if (!DOC_IMAGE_MIME_TYPES.includes(playerForm.aadhaarBackFile.type)) {
+        toast.error('Aadhaar Back must be an image file (JPG, PNG, WEBP)');
+        return;
+      }
+    } else if (!DOC_PDF_MIME_TYPES.includes(playerForm.aadhaarPdfFile.type)) {
+      toast.error('Aadhaar upload type is PDF, so please upload a PDF file only');
       return;
     }
-    if (!allowedTypes.includes(playerForm.aadhaarBackFile.type)) {
-      toast.error('Aadhaar Back document must be JPG, PNG, or PDF');
-      return;
-    }
-    if (!allowedTypes.includes(playerForm.panCardFile.type)) {
-      toast.error('PAN card document must be JPG, PNG, or PDF');
+    if (!DOC_ALLOWED_MIME_TYPES.includes(playerForm.panCardFile.type)) {
+      toast.error('PAN card document must be JPG, PNG, WEBP, or PDF');
       return;
     }
 
@@ -424,10 +482,13 @@ export default function UnifiedPlayerManagement({
       name: playerForm.name,
       email: playerForm.email,
       phoneNumber: playerForm.phoneNumber,
+      tiltId: allowPermanentDelete && playerForm.tiltId?.trim() ? playerForm.tiltId.trim().toUpperCase() : undefined,
       affiliateCode: playerForm.referralCode || undefined,
       panCard: playerForm.panCard || undefined,
+      _aadhaarUploadMode: playerForm.aadhaarUploadMode,
       _aadhaarFrontFile: playerForm.aadhaarFrontFile,
       _aadhaarBackFile: playerForm.aadhaarBackFile,
+      _aadhaarPdfFile: playerForm.aadhaarPdfFile,
       _panCardFile: playerForm.panCardFile,
     };
 
@@ -439,7 +500,7 @@ export default function UnifiedPlayerManagement({
       !searchTerm ||
       player.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       player.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      player.playerId?.toLowerCase().includes(searchTerm.toLowerCase());
+      (player.tiltId || player.playerId)?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "All" || player.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -512,7 +573,7 @@ export default function UnifiedPlayerManagement({
             <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex gap-4">
               <input
                 type="text"
-                placeholder="Search by name, email, or ID..."
+                placeholder="Search by name, email, or Tilt ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
@@ -544,7 +605,7 @@ export default function UnifiedPlayerManagement({
                   <thead className="bg-slate-700">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Tilt ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Email</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Phone</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
@@ -575,7 +636,7 @@ export default function UnifiedPlayerManagement({
                           >
                             {player.name}
                           </td>
-                          <td className="px-6 py-4 text-gray-400">{player.playerId || '-'}</td>
+                          <td className="px-6 py-4 text-gray-400">{player.tiltId || player.playerId || '-'}</td>
                           <td className="px-6 py-4 text-gray-400">{player.email}</td>
                           <td className="px-6 py-4 text-gray-400">{player.phoneNumber || '-'}</td>
                           <td className="px-6 py-4">
@@ -638,6 +699,20 @@ export default function UnifiedPlayerManagement({
                                   className="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                 >
                                   Suspend
+                                </button>
+                              )}
+                              {allowPermanentDelete && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedPlayerForTiltId(player);
+                                    setManualTiltId(String(player.tiltId || player.playerId || '').toUpperCase());
+                                    setShowTiltIdModal(true);
+                                  }}
+                                  className="bg-violet-700 hover:bg-violet-600 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                                  title="View or update Tilt ID (Super Admin only)"
+                                >
+                                  Tilt ID
                                 </button>
                               )}
                               {allowPermanentDelete && (
@@ -747,6 +822,22 @@ export default function UnifiedPlayerManagement({
                     required
                   />
                 </div>
+                {allowPermanentDelete && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Tilt ID (Optional, Super Admin only)</label>
+                    <input
+                      type="text"
+                      value={playerForm.tiltId}
+                      onChange={(e) => {
+                        const value = String(e.target.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+                        setPlayerForm({ ...playerForm, tiltId: value });
+                      }}
+                      className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono"
+                      placeholder="Auto-generated if blank (e.g. TC12AB)"
+                      maxLength={6}
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Referral Code (Optional)</label>
                   <input
@@ -776,48 +867,91 @@ export default function UnifiedPlayerManagement({
                   <p className="text-xs text-gray-400 mt-1">Format: 5 letters, 4 digits, 1 letter (e.g., ABCDE1234F)</p>
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Aadhaar Front *</label>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,application/pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setPlayerForm({ ...playerForm, aadhaarFrontFile: file });
-                      }
-                    }}
-                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Aadhaar Upload Type *</label>
+                  <select
+                    value={playerForm.aadhaarUploadMode}
+                    onChange={(e) =>
+                      setPlayerForm({
+                        ...playerForm,
+                        aadhaarUploadMode: e.target.value,
+                        aadhaarFrontFile: null,
+                        aadhaarBackFile: null,
+                        aadhaarPdfFile: null,
+                      })
+                    }
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
                     required
-                  />
-                  {playerForm.aadhaarFrontFile && (
-                    <p className="text-xs text-emerald-400 mt-1">✓ {playerForm.aadhaarFrontFile.name}</p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-1">Upload Aadhaar front image/document (JPG, PNG, or PDF, max 5MB)</p>
+                  >
+                    <option value="">Select Aadhaar upload type</option>
+                    <option value="image">Image (Front + Back)</option>
+                    <option value="pdf">Single PDF (Front & Back together)</option>
+                  </select>
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Aadhaar Back *</label>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,application/pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setPlayerForm({ ...playerForm, aadhaarBackFile: file });
-                      }
-                    }}
-                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
-                    required
-                  />
-                  {playerForm.aadhaarBackFile && (
-                    <p className="text-xs text-emerald-400 mt-1">✓ {playerForm.aadhaarBackFile.name}</p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-1">Upload Aadhaar back image/document (JPG, PNG, or PDF, max 5MB)</p>
-                </div>
+
+                {playerForm.aadhaarUploadMode === "image" && (
+                  <>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Aadhaar Front *</label>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setPlayerForm({ ...playerForm, aadhaarFrontFile: file });
+                        }}
+                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
+                        required
+                      />
+                      {playerForm.aadhaarFrontFile && (
+                        <p className="text-xs text-emerald-400 mt-1">✓ {playerForm.aadhaarFrontFile.name}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">Upload Aadhaar front image (JPG, PNG, WEBP, max 5MB)</p>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Aadhaar Back *</label>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setPlayerForm({ ...playerForm, aadhaarBackFile: file });
+                        }}
+                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
+                        required
+                      />
+                      {playerForm.aadhaarBackFile && (
+                        <p className="text-xs text-emerald-400 mt-1">✓ {playerForm.aadhaarBackFile.name}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">Upload Aadhaar back image (JPG, PNG, WEBP, max 5MB)</p>
+                    </div>
+                  </>
+                )}
+
+                {playerForm.aadhaarUploadMode === "pdf" && (
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Aadhaar PDF *</label>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setPlayerForm({ ...playerForm, aadhaarPdfFile: file });
+                      }}
+                      className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
+                      required
+                    />
+                    {playerForm.aadhaarPdfFile && (
+                      <p className="text-xs text-emerald-400 mt-1">✓ {playerForm.aadhaarPdfFile.name}</p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1">Upload one PDF containing Aadhaar front and back (max 5MB)</p>
+                  </div>
+                )}
+
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-300 mb-1">PAN Card Document *</label>
                   <input
                     type="file"
-                    accept="image/jpeg,image/jpg,image/png,application/pdf"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -830,7 +964,7 @@ export default function UnifiedPlayerManagement({
                   {playerForm.panCardFile && (
                     <p className="text-xs text-emerald-400 mt-1">✓ {playerForm.panCardFile.name}</p>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">Upload PAN card document (JPG, PNG, or PDF, max 5MB)</p>
+                  <p className="text-xs text-gray-400 mt-1">Upload PAN card document (JPG, PNG, WEBP, or PDF, max 5MB)</p>
                 </div>
               </div>
               <div className="flex gap-4 mt-6">
@@ -1351,6 +1485,7 @@ export default function UnifiedPlayerManagement({
                 <div className="space-y-2">
                   <p className="text-white"><span className="text-gray-400">Name:</span> {successData.player.name}</p>
                   <p className="text-white"><span className="text-gray-400">Email:</span> {successData.player.email}</p>
+                  <p className="text-white"><span className="text-gray-400">Tilt ID:</span> {successData.player.tiltId}</p>
                   <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-3 mt-2">
                     <p className="text-yellow-400 text-sm font-medium mb-1">⚠️ Temporary Password</p>
                     <p className="text-yellow-100 font-mono text-lg font-bold">{successData?.player?.tempPassword ?? 'Not provided'}</p>
@@ -1422,8 +1557,8 @@ export default function UnifiedPlayerManagement({
                       <p className="text-white font-medium">{playerDetailsData.phoneNumber || selectedPlayerForDetails.phoneNumber || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-gray-400 text-sm mb-1">Player ID</p>
-                      <p className="text-white font-medium">{playerDetailsData.playerId || selectedPlayerForDetails.playerId || '-'}</p>
+                      <p className="text-gray-400 text-sm mb-1">Tilt ID</p>
+                      <p className="text-white font-medium">{playerDetailsData.tiltId || playerDetailsData.playerId || selectedPlayerForDetails.tiltId || selectedPlayerForDetails.playerId || '-'}</p>
                     </div>
                     <div>
                       <p className="text-gray-400 text-sm mb-1">PAN Card</p>
@@ -1609,6 +1744,50 @@ export default function UnifiedPlayerManagement({
                 className="bg-purple-600 hover:bg-purple-500 px-6 py-3 rounded-lg font-bold text-white text-lg transition-colors"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Super Admin: Manual Tilt ID Update */}
+      {allowPermanentDelete && showTiltIdModal && selectedPlayerForTiltId && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl p-6">
+            <h3 className="text-lg font-bold text-white mb-1">Update Tilt ID</h3>
+            <p className="text-sm text-gray-400 mb-4">{selectedPlayerForTiltId.name}</p>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Tilt ID (6 chars, A-Z/0-9)</label>
+            <input
+              type="text"
+              value={manualTiltId}
+              onChange={(e) => setManualTiltId(String(e.target.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono"
+              maxLength={6}
+              placeholder="e.g. TC12AB"
+            />
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowTiltIdModal(false);
+                  setSelectedPlayerForTiltId(null);
+                  setManualTiltId("");
+                }}
+                className="flex-1 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!manualTiltId || manualTiltId.length !== 6) {
+                    toast.error('Tilt ID must be exactly 6 characters');
+                    return;
+                  }
+                  updateTiltIdMutation.mutate({ playerId: selectedPlayerForTiltId.id, tiltId: manualTiltId });
+                }}
+                disabled={updateTiltIdMutation.isLoading}
+                className="flex-1 bg-violet-700 hover:bg-violet-600 disabled:opacity-50 px-4 py-2 rounded-lg text-sm font-medium"
+              >
+                {updateTiltIdMutation.isLoading ? 'Saving...' : 'Save Tilt ID'}
               </button>
             </div>
           </div>

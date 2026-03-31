@@ -13,9 +13,11 @@ import RakeCollection from '../../components/RakeCollection';
  * 3. Table Buy-In - Waitlist, seat allocation, reorder
  * 4. Table Buy-Out - Player requests, admin approval
  */
-export default function TableManagement({ selectedClubId }) {
+export default function TableManagement({ selectedClubId, permissions = {} }) {
   const [activeTab, setActiveTab] = useState("live-tables");
   const queryClient = useQueryClient();
+  const canManageTables = permissions.canManageTables !== false;
+  const canAssignSeat = permissions.canAssignSeat !== false;
 
   // Fetch tables
   const { data: tablesData, isLoading: tablesLoading } = useQuery({
@@ -34,7 +36,7 @@ export default function TableManagement({ selectedClubId }) {
   const tables = tablesData || [];
   const waitlist = waitlistData || [];
 
-  const tabs = [
+  const allTabs = [
     { id: "live-tables", label: "Live Tables" },
     { id: "table-management", label: "Table Management" },
     { id: "table-buy-in", label: "Table Buy-In" },
@@ -42,6 +44,16 @@ export default function TableManagement({ selectedClubId }) {
     { id: "rake-collection", label: "Rake Collection" },
     { id: "history", label: "History" },
   ];
+  const requestedVisibleTabs = Array.isArray(permissions.visibleTabs) ? permissions.visibleTabs : null;
+  const tabs = requestedVisibleTabs
+    ? allTabs.filter((tab) => requestedVisibleTabs.includes(tab.id))
+    : allTabs;
+
+  useEffect(() => {
+    if (!tabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab(tabs[0]?.id || "live-tables");
+    }
+  }, [tabs, activeTab]);
 
   return (
     <div className="text-white space-y-6">
@@ -81,6 +93,7 @@ export default function TableManagement({ selectedClubId }) {
             selectedClubId={selectedClubId}
             tables={tables}
             tablesLoading={tablesLoading}
+            canManageTables={canManageTables}
           />
         )}
 
@@ -90,6 +103,7 @@ export default function TableManagement({ selectedClubId }) {
             selectedClubId={selectedClubId}
             tables={tables}
             tablesLoading={tablesLoading}
+            canManageTables={canManageTables}
           />
         )}
 
@@ -100,6 +114,7 @@ export default function TableManagement({ selectedClubId }) {
             tables={tables}
             waitlist={waitlist}
             waitlistLoading={waitlistLoading}
+            canAssignSeat={canAssignSeat}
           />
         )}
 
@@ -131,7 +146,7 @@ export default function TableManagement({ selectedClubId }) {
 // ============================================================================
 // Live Tables View Component
 // ============================================================================
-function LiveTablesView({ selectedClubId, tables, tablesLoading }) {
+function LiveTablesView({ selectedClubId, tables, tablesLoading, canManageTables = true }) {
   const [selectedTable, setSelectedTable] = useState(null);
   const [showSessionControl, setShowSessionControl] = useState(false);
   const [selectedTableForControl, setSelectedTableForControl] = useState(null);
@@ -276,16 +291,18 @@ function LiveTablesView({ selectedClubId, tables, tablesLoading }) {
                   <span>View Table Hologram</span>
                 </button>
                 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditSession(table);
-                  }}
-                  className="w-full mt-2 bg-gradient-to-r from-purple-600 to-pink-700 hover:from-purple-500 hover:to-pink-600 text-white px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
-                >
-                  <span>⚙️</span>
-                  <span>Edit Session Control</span>
-                </button>
+                {canManageTables && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditSession(table);
+                    }}
+                    className="w-full mt-2 bg-gradient-to-r from-purple-600 to-pink-700 hover:from-purple-500 hover:to-pink-600 text-white px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+                  >
+                    <span>⚙️</span>
+                    <span>Edit Session Control</span>
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -858,9 +875,26 @@ function TableHologramModal({ table, onClose, clubId }) {
     
     if (clubId && table?.id) {
       fetchSeatedPlayers();
-      // Refresh every 5 seconds
-      const interval = setInterval(fetchSeatedPlayers, 5000);
-      return () => clearInterval(interval);
+
+      // Drive updates via WebSocket so there is no polling.
+      const wsBase = (process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL || 'http://localhost:3333/api').replace(/\/api$/, '');
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      const { io: socketIO } = require('socket.io-client');
+      const socket = socketIO(`${wsBase}/realtime`, {
+        auth: { clubId, userId, token },
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+      });
+      socket.on('connect', () => socket.emit('subscribe:club', { clubId, userId }));
+      socket.on('table:status-changed', fetchSeatedPlayers);
+      socket.on('tables:updated', fetchSeatedPlayers);
+      socket.on('waitlist:status-changed', fetchSeatedPlayers);
+      socket.on('waitlist:position-updated', fetchSeatedPlayers);
+      socket.on('transaction:new', fetchSeatedPlayers);
+      socket.on('balance:updated', fetchSeatedPlayers);
+      socket.on('buyin:updated', fetchSeatedPlayers);
+      return () => { socket.disconnect(); };
     }
   }, [clubId, table?.id]);
 
@@ -1379,7 +1413,7 @@ function TableHologramModal({ table, onClose, clubId }) {
 // ============================================================================
 // Table Management View Component (CRUD)
 // ============================================================================
-function TableManagementView({ selectedClubId, tables, tablesLoading }) {
+function TableManagementView({ selectedClubId, tables, tablesLoading, canManageTables = true }) {
   const [subTab, setSubTab] = useState("all");
   const [selectedTableForDealer, setSelectedTableForDealer] = useState("");
   const [selectedDealer, setSelectedDealer] = useState("");
@@ -1698,36 +1732,38 @@ function TableManagementView({ selectedClubId, tables, tablesLoading }) {
           >
             All Tables
           </button>
-          <button
-            onClick={() => {
-              setSubTab("add");
-              setEditingTable(null);
-              setTableForm({
-                tableName: "",
-                tableNumber: "",
-                gameType: "Texas Hold'em",
-                customGameType: "",
-                maxSeats: 8,
-                stakes: "",
-                minPlayTime: "30",
-                callTime: 5,
-                cashOutWindow: 10,
-                sessionTimeout: 120,
-                tableType: "CASH",
-                minBuyIn: "",
-                maxBuyIn: "",
-                notes: "",
-              });
-              setMinPlayTimePreset("30");
-            }}
-            className={`px-5 py-2 rounded-t-lg font-semibold transition-all ${
-              subTab === "add"
-                ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg"
-                : "bg-slate-700 text-gray-400 hover:bg-slate-600"
-            }`}
-          >
-            Add New Table
-          </button>
+          {canManageTables && (
+            <button
+              onClick={() => {
+                setSubTab("add");
+                setEditingTable(null);
+                setTableForm({
+                  tableName: "",
+                  tableNumber: "",
+                  gameType: "Texas Hold'em",
+                  customGameType: "",
+                  maxSeats: 8,
+                  stakes: "",
+                  minPlayTime: "30",
+                  callTime: 5,
+                  cashOutWindow: 10,
+                  sessionTimeout: 120,
+                  tableType: "CASH",
+                  minBuyIn: "",
+                  maxBuyIn: "",
+                  notes: "",
+                });
+                setMinPlayTimePreset("30");
+              }}
+              className={`px-5 py-2 rounded-t-lg font-semibold transition-all ${
+                subTab === "add"
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg"
+                  : "bg-slate-700 text-gray-400 hover:bg-slate-600"
+              }`}
+            >
+              Add New Table
+            </button>
+          )}
         </div>
 
         {/* All Tables List */}
@@ -1746,7 +1782,17 @@ function TableManagementView({ selectedClubId, tables, tablesLoading }) {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {regularTables.map((table) => (
+                {regularTables.map((table) => {
+                  const notes = String(table.notes || '');
+                  const hasSessionMarker =
+                    /Session Started:/i.test(notes) ||
+                    /Paused Elapsed:/i.test(notes);
+                  const sessionRunning =
+                    hasSessionMarker ||
+                    (Number(table.currentSeats || 0) > 0) ||
+                    ['OCCUPIED', 'RESERVED', 'PAUSED'].includes(String(table.status || '').toUpperCase());
+
+                  return (
                   <div
                     key={table.id}
                     className="bg-slate-700 rounded-xl p-5 border border-slate-600"
@@ -1781,40 +1827,48 @@ function TableManagementView({ selectedClubId, tables, tablesLoading }) {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      {table.status === 'AVAILABLE' || table.status === 'CLOSED' ? (
+                    {!sessionRunning && canManageTables ? (
+                      <div className="flex gap-2">
+                        {table.status === 'AVAILABLE' || table.status === 'CLOSED' ? (
+                          <button
+                            onClick={() => startSessionMutation.mutate(table.id)}
+                            disabled={startSessionMutation.isLoading}
+                            className="flex-1 bg-green-600 hover:bg-green-500 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                          >
+                            <span>▶</span>
+                            <span>Start Session</span>
+                          </button>
+                        ) : null}
                         <button
-                          onClick={() => startSessionMutation.mutate(table.id)}
-                          disabled={startSessionMutation.isLoading}
-                          className="flex-1 bg-green-600 hover:bg-green-500 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                          onClick={() => handleEditTable(table)}
+                          className="flex-1 bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                         >
-                          <span>▶</span>
-                          <span>Start Session</span>
+                          Edit
                         </button>
-                      ) : null}
-                      <button
-                        onClick={() => handleEditTable(table)}
-                        className="flex-1 bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTable(table)}
-                        disabled={deleteTableMutation.isLoading}
-                        className="flex-1 bg-red-600 hover:bg-red-500 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                        <button
+                          onClick={() => handleDeleteTable(table)}
+                          disabled={deleteTableMutation.isLoading}
+                          className="flex-1 bg-red-600 hover:bg-red-500 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                        {sessionRunning
+                          ? 'Session running - manage this table from Live Tables / Session Control.'
+                          : 'View-only access for this role.'}
+                      </div>
+                    )}
                   </div>
-                ))}
+                )})}
               </div>
             )}
           </div>
         )}
 
         {/* Create/Edit Table Form */}
-        {subTab === "add" && (
+        {subTab === "add" && canManageTables && (
           <div className="bg-slate-700 rounded-xl p-6">
             <h3 className="text-xl font-bold mb-6">{editingTable ? 'Edit Table' : 'Create New Table'}</h3>
             <form onSubmit={editingTable ? handleUpdateTable : handleCreateTable} className="space-y-4">
@@ -2151,7 +2205,7 @@ function TableManagementView({ selectedClubId, tables, tablesLoading }) {
 // ============================================================================
 // Table Buy-In View Component (Waitlist Management)
 // ============================================================================
-function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
+function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading, canAssignSeat = true }) {
   const queryClient = useQueryClient();
   const [selectedPlayer, setSelectedPlayer] = useState("");
   const [selectedTable, setSelectedTable] = useState("");
@@ -2159,6 +2213,8 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
   const [selectedTableForView, setSelectedTableForView] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showFullCurrentWaitlist, setShowFullCurrentWaitlist] = useState(false);
+  const [showFullReorderWaitlist, setShowFullReorderWaitlist] = useState(false);
   const itemsPerPage = 10;
   // Local poker tables list for this view (non-RUMMY, case-insensitive)
   const regularTables = (tables || []).filter(
@@ -2318,8 +2374,19 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Current Waitlist */}
-          <div className="bg-slate-700 rounded-xl p-5">
-            <h3 className="text-lg font-semibold mb-4">Current Waitlist</h3>
+          <div className="bg-slate-700 rounded-xl p-5 min-h-[420px]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Current Waitlist</h3>
+              {pendingWaitlist.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowFullCurrentWaitlist(true)}
+                  className="text-xs px-3 py-1.5 rounded bg-slate-600 hover:bg-slate-500 transition-colors"
+                >
+                  View Full List ({pendingWaitlist.length})
+                </button>
+              )}
+            </div>
             {waitlistLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
@@ -2515,13 +2582,15 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
                   })()}
                 </select>
               </div>
-              <button 
-                onClick={handleAssignSeat}
-                disabled={!selectedPlayer || !selectedTable || !selectedSeat || assignSeatMutation.isLoading}
-                className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 px-4 py-3 rounded-lg font-semibold transition-colors"
-              >
-                {assignSeatMutation.isLoading ? 'Assigning...' : 'Assign Seat'}
-              </button>
+              {canAssignSeat && (
+                <button 
+                  onClick={handleAssignSeat}
+                  disabled={!selectedPlayer || !selectedTable || !selectedSeat || assignSeatMutation.isLoading}
+                  className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 px-4 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  {assignSeatMutation.isLoading ? 'Assigning...' : 'Assign Seat'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -2545,9 +2614,20 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
           </div>
 
           {/* Reorder Waitlist */}
-          <div className="bg-slate-700 rounded-xl p-5">
-            <h3 className="text-lg font-semibold mb-4">Reorder Waitlist</h3>
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+          <div className="bg-slate-700 rounded-xl p-5 min-h-[420px]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Reorder Waitlist</h3>
+              {pendingWaitlist.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowFullReorderWaitlist(true)}
+                  className="text-xs px-3 py-1.5 rounded bg-slate-600 hover:bg-slate-500 transition-colors"
+                >
+                  Expand
+                </button>
+              )}
+            </div>
+            <div className="space-y-2 max-h-[520px] overflow-y-auto">
               {pendingWaitlist.length === 0 ? (
                 <div className="text-center py-8 text-gray-400 text-sm">
                   No players to reorder
@@ -2579,6 +2659,82 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
           </div>
         </div>
       </div>
+
+      {/* Full Current Waitlist Modal */}
+      {showFullCurrentWaitlist && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-auto border border-slate-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Current Waitlist ({pendingWaitlist.length})</h2>
+              <button
+                type="button"
+                onClick={() => setShowFullCurrentWaitlist(false)}
+                className="px-3 py-1.5 rounded bg-slate-600 hover:bg-slate-500"
+              >
+                Close
+              </button>
+            </div>
+            <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+              {pendingWaitlist.map((entry) => (
+                <div key={entry.id} className="bg-slate-700 p-4 rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-semibold text-white">{entry.playerName}</div>
+                      <div className="text-sm text-gray-400">Position: #{entry.position || 'N/A'}</div>
+                      <div className="text-sm text-gray-400">Table Type: {entry.tableType || 'Cash Game'}</div>
+                      <div className="text-sm text-blue-400">Requested Seat: {entry.requestedSeat || 'N/A'}</div>
+                    </div>
+                    <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 rounded text-xs font-semibold">
+                      {entry.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Reorder Waitlist Modal */}
+      {showFullReorderWaitlist && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-3xl w-full max-h-[90vh] overflow-auto border border-slate-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Reorder Waitlist ({pendingWaitlist.length})</h2>
+              <button
+                type="button"
+                onClick={() => setShowFullReorderWaitlist(false)}
+                className="px-3 py-1.5 rounded bg-slate-600 hover:bg-slate-500"
+              >
+                Close
+              </button>
+            </div>
+            <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
+              {pendingWaitlist.map((entry, index) => (
+                <div key={entry.id} className="bg-slate-700 p-3 rounded flex justify-between items-center">
+                  <span className="text-white">{index + 1}. {entry.playerName}</span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleMoveUp(entry, index)}
+                      disabled={index === 0 || reorderWaitlistMutation.isLoading}
+                      className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-2 py-1 rounded text-xs transition-colors"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      onClick={() => handleMoveDown(entry, index)}
+                      disabled={index === pendingWaitlist.length - 1 || reorderWaitlistMutation.isLoading}
+                      className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-2 py-1 rounded text-xs transition-colors"
+                    >
+                      ↓
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Table View & Seat Assignment Modal */}
       {selectedTableForView && (
@@ -2664,26 +2820,32 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading }) {
                   </select>
                 </div>
                 
-                <button
-                  onClick={() => {
-                    if (!selectedSeat) {
-                      toast.error('Please select a seat number');
-                      return;
-                    }
-                    assignSeatMutation.mutate({
-                      entryId: selectedTableForView.waitlistEntry.id,
-                      tableId: selectedTableForView.table.id,
-                      seatedBy: 'Super Admin',
-                      seatNumber: selectedSeat ? parseInt(selectedSeat, 10) : undefined
-                    });
-                    setSelectedTableForView(null);
-                    setSelectedSeat('');
-                  }}
-                  disabled={!selectedSeat || assignSeatMutation.isLoading}
-                  className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold transition-colors"
-                >
-                  {assignSeatMutation.isLoading ? 'Assigning...' : `Assign to Seat ${selectedSeat || '...'}`}
-                </button>
+                {canAssignSeat ? (
+                  <button
+                    onClick={() => {
+                      if (!selectedSeat) {
+                        toast.error('Please select a seat number');
+                        return;
+                      }
+                      assignSeatMutation.mutate({
+                        entryId: selectedTableForView.waitlistEntry.id,
+                        tableId: selectedTableForView.table.id,
+                        seatedBy: 'Super Admin',
+                        seatNumber: selectedSeat ? parseInt(selectedSeat, 10) : undefined
+                      });
+                      setSelectedTableForView(null);
+                      setSelectedSeat('');
+                    }}
+                    disabled={!selectedSeat || assignSeatMutation.isLoading}
+                    className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    {assignSeatMutation.isLoading ? 'Assigning...' : `Assign to Seat ${selectedSeat || '...'}`}
+                  </button>
+                ) : (
+                  <div className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                    View-only access for this role.
+                  </div>
+                )}
               </div>
             </div>
           </div>

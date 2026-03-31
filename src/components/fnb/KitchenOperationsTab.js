@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fnbAPI, staffAPI } from '../../lib/api';
+import { io as socketIO } from 'socket.io-client';
 
 export default function KitchenOperationsTab({ clubId }) {
   const [stations, setStations] = useState([]);
@@ -13,6 +14,24 @@ export default function KitchenOperationsTab({ clubId }) {
   useEffect(() => {
     loadStations();
     loadChefs();
+  }, [clubId]);
+
+  // Keep station cards/stats live when order statuses change.
+  useEffect(() => {
+    if (!clubId) return;
+    const wsBase = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api').replace(/\/api$/, '');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const userId = localStorage.getItem('userId');
+    const socket = socketIO(`${wsBase}/realtime`, {
+      auth: { clubId, userId, token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+    });
+    socket.on('connect', () => socket.emit('subscribe:club', { clubId, userId }));
+    socket.on('fnb:order-updated', () => {
+      loadStations();
+    });
+    return () => { socket.disconnect(); };
   }, [clubId]);
 
   const loadStations = async () => {
