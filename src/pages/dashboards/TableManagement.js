@@ -2221,6 +2221,23 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading, can
     (t) => String(t.tableType || "").toUpperCase() !== "RUMMY"
   );
 
+  const selectedTableViewId = selectedTableForView?.table?.id || '';
+  const { data: seatedPlayersForSelectedTable = [] } = useQuery({
+    queryKey: ['seatedPlayersForTable', selectedClubId, selectedTableViewId, 'buyin-modal'],
+    queryFn: async () => {
+      if (!selectedClubId || !selectedTableViewId) return [];
+      const response = await tablesAPI.getSeatedPlayersForTable(selectedClubId, selectedTableViewId);
+      return response?.seatedPlayers || [];
+    },
+    enabled: !!selectedClubId && !!selectedTableViewId,
+  });
+
+  const occupiedSeatMapForView = new Map(
+    (Array.isArray(seatedPlayersForSelectedTable) ? seatedPlayersForSelectedTable : [])
+      .map((p) => [Number(p?.seatNumber), p?.playerName || p?.name || 'Occupied'])
+      .filter(([seat]) => Number.isFinite(seat) && seat > 0)
+  );
+
   // Remove waitlist entry mutation
   const removeWaitlistMutation = useMutation({
     mutationFn: (entryId) => waitlistAPI.deleteWaitlistEntry(selectedClubId, entryId),
@@ -2812,9 +2829,16 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading, can
                   >
                     <option value="">-- Choose a seat --</option>
                     {Array.from({ length: selectedTableForView.table.maxSeats }, (_, i) => i + 1).map(seatNum => (
-                      <option key={seatNum} value={seatNum}>
+                      <option
+                        key={seatNum}
+                        value={seatNum}
+                        disabled={occupiedSeatMapForView.has(seatNum)}
+                      >
                         Seat {seatNum}
                         {selectedTableForView.waitlistEntry.requestedSeat === seatNum ? ' (Requested)' : ''}
+                        {occupiedSeatMapForView.has(seatNum)
+                          ? ` - Occupied (${occupiedSeatMapForView.get(seatNum)})`
+                          : ''}
                       </option>
                     ))}
                   </select>
@@ -2825,6 +2849,11 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading, can
                     onClick={() => {
                       if (!selectedSeat) {
                         toast.error('Please select a seat number');
+                        return;
+                      }
+                      const seatNum = Number(selectedSeat);
+                      if (occupiedSeatMapForView.has(seatNum)) {
+                        toast.error(`Seat ${seatNum} is occupied by ${occupiedSeatMapForView.get(seatNum)}`);
                         return;
                       }
                       assignSeatMutation.mutate({

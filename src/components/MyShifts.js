@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiRequest } from '../lib/api';
+import { formatHhmm12h, formatAttendanceOrHhmm12h } from '../utils/dateUtils';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -45,18 +46,15 @@ export default function MyShifts({ selectedClubId, compact = false }) {
     }
   };
 
-  const formatTime = (dateTimeString) => {
-    try {
-      const date = new Date(dateTimeString);
-      return date.toLocaleTimeString('en-IN', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'Asia/Kolkata'
-      });
-    } catch (error) {
-      return dateTimeString;
+  const shiftTimeRangeText = (shift) => {
+    if (shift.isOffDay) return '';
+    if (shift.shiftStartDisplay && shift.shiftEndDisplay) {
+      const start = formatHhmm12h(String(shift.shiftStartDisplay).slice(0, 5));
+      const end = formatHhmm12h(String(shift.shiftEndDisplay).slice(0, 5));
+      const nd = shift.shiftCrossesMidnight ? ' (next day)' : '';
+      return `${start} → ${end}${nd}`;
     }
+    return `${formatAttendanceOrHhmm12h(shift.shiftStartTime)} → ${formatAttendanceOrHhmm12h(shift.shiftEndTime)}`;
   };
 
   const formatDate = (dateString) => {
@@ -185,15 +183,7 @@ export default function MyShifts({ selectedClubId, compact = false }) {
                   </div>
 
                   {!shift.isOffDay ? (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-green-400 font-mono">
-                        {formatTime(shift.shiftStartTime)}
-                      </span>
-                      <span className="text-gray-500">→</span>
-                      <span className="text-red-400 font-mono">
-                        {formatTime(shift.shiftEndTime)}
-                      </span>
-                    </div>
+                    <div className="text-sm text-gray-200">{shiftTimeRangeText(shift)}</div>
                   ) : (
                     <p className="text-sm text-gray-400">
                       {shift.notes || 'Scheduled day off'}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest, staffAPI } from '../lib/api';
+import { toDateIST, todayISTString } from '../utils/dateUtils';
 
 const WEEKDAYS = [
   { value: 0, label: 'Sunday', short: 'Sun' },
@@ -12,6 +13,13 @@ const WEEKDAYS = [
 ];
 
 export default function RosterManagement({ selectedClubId }) {
+  const today = todayISTString();
+  const addDaysToDateString = (dateStr, days) => {
+    const d = new Date(`${dateStr}T00:00:00`);
+    d.setDate(d.getDate() + days);
+    return toDateIST(d);
+  };
+
   const [activeTab, setActiveTab] = useState('templates'); // templates, generate, overview
   const [templates, setTemplates] = useState([]);
   const [staff, setStaff] = useState([]);
@@ -21,15 +29,15 @@ export default function RosterManagement({ selectedClubId }) {
 
   // Generate roster state
   const [generateConfig, setGenerateConfig] = useState({
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: today,
     periodType: 'weekly',
     overwriteExisting: false,
   });
 
   // Overview state
   const [overviewConfig, setOverviewConfig] = useState({
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    startDate: today,
+    endDate: addDaysToDateString(today, 7),
   });
   const [rosterOverview, setRosterOverview] = useState(null);
   const [staffSearch, setStaffSearch] = useState('');
@@ -153,13 +161,13 @@ export default function RosterManagement({ selectedClubId }) {
     if (generateConfig.periodType === 'monthly') {
       const startDate = new Date(generateConfig.startDate);
       const lastDay = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0).getDate();
-      const endDate = new Date(startDate.getFullYear(), startDate.getMonth(), lastDay).toISOString().split('T')[0];
+      const endDate = toDateIST(new Date(startDate.getFullYear(), startDate.getMonth(), lastDay));
       endDateInfo = `End: ${endDate} (${lastDay} days in month)`;
     } else {
       const startDate = new Date(generateConfig.startDate);
       const endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + 6);
-      endDateInfo = `End: ${endDate.toISOString().split('T')[0]} (7 days)`;
+      endDateInfo = `End: ${toDateIST(endDate)} (7 days)`;
     }
 
     if (!window.confirm(
@@ -577,8 +585,8 @@ export default function RosterManagement({ selectedClubId }) {
                               key={shift.id}
                               className={`p-2 rounded text-center text-xs ${bgClass} border`}
                             >
-                              <div className={`font-semibold mb-1 ${textClass}`}>
-                                {new Date(shift.date).getDate()}
+                                  <div className={`font-semibold mb-1 ${textClass}`}>
+                                {Number(String(toDateIST(shift.date)).split('-')[2] || 0)}
                               </div>
                               {onLeave ? (
                                 <div className="text-yellow-400 font-semibold text-[10px]">ON LEAVE</div>

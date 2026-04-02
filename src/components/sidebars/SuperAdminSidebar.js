@@ -10,6 +10,7 @@ const DEFAULT_MENU_ITEMS = [
   "Notifications",
   "Player Management",
   "Staff Management",
+  "Attendance Management",
   "Payroll Management",
   "Affiliates",
   "Tables & Waitlist",

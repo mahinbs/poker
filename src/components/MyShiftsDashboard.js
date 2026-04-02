@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../lib/api';
+import { formatHhmm12h, formatAttendanceOrHhmm12h } from '../utils/dateUtils';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -69,18 +70,31 @@ export default function MyShiftsDashboard({ selectedClubId }) {
     }
   };
 
-  const formatTime = (dateTimeString) => {
-    try {
-      const date = new Date(dateTimeString);
-      return date.toLocaleTimeString('en-IN', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'Asia/Kolkata'
-      });
-    } catch (error) {
-      return dateTimeString;
+  const shiftTimeRangeLabel = (shift) => {
+    if (shift.isOffDay) return null;
+    if (shift.shiftStartDisplay && shift.shiftEndDisplay) {
+      const start = formatHhmm12h(String(shift.shiftStartDisplay).slice(0, 5));
+      const end = formatHhmm12h(String(shift.shiftEndDisplay).slice(0, 5));
+      const nd = shift.shiftCrossesMidnight ? (
+        <span className="ml-1 inline-flex items-center rounded-full border border-violet-400/35 bg-violet-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-200">
+          Next day
+        </span>
+      ) : null;
+      return (
+        <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-1">
+          <span>
+            {start} – {end}
+          </span>
+          {nd}
+        </span>
+      );
     }
+    return (
+      <span>
+        {formatAttendanceOrHhmm12h(shift.shiftStartTime)} –{' '}
+        {formatAttendanceOrHhmm12h(shift.shiftEndTime)}
+      </span>
+    );
   };
 
   const formatDate = (dateString) => {
@@ -155,14 +169,8 @@ export default function MyShiftsDashboard({ selectedClubId }) {
               🌴 Off Day
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-white font-bold text-lg">
-                {formatTime(todayShift.shiftStartTime)}
-              </span>
-              <span className="text-white/60">→</span>
-              <span className="text-white font-bold text-lg">
-                {formatTime(todayShift.shiftEndTime)}
-              </span>
+            <div className="flex items-center gap-2 flex-wrap text-white font-bold text-lg">
+              {shiftTimeRangeLabel(todayShift)}
             </div>
           )}
         </div>
@@ -193,9 +201,7 @@ export default function MyShiftsDashboard({ selectedClubId }) {
                   )}
                 </div>
                 {!shift.isOffDay && (
-                  <div className="text-gray-300 text-xs">
-                    {formatTime(shift.shiftStartTime)} - {formatTime(shift.shiftEndTime)}
-                  </div>
+                  <div className="text-gray-300 text-xs">{shiftTimeRangeLabel(shift)}</div>
                 )}
               </div>
             ))}

@@ -12,6 +12,7 @@ import VIPStore from "./VIPStore";
 import PushNotifications from "./PushNotifications";
 import TournamentManagement from "../../components/TournamentManagement";
 import StaffManagement from "../../components/StaffManagement";
+import AttendanceManagement from "../../components/AttendanceManagement";
 import PayrollManagement from "../../components/PayrollManagement";
 import BonusManagement from "../../components/BonusManagement";
 import AffiliateManagement from "../../components/AffiliateManagement";
@@ -555,6 +556,10 @@ export default function SuperAdminPortal() {
             <StaffManagement selectedClubId={selectedClubId} />
           )}
 
+          {activeItem === "Attendance Management" && selectedClubId && (
+            <AttendanceManagement selectedClubId={selectedClubId} />
+          )}
+
           {/* Payroll Management */}
           {activeItem === "Payroll Management" && (
             <PayrollManagement selectedClubId={selectedClubId} />
@@ -613,7 +618,7 @@ export default function SuperAdminPortal() {
             <PlayerFeedbackSection selectedClubId={selectedClubId} />
           )}
 
-          {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "Transactions", "Player Feedback", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
+          {!["Dashboard", "Player Management", "Tables & Waitlist", "Club Buy-In", "Credit Management", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Attendance Management", "Payroll Management", "Bonus Management", "Affiliates", "Transactions", "Player Feedback", "FNB", "Chat", "Reports & Analytics", "Audit Logs", "Rummy", "System Control", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
             </div>

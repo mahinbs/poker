@@ -151,3 +151,43 @@ export const toDateIST = (date) => {
   const get = (type) => parts.find(p => p.type === type)?.value || '';
   return `${get('year')}-${get('month')}-${get('day')}`;
 };
+
+/**
+ * "18:00" or "18:00:00" → "6:00 pm" (same style as roster template shift labels)
+ */
+export const formatHhmm12h = (hhmm) => {
+  if (!hhmm || typeof hhmm !== 'string') return '';
+  const [H, M] = hhmm.split(':').map((x) => parseInt(x, 10));
+  if (Number.isNaN(H)) return hhmm;
+  const m = Number.isNaN(M) ? 0 : M;
+  const h12 = H % 12 === 0 ? 12 : H % 12;
+  const ampm = H < 12 ? 'am' : 'pm';
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+};
+
+/**
+ * Stored ISO instant → wall clock in club TZ as roster-style 12h.
+ */
+export const formatIsoToRosterStyle12h = (iso) => {
+  if (!iso) return '';
+  const t = new Date(iso).toLocaleTimeString('en-GB', {
+    timeZone: IST_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const hm = t.length > 5 ? t.slice(0, 5) : t;
+  return formatHhmm12h(hm);
+};
+
+/**
+ * Backend "HH:mm" display string or ISO datetime → same 12h wording as shift times.
+ */
+export const formatAttendanceOrHhmm12h = (value) => {
+  if (value == null || value === '') return '-';
+  const s = String(value).trim();
+  if (/^\d{1,2}:\d{2}/.test(s)) {
+    return formatHhmm12h(s.slice(0, 5));
+  }
+  return formatIsoToRosterStyle12h(s);
+};

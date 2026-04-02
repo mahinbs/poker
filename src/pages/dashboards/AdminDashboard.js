@@ -10,6 +10,7 @@ import VIPStore from "./VIPStore";
 import PushNotifications from "./PushNotifications";
 import TournamentManagement from "../../components/TournamentManagement";
 import StaffManagement from "../../components/StaffManagement";
+import AttendanceManagement from "../../components/AttendanceManagement";
 import PayrollManagement from "../../components/PayrollManagement";
 import BonusManagement from "../../components/BonusManagement";
 import AffiliateManagement from "../../components/AffiliateManagement";
@@ -294,6 +295,7 @@ export default function AdminDashboard() {
     "Notifications",
     "Player Management",
     "Staff Management",
+    "Attendance Management",
     "Payroll Management",
     "Affiliates",
     "Tables & Waitlist",
@@ -497,6 +499,10 @@ export default function AdminDashboard() {
             <StaffManagement selectedClubId={clubId} />
           )}
 
+          {activeItem === "Attendance Management" && clubId && (
+            <AttendanceManagement selectedClubId={clubId} />
+          )}
+
           {/* Payroll Management */}
           {activeItem === "Payroll Management" && (
             <PayrollManagement selectedClubId={clubId} />
@@ -543,7 +549,7 @@ export default function AdminDashboard() {
           )}
 
           {/* Fallback for unknown menu items */}
-          {!["Dashboard", "Player Management", "Tables & Waitlist", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Payroll Management", "Bonus Management", "Affiliates", "FNB", "Chat", "Reports & Analytics", "System Control", "Rummy", "Notifications"].includes(activeItem) && (
+          {!["Dashboard", "Player Management", "Tables & Waitlist", "VIP Store", "Push Notifications", "Tournaments", "Staff Management", "Attendance Management", "Payroll Management", "Bonus Management", "Affiliates", "FNB", "Chat", "Reports & Analytics", "System Control", "Rummy", "Notifications"].includes(activeItem) && (
             <div className="text-white">
               <h1 className="text-3xl font-bold mb-6">{activeItem}</h1>
             </div>

@@ -738,12 +738,6 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
                             </span>
                           </div>
                           <div>
-                            <span className="text-gray-400">Current Table Balance:</span>
-                            <span className="text-white ml-2 font-medium">
-                              ₹{Number(request.currentTableBalance || 0).toLocaleString('en-IN')}
-                            </span>
-                          </div>
-                          <div>
                             <span className="text-gray-400">Requested At:</span>
                             <span className="text-white ml-2">
                               {request.requestedAt ? new Date(request.requestedAt).toLocaleString('en-IN', {

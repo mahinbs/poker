@@ -378,10 +378,30 @@ export const clubsAPI = {
   /**
    * Bulk create attendance records
    */
-  bulkCreateAttendance: async (clubId, entries) => {
+  bulkCreateAttendance: async (clubId, entries, allowOffDayExtraAttendance = false) => {
     return await apiRequest(`/clubs/${clubId}/attendance/bulk`, {
       method: 'POST',
-      body: JSON.stringify({ entries }),
+      body: JSON.stringify({ entries, allowOffDayExtraAttendance }),
+    });
+  },
+
+  bulkDeleteAttendanceRecords: async (clubId, recordIds) => {
+    return await apiRequest(`/clubs/${clubId}/attendance/bulk-delete`, {
+      method: 'POST',
+      body: JSON.stringify({ recordIds }),
+    });
+  },
+
+  deleteAttendanceRecord: async (clubId, recordId) => {
+    return await apiRequest(`/clubs/${clubId}/attendance/${recordId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  updateAttendanceRecord: async (clubId, recordId, data) => {
+    return await apiRequest(`/clubs/${clubId}/attendance/${recordId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     });
   },
 };
