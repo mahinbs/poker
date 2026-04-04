@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiRequest, staffAPI } from '../lib/api';
 import { toDateIST, todayISTString } from '../utils/dateUtils';
 
@@ -13,6 +14,7 @@ const WEEKDAYS = [
 ];
 
 export default function RosterManagement({ selectedClubId }) {
+  const queryClient = useQueryClient();
   const today = todayISTString();
   const addDaysToDateString = (dateStr, days) => {
     const d = new Date(`${dateStr}T00:00:00`);
@@ -132,6 +134,7 @@ export default function RosterManagement({ selectedClubId }) {
       setShowTemplateModal(false);
       setEditingTemplate(null);
       loadTemplates();
+      queryClient.invalidateQueries({ queryKey: ['daily-roster'] });
     } catch (error) {
       console.error('Error saving template:', error);
       alert(error.message || 'Failed to save template');
@@ -149,6 +152,7 @@ export default function RosterManagement({ selectedClubId }) {
       });
       alert('Template deleted successfully');
       loadTemplates();
+      queryClient.invalidateQueries({ queryKey: ['daily-roster'] });
     } catch (error) {
       console.error('Error deleting template:', error);
       alert('Failed to delete template');
@@ -184,6 +188,7 @@ export default function RosterManagement({ selectedClubId }) {
       });
       
       if (response.success) {
+        queryClient.invalidateQueries({ queryKey: ['daily-roster'] });
         alert(
           `Roster generated successfully!\n\n` +
           `Period: ${generateConfig.periodType}\n` +

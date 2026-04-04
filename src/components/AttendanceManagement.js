@@ -99,6 +99,9 @@ export default function AttendanceManagement({ selectedClubId }) {
     queryKey: ['daily-roster', selectedClubId, dailyDate],
     queryFn: () => clubsAPI.getDailyRoster(selectedClubId, dailyDate),
     enabled: !!selectedClubId && activeTab === 'daily',
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
     onSuccess: (data) => {
       const newChecked = {};
       data.forEach((s) => {
@@ -243,25 +246,21 @@ export default function AttendanceManagement({ selectedClubId }) {
     createAttendanceMutation.mutate(attendanceForm);
   };
 
-  const isoToKolkataHHmm = useCallback((iso) => {
+  const isoToWallHHmm = useCallback((iso) => {
     if (!iso) return "";
-    const t = new Date(iso).toLocaleTimeString("en-GB", {
-      timeZone: "Asia/Kolkata",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-    return t.length > 5 ? t.slice(0, 5) : t;
+    const d = new Date(iso);
+    const h = String(d.getUTCHours()).padStart(2, "0");
+    const m = String(d.getUTCMinutes()).padStart(2, "0");
+    return `${h}:${m}`;
   }, []);
 
-  const ymdInKolkata = useCallback((iso) => {
+  const ymdFromIso = useCallback((iso) => {
     if (!iso) return "";
-    return new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Kolkata",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date(iso));
+    const d = new Date(iso);
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
   }, []);
 
   useEffect(() => {
@@ -335,15 +334,15 @@ export default function AttendanceManagement({ selectedClubId }) {
   };
 
   const openEditRecord = (record) => {
-    const loginDate = ymdInKolkata(record.loginTime);
-    const logoutDate = record.logoutTime ? ymdInKolkata(record.logoutTime) : loginDate;
+    const loginDate = ymdFromIso(record.loginTime);
+    const logoutDate = record.logoutTime ? ymdFromIso(record.logoutTime) : loginDate;
     setEditForm({
       id: record.id,
       staffName: record.staffName || "",
       loginDate: loginDate || todayISTString(),
-      loginTime: isoToKolkataHHmm(record.loginTime),
+      loginTime: record.loginDisplay || isoToWallHHmm(record.loginTime),
       logoutDate: logoutDate || loginDate || todayISTString(),
-      logoutTime: record.logoutTime ? isoToKolkataHHmm(record.logoutTime) : "",
+      logoutTime: record.logoutDisplay || (record.logoutTime ? isoToWallHHmm(record.logoutTime) : ""),
       overtimeHours: record.overtimeHours ?? 0,
       editReason: "",
     });
@@ -570,7 +569,7 @@ export default function AttendanceManagement({ selectedClubId }) {
                         statusBadge = (
                           <div className="flex flex-col gap-1 items-start">
                             <span className="px-2 py-1 rounded text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/30">
-                              Already Logged
+                              Logged
                             </span>
                             {member.attendanceWorkedRosterOffDay ? (
                               <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-950/50 text-emerald-300 border border-emerald-500/35">
@@ -695,9 +694,7 @@ export default function AttendanceManagement({ selectedClubId }) {
                               />
                             )}
                             {member.alreadyLogged && (
-                              <span className="text-green-400 text-sm">
-                                {formatAttendanceOrHhmm12h(member.loginDisplay || member.loginTime)}
-                              </span>
+                              <span className="text-gray-600 text-sm">—</span>
                             )}
                           </td>
                           <td className="px-4 py-3">
@@ -711,9 +708,7 @@ export default function AttendanceManagement({ selectedClubId }) {
                               />
                             )}
                             {member.alreadyLogged && (
-                              <span className="text-red-400 text-sm">
-                                {formatAttendanceOrHhmm12h(member.logoutDisplay || member.logoutTime)}
-                              </span>
+                              <span className="text-gray-600 text-sm">—</span>
                             )}
                           </td>
                           <td className="px-4 py-3">
@@ -763,7 +758,7 @@ export default function AttendanceManagement({ selectedClubId }) {
               <li>
                 <strong className="text-white">OT (hrs)</strong> is overtime beyond the roster (default 0). Shifts ending after midnight show a <strong className="text-violet-300">Next day</strong> tag.
               </li>
-              <li>Staff already logged or on leave are skipped.</li>
+              <li>Staff already marked or on leave are skipped for bulk marking; logged rows show <strong className="text-white">Logged</strong> (custom time columns stay empty unless you use them while marking).</li>
               <li>Click <strong className="text-white">"Mark All Present"</strong> to select all eligible staff at once.</li>
             </ul>
           </div>
@@ -939,7 +934,9 @@ export default function AttendanceManagement({ selectedClubId }) {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Logout Time</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Total Hours</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">OT (hrs)</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Day type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase min-w-[9rem] whitespace-nowrap">
+                          Day type
+                        </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Last edit note</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
@@ -965,10 +962,10 @@ export default function AttendanceManagement({ selectedClubId }) {
                           <td className="px-6 py-4 text-gray-400">{record.staffRole || '-'}</td>
                           <td className="px-6 py-4 text-gray-400">{formatDate(record.date)}</td>
                           <td className="px-6 py-4 text-green-400 font-medium">
-                            {formatAttendanceOrHhmm12h(record.loginTime)}
+                            {record.loginDisplay ? formatHhmm12h(record.loginDisplay) : formatAttendanceOrHhmm12h(record.loginTime)}
                           </td>
                           <td className="px-6 py-4 text-red-400 font-medium">
-                            {record.logoutTime ? formatAttendanceOrHhmm12h(record.logoutTime) : '-'}
+                            {record.logoutDisplay ? formatHhmm12h(record.logoutDisplay) : (record.logoutTime ? formatAttendanceOrHhmm12h(record.logoutTime) : '-')}
                           </td>
                           <td className="px-6 py-4 text-white font-medium">
                             {record.totalHours ? `${record.totalHours} hrs` : calculateHours(record.loginTime, record.logoutTime) !== '-' ? `${calculateHours(record.loginTime, record.logoutTime)} hrs` : '-'}
@@ -976,17 +973,17 @@ export default function AttendanceManagement({ selectedClubId }) {
                           <td className="px-6 py-4 text-amber-200/90 font-medium">
                             {record.overtimeHours != null ? Number(record.overtimeHours).toFixed(2) : '0.00'}
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-4 align-top min-w-[9rem]">
                             {(() => {
                               const worked =
                                 record.workedRosterOffDay === true ||
                                 record.worked_roster_off_day === true;
                               return worked ? (
-                                <span className="px-2 py-1 rounded-md text-xs font-semibold bg-emerald-950/50 text-emerald-300 border border-emerald-500/40">
+                                <span className="inline-flex whitespace-nowrap px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-950/50 text-emerald-300 border border-emerald-500/40">
                                   Overtime day
                                 </span>
                               ) : (
-                                <span className="px-2 py-1 rounded-md text-xs font-semibold bg-slate-700/80 text-slate-200 border border-slate-500/40">
+                                <span className="inline-flex whitespace-nowrap px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-700/80 text-slate-200 border border-slate-500/40">
                                   Regular day
                                 </span>
                               );

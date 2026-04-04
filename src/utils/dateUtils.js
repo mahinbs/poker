@@ -166,18 +166,14 @@ export const formatHhmm12h = (hhmm) => {
 };
 
 /**
- * Stored ISO instant → wall clock in club TZ as roster-style 12h.
+ * Stored ISO → wall clock.  pg-types appends Z so UTC face = intended wall-clock time.
  */
 export const formatIsoToRosterStyle12h = (iso) => {
   if (!iso) return '';
-  const t = new Date(iso).toLocaleTimeString('en-GB', {
-    timeZone: IST_TZ,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-  const hm = t.length > 5 ? t.slice(0, 5) : t;
-  return formatHhmm12h(hm);
+  const d = new Date(iso);
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const mm = String(d.getUTCMinutes()).padStart(2, '0');
+  return formatHhmm12h(`${hh}:${mm}`);
 };
 
 /**
