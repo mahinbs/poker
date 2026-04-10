@@ -20,14 +20,21 @@ const STORAGE_KEYS = {
 
 /**
  * Get authentication headers
+ * @param {string|null|undefined} clubIdOverride - When calling /clubs/:id/..., pass that id so x-club-id matches the URL (Super Admin has no club in localStorage until a club is selected).
  */
-export const getAuthHeaders = () => {
+export const getAuthHeaders = (clubIdOverride) => {
   const headers = {
     'Content-Type': 'application/json',
   };
 
   const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
-  const clubId = localStorage.getItem(STORAGE_KEYS.CLUB_ID);
+  const storedClubId = localStorage.getItem(STORAGE_KEYS.CLUB_ID);
+  const clubId =
+    clubIdOverride !== undefined &&
+    clubIdOverride !== null &&
+    String(clubIdOverride).trim() !== ''
+      ? String(clubIdOverride).trim()
+      : storedClubId;
   const tenantId = localStorage.getItem(STORAGE_KEYS.TENANT_ID);
   const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
 
@@ -43,12 +50,13 @@ export const getAuthHeaders = () => {
  * Make API request
  */
 export const apiRequest = async (endpoint, options = {}) => {
+  const { clubIdOverride, ...fetchOptions } = options;
   const url = `${API_BASE_URL}${endpoint}`;
   const config = {
-    ...options,
+    ...fetchOptions,
     headers: {
-      ...getAuthHeaders(),
-      ...options.headers,
+      ...getAuthHeaders(clubIdOverride),
+      ...fetchOptions.headers,
     },
   };
 
@@ -2213,12 +2221,88 @@ export const chatAPI = {
 // LEAVE MANAGEMENT API
 // =============================================================================
 
+const LEAVE_LIST_KEYS = [
+  'applications',
+  'leaveApplications',
+  'leaves',
+  'items',
+  'results',
+  'rows',
+  'list',
+  'records',
+  'docs',
+  'content',
+  'body',
+];
+
+/** Unwrap nested { data: ... } envelopes (common with success/payload wrappers). */
+function unwrapLeavePayload(payload, maxDepth = 6) {
+  let p = payload;
+  let depth = 0;
+  while (
+    p &&
+    typeof p === 'object' &&
+    !Array.isArray(p) &&
+    Object.prototype.hasOwnProperty.call(p, 'data') &&
+    p.data != null &&
+    depth < maxDepth
+  ) {
+    p = p.data;
+    depth++;
+  }
+  return p;
+}
+
+function firstLeaveApplicationsArray(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+  for (let i = 0; i < LEAVE_LIST_KEYS.length; i++) {
+    const k = LEAVE_LIST_KEYS[i];
+    if (Array.isArray(obj[k])) return obj[k];
+  }
+  return null;
+}
+
+/** Backend may return a bare array, nested data, or various list property names. */
+function normalizePendingLeaveApplicationsResponse(payload) {
+  if (payload == null) return [];
+  let p = unwrapLeavePayload(payload);
+  if (Array.isArray(p)) return p;
+  if (typeof p !== 'object' || p === null) return [];
+  const arr = firstLeaveApplicationsArray(p);
+  return Array.isArray(arr) ? arr : [];
+}
+
+/** Backend may return paginated object with varying field names or nested data. */
+function normalizeLeaveApplicationsForApprovalResponse(payload, fallbackLimit = 10) {
+  const empty = { applications: [], total: 0, totalPages: 0, page: 1 };
+  if (payload == null) return empty;
+  let p = unwrapLeavePayload(payload);
+  if (Array.isArray(p)) {
+    return {
+      applications: p,
+      total: p.length,
+      totalPages: 1,
+      page: 1,
+    };
+  }
+  if (typeof p !== 'object' || p === null) return empty;
+  const applications = firstLeaveApplicationsArray(p) || [];
+  const total =
+    Number(p.total ?? p.totalCount ?? p.totalRecords ?? p.count ?? applications.length) ||
+    applications.length;
+  const limit = Number(p.limit ?? p.pageSize ?? fallbackLimit) || fallbackLimit;
+  const page = Number(p.page ?? p.currentPage ?? p.pageNumber ?? 1) || 1;
+  const totalPages =
+    Number(p.totalPages ?? p.pages ?? Math.max(1, Math.ceil(total / limit))) || 1;
+  return { applications, total, totalPages, page };
+}
+
 export const leaveAPI = {
   /**
    * Get all leave policies
    */
   getLeavePolicies: async (clubId) => {
-    return await apiRequest(`/clubs/${clubId}/leave-policies`);
+    return await apiRequest(`/clubs/${clubId}/leave-policies`, { clubIdOverride: clubId });
   },
 
   /**
@@ -2228,6 +2312,7 @@ export const leaveAPI = {
     return await apiRequest(`/clubs/${clubId}/leave-policies`, {
       method: 'POST',
       body: JSON.stringify(policyData),
+      clubIdOverride: clubId,
     });
   },
 
@@ -2238,6 +2323,7 @@ export const leaveAPI = {
     return await apiRequest(`/clubs/${clubId}/leave-policies/${encodeURIComponent(role)}`, {
       method: 'PUT',
       body: JSON.stringify(policyData),
+      clubIdOverride: clubId,
     });
   },
 
@@ -2247,6 +2333,7 @@ export const leaveAPI = {
   deleteLeavePolicy: async (clubId, role) => {
     return await apiRequest(`/clubs/${clubId}/leave-policies/${encodeURIComponent(role)}`, {
       method: 'DELETE',
+      clubIdOverride: clubId,
     });
   },
 
@@ -2262,21 +2349,24 @@ export const leaveAPI = {
     if (filters.limit) queryParams.append('limit', filters.limit.toString());
     
     const query = queryParams.toString();
-    return await apiRequest(`/clubs/${clubId}/leave-applications/my-leaves${query ? '?' + query : ''}`);
+    return await apiRequest(`/clubs/${clubId}/leave-applications/my-leaves${query ? '?' + query : ''}`, {
+      clubIdOverride: clubId,
+    });
   },
 
   /**
    * Get leave balance
    */
   getLeaveBalance: async (clubId) => {
-    return await apiRequest(`/clubs/${clubId}/leave-applications/balance`);
+    return await apiRequest(`/clubs/${clubId}/leave-applications/balance`, { clubIdOverride: clubId });
   },
 
   /**
    * Get pending leave applications (for approvers)
    */
   getPendingLeaveApplications: async (clubId) => {
-    return await apiRequest(`/clubs/${clubId}/leave-applications/pending`);
+    const raw = await apiRequest(`/clubs/${clubId}/leave-applications/pending`, { clubIdOverride: clubId });
+    return normalizePendingLeaveApplicationsResponse(raw);
   },
 
   /**
@@ -2293,7 +2383,10 @@ export const leaveAPI = {
     if (filters.limit) queryParams.append('limit', filters.limit.toString());
     
     const query = queryParams.toString();
-    return await apiRequest(`/clubs/${clubId}/leave-applications/for-approval${query ? '?' + query : ''}`);
+    const raw = await apiRequest(`/clubs/${clubId}/leave-applications/for-approval${query ? '?' + query : ''}`, {
+      clubIdOverride: clubId,
+    });
+    return normalizeLeaveApplicationsForApprovalResponse(raw, filters.limit || 10);
   },
 
   /**
@@ -2303,6 +2396,7 @@ export const leaveAPI = {
     return await apiRequest(`/clubs/${clubId}/leave-applications`, {
       method: 'POST',
       body: JSON.stringify(applicationData),
+      clubIdOverride: clubId,
     });
   },
 
@@ -2312,6 +2406,7 @@ export const leaveAPI = {
   approveLeaveApplication: async (clubId, applicationId) => {
     return await apiRequest(`/clubs/${clubId}/leave-applications/${applicationId}/approve`, {
       method: 'POST',
+      clubIdOverride: clubId,
     });
   },
 
@@ -2322,6 +2417,7 @@ export const leaveAPI = {
     return await apiRequest(`/clubs/${clubId}/leave-applications/${applicationId}/reject`, {
       method: 'POST',
       body: JSON.stringify({ rejectionReason }),
+      clubIdOverride: clubId,
     });
   },
 
@@ -2331,6 +2427,7 @@ export const leaveAPI = {
   cancelLeaveApplication: async (clubId, applicationId) => {
     return await apiRequest(`/clubs/${clubId}/leave-applications/${applicationId}/cancel`, {
       method: 'POST',
+      clubIdOverride: clubId,
     });
   },
 };

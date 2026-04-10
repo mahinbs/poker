@@ -40,12 +40,19 @@ export function useAdminRealtime(clubId) {
       queryClient.invalidateQueries({ queryKey: ['creditRequests', clubId] });
     });
 
-    // Leave applications
-    socket.on('leave:updated', () => {
+    // Leave applications (pending list, approve tab with filters, employee lists)
+    const invalidateLeaveQueries = () => {
       queryClient.invalidateQueries({ queryKey: ['pendingLeaveApplications', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['leaveApplicationsForApproval', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['leaveApplicationsForApprovalBulk', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['myLeaveApplications', clubId] });
       queryClient.invalidateQueries({ queryKey: ['myApprovedLeaves', clubId] });
       queryClient.invalidateQueries({ queryKey: ['leavePolicies', clubId] });
-    });
+      queryClient.invalidateQueries({ queryKey: ['leaveBalance', clubId] });
+    };
+    socket.on('leave:updated', invalidateLeaveQueries);
+    socket.on('leave:new-request', invalidateLeaveQueries);
+    socket.on('leave:application-created', invalidateLeaveQueries);
 
     // Chat messages & sessions
     socket.on('chat:new-message', () => {
@@ -61,6 +68,8 @@ export function useAdminRealtime(clubId) {
       queryClient.invalidateQueries({ queryKey: ['notificationInbox'] });
       queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubId] });
       queryClient.invalidateQueries({ queryKey: ['fieldUpdateRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['pendingLeaveApplications', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['leaveApplicationsForApproval', clubId] });
     });
     socket.on('notification:read-status-changed', () => {
       queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount', clubId, 'staff'] });

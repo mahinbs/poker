@@ -31,3 +31,15 @@ export function getPlayerManagementPollIntervalMs() {
   return 15000;
 }
 
+/**
+ * Poll interval for pending leave approvals (sidebar + Leave Management approve tab).
+ * REACT_APP_LEAVE_MANAGEMENT_POLL_MS=0 disables. Default: 15000.
+ */
+export function getLeaveManagementPollIntervalMs() {
+  const raw = process.env.REACT_APP_LEAVE_MANAGEMENT_POLL_MS;
+  if (raw === '0' || raw === 'false') return false;
+  const n = Number(raw);
+  if (Number.isFinite(n) && n > 0) return n;
+  return 15000;
+}
+

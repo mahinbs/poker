@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { clubsAPI, superAdminAPI, chatAPI, leaveAPI, playersAPI } from "../../lib/api";
-import { getPlayerManagementPollIntervalMs } from "../../lib/utils";
+import { getPlayerManagementPollIntervalMs, getLeaveManagementPollIntervalMs } from "../../lib/utils";
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 import toast from "react-hot-toast";
 
@@ -44,7 +44,6 @@ export default function AdminSidebar({
   // Track previous notification count for sound alert
   const prevNotificationCount = useRef(null);
   // Track previous leave count for sound alert
-  const prevLeaveCount = useRef(null);
   // Track previous chat counts for sound alerts
   const prevStaffChatCount = useRef(null);
   const prevPlayerChatCount = useRef(null);
@@ -84,6 +83,7 @@ export default function AdminSidebar({
     queryKey: ['pendingLeaveApplications', clubId],
     queryFn: () => leaveAPI.getPendingLeaveApplications(clubId),
     enabled: !!clubId,
+    refetchInterval: getLeaveManagementPollIntervalMs(),
   });
 
   const pendingLeaveCount = pendingLeaves?.length || 0;
@@ -132,19 +132,6 @@ export default function AdminSidebar({
     // Update previous count
     prevNotificationCount.current = currentCount;
   }, [unreadData?.unreadCount]);
-
-  // Play sound when new leave request arrives
-  useEffect(() => {
-    const currentLeaveCount = pendingLeaveCount;
-
-    if (prevLeaveCount.current !== null && currentLeaveCount > prevLeaveCount.current) {
-      const audio = new Audio('/audio/popup-alert.mp3');
-      audio.volume = 0.5;
-      audio.play().catch(err => console.log('Audio play failed:', err));
-    }
-
-    prevLeaveCount.current = currentLeaveCount;
-  }, [pendingLeaveCount]);
 
   // Play sound when a new staff chat message arrives
   useEffect(() => {
@@ -454,13 +441,13 @@ export default function AdminSidebar({
                     </span>
                   )}
                   {item === "Staff Management" && pendingLeaveCount > 0 && (
-                    <span className="ml-2 bg-amber-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
-                      {pendingLeaveCount > 9 ? "9+" : pendingLeaveCount}
+                    <span className="ml-2 bg-amber-600 text-white text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center animate-pulse flex-shrink-0">
+                      {pendingLeaveCount > 99 ? "99+" : pendingLeaveCount}
                     </span>
                   )}
                   {item === "Leave Management" && pendingLeaveCount > 0 && (
-                    <span className="ml-2 bg-amber-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
-                      {pendingLeaveCount > 9 ? "9+" : pendingLeaveCount}
+                    <span className="ml-2 bg-amber-600 text-white text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center animate-pulse flex-shrink-0">
+                      {pendingLeaveCount > 99 ? "99+" : pendingLeaveCount}
                     </span>
                   )}
                   {item === "Player Management" && playerManagementQueueCount > 0 && (

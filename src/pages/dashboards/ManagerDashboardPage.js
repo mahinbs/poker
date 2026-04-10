@@ -15,6 +15,7 @@ import LeaveManagement from "../../components/LeaveManagement";
 
 export default function ManagerDashboardPage() {
   const [activeItem, setActiveItem] = useState("Dashboard");
+  const [managerClubId] = useState(() => localStorage.getItem("clubId") || null);
   const navigate = useNavigate();
 
   // State for session control
@@ -2785,8 +2786,8 @@ export default function ManagerDashboardPage() {
           )}
 
           {/* Leave Management */}
-          {activeItem === "Leave Management" && (
-            <LeaveManagement clubId={selectedClubId} userRole="MANAGER" />
+          {activeItem === "Leave Management" && managerClubId && (
+            <LeaveManagement clubId={managerClubId} userRole="MANAGER" />
           )}
 
           {/* Table View Modal for Seat Assignment (Manager Mode) */}

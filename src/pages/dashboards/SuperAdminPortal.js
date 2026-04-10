@@ -69,6 +69,13 @@ export default function SuperAdminPortal() {
     }
   }, [clubs, selectedClubId]);
 
+  // Super Admin login does not set clubId in localStorage; keep it aligned with the selected club so APIs that still read headers default work.
+  useEffect(() => {
+    if (selectedClubId) {
+      localStorage.setItem("clubId", selectedClubId);
+    }
+  }, [selectedClubId]);
+
   // Load revenue data for selected club
   const { data: revenueData, isLoading: revenueLoading } = useQuery({
     queryKey: ['clubRevenue', selectedClubId],

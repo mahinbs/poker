@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { leaveAPI } from "../lib/api";
+import { getLeaveManagementPollIntervalMs } from "../lib/utils";
 import toast from "react-hot-toast";
 import { FaCalendarAlt, FaCheckCircle, FaTimesCircle, FaClock, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { formatDateIST, formatTimeIST, formatDateTimeIST } from "../utils/dateUtils";
@@ -24,15 +25,116 @@ const LEAVE_STATUS_COLORS = {
   Cancelled: "bg-gray-500/20 text-gray-400 border-gray-500/50",
 };
 
+function getStaffRoleFromStorage() {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const superAdminUser = JSON.parse(localStorage.getItem('superadminuser') || '{}');
+  const adminUser = JSON.parse(localStorage.getItem('adminuser') || '{}');
+  return (
+    user.role ||
+    superAdminUser.role ||
+    adminUser.role ||
+    localStorage.getItem('userRole') ||
+    ''
+  );
+}
+
+function normalizeStaffRoleKey(role) {
+  return String(role || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '_');
+}
+
+function resolveLeaveApplicationId(app) {
+  if (!app || typeof app !== 'object') return undefined;
+  return (
+    app.id ??
+    app._id ??
+    app.applicationId ??
+    app.leaveApplicationId ??
+    app.leaveId
+  );
+}
+
+function normalizeLeaveApplicationForUi(app) {
+  if (!app || typeof app !== 'object') return null;
+  const id = resolveLeaveApplicationId(app);
+  if (id == null || id === '') return null;
+  const staffSrc = app.staff || app.user || app.employee || app.member;
+  let staff;
+  if (staffSrc && typeof staffSrc === 'object') {
+    const name =
+      staffSrc.name ||
+      staffSrc.fullName ||
+      [staffSrc.firstName, staffSrc.lastName].filter(Boolean).join(' ').trim() ||
+      staffSrc.email ||
+      'Unknown';
+    staff = {
+      name,
+      role: staffSrc.role || staffSrc.staffRole || staffSrc.title || '',
+      email: staffSrc.email,
+    };
+  } else {
+    staff = {
+      name:
+        app.staffName ||
+        app.employeeName ||
+        app.userName ||
+        app.memberName ||
+        'Unknown',
+      role: app.staffRole || app.employeeRole || app.role || '',
+      email: app.staffEmail || app.email,
+    };
+  }
+  const numberOfDays = app.numberOfDays ?? app.days ?? app.dayCount ?? app.totalDays;
+  return {
+    ...app,
+    id,
+    staff,
+    numberOfDays: numberOfDays != null ? numberOfDays : '—',
+    status: app.status || app.leaveStatus || 'Pending',
+    startDate: app.startDate ?? app.start_date,
+    endDate: app.endDate ?? app.end_date,
+    reason: app.reason ?? app.notes ?? '',
+    createdAt: app.createdAt ?? app.created_at,
+    approvedAt: app.approvedAt ?? app.approved_at,
+    rejectedAt: app.rejectedAt ?? app.rejected_at,
+    rejectionReason: app.rejectionReason ?? app.rejection_reason,
+  };
+}
+
+function clientFilterApproveList(rows, filters) {
+  return rows.filter((app) => {
+    const status = app.status || '';
+    if (filters.status && status !== filters.status) return false;
+    const role = (app.staff?.role || '').toString();
+    if (filters.role && role !== filters.role) return false;
+    if (filters.startDate && app.startDate && String(app.startDate).slice(0, 10) < filters.startDate) {
+      return false;
+    }
+    if (filters.endDate && app.endDate && String(app.endDate).slice(0, 10) > filters.endDate) {
+      return false;
+    }
+    if (filters.search) {
+      const q = filters.search.toLowerCase().trim();
+      const name = (app.staff?.name || '').toLowerCase();
+      const email = (app.staff?.email || '').toLowerCase();
+      if (!name.includes(q) && !email.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
 export default function LeaveManagement({ clubId }) {
   const queryClient = useQueryClient();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const userRole = user.role || localStorage.getItem('userRole') || '';
-  
-  // Determine which tabs to show
-  const isSuperAdmin = userRole === 'SUPER_ADMIN' || userRole === 'Super Admin';
-  const isAdmin = userRole === 'ADMIN' || userRole === 'Admin';
-  const isHR = userRole === 'HR';
+  const userRole = getStaffRoleFromStorage();
+  const roleKey = normalizeStaffRoleKey(userRole);
+
+  // Determine which tabs to show (Super Admin session uses superadminuser, not user)
+  const isSuperAdmin =
+    roleKey === 'SUPER_ADMIN' || roleKey === 'SUPERADMIN' || userRole === 'Super Admin';
+  const isAdmin = roleKey === 'ADMIN' || userRole === 'Admin';
+  const isHR = roleKey === 'HR';
   const canApprove = isSuperAdmin || isAdmin || isHR;
   const canManagePolicies = isSuperAdmin || isAdmin || isHR;
   const canApplyForLeaves = !isSuperAdmin; // Super Admin is not a club employee, so can't apply for leaves
@@ -108,7 +210,8 @@ export default function LeaveManagement({ clubId }) {
 
   // Filters state for approve leaves page
   const [approveFilters, setApproveFilters] = useState({
-    status: '',
+    // Default Pending so the table uses the same /pending feed as the sidebar (instant, not stale paginated /for-approval).
+    status: 'Pending',
     role: '',
     startDate: '',
     endDate: '',
@@ -117,24 +220,225 @@ export default function LeaveManagement({ clubId }) {
     limit: 10
   });
 
-  // Fetch leave applications for approval with filters and pagination
-  const { data: approveLeavesData, isLoading: approveLeavesLoading, refetch: refetchApproveLeaves } = useQuery({
+  const approveStatusFilter = approveFilters.status || '';
+  const serverOnlyApproveStatus = ['Approved', 'Rejected', 'Cancelled'].includes(approveStatusFilter);
+  const needsApproveBulkAll = approveStatusFilter === '';
+
+  // Server-paginated /for-approval for Approved / Rejected / Cancelled only
+  const {
+    data: approveLeavesData,
+    isLoading: approveLeavesLoading,
+    isError: approveLeavesError,
+    error: approveLeavesErrorObj,
+    refetch: refetchApproveLeaves,
+  } = useQuery({
     queryKey: ['leaveApplicationsForApproval', clubId, approveFilters],
     queryFn: () => leaveAPI.getLeaveApplicationsForApproval(clubId, approveFilters),
-    enabled: !!clubId && canApprove,
+    enabled: !!clubId && canApprove && activeTab === 'approve' && serverOnlyApproveStatus,
+    refetchInterval:
+      canApprove && activeTab === 'approve' && serverOnlyApproveStatus
+        ? getLeaveManagementPollIntervalMs()
+        : false,
   });
 
-  const approveLeaves = approveLeavesData?.applications || [];
-  const totalPages = approveLeavesData?.totalPages || 0;
-  const currentPage = approveLeavesData?.page || 1;
-  const total = approveLeavesData?.total || 0;
+  // "All Status": fetch a large page and merge with live /pending so new rows match the sidebar immediately
+  const {
+    data: approveBulkData,
+    isLoading: approveBulkLoading,
+    isError: approveBulkError,
+    error: approveBulkErrorObj,
+  } = useQuery({
+    queryKey: [
+      'leaveApplicationsForApprovalBulk',
+      clubId,
+      approveFilters.role,
+      approveFilters.search,
+      approveFilters.startDate,
+      approveFilters.endDate,
+    ],
+    queryFn: () =>
+      leaveAPI.getLeaveApplicationsForApproval(clubId, {
+        status: '',
+        role: approveFilters.role,
+        search: approveFilters.search,
+        startDate: approveFilters.startDate,
+        endDate: approveFilters.endDate,
+        page: 1,
+        limit: 500,
+      }),
+    enabled: !!clubId && canApprove && activeTab === 'approve' && needsApproveBulkAll,
+    refetchInterval:
+      canApprove && activeTab === 'approve' && needsApproveBulkAll
+        ? getLeaveManagementPollIntervalMs()
+        : false,
+  });
 
-  // Fetch pending leave applications (for badge count)
+  // Fetch pending leave applications (for badge count + approve list when status is Pending)
   const { data: pendingLeaves = [], isLoading: pendingLeavesLoading } = useQuery({
     queryKey: ['pendingLeaveApplications', clubId],
     queryFn: () => leaveAPI.getPendingLeaveApplications(clubId),
     enabled: !!clubId && canApprove,
+    refetchInterval: canApprove ? getLeaveManagementPollIntervalMs() : false,
   });
+
+  const applicationsFromForApproval = approveLeavesData?.applications;
+
+  const {
+    approveLeaves,
+    totalPages,
+    currentPage,
+    total,
+    approveListLoading,
+    usingPendingFallback,
+    approveTabError,
+    approveTabErrorObj,
+  } = useMemo(() => {
+    const limit = approveFilters.limit || 10;
+    const mapNorm = (arr) =>
+      (Array.isArray(arr) ? arr : [])
+        .map(normalizeLeaveApplicationForUi)
+        .filter(Boolean);
+
+    const fromApprovalRaw = applicationsFromForApproval ?? [];
+    const pendingNorm = mapNorm(pendingLeaves || []);
+
+    const buildClientPaged = (baseList, merged) => {
+      const filtered = clientFilterApproveList(baseList, approveFilters);
+      const totalF = filtered.length;
+      const totalPagesF = Math.max(1, Math.ceil(totalF / limit) || 1);
+      const safePage = Math.min(approveFilters.page || 1, totalPagesF);
+      const start = (safePage - 1) * limit;
+      const slice = filtered.slice(start, start + limit);
+      return {
+        approveLeaves: slice,
+        totalPages: totalPagesF,
+        currentPage: safePage,
+        total: totalF,
+        approveListLoading: false,
+        usingPendingFallback: merged,
+        approveTabError: false,
+        approveTabErrorObj: null,
+      };
+    };
+
+    const empty = (loading, err, errObj) => ({
+      approveLeaves: [],
+      totalPages: 0,
+      currentPage: approveFilters.page || 1,
+      total: 0,
+      approveListLoading: loading,
+      usingPendingFallback: false,
+      approveTabError: err,
+      approveTabErrorObj: errObj,
+    });
+
+    // Approved / Rejected / Cancelled — server pagination only
+    if (serverOnlyApproveStatus) {
+      if (approveLeavesLoading) {
+        return empty(true, false, null);
+      }
+      if (approveLeavesError) {
+        return empty(false, true, approveLeavesErrorObj || null);
+      }
+      const fromApi = mapNorm(fromApprovalRaw);
+      if (fromApi.length === 0) {
+        return empty(false, false, null);
+      }
+      return {
+        approveLeaves: fromApi,
+        totalPages: approveLeavesData?.totalPages || 1,
+        currentPage: approveLeavesData?.page || approveFilters.page || 1,
+        total: approveLeavesData?.total ?? fromApi.length,
+        approveListLoading: false,
+        usingPendingFallback: false,
+        approveTabError: false,
+        approveTabErrorObj: null,
+      };
+    }
+
+    // Pending — same /pending API as sidebar count (no stale first page of /for-approval)
+    if (approveStatusFilter === 'Pending') {
+      if (pendingLeavesLoading && (!pendingLeaves || pendingLeaves.length === 0)) {
+        return empty(true, false, null);
+      }
+      return { ...buildClientPaged(pendingNorm, true), approveTabError: false, approveTabErrorObj: null };
+    }
+
+    // All Status — merge bulk history with live pending (pending wins on id)
+    const bulkNorm = mapNorm(approveBulkData?.applications ?? []);
+    const pendingReadyWithRows =
+      !pendingLeavesLoading &&
+      Array.isArray(pendingLeaves) &&
+      pendingLeaves.length > 0;
+    const waitingForFirstBulk =
+      approveBulkLoading &&
+      approveBulkData == null &&
+      !pendingReadyWithRows &&
+      pendingNorm.length === 0;
+
+    if (waitingForFirstBulk) {
+      return empty(true, false, null);
+    }
+
+    if (approveBulkError && bulkNorm.length === 0 && pendingNorm.length === 0) {
+      return empty(false, true, approveBulkErrorObj || null);
+    }
+
+    const byId = new Map();
+    for (const row of bulkNorm) {
+      byId.set(String(row.id), row);
+    }
+    for (const row of pendingNorm) {
+      byId.set(String(row.id), row);
+    }
+    const baseList = Array.from(byId.values());
+    baseList.sort(
+      (a, b) =>
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+    return { ...buildClientPaged(baseList, true), approveTabError: false, approveTabErrorObj: null };
+  }, [
+    approveLeavesLoading,
+    pendingLeavesLoading,
+    applicationsFromForApproval,
+    approveLeavesData,
+    pendingLeaves,
+    approveFilters,
+    approveLeavesError,
+    approveLeavesErrorObj,
+    serverOnlyApproveStatus,
+    approveStatusFilter,
+    approveBulkData,
+    approveBulkLoading,
+    approveBulkError,
+    approveBulkErrorObj,
+  ]);
+
+  const pendingIdsSig = useMemo(
+    () =>
+      (Array.isArray(pendingLeaves) ? pendingLeaves : [])
+        .map((r) => String(resolveLeaveApplicationId(r) ?? ''))
+        .filter(Boolean)
+        .sort()
+        .join('|'),
+    [pendingLeaves]
+  );
+
+  const prevPendingIdsSigRef = useRef(null);
+  useEffect(() => {
+    prevPendingIdsSigRef.current = null;
+  }, [clubId]);
+
+  useEffect(() => {
+    if (!clubId || !canApprove) return;
+    if (pendingLeavesLoading) return;
+    const prev = prevPendingIdsSigRef.current;
+    prevPendingIdsSigRef.current = pendingIdsSig;
+    if (prev !== null && prev !== pendingIdsSig) {
+      queryClient.invalidateQueries({ queryKey: ['leaveApplicationsForApproval', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['leaveApplicationsForApprovalBulk', clubId] });
+    }
+  }, [clubId, canApprove, pendingIdsSig, pendingLeavesLoading, queryClient]);
 
   // Create leave policy mutation
   const createPolicyMutation = useMutation({
@@ -190,6 +494,7 @@ export default function LeaveManagement({ clubId }) {
         queryClient.refetchQueries({ queryKey: ['leaveBalance', clubId] }),
         queryClient.refetchQueries({ queryKey: ['pendingLeaveApplications', clubId] }),
         queryClient.refetchQueries({ queryKey: ['leaveApplicationsForApproval', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['leaveApplicationsForApprovalBulk', clubId] }),
       ]);
     },
     onError: (error) => {
@@ -206,6 +511,7 @@ export default function LeaveManagement({ clubId }) {
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['pendingLeaveApplications', clubId] }),
         queryClient.refetchQueries({ queryKey: ['leaveApplicationsForApproval', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['leaveApplicationsForApprovalBulk', clubId] }),
         queryClient.refetchQueries({ queryKey: ['myLeaveApplications', clubId] }),
         queryClient.refetchQueries({ queryKey: ['leaveBalance', clubId] }),
       ]);
@@ -227,6 +533,7 @@ export default function LeaveManagement({ clubId }) {
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['pendingLeaveApplications', clubId] }),
         queryClient.refetchQueries({ queryKey: ['leaveApplicationsForApproval', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['leaveApplicationsForApprovalBulk', clubId] }),
         queryClient.refetchQueries({ queryKey: ['myLeaveApplications', clubId] }),
         queryClient.refetchQueries({ queryKey: ['leaveBalance', clubId] }),
       ]);
@@ -247,6 +554,7 @@ export default function LeaveManagement({ clubId }) {
         queryClient.refetchQueries({ queryKey: ['leaveBalance', clubId] }),
         queryClient.refetchQueries({ queryKey: ['pendingLeaveApplications', clubId] }),
         queryClient.refetchQueries({ queryKey: ['leaveApplicationsForApproval', clubId] }),
+        queryClient.refetchQueries({ queryKey: ['leaveApplicationsForApprovalBulk', clubId] }),
       ]);
     },
     onError: (error) => {
@@ -329,16 +637,22 @@ export default function LeaveManagement({ clubId }) {
           {canApprove && (
             <button
               onClick={() => setActiveTab("approve")}
-              className={`px-6 py-3 font-semibold transition-colors relative ${
+              className={`px-6 py-3 font-semibold transition-colors inline-flex items-center gap-2 ${
                 activeTab === "approve"
                   ? "text-emerald-400 border-b-2 border-emerald-400"
                   : "text-gray-400 hover:text-white"
               }`}
             >
-              Approve Leaves
+              <span>Approve Leaves</span>
               {pendingLeaves.length > 0 && (
-                <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-1">
-                  {pendingLeaves.length}
+                <span
+                  className={`text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center flex-shrink-0 ${
+                    activeTab === "approve"
+                      ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400/50"
+                      : "bg-amber-600 text-white"
+                  }`}
+                >
+                  {pendingLeaves.length > 99 ? "99+" : pendingLeaves.length}
                 </span>
               )}
             </button>
@@ -420,7 +734,31 @@ export default function LeaveManagement({ clubId }) {
         {/* Approve Leaves Tab */}
         {activeTab === "approve" && canApprove && (
           <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-6 border border-slate-700">
-            <h2 className="text-2xl font-bold text-white mb-6">Leave Applications</h2>
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              <h2 className="text-2xl font-bold text-white">Leave Applications</h2>
+              {pendingLeaves.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-amber-600/25 text-amber-300 border border-amber-500/40">
+                  <FaClock className="text-amber-400" />
+                  {pendingLeaves.length} pending approval
+                </span>
+              )}
+            </div>
+
+            {approveTabError && (
+              <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-900/20 px-4 py-3 text-sm text-amber-200">
+                Could not load leave applications ({approveTabErrorObj?.message || 'request failed'}).{' '}
+                {pendingLeaves.length > 0
+                  ? 'You may still see pending rows from the live queue below.'
+                  : 'Try refreshing or check your connection.'}
+              </div>
+            )}
+            {usingPendingFallback && (
+              <p className="mb-4 text-sm text-slate-400">
+                {approveStatusFilter === 'Pending'
+                  ? 'Showing the live pending queue (same data as the sidebar count).'
+                  : 'Showing all statuses: pending rows use the live queue merged with recent history (up to 500 records).'}
+              </p>
+            )}
 
             {/* Filters */}
             <div className="bg-slate-700/50 rounded-lg p-4 mb-6 space-y-4">
@@ -496,7 +834,7 @@ export default function LeaveManagement({ clubId }) {
                 <div className="flex items-end">
                   <button
                     onClick={() => setApproveFilters({
-                      status: '',
+                      status: 'Pending',
                       role: '',
                       startDate: '',
                       endDate: '',
@@ -517,7 +855,7 @@ export default function LeaveManagement({ clubId }) {
               Showing {approveLeaves.length} of {total} leave application(s)
             </div>
 
-            {approveLeavesLoading ? (
+            {approveListLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
                 <p className="text-gray-400">Loading applications...</p>
