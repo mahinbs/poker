@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import SuperAdminSidebar from "../../components/sidebars/SuperAdminSidebar";
 import { superAdminAPI } from "../../lib/api";
+import { getPlayerManagementPollIntervalMs } from "../../lib/utils";
 import toast from "react-hot-toast";
 import UnifiedPlayerManagement from "./UnifiedPlayerManagement";
 import TableManagement from "./TableManagement";
@@ -87,6 +88,7 @@ export default function SuperAdminPortal() {
     queryKey: ['pendingPlayers', selectedClubId],
     queryFn: () => superAdminAPI.getPendingApprovalPlayers(selectedClubId),
     enabled: !!selectedClubId,
+    refetchInterval: getPlayerManagementPollIntervalMs(),
   });
 
   // Load suspended players

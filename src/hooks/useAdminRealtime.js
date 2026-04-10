@@ -55,19 +55,38 @@ export function useAdminRealtime(clubId) {
       queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubId] });
     });
 
-    // Notifications
+    // Notifications (many backends also create a staff notification when a player signs up or requests a field change)
     socket.on('notification:new', () => {
       queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount', clubId, 'staff'] });
       queryClient.invalidateQueries({ queryKey: ['notificationInbox'] });
+      queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['fieldUpdateRequests', clubId] });
     });
     socket.on('notification:read-status-changed', () => {
       queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount', clubId, 'staff'] });
     });
 
-    // Player profile change requests
-    socket.on('profile-request:updated', () => {
+    // Unified Player Management: pending signup approvals + field update requests
+    // Backend should emit Socket.IO to the club room when these change, e.g.:
+    // - player:pending-approval | players-pending:changed | player:signup-pending → new player awaiting approval
+    // - profile-request:new | profile-request:updated | player-field-update:new | player-field-updates:changed | field-update:pending
+    const invalidatePendingApprovals = () => {
+      queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubId] });
+    };
+    const invalidateFieldUpdateRequests = () => {
       queryClient.invalidateQueries({ queryKey: ['fieldUpdateRequests', clubId] });
-    });
+    };
+
+    socket.on('player:pending-approval', invalidatePendingApprovals);
+    socket.on('players-pending:changed', invalidatePendingApprovals);
+    socket.on('player:signup-pending', invalidatePendingApprovals);
+
+    socket.on('profile-request:new', invalidateFieldUpdateRequests);
+    socket.on('profile-request:updated', invalidateFieldUpdateRequests);
+    socket.on('player-field-update:new', invalidateFieldUpdateRequests);
+    socket.on('player-field-updates:changed', invalidateFieldUpdateRequests);
+    socket.on('field-update:pending', invalidateFieldUpdateRequests);
 
     // Tournaments
     socket.on('tournament:updated', () => {
@@ -131,12 +150,14 @@ export function useAdminRealtime(clubId) {
       queryClient.invalidateQueries({ queryKey: ['vipPurchases', clubId] });
     });
 
-    // Players table changes (balance, KYC, etc.)
+    // Players table changes (balance, KYC, new registration, etc.)
     socket.on('player:updated', () => {
       queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubId] });
     });
     socket.on('kyc:status-changed', () => {
       queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubId] });
     });
 
     // Staff changes

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@supabase/supabase-js";
 import { superAdminAPI } from "../../lib/api";
+import { getPlayerManagementPollIntervalMs } from "../../lib/utils";
 import toast from "react-hot-toast";
 
 const KYC_BUCKET = "kyc-docs";
@@ -363,7 +364,8 @@ export default function UnifiedPlayerManagement({
   const { data: fieldUpdateRequests = [], isLoading: fieldUpdatesLoading, isFetching: fieldUpdatesFetching, refetch: refetchFieldUpdates } = useQuery({
     queryKey: ['fieldUpdateRequests', selectedClubId],
     queryFn: () => superAdminAPI.getFieldUpdateRequests(selectedClubId),
-    enabled: !!selectedClubId && activeTab === "field-updates",
+    enabled: !!selectedClubId,
+    refetchInterval: getPlayerManagementPollIntervalMs(),
   });
 
   const [rejectingId, setRejectingId] = useState(null);
@@ -549,19 +551,37 @@ export default function UnifiedPlayerManagement({
       <h1 className="text-3xl font-bold">Player Management</h1>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-700">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => handleTabChange(tab.id)}
-            className={`px-6 py-3 font-semibold transition-all ${activeTab === tab.id
-              ? "bg-gradient-to-r from-red-400 to-purple-600 text-white border-b-2 border-purple-400"
-              : "text-gray-400 hover:text-white"
-              }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2 border-b border-slate-700">
+        {tabs.map((tab) => {
+          const tabCount =
+            tab.id === "approval"
+              ? pendingPlayers.length
+              : tab.id === "field-updates"
+                ? fieldUpdateRequests.length
+                : 0;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              className={`px-6 py-3 font-semibold transition-all inline-flex items-center gap-2 ${activeTab === tab.id
+                ? "bg-gradient-to-r from-red-400 to-purple-600 text-white border-b-2 border-purple-400"
+                : "text-gray-400 hover:text-white"
+                }`}
+            >
+              <span>{tab.label}</span>
+              {tabCount > 0 && (
+                <span
+                  className={`text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center flex-shrink-0 ${activeTab === tab.id
+                    ? "bg-white/25 text-white"
+                    : "bg-red-500 text-white"
+                    }`}
+                >
+                  {tabCount > 99 ? "99+" : tabCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab Content */}
@@ -597,11 +617,12 @@ export default function UnifiedPlayerManagement({
                 <p>Loading players...</p>
               </div>
             ) : (
-              <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+              <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden min-w-0">
                 <div className="p-4 text-sm text-gray-400 flex justify-between items-center">
                   <span>Showing {startIndex + 1}-{Math.min(endIndex, filteredPlayers.length)} of {filteredPlayers.length} players</span>
                 </div>
-                <table className="w-full">
+                <div className="overflow-x-auto min-w-0">
+                <table className="w-full min-w-[640px]">
                   <thead className="bg-slate-700">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Name</th>
@@ -611,13 +632,13 @@ export default function UnifiedPlayerManagement({
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">KYC</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Registered</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700">
                     {paginatedPlayers.length === 0 ? (
                       <tr>
-                        <td colSpan="9" className="px-6 py-8 text-center text-gray-400">
+                        <td colSpan="8" className="px-6 py-8 text-center text-gray-400">
                           No players found
                         </td>
                       </tr>
@@ -664,15 +685,15 @@ export default function UnifiedPlayerManagement({
                           <td className="px-6 py-4 text-gray-400 text-sm">
                             {new Date(player.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="flex gap-2">
+                          <td className="px-6 py-4 align-top whitespace-normal">
+                            <div className="flex flex-wrap gap-2">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setSelectedPlayerForDetails(player);
                                   setShowPlayerDetailsModal(true);
                                 }}
-                                className="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                                className="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0"
                               >
                                 📄 View
                               </button>
@@ -685,7 +706,7 @@ export default function UnifiedPlayerManagement({
                                     }
                                   }}
                                   disabled={unsuspendPlayerMutation.isLoading}
-                                  className="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                                  className="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 shrink-0"
                                 >
                                   Unsuspend
                                 </button>
@@ -696,7 +717,7 @@ export default function UnifiedPlayerManagement({
                                     setPlayerToSuspend(player);
                                     setShowSuspendModal(true);
                                   }}
-                                  className="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                                  className="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0"
                                 >
                                   Suspend
                                 </button>
@@ -709,7 +730,7 @@ export default function UnifiedPlayerManagement({
                                     setManualTiltId(String(player.tiltId || player.playerId || '').toUpperCase());
                                     setShowTiltIdModal(true);
                                   }}
-                                  className="bg-violet-700 hover:bg-violet-600 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                                  className="bg-violet-700 hover:bg-violet-600 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0"
                                   title="View or update Tilt ID (Super Admin only)"
                                 >
                                   Tilt ID
@@ -726,7 +747,7 @@ export default function UnifiedPlayerManagement({
                                     deletePlayerMutation.mutate(player.id);
                                   }}
                                   disabled={deletePlayerMutation.isLoading && deletingPlayerId === player.id}
-                                  className="bg-rose-900 hover:bg-rose-800 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                                  className="bg-rose-900 hover:bg-rose-800 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 shrink-0"
                                   title="Permanent delete (Super Admin only)"
                                 >
                                   {deletePlayerMutation.isLoading && deletingPlayerId === player.id ? 'Deleting...' : 'Delete'}
@@ -739,6 +760,7 @@ export default function UnifiedPlayerManagement({
                     )}
                   </tbody>
                 </table>
+                </div>
                 {/* Pagination Controls */}
                 {totalPages > 1 && (
                   <div className="p-4 border-t border-slate-700 flex items-center justify-between">

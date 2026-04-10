@@ -17,3 +17,17 @@ export function cn(...classes) {
     .trim();
 }
 
+/**
+ * React Query refetch interval (ms) for pending player approvals and field-update queues.
+ * Use when the API does not emit the dedicated Socket.IO events yet.
+ * Set REACT_APP_PLAYER_MANAGEMENT_POLL_MS=0 to disable polling (sockets + manual refresh only).
+ * Default: 15000.
+ */
+export function getPlayerManagementPollIntervalMs() {
+  const raw = process.env.REACT_APP_PLAYER_MANAGEMENT_POLL_MS;
+  if (raw === '0' || raw === 'false') return false;
+  const n = Number(raw);
+  if (Number.isFinite(n) && n > 0) return n;
+  return 15000;
+}
+

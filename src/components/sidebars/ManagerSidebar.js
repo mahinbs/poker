@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
+import { clubsAPI, superAdminAPI, chatAPI, leaveAPI, playersAPI } from "../../lib/api";
+import { getPlayerManagementPollIntervalMs } from "../../lib/utils";
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 import toast from "react-hot-toast";
 
@@ -39,6 +40,8 @@ export default function ManagerSidebar({
   // Track previous chat counts for sound alerts
   const prevStaffChatCount = useRef(null);
   const prevPlayerChatCount = useRef(null);
+  const prevApprovalQueueCount = useRef(null);
+  const prevFieldUpdateQueueCount = useRef(null);
 
   const isRummyEnabled = clubInfo?.rummyEnabled || false;
   const isPokerEnabled = clubInfo?.pokerEnabled !== false;
@@ -76,6 +79,34 @@ export default function ManagerSidebar({
 
   const totalUnreadChats = (unreadChatData?.staffChats || 0) + (unreadChatData?.playerChats || 0);
 
+  const { data: pendingApprovalPlayers = [] } = useQuery({
+    queryKey: ['pendingPlayers', clubId],
+    queryFn: () => playersAPI.getPendingApprovalPlayers(clubId),
+    enabled: !!clubId,
+    refetchInterval: getPlayerManagementPollIntervalMs(),
+  });
+  const { data: pendingFieldUpdates = [] } = useQuery({
+    queryKey: ['fieldUpdateRequests', clubId],
+    queryFn: () => superAdminAPI.getFieldUpdateRequests(clubId),
+    enabled: !!clubId,
+    refetchInterval: getPlayerManagementPollIntervalMs(),
+  });
+  const approvalQueueCount = pendingApprovalPlayers?.length || 0;
+  const fieldUpdateQueueCount = pendingFieldUpdates?.length || 0;
+  const playerManagementQueueCount = approvalQueueCount + fieldUpdateQueueCount;
+
+  useEffect(() => {
+    const prevA = prevApprovalQueueCount.current;
+    const prevF = prevFieldUpdateQueueCount.current;
+    if (prevA !== null && prevF !== null && (approvalQueueCount > prevA || fieldUpdateQueueCount > prevF)) {
+      const audio = new Audio('/audio/popup-alert.mp3');
+      audio.volume = 0.5;
+      audio.play().catch((err) => console.log('Audio play failed:', err));
+    }
+    prevApprovalQueueCount.current = approvalQueueCount;
+    prevFieldUpdateQueueCount.current = fieldUpdateQueueCount;
+  }, [approvalQueueCount, fieldUpdateQueueCount]);
+
   // Play notification sound when new notification arrives
   useEffect(() => {
     const currentCount = unreadData?.unreadCount || 0;
@@ -106,7 +137,7 @@ export default function ManagerSidebar({
   useEffect(() => {
     const staffChats = unreadChatData?.staffChats || 0;
     if (prevStaffChatCount.current !== null && staffChats > prevStaffChatCount.current) {
-      const audio = new Audio('/audio/popup-alert.mp3');
+      const audio = new Audio('/audio/notification-alert-2.wav');
       audio.volume = 0.5;
       audio.play().catch(err => console.log('Audio play failed:', err));
     }
@@ -348,6 +379,11 @@ export default function ManagerSidebar({
                   {item === "Chat" && totalUnreadChats > 0 && (
                     <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
                       {totalUnreadChats > 9 ? "9+" : totalUnreadChats}
+                    </span>
+                  )}
+                  {item === "Player Management" && playerManagementQueueCount > 0 && (
+                    <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center animate-pulse flex-shrink-0">
+                      {playerManagementQueueCount > 99 ? "99+" : playerManagementQueueCount}
                     </span>
                   )}
                 </span>

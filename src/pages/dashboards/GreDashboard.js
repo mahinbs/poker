@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import GreSidebar from "../../components/sidebars/GreSidebar";
 import { clubsAPI, playersAPI, tablesAPI, tournamentsAPI } from "../../lib/api";
+import { getPlayerManagementPollIntervalMs } from "../../lib/utils";
 import toast from "react-hot-toast";
 import UnifiedPlayerManagement from "./UnifiedPlayerManagement";
 import PushNotifications from "./PushNotifications";
@@ -434,6 +435,7 @@ export default function GreDashboard() {
     queryKey: ['pendingPlayers', clubId],
     queryFn: () => playersAPI.getPendingApprovalPlayers(clubId),
     enabled: !!clubId,
+    refetchInterval: getPlayerManagementPollIntervalMs(),
   });
 
   // Fetch suspended players

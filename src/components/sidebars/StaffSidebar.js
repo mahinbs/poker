@@ -84,7 +84,7 @@ export default function StaffSidebar({
   useEffect(() => {
     const staffChats = unreadChatData?.staffChats || 0;
     if (prevStaffChatCount.current !== null && staffChats > prevStaffChatCount.current) {
-      const audio = new Audio('/audio/popup-alert.mp3');
+      const audio = new Audio('/audio/notification-alert-2.wav');
       audio.volume = 0.5;
       audio.play().catch(err => console.log('Audio play failed:', err));
     }
