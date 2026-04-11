@@ -4,13 +4,15 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { clubsAPI, superAdminAPI, chatAPI, leaveAPI, playersAPI } from "../../lib/api";
 import { getPlayerManagementPollIntervalMs } from "../../lib/utils";
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
+import { useRummyTableBuyInOutPending } from '../../hooks/useTableBuyInOutPending';
 import toast from "react-hot-toast";
 
 export default function GreSidebar({
   activeItem,
   setActiveItem,
   menuItems = [],
-  onSignOut = null
+  onSignOut = null,
+  rummyEnabled = false,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -34,6 +36,15 @@ export default function GreSidebar({
   // Get clubId and fetch unread notification count
   const clubId = localStorage.getItem('clubId');
   useAdminRealtime(clubId);
+
+  const {
+    pendingRummySidebarTotal,
+    pendingRummyBuyInWaitlistCount,
+    pendingRummyBuyOutCount,
+  } = useRummyTableBuyInOutPending(clubId, {
+    enableAlertSound: true,
+    enabled: !!clubId && rummyEnabled,
+  });
   const { data: unreadData } = useQuery({
     queryKey: ["unreadNotificationCount", clubId, "staff"],
     queryFn: () => superAdminAPI.getUnreadNotificationCount(clubId, "staff"),
@@ -362,6 +373,14 @@ export default function GreSidebar({
                   {item === "Player Management" && playerManagementQueueCount > 0 && (
                     <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center animate-pulse flex-shrink-0">
                       {playerManagementQueueCount > 99 ? "99+" : playerManagementQueueCount}
+                    </span>
+                  )}
+                  {item === "Rummy" && clubId && rummyEnabled && pendingRummySidebarTotal > 0 && (
+                    <span
+                      className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center animate-pulse flex-shrink-0"
+                      title={`Rummy waitlist: ${pendingRummyBuyInWaitlistCount} · Rummy table buy-out: ${pendingRummyBuyOutCount} · Total: ${pendingRummySidebarTotal}`}
+                    >
+                      {pendingRummySidebarTotal > 99 ? "99+" : pendingRummySidebarTotal}
                     </span>
                   )}
                 </span>

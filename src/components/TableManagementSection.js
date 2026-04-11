@@ -1,6 +1,7 @@
 import TableView from "./hologram/TableView";
 import CustomSelect from "./common/CustomSelect";
 import { useState } from "react";
+import { useTableBuyInOutPending } from "../hooks/useTableBuyInOutPending";
 
 export default function TableManagementSection({
   userRole = "cashier", // "cashier", "admin", "superadmin", "manager"
@@ -38,8 +39,17 @@ export default function TableManagementSection({
   setOccupiedSeats = null, // Function to update occupied seats
   // Option to force a specific tab and hide tab navigation
   forceTab = null, // "table-management", "seating-management", "live-tables", "table-buyout"
+  /** When set, buy-in / buy-out tab badges stay in sync via React Query + club Socket.IO (useAdminRealtime in layout). */
+  clubId = null,
 }) {
   const [activeTab, setActiveTab] = useState(forceTab || "live-tables");
+
+  const {
+    pendingBuyOutCount,
+    pendingBuyOutTotal,
+    pendingBuyInRequestCount,
+    pendingBuyInTabBadgeCount,
+  } = useTableBuyInOutPending(clubId, { enableAlertSound: false });
 
   const getSelectValue = (e, option) => option?.value ?? e?.target?.value ?? "";
 
@@ -386,7 +396,7 @@ export default function TableManagementSection({
           canAccessSeatingManagement ||
           canAccessTableBuyOut ||
           canAccessLiveTables) && (
-          <div className="flex gap-2 border-b border-white/20 pb-4">
+          <div className="flex gap-2 border-b border-white/20 pb-4 flex-wrap">
             {canAccessLiveTables && (
               <button
                 onClick={() => setActiveTab("live-tables")}
@@ -414,25 +424,79 @@ export default function TableManagementSection({
             {canAccessSeatingManagement && (
               <button
                 onClick={() => setActiveTab("seating-management")}
+                title={
+                  clubId && pendingBuyInTabBadgeCount > 0
+                    ? `${pendingBuyInTabBadgeCount} on waitlist${
+                        pendingBuyInRequestCount > 0
+                          ? ` · ${pendingBuyInRequestCount} seated table chip request(s) (cashier/sidebar)`
+                          : ""
+                      }`
+                    : clubId && pendingBuyInRequestCount > 0
+                      ? `${pendingBuyInRequestCount} seated table chip buy-in request(s) — use Cashier or sidebar`
+                      : undefined
+                }
                 className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
                   activeTab === "seating-management"
                     ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
                     : "bg-white/10 text-white/70 hover:bg-white/15"
                 }`}
               >
-                Table Buy-In
+                {clubId ? (
+                  pendingBuyInTabBadgeCount > 0 ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span>Table Buy-In</span>
+                      <span
+                        className={`text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center flex-shrink-0 text-white shadow-sm ${
+                          activeTab === "seating-management"
+                            ? "bg-red-500 ring-2 ring-red-300/80"
+                            : "bg-red-600"
+                        }`}
+                      >
+                        {pendingBuyInTabBadgeCount > 99 ? "99+" : pendingBuyInTabBadgeCount}
+                      </span>
+                    </span>
+                  ) : (
+                    "Table Buy-In"
+                  )
+                ) : (
+                  "Table Buy-In"
+                )}
               </button>
             )}
             {canAccessTableBuyOut && (
               <button
                 onClick={() => setActiveTab("table-buyout")}
+                title={
+                  clubId && pendingBuyOutCount > 0
+                    ? `${pendingBuyOutCount} pending · ₹${pendingBuyOutTotal.toLocaleString("en-IN")} est. on table`
+                    : undefined
+                }
                 className={`px-6 py-3 rounded-t-lg font-semibold transition-all ${
                   activeTab === "table-buyout"
                     ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
                     : "bg-white/10 text-white/70 hover:bg-white/15"
                 }`}
               >
-                Table Buy-Out
+                {clubId ? (
+                  pendingBuyOutCount > 0 ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span>Table Buy-Out</span>
+                      <span
+                        className={`text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center flex-shrink-0 text-white shadow-sm ${
+                          activeTab === "table-buyout"
+                            ? "bg-red-500 ring-2 ring-red-300/80"
+                            : "bg-red-600"
+                        }`}
+                      >
+                        {pendingBuyOutCount > 99 ? "99+" : pendingBuyOutCount}
+                      </span>
+                    </span>
+                  ) : (
+                    "Table Buy-Out"
+                  )
+                ) : (
+                  "Table Buy-Out"
+                )}
               </button>
             )}
           </div>

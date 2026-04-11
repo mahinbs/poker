@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
+import { playTableBuyInOutAlert } from '../lib/playTableBuyInOutAlert';
 
 const WEBSOCKET_URL = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api')
   .replace(/\/api$/, '');
@@ -14,13 +15,14 @@ export function useAdminRealtime(clubId) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!clubId) return;
+    const clubKey = clubId != null && String(clubId).trim() !== '' ? String(clubId).trim() : '';
+    if (!clubKey) return;
 
     const token = localStorage.getItem('authToken') || localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
 
     const socket = io(`${WEBSOCKET_URL}/realtime`, {
-      auth: { clubId, userId, token },
+      auth: { clubId: clubKey, userId, token },
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 2000,
@@ -28,27 +30,27 @@ export function useAdminRealtime(clubId) {
     });
 
     socket.on('connect', () => {
-      console.log('✅ [ADMIN SOCKET] Connected, subscribing to club:', clubId);
-      socket.emit('subscribe:club', { clubId, userId });
+      console.log('✅ [ADMIN SOCKET] Connected, subscribing to club:', clubKey);
+      socket.emit('subscribe:club', { clubId: clubKey, userId });
     });
 
     // Credit requests
     socket.on('credit:status-changed', () => {
-      queryClient.invalidateQueries({ queryKey: ['creditRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['creditRequests', clubKey] });
     });
     socket.on('credit:new-request', () => {
-      queryClient.invalidateQueries({ queryKey: ['creditRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['creditRequests', clubKey] });
     });
 
     // Leave applications (pending list, approve tab with filters, employee lists)
     const invalidateLeaveQueries = () => {
-      queryClient.invalidateQueries({ queryKey: ['pendingLeaveApplications', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['leaveApplicationsForApproval', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['leaveApplicationsForApprovalBulk', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['myLeaveApplications', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['myApprovedLeaves', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['leavePolicies', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['leaveBalance', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['pendingLeaveApplications', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['leaveApplicationsForApproval', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['leaveApplicationsForApprovalBulk', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['myLeaveApplications', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['myApprovedLeaves', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['leavePolicies', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['leaveBalance', clubKey] });
     };
     socket.on('leave:updated', invalidateLeaveQueries);
     socket.on('leave:new-request', invalidateLeaveQueries);
@@ -56,23 +58,23 @@ export function useAdminRealtime(clubId) {
 
     // Chat messages & sessions
     socket.on('chat:new-message', () => {
-      queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubKey] });
     });
     socket.on('chat:session-updated', () => {
-      queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['unreadChatCounts', clubKey] });
     });
 
     // Notifications (many backends also create a staff notification when a player signs up or requests a field change)
     socket.on('notification:new', () => {
-      queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount', clubId, 'staff'] });
+      queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount', clubKey, 'staff'] });
       queryClient.invalidateQueries({ queryKey: ['notificationInbox'] });
-      queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['fieldUpdateRequests', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['pendingLeaveApplications', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['leaveApplicationsForApproval', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['fieldUpdateRequests', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['pendingLeaveApplications', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['leaveApplicationsForApproval', clubKey] });
     });
     socket.on('notification:read-status-changed', () => {
-      queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount', clubId, 'staff'] });
+      queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount', clubKey, 'staff'] });
     });
 
     // Unified Player Management: pending signup approvals + field update requests
@@ -80,11 +82,11 @@ export function useAdminRealtime(clubId) {
     // - player:pending-approval | players-pending:changed | player:signup-pending → new player awaiting approval
     // - profile-request:new | profile-request:updated | player-field-update:new | player-field-updates:changed | field-update:pending
     const invalidatePendingApprovals = () => {
-      queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubKey] });
     };
     const invalidateFieldUpdateRequests = () => {
-      queryClient.invalidateQueries({ queryKey: ['fieldUpdateRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['fieldUpdateRequests', clubKey] });
     };
 
     socket.on('player:pending-approval', invalidatePendingApprovals);
@@ -117,30 +119,34 @@ export function useAdminRealtime(clubId) {
 
     // Financial transactions
     socket.on('transaction:new', () => {
-      queryClient.invalidateQueries({ queryKey: ['clubRevenue', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['clubRevenue', clubKey] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
     });
 
-    // Buy-in requests
+    // Buy-in requests (prefix invalidate so string/number clubId keys all refresh).
+    // Sound is driven by useTableBuyInOutPending (table-only count) after refetch, not here — club wallet buy-ins share buyin:new-request.
     socket.on('buyin:new-request', () => {
-      queryClient.invalidateQueries({ queryKey: ['buyInRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['buyInRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['clubBuyInRequests'] });
     });
     socket.on('buyin:updated', () => {
-      queryClient.invalidateQueries({ queryKey: ['buyInRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['buyInRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['clubBuyInRequests'] });
       queryClient.invalidateQueries({ queryKey: ['seatedPlayers'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
     });
 
     // Buy-out requests
     socket.on('buyout:new-request', () => {
-      queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['buyout-player-balance', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['buyout-live-seated-player', clubId] });
+      playTableBuyInOutAlert();
+      queryClient.invalidateQueries({ queryKey: ['buyOutRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['buyout-player-balance', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['buyout-live-seated-player', clubKey] });
     });
     socket.on('buyout:updated', () => {
-      queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['buyout-player-balance', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['buyout-live-seated-player', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['buyOutRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['buyout-player-balance', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['buyout-live-seated-player', clubKey] });
       queryClient.invalidateQueries({ queryKey: ['seatedPlayers'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
     });
@@ -148,30 +154,30 @@ export function useAdminRealtime(clubId) {
     // FNB orders
     socket.on('fnb:order-updated', () => {
       queryClient.invalidateQueries({ queryKey: ['fnbOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['fnbOrders', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['kitchenStations', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['stationStats', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['fnbOrders', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['kitchenStations', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['stationStats', clubKey] });
     });
 
     // VIP store (purchases + product list for staff)
     socket.on('vip:store-updated', () => {
-      queryClient.invalidateQueries({ queryKey: ['vipProducts', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['vipPurchases', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['vipProducts', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['vipPurchases', clubKey] });
     });
 
     // Players table changes (balance, KYC, new registration, etc.)
     socket.on('player:updated', () => {
-      queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubKey] });
     });
     socket.on('kyc:status-changed', () => {
-      queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubId] });
-      queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['pendingPlayers', clubKey] });
     });
 
     // Staff changes
     socket.on('staff:updated', () => {
-      queryClient.invalidateQueries({ queryKey: ['clubStaff', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['clubStaff', clubKey] });
     });
 
     // Tables and waitlist
@@ -184,12 +190,12 @@ export function useAdminRealtime(clubId) {
     });
     socket.on('waitlist:status-changed', () => {
       queryClient.invalidateQueries({ queryKey: ['waitlist'] });
-      queryClient.invalidateQueries({ queryKey: ['waitlist', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['waitlist', clubKey] });
       queryClient.invalidateQueries({ queryKey: ['seatedPlayers'] });
     });
     socket.on('waitlist:position-updated', () => {
       queryClient.invalidateQueries({ queryKey: ['waitlist'] });
-      queryClient.invalidateQueries({ queryKey: ['waitlist', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['waitlist', clubKey] });
     });
 
     socket.on('disconnect', (reason) => {
@@ -201,3 +207,4 @@ export function useAdminRealtime(clubId) {
     };
   }, [clubId, queryClient]);
 }
+

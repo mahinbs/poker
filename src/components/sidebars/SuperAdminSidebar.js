@@ -1,9 +1,15 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { superAdminAPI, chatAPI, leaveAPI, clubsAPI } from "../../lib/api";
 import { getPlayerManagementPollIntervalMs, getLeaveManagementPollIntervalMs } from "../../lib/utils";
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
+import {
+  countPendingClubBuyInCashOutRequests,
+  useTableBuyInOutPending,
+  useRummyTableBuyInOutPending,
+} from '../../hooks/useTableBuyInOutPending';
+import { useFnbPendingOrdersCount } from '../../hooks/useFnbPendingOrdersCount';
 import toast from "react-hot-toast";
 
 const DEFAULT_MENU_ITEMS = [
@@ -62,7 +68,44 @@ export default function SuperAdminSidebar({
 
   // Get clubId and fetch unread notification count
   const clubId = selectedClubId || localStorage.getItem('clubId');
+  const selectedClub = clubs.find((c) => c.clubId === selectedClubId) || clubs[0];
+  const isRummyEnabled = selectedClub?.rummyEnabled || false;
+  const isPokerEnabled = selectedClub?.pokerEnabled !== false;
+
   useAdminRealtime(clubId);
+
+  const { data: clubBuyInRequests = [] } = useQuery({
+    queryKey: ['clubBuyInRequests', clubId],
+    queryFn: () => clubsAPI.getBuyInRequests(clubId),
+    enabled: !!clubId,
+    staleTime: 0,
+    refetchInterval: 12 * 1000,
+    refetchOnReconnect: true,
+  });
+  const pendingClubBuyInCount = useMemo(
+    () => countPendingClubBuyInCashOutRequests(clubBuyInRequests),
+    [clubBuyInRequests]
+  );
+
+  const { pendingBuyOutCount, pendingBuyInWaitlistCount } = useTableBuyInOutPending(
+    clubId,
+    { enableAlertSound: false }
+  );
+  const tableManagementQueueTotal = pendingBuyInWaitlistCount + pendingBuyOutCount;
+
+  const {
+    pendingRummySidebarTotal,
+    pendingRummyBuyInWaitlistCount,
+    pendingRummyBuyOutCount,
+  } = useRummyTableBuyInOutPending(clubId, {
+    enableAlertSound: true,
+    enabled: !!clubId && isRummyEnabled,
+  });
+
+  const { pendingCount: fnbPendingOrdersCount } = useFnbPendingOrdersCount(clubId, {
+    enableAlertSound: true,
+  });
+
   const { data: unreadData } = useQuery({
     queryKey: ["unreadNotificationCount", clubId, "staff"],
     queryFn: () => superAdminAPI.getUnreadNotificationCount(clubId, "staff"),
@@ -195,10 +238,6 @@ export default function SuperAdminSidebar({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen, isMobile]);
-
-  const selectedClub = clubs.find((c) => c.clubId === selectedClubId) || clubs[0];
-  const isRummyEnabled = selectedClub?.rummyEnabled || false;
-  const isPokerEnabled = selectedClub?.pokerEnabled !== false;
 
   // Get user info from localStorage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -508,8 +547,40 @@ export default function SuperAdminSidebar({
                   : "bg-white/5 hover:bg-gradient-to-r hover:from-red-400/20 hover:to-purple-500/20 text-white"
                   }`}
               >
-                <span className="flex items-center justify-between">
+                <span className="flex items-start justify-between gap-1 min-w-0">
                   <span className="block truncate">{item}</span>
+                  {item === "Club Buy-In" && clubId && pendingClubBuyInCount > 0 && (
+                    <span
+                      className="ml-2 bg-orange-500 text-white text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center animate-pulse flex-shrink-0"
+                      title={`${pendingClubBuyInCount} pending buy-in request(s) (Club Buy-In & Cash Out)`}
+                    >
+                      {pendingClubBuyInCount > 99 ? "99+" : pendingClubBuyInCount}
+                    </span>
+                  )}
+                  {item === "Tables & Waitlist" && clubId && tableManagementQueueTotal > 0 && (
+                    <span
+                      className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center animate-pulse flex-shrink-0"
+                      title={`Table buy-in (waitlist): ${pendingBuyInWaitlistCount} · Table buy-out: ${pendingBuyOutCount} · Total: ${tableManagementQueueTotal}`}
+                    >
+                      {tableManagementQueueTotal > 99 ? "99+" : tableManagementQueueTotal}
+                    </span>
+                  )}
+                  {item === "Rummy" && clubId && isRummyEnabled && pendingRummySidebarTotal > 0 && (
+                    <span
+                      className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center animate-pulse flex-shrink-0"
+                      title={`Rummy waitlist: ${pendingRummyBuyInWaitlistCount} · Rummy table buy-out: ${pendingRummyBuyOutCount} · Total: ${pendingRummySidebarTotal}`}
+                    >
+                      {pendingRummySidebarTotal > 99 ? "99+" : pendingRummySidebarTotal}
+                    </span>
+                  )}
+                  {item === "FNB" && clubId && fnbPendingOrdersCount > 0 && (
+                    <span
+                      className="ml-2 bg-orange-500 text-white text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center animate-pulse flex-shrink-0"
+                      title={`${fnbPendingOrdersCount} pending FNB order(s)`}
+                    >
+                      {fnbPendingOrdersCount > 99 ? "99+" : fnbPendingOrdersCount}
+                    </span>
+                  )}
                   {item === "Notifications" && unreadData?.unreadCount > 0 && (
                     <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
                       {unreadData.unreadCount > 9 ? "9+" : unreadData.unreadCount}

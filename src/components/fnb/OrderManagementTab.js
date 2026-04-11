@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { fnbAPI } from '../../lib/api';
 import { io as socketIO } from 'socket.io-client';
 import toast from 'react-hot-toast';
+import { useFnbPendingOrdersCount } from '../../hooks/useFnbPendingOrdersCount';
 
 export default function OrderManagementTab({ clubId }) {
+  const queryClient = useQueryClient();
   const [orders, setOrders] = useState([]);
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -14,6 +17,10 @@ export default function OrderManagementTab({ clubId }) {
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const itemsPerPage = 10;
+
+  const { pendingCount: fnbPendingOrdersCount } = useFnbPendingOrdersCount(clubId, {
+    enableAlertSound: true,
+  });
 
   useEffect(() => {
     loadOrders();
@@ -47,11 +54,13 @@ export default function OrderManagementTab({ clubId }) {
     socket.on('connect', () => socket.emit('subscribe:club', { clubId, userId }));
     socket.on('fnb:order-updated', () => {
       console.log('🍔 [SOCKET] FNB order updated');
+      queryClient.invalidateQueries({ queryKey: ['fnbOrders', String(clubId)] });
+      queryClient.invalidateQueries({ queryKey: ['fnbOrders'] });
       loadOrders();
       loadStations();
     });
     return () => { socket.disconnect(); };
-  }, [clubId]);
+  }, [clubId, queryClient]);
 
   const loadOrders = async () => {
     try {
@@ -86,11 +95,17 @@ export default function OrderManagementTab({ clubId }) {
     }
   };
 
+  const invalidateFnbOrderQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['fnbOrders', String(clubId)] });
+    queryClient.invalidateQueries({ queryKey: ['fnbOrders'] });
+  };
+
   const handleAccept = async (orderId, stationId) => {
     try {
       await fnbAPI.acceptOrder(clubId, orderId, stationId);
       alert('Order accepted successfully!');
       setShowAcceptModal(false);
+      invalidateFnbOrderQueries();
       loadOrders();
     } catch (error) {
       alert('Failed to accept order');
@@ -102,6 +117,7 @@ export default function OrderManagementTab({ clubId }) {
       await fnbAPI.rejectOrder(clubId, orderId, reason);
       alert('Order rejected');
       setShowRejectModal(false);
+      invalidateFnbOrderQueries();
       loadOrders();
     } catch (error) {
       alert('Failed to reject order');
@@ -112,6 +128,7 @@ export default function OrderManagementTab({ clubId }) {
     try {
       await fnbAPI.markOrderReady(clubId, orderId);
       alert('Order marked as ready!');
+      invalidateFnbOrderQueries();
       loadOrders();
     } catch (error) {
       alert('Failed to mark order as ready');
@@ -122,6 +139,7 @@ export default function OrderManagementTab({ clubId }) {
     try {
       await fnbAPI.markOrderDelivered(clubId, orderId);
       alert('Order delivered! Invoice generated.');
+      invalidateFnbOrderQueries();
       loadOrders();
     } catch (error) {
       alert('Failed to mark order as delivered');
@@ -144,13 +162,21 @@ export default function OrderManagementTab({ clubId }) {
                 setCurrentPage(1);
                 // loadOrders will be called by useEffect when filter or currentPage changes
               }}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm ${
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm ${
                 filter === status
                   ? 'bg-orange-600 text-white'
                   : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
               }`}
             >
               {status.charAt(0).toUpperCase() + status.slice(1)}
+              {status === 'pending' && fnbPendingOrdersCount > 0 && (
+                <span
+                  className="min-w-[1.25rem] h-5 px-1 rounded-full bg-red-600 text-white text-xs flex items-center justify-center"
+                  title={`${fnbPendingOrdersCount} pending (realtime)`}
+                >
+                  {fnbPendingOrdersCount > 99 ? '99+' : fnbPendingOrdersCount}
+                </span>
+              )}
             </button>
           ))}
         </div>

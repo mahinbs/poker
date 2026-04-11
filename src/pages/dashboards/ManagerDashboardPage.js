@@ -1227,6 +1227,7 @@ export default function ManagerDashboardPage() {
             <div className="space-y-6">
               <TableManagementSection
                 userRole="manager"
+                clubId={managerClubId}
                 tables={tables}
                 setTables={setTables}
                 playerBalances={playerBalances}

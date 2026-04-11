@@ -4,6 +4,7 @@ import { tablesAPI, waitlistAPI, clubsAPI, staffAPI, shiftsAPI, superAdminAPI } 
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from '../../components/TableBuyOutManagement';
 import RakeCollection from '../../components/RakeCollection';
+import { useTableBuyInOutPending } from '../../hooks/useTableBuyInOutPending';
 
 /**
  * Comprehensive Table Management Component for Super Admin
@@ -18,6 +19,13 @@ export default function TableManagement({ selectedClubId, permissions = {} }) {
   const queryClient = useQueryClient();
   const canManageTables = permissions.canManageTables !== false;
   const canAssignSeat = permissions.canAssignSeat !== false;
+
+  const {
+    pendingBuyOutCount,
+    pendingBuyOutTotal,
+    pendingBuyInRequestCount,
+    pendingBuyInTabBadgeCount,
+  } = useTableBuyInOutPending(selectedClubId, { enableAlertSound: false });
 
   // Fetch tables
   const { data: tablesData, isLoading: tablesLoading } = useQuery({
@@ -69,20 +77,80 @@ export default function TableManagement({ selectedClubId, permissions = {} }) {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-700">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-6 py-3 font-semibold transition-all ${
-              activeTab === tab.id
-                ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-b-2 border-blue-400"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex gap-2 border-b border-slate-700 flex-wrap">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          let title;
+          let content = tab.label;
+
+          if (selectedClubId && tab.id === "table-buy-in") {
+            title =
+              pendingBuyInTabBadgeCount > 0
+                ? `${pendingBuyInTabBadgeCount} on waitlist${
+                    pendingBuyInRequestCount > 0
+                      ? ` · ${pendingBuyInRequestCount} seated table chip request(s) (cashier/sidebar)`
+                      : ""
+                  }`
+                : pendingBuyInRequestCount > 0
+                  ? `${pendingBuyInRequestCount} seated table chip buy-in request(s) — use Cashier or sidebar alert`
+                  : undefined;
+            content =
+              pendingBuyInTabBadgeCount > 0 ? (
+                <span className="inline-flex items-center gap-2">
+                  <span>Table Buy-In</span>
+                  <span
+                    className={`text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center flex-shrink-0 text-white shadow-sm ${
+                      isActive
+                        ? "bg-red-500 ring-2 ring-red-300/80"
+                        : "bg-red-600"
+                    }`}
+                  >
+                    {pendingBuyInTabBadgeCount > 99 ? "99+" : pendingBuyInTabBadgeCount}
+                  </span>
+                </span>
+              ) : (
+                tab.label
+              );
+          } else if (selectedClubId && tab.id === "table-buy-out") {
+            title =
+              pendingBuyOutCount > 0
+                ? `${pendingBuyOutCount} pending · ₹${pendingBuyOutTotal.toLocaleString("en-IN")} est. on table`
+                : undefined;
+            content =
+              pendingBuyOutCount > 0 ? (
+                <span className="inline-flex items-center gap-2">
+                  <span>Table Buy-Out</span>
+                  <span
+                    className={`text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center flex-shrink-0 text-white shadow-sm ${
+                      isActive
+                        ? "bg-red-500 ring-2 ring-red-300/80"
+                        : "bg-red-600"
+                    }`}
+                  >
+                    {pendingBuyOutCount > 99 ? "99+" : pendingBuyOutCount}
+                  </span>
+                </span>
+              ) : (
+                tab.label
+              );
+          }
+
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              title={title}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-3 font-semibold transition-all ${
+                isActive
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-b-2 border-blue-400"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              {content}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab Content */}
@@ -2325,7 +2393,7 @@ function TableBuyInView({ selectedClubId, tables, waitlist, waitlistLoading, can
   // Sort waitlist by position (priority DESC, then createdAt ASC)
   // Poker Table Management: only show waitlist entries for poker (not rummy; case-insensitive)
   const pendingWaitlist = waitlist
-    .filter(e => e.status === 'PENDING' && String(e.requestedGameType || '').toUpperCase() !== 'RUMMY')
+    .filter(e => String(e.status || '').toUpperCase() === 'PENDING' && String(e.requestedGameType || '').toUpperCase() !== 'RUMMY')
     .sort((a, b) => {
       // Sort by priority descending first
       const priorityA = a.priority || 0;

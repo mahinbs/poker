@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
+import { useFnbPendingOrdersCount } from '../../hooks/useFnbPendingOrdersCount';
 import toast from "react-hot-toast";
 
 export default function FnbSidebar({
@@ -31,6 +32,11 @@ export default function FnbSidebar({
   // Get clubId and fetch unread notification count
   const clubId = localStorage.getItem('clubId');
   useAdminRealtime(clubId);
+
+  const { pendingCount: fnbPendingOrdersCount } = useFnbPendingOrdersCount(clubId, {
+    enableAlertSound: true,
+  });
+
   const { data: unreadData } = useQuery({
     queryKey: ["unreadNotificationCount", clubId, "staff"],
     queryFn: () => superAdminAPI.getUnreadNotificationCount(clubId, "staff"),
@@ -316,8 +322,16 @@ export default function FnbSidebar({
                   : "bg-white/5 hover:bg-gradient-to-r hover:from-orange-400/20 hover:to-red-500/20 text-white"
                   }`}
               >
-                <span className="flex items-center justify-between">
+                <span className="flex items-center justify-between gap-1 min-w-0">
                   <span className="block truncate">{item}</span>
+                  {item === "Order Management" && clubId && fnbPendingOrdersCount > 0 && (
+                    <span
+                      className="ml-2 bg-orange-500 text-white text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center animate-pulse flex-shrink-0"
+                      title={`${fnbPendingOrdersCount} pending order(s)`}
+                    >
+                      {fnbPendingOrdersCount > 99 ? "99+" : fnbPendingOrdersCount}
+                    </span>
+                  )}
                   {item === "Notifications" && unreadData?.unreadCount > 0 && (
                     <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
                       {unreadData.unreadCount > 9 ? "9+" : unreadData.unreadCount}

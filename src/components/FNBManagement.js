@@ -3,6 +3,7 @@ import MenuInventoryTab from './fnb/MenuInventoryTab';
 import OrderManagementTab from './fnb/OrderManagementTab';
 import SupplierManagementTab from './fnb/SupplierManagementTab';
 import KitchenOperationsTab from './fnb/KitchenOperationsTab';
+import { useFnbPendingOrdersCount } from '../hooks/useFnbPendingOrdersCount';
 
 /**
  * Main FNB Management Component
@@ -10,6 +11,9 @@ import KitchenOperationsTab from './fnb/KitchenOperationsTab';
  */
 export default function FNBManagement({ clubId }) {
   const [activeTab, setActiveTab] = useState('menu-inventory');
+  const { pendingCount: fnbPendingOrdersCount } = useFnbPendingOrdersCount(clubId, {
+    enableAlertSound: false,
+  });
 
   const tabs = [
     { id: 'menu-inventory', label: 'Menu & Inventory', icon: '📋' },
@@ -44,7 +48,19 @@ export default function FNBManagement({ clubId }) {
               }`}
             >
               <span className="text-xl">{tab.icon}</span>
-              <span>{tab.label}</span>
+              <span className="inline-flex items-center gap-2">
+                {tab.label}
+                {tab.id === 'order-management' &&
+                  clubId &&
+                  fnbPendingOrdersCount > 0 && (
+                    <span
+                      className="text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center bg-red-600 text-white shadow-sm"
+                      title={`${fnbPendingOrdersCount} pending order(s)`}
+                    >
+                      {fnbPendingOrdersCount > 99 ? '99+' : fnbPendingOrdersCount}
+                    </span>
+                  )}
+              </span>
             </button>
           ))}
         </div>

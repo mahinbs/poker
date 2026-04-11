@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tablesAPI, waitlistAPI, staffAPI, shiftsAPI, superAdminAPI, clubsAPI } from '../lib/api';
+import { useRummyTableBuyInOutPending } from '../hooks/useTableBuyInOutPending';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from './TableBuyOutManagement';
 import RakeCollection from './RakeCollection';
@@ -18,6 +19,13 @@ export default function RummyTableManagement({ selectedClubId, permissions = {} 
   const queryClient = useQueryClient();
   const canManageTables = permissions.canManageTables !== false;
   const canAssignSeat = permissions.canAssignSeat !== false;
+
+  const {
+    pendingRummyBuyOutCount,
+    pendingRummyBuyOutTotal,
+    pendingRummyBuyInRequestCount,
+    pendingRummyBuyInTabBadgeCount,
+  } = useRummyTableBuyInOutPending(selectedClubId, { enableAlertSound: true, enabled: !!selectedClubId });
 
   // Fetch tables (filter for rummy tables)
   const { data: tablesData, isLoading: tablesLoading } = useQuery({
@@ -73,20 +81,76 @@ export default function RummyTableManagement({ selectedClubId, permissions = {} 
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-700">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-6 py-3 font-semibold transition-all ${
-              activeTab === tab.id
-                ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white border-b-2 border-emerald-400"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex gap-2 border-b border-slate-700 flex-wrap">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          let title;
+          let content = tab.label;
+
+          if (selectedClubId && tab.id === 'table-buy-in') {
+            title =
+              pendingRummyBuyInTabBadgeCount > 0
+                ? `${pendingRummyBuyInTabBadgeCount} on waitlist${
+                    pendingRummyBuyInRequestCount > 0
+                      ? ` · ${pendingRummyBuyInRequestCount} seated table chip request(s)`
+                      : ''
+                  }`
+                : pendingRummyBuyInRequestCount > 0
+                  ? `${pendingRummyBuyInRequestCount} seated table chip buy-in request(s) for rummy tables`
+                  : undefined;
+            content =
+              pendingRummyBuyInTabBadgeCount > 0 ? (
+                <span className="inline-flex items-center gap-2">
+                  <span>Table Buy-In</span>
+                  <span
+                    className={`text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center flex-shrink-0 text-white shadow-sm ${
+                      isActive ? 'bg-red-500 ring-2 ring-red-300/80' : 'bg-red-600'
+                    }`}
+                  >
+                    {pendingRummyBuyInTabBadgeCount > 99 ? '99+' : pendingRummyBuyInTabBadgeCount}
+                  </span>
+                </span>
+              ) : (
+                tab.label
+              );
+          } else if (selectedClubId && tab.id === 'table-buy-out') {
+            title =
+              pendingRummyBuyOutCount > 0
+                ? `${pendingRummyBuyOutCount} pending · ₹${pendingRummyBuyOutTotal.toLocaleString('en-IN')} est. on table`
+                : undefined;
+            content =
+              pendingRummyBuyOutCount > 0 ? (
+                <span className="inline-flex items-center gap-2">
+                  <span>Table Buy-Out</span>
+                  <span
+                    className={`text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center flex-shrink-0 text-white shadow-sm ${
+                      isActive ? 'bg-red-500 ring-2 ring-red-300/80' : 'bg-red-600'
+                    }`}
+                  >
+                    {pendingRummyBuyOutCount > 99 ? '99+' : pendingRummyBuyOutCount}
+                  </span>
+                </span>
+              ) : (
+                tab.label
+              );
+          }
+
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              title={title}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-3 font-semibold transition-all ${
+                isActive
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white border-b-2 border-emerald-400'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              {content}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab Content */}

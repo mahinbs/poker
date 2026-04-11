@@ -583,6 +583,7 @@ export default function GreDashboard() {
         setActiveItem={setActiveItem}
         menuItems={menuItems}
         onSignOut={handleSignOut}
+        rummyEnabled={!!clubInfo?.rummyEnabled}
       />
       <main className="flex-1 min-w-0 min-h-screen">
         <div className="p-6 space-y-6">

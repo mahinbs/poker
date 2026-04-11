@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { clubsAPI } from "../lib/api";
 import { io as socketIO } from 'socket.io-client';
 import toast from "react-hot-toast";
+import { isPendingBuyInOutRequest } from "../hooks/useTableBuyInOutPending";
 
 export default function TableBuyOutManagement({ clubId }) {
   const queryClient = useQueryClient();
+  const clubKey = clubId != null ? String(clubId) : null;
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
@@ -13,58 +15,58 @@ export default function TableBuyOutManagement({ clubId }) {
   const [cashoutAmount, setCashoutAmount] = useState("");
 
   const { data: selectedPlayerBalance } = useQuery({
-    queryKey: ['buyout-player-balance', clubId, selectedRequest?.playerId],
-    queryFn: () => clubsAPI.getPlayerBalance(clubId, selectedRequest.playerId),
-    enabled: !!clubId && !!selectedRequest?.playerId && showApproveModal,
+    queryKey: ['buyout-player-balance', clubKey, selectedRequest?.playerId],
+    queryFn: () => clubsAPI.getPlayerBalance(clubKey, selectedRequest.playerId),
+    enabled: !!clubKey && !!selectedRequest?.playerId && showApproveModal,
   });
 
   const { data: liveSeatedPlayer } = useQuery({
-    queryKey: ['buyout-live-seated-player', clubId, selectedRequest?.playerId],
+    queryKey: ['buyout-live-seated-player', clubKey, selectedRequest?.playerId],
     queryFn: async () => {
-      const seatedPlayers = await clubsAPI.getSeatedPlayers(clubId);
+      const seatedPlayers = await clubsAPI.getSeatedPlayers(clubKey);
       return Array.isArray(seatedPlayers)
         ? seatedPlayers.find((p) => String(p?.playerId) === String(selectedRequest?.playerId))
         : null;
     },
-    enabled: !!clubId && !!selectedRequest?.playerId && showApproveModal,
+    enabled: !!clubKey && !!selectedRequest?.playerId && showApproveModal,
   });
 
   // Socket.IO: instant updates for buy-out requests
   useEffect(() => {
-    if (!clubId) return;
+    if (!clubKey) return;
     const wsBase = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api').replace(/\/api$/, '');
     const token = localStorage.getItem('authToken') || localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
     const socket = socketIO(`${wsBase}/realtime`, {
-      auth: { clubId, userId, token },
+      auth: { clubId: clubKey, userId, token },
       transports: ['websocket', 'polling'],
       reconnection: true,
     });
-    socket.on('connect', () => socket.emit('subscribe:club', { clubId, userId }));
+    socket.on('connect', () => socket.emit('subscribe:club', { clubId: clubKey, userId }));
     socket.on('buyout:new-request', () => {
       console.log('🔔 [SOCKET] New buy-out request received');
-      queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['buyOutRequests'] });
       toast('💸 New buy-out request received!', { icon: '🔔' });
     });
     socket.on('buyout:updated', () => {
-      queryClient.invalidateQueries({ queryKey: ['buyOutRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['buyOutRequests'] });
     });
     return () => { socket.disconnect(); };
-  }, [clubId, queryClient]);
+  }, [clubKey, queryClient]);
 
   // Fetch pending buy-out requests (initial load + fallback)
   const { data: buyOutRequests = [], isLoading, refetch } = useQuery({
-    queryKey: ['buyOutRequests', clubId],
-    queryFn: () => clubsAPI.getBuyOutRequests(clubId),
-    enabled: !!clubId,
+    queryKey: ['buyOutRequests', clubKey],
+    queryFn: () => clubsAPI.getBuyOutRequests(clubKey),
+    enabled: !!clubKey,
   });
 
   // Approve buy-out mutation
   const approveMutation = useMutation({
-    mutationFn: ({ requestId, amount }) => clubsAPI.approveBuyOutRequest(clubId, requestId, { amount }),
+    mutationFn: ({ requestId, amount }) => clubsAPI.approveBuyOutRequest(clubKey, requestId, { amount }),
     onSuccess: () => {
       toast.success("Buy-out request approved and balance updated!");
-      queryClient.invalidateQueries(['buyOutRequests', clubId]);
+      queryClient.invalidateQueries({ queryKey: ['buyOutRequests'] });
       setSelectedRequest(null);
     },
     onError: (error) => {
@@ -74,10 +76,10 @@ export default function TableBuyOutManagement({ clubId }) {
 
   // Reject buy-out mutation
   const rejectMutation = useMutation({
-    mutationFn: ({ requestId, reason }) => clubsAPI.rejectBuyOutRequest(clubId, requestId, { reason }),
+    mutationFn: ({ requestId, reason }) => clubsAPI.rejectBuyOutRequest(clubKey, requestId, { reason }),
     onSuccess: () => {
       toast.success("Buy-out request rejected!");
-      queryClient.invalidateQueries(['buyOutRequests', clubId]);
+      queryClient.invalidateQueries({ queryKey: ['buyOutRequests'] });
       setSelectedRequest(null);
       setShowRejectModal(false);
       setRejectionReason("");
@@ -150,7 +152,10 @@ export default function TableBuyOutManagement({ clubId }) {
     });
   };
 
-  const pendingRequests = buyOutRequests.filter(r => r.status === 'pending');
+  const pendingRequests = useMemo(
+    () => buyOutRequests.filter(isPendingBuyInOutRequest),
+    [buyOutRequests]
+  );
   const resolvedTableBalance = Number(
     liveSeatedPlayer?.buyInAmount ??
     selectedPlayerBalance?.tableBalance ??

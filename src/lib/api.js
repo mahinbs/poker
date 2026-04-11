@@ -89,6 +89,20 @@ export const apiRequest = async (endpoint, options = {}) => {
   }
 };
 
+/**
+ * Many club list endpoints return either a JSON array or { data | requests | items | results }.
+ */
+export function normalizeApiListResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (data == null) return [];
+  if (Array.isArray(data.requests)) return data.requests;
+  if (Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data.items)) return data.items;
+  if (Array.isArray(data.results)) return data.results;
+  if (Array.isArray(data.entries)) return data.entries;
+  return [];
+}
+
 // =============================================================================
 // AUTHENTICATION API
 // =============================================================================
@@ -284,7 +298,10 @@ export const clubsAPI = {
    * Get buy-out requests
    */
   getBuyOutRequests: async (clubId) => {
-    return await apiRequest(`/clubs/${clubId}/buyout-requests`);
+    const raw = await apiRequest(`/clubs/${clubId}/buyout-requests`, {
+      clubIdOverride: clubId,
+    });
+    return normalizeApiListResponse(raw);
   },
 
   /**
@@ -294,6 +311,7 @@ export const clubsAPI = {
     return await apiRequest(`/clubs/${clubId}/buyout-requests/${requestId}/approve`, {
       method: 'POST',
       body: JSON.stringify(data),
+      clubIdOverride: clubId,
     });
   },
 
@@ -304,14 +322,25 @@ export const clubsAPI = {
     return await apiRequest(`/clubs/${clubId}/buyout-requests/${requestId}/reject`, {
       method: 'POST',
       body: JSON.stringify(data),
+      clubIdOverride: clubId,
     });
   },
 
   /**
-   * Get buy-in requests
+   * Get buy-in requests.
+   * @param {string} clubId
+   * @param {Record<string, string|number|boolean>} [queryParams] Optional query string, e.g. `{ tableChipQueue: 'true' }` if the backend filters table vs club wallet rows.
    */
-  getBuyInRequests: async (clubId) => {
-    return await apiRequest(`/clubs/${clubId}/buyin-requests`);
+  getBuyInRequests: async (clubId, queryParams = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(queryParams).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') params.append(k, String(v));
+    });
+    const qs = params.toString();
+    const raw = await apiRequest(`/clubs/${clubId}/buyin-requests${qs ? `?${qs}` : ''}`, {
+      clubIdOverride: clubId,
+    });
+    return normalizeApiListResponse(raw);
   },
 
   /**
@@ -321,6 +350,7 @@ export const clubsAPI = {
     return await apiRequest(`/clubs/${clubId}/buyin-requests/${requestId}/approve`, {
       method: 'POST',
       body: JSON.stringify(data),
+      clubIdOverride: clubId,
     });
   },
 
@@ -331,6 +361,7 @@ export const clubsAPI = {
     return await apiRequest(`/clubs/${clubId}/buyin-requests/${requestId}/reject`, {
       method: 'POST',
       body: JSON.stringify(data),
+      clubIdOverride: clubId,
     });
   },
 
@@ -613,7 +644,10 @@ export const waitlistAPI = {
    */
   getWaitlist: async (clubId, status = null) => {
     const query = status ? `?status=${status}` : '';
-    return await apiRequest(`/clubs/${clubId}/waitlist${query}`);
+    const raw = await apiRequest(`/clubs/${clubId}/waitlist${query}`, {
+      clubIdOverride: clubId,
+    });
+    return normalizeApiListResponse(raw);
   },
 
   /**

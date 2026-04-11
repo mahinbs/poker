@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
+import { countPendingClubBuyInCashOutRequests } from '../../hooks/useTableBuyInOutPending';
 import toast from "react-hot-toast";
 
 const DEFAULT_MENU_ITEMS = [
@@ -44,6 +45,19 @@ export default function CashierSidebar({
   // Get club ID for notifications badge
   const clubId = localStorage.getItem('clubId');
   useAdminRealtime(clubId);
+
+  const { data: clubBuyInRequests = [] } = useQuery({
+    queryKey: ['clubBuyInRequests', clubId],
+    queryFn: () => clubsAPI.getBuyInRequests(clubId),
+    enabled: !!clubId,
+    staleTime: 0,
+    refetchInterval: 12 * 1000,
+    refetchOnReconnect: true,
+  });
+  const pendingClubBuyInCount = useMemo(
+    () => countPendingClubBuyInCashOutRequests(clubBuyInRequests),
+    [clubBuyInRequests]
+  );
 
   // Fetch unread notification count
   const { data: unreadData } = useQuery({
@@ -331,8 +345,16 @@ export default function CashierSidebar({
                   : "bg-white/5 hover:bg-gradient-to-r hover:from-green-400/20 hover:to-emerald-500/20 text-white"
                   }`}
               >
-                <span className="flex items-center justify-between">
+                <span className="flex items-center justify-between gap-1 min-w-0">
                   <span className="block truncate">{item}</span>
+                  {item === "Club Buy-In" && clubId && pendingClubBuyInCount > 0 && (
+                    <span
+                      className="ml-2 bg-orange-500 text-white text-xs font-bold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center animate-pulse flex-shrink-0"
+                      title={`${pendingClubBuyInCount} pending buy-in request(s) (Club Buy-In & Cash Out)`}
+                    >
+                      {pendingClubBuyInCount > 99 ? "99+" : pendingClubBuyInCount}
+                    </span>
+                  )}
                   {item === "Notifications" && unreadData?.unreadCount > 0 && (
                     <span className="ml-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse flex-shrink-0">
                       {unreadData.unreadCount > 9 ? "9+" : unreadData.unreadCount}

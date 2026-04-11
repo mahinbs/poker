@@ -1,51 +1,53 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { clubsAPI } from "../lib/api";
 import { io as socketIO } from 'socket.io-client';
 import toast from "react-hot-toast";
+import { isPendingBuyInOutRequest } from "../hooks/useTableBuyInOutPending";
 
 export default function BuyInRequestManagement({ clubId }) {
   const queryClient = useQueryClient();
+  const clubKey = clubId != null ? String(clubId) : null;
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
 
   // Socket.IO: instant notification when a new buy-in request is created
   useEffect(() => {
-    if (!clubId) return;
+    if (!clubKey) return;
     const wsBase = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api').replace(/\/api$/, '');
     const token = localStorage.getItem('authToken') || localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
     const socket = socketIO(`${wsBase}/realtime`, {
-      auth: { clubId, userId, token },
+      auth: { clubId: clubKey, userId, token },
       transports: ['websocket', 'polling'],
       reconnection: true,
     });
-    socket.on('connect', () => socket.emit('subscribe:club', { clubId, userId }));
+    socket.on('connect', () => socket.emit('subscribe:club', { clubId: clubKey, userId }));
     socket.on('buyin:new-request', () => {
       console.log('🔔 [SOCKET] New buy-in request received');
-      queryClient.invalidateQueries({ queryKey: ['buyInRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['buyInRequests'] });
       toast('💰 New buy-in request received!', { icon: '🔔' });
     });
     socket.on('buyin:updated', () => {
-      queryClient.invalidateQueries({ queryKey: ['buyInRequests', clubId] });
+      queryClient.invalidateQueries({ queryKey: ['buyInRequests'] });
     });
     return () => { socket.disconnect(); };
-  }, [clubId, queryClient]);
+  }, [clubKey, queryClient]);
 
   // Fetch pending buy-in requests (initial load + fallback)
   const { data: buyInRequests = [], isLoading, error: fetchError, refetch } = useQuery({
-    queryKey: ['buyInRequests', clubId],
-    queryFn: () => clubsAPI.getBuyInRequests(clubId),
-    enabled: !!clubId,
+    queryKey: ['buyInRequests', clubKey],
+    queryFn: () => clubsAPI.getBuyInRequests(clubKey),
+    enabled: !!clubKey,
   });
 
   // Approve buy-in mutation
   const approveMutation = useMutation({
-    mutationFn: ({ requestId, amount }) => clubsAPI.approveBuyInRequest(clubId, requestId, { amount }),
+    mutationFn: ({ requestId, amount }) => clubsAPI.approveBuyInRequest(clubKey, requestId, { amount }),
     onSuccess: () => {
       toast.success("Buy-in request approved and balance updated!");
-      queryClient.invalidateQueries(['buyInRequests', clubId]);
+      queryClient.invalidateQueries({ queryKey: ['buyInRequests'] });
       setSelectedRequest(null);
     },
     onError: (error) => {
@@ -55,10 +57,10 @@ export default function BuyInRequestManagement({ clubId }) {
 
   // Reject buy-in mutation
   const rejectMutation = useMutation({
-    mutationFn: ({ requestId, reason }) => clubsAPI.rejectBuyInRequest(clubId, requestId, { reason }),
+    mutationFn: ({ requestId, reason }) => clubsAPI.rejectBuyInRequest(clubKey, requestId, { reason }),
     onSuccess: () => {
       toast.success("Buy-in request rejected!");
-      queryClient.invalidateQueries(['buyInRequests', clubId]);
+      queryClient.invalidateQueries({ queryKey: ['buyInRequests'] });
       setSelectedRequest(null);
       setShowRejectModal(false);
       setRejectionReason("");
@@ -106,7 +108,10 @@ export default function BuyInRequestManagement({ clubId }) {
     });
   };
 
-  const pendingRequests = buyInRequests.filter(r => r.status === 'pending');
+  const pendingRequests = useMemo(
+    () => buyInRequests.filter(isPendingBuyInOutRequest),
+    [buyInRequests]
+  );
 
   return (
     <div className="space-y-6">
