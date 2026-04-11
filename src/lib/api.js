@@ -134,6 +134,7 @@ export const authAPI = {
         name: data.user.displayName || data.user.email,
         displayName: data.user.displayName,
         isMasterAdmin: data.user.isMasterAdmin || false,
+        mustResetPassword: data.user.mustResetPassword || false,
         staffId: data.user.staffId // Store staff ID for notifications
       }));
       
@@ -1683,6 +1684,25 @@ export const tenantsAPI = {
   getLogoPublicUrl: async (tenantId, clubId) => {
     const response = await apiRequest(`/tenants/${tenantId}/clubs/${clubId}/logo-url`);
     return response.logoUrl;
+  },
+
+  /**
+   * Reset tenant Super Admin password (Master Admin only)
+   */
+  resetTenantSuperAdminPassword: async (tenantId) => {
+    return await apiRequest(`/tenants/${tenantId}/reset-super-admin-password`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Permanently delete tenant (Master Admin only)
+   */
+  deleteTenant: async (tenantId, options = {}) => {
+    return await apiRequest(`/tenants/${tenantId}`, {
+      method: 'DELETE',
+      body: JSON.stringify(options),
+    });
   },
 };
 
