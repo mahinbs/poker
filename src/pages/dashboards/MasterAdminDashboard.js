@@ -62,6 +62,38 @@ export default function MasterAdminDashboard() {
   const [successData, setSuccessData] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState(""); // 'success' or 'error'
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    title: '',
+    message: '',
+    confirmLabel: 'Confirm',
+    confirmClass: 'bg-emerald-600 hover:bg-emerald-500',
+    onConfirm: null,
+  });
+  const [tenantActionModal, setTenantActionModal] = useState({
+    open: false,
+    type: '',
+    tenant: null,
+    activeClubs: [],
+    inputValue: '',
+  });
+  const [credentialPopup, setCredentialPopup] = useState({
+    open: false,
+    title: '',
+    email: '',
+    tempPassword: '',
+    footNotes: [],
+  });
+
+  const closeCredentialPopup = () => {
+    setCredentialPopup({
+      open: false,
+      title: '',
+      email: '',
+      tempPassword: '',
+      footNotes: [],
+    });
+  };
 
   const [termsForm, setTermsForm] = useState({
     termsText: "",
@@ -225,6 +257,48 @@ export default function MasterAdminDashboard() {
       setToastMessage("");
       setToastType("");
     }, 5000);
+  };
+
+  const copyCredentialValue = async (label, value) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      showToast(`${label} copied to clipboard`, 'success');
+    } catch {
+      showToast('Copy failed — select the text and copy manually', 'error');
+    }
+  };
+
+  const openConfirmModal = ({ title, message, onConfirm, confirmLabel = 'Confirm', confirmClass = 'bg-emerald-600 hover:bg-emerald-500' }) => {
+    setConfirmModal({
+      open: true,
+      title,
+      message,
+      onConfirm,
+      confirmLabel,
+      confirmClass,
+    });
+  };
+
+  const closeConfirmModal = () => {
+    setConfirmModal({
+      open: false,
+      title: '',
+      message: '',
+      confirmLabel: 'Confirm',
+      confirmClass: 'bg-emerald-600 hover:bg-emerald-500',
+      onConfirm: null,
+    });
+  };
+
+  const closeTenantActionModal = () => {
+    setTenantActionModal({
+      open: false,
+      type: '',
+      tenant: null,
+      activeClubs: [],
+      inputValue: '',
+    });
   };
 
   const handleCreateTenant = async (e) => {
@@ -399,28 +473,63 @@ export default function MasterAdminDashboard() {
   };
 
   const handleUpdateClubStatus = async (clubId, status, reason) => {
-    if (!confirm(`Are you sure you want to ${status} this club?\n\n${reason ? 'Reason: ' + reason : ''}`)) {
-      return;
-    }
+    openConfirmModal({
+      title: 'Confirm Club Status Change',
+      message: `Are you sure you want to set this club to "${status}"?${reason ? `\nReason: ${reason}` : ''}`,
+      confirmLabel: 'Yes, Update',
+      onConfirm: async () => {
+        try {
+          await masterAdminAPI.updateClubStatus(clubId, status, reason);
+          showToast(`Club status updated to: ${status}`, 'success');
+          loadDashboardData();
+        } catch (err) {
+          showToast("Failed to update club status: " + err.message, 'error');
+        }
+      },
+    });
+  };
 
-    try {
-      await masterAdminAPI.updateClubStatus(clubId, status, reason);
-      alert(`✅ Club status updated to: ${status}`);
-      loadDashboardData();
-    } catch (err) {
-      alert("Failed to update club status: " + err.message);
+  const isSafeTenantDelete = (tenantId) => {
+    const tenantClubs = clubs.filter(c => c.tenant.id === tenantId);
+    if (tenantClubs.length === 0) {
+      return true; // Tenant with no clubs can be deleted.
     }
+    return tenantClubs.every((club) => ['suspended', 'killed'].includes(String(club.status || '').toLowerCase()));
+  };
+
+  const handleResetTenantSuperAdminPassword = async (tenant) => {
+    if (!tenant?.id) return;
+    setTenantActionModal({
+      open: true,
+      type: 'reset',
+      tenant,
+      activeClubs: [],
+      inputValue: '',
+    });
+  };
+
+  const handleDeleteTenantPermanently = async (tenant) => {
+    if (!tenant?.id) return;
+    const tenantClubs = clubs.filter(c => c.tenant.id === tenant.id);
+    const activeClubs = tenantClubs.filter(c => String(c.status || '').toLowerCase() === 'active');
+    setTenantActionModal({
+      open: true,
+      type: 'delete',
+      tenant,
+      activeClubs,
+      inputValue: '',
+    });
   };
 
   const handleUpdateSubscription = async (clubId, subscriptionData) => {
     try {
       await masterAdminAPI.updateClubSubscription(clubId, subscriptionData);
-      alert("✅ Subscription updated successfully!");
+      showToast("Subscription updated successfully!", 'success');
       setEditingSubscriptionClubId(null);
       setSubscriptionEditForm({});
       loadDashboardData();
     } catch (err) {
-      alert("Failed to update subscription: " + err.message);
+      showToast("Failed to update subscription: " + err.message, 'error');
     }
   };
 
@@ -490,18 +599,18 @@ export default function MasterAdminDashboard() {
     if (e) e.preventDefault();
     
     if (!selectedClubId) {
-      alert('Please select a club first');
+      showToast('Please select a club first', 'error');
       return;
     }
 
     if (!termsForm.termsText || termsForm.termsText.trim() === '') {
-      alert('Terms & Conditions text cannot be empty');
+      showToast('Terms & Conditions text cannot be empty', 'error');
       return;
     }
 
     try {
       await masterAdminAPI.updateClubTerms(selectedClubId, termsForm.termsText);
-      alert('✅ Terms & Conditions updated successfully!');
+      showToast('Terms & Conditions updated successfully!', 'success');
       
       // Reload clubs to get updated data
       loadDashboardData();
@@ -515,22 +624,25 @@ export default function MasterAdminDashboard() {
         });
       }
     } catch (err) {
-      alert('Failed to update Terms & Conditions: ' + err.message);
+      showToast('Failed to update Terms & Conditions: ' + err.message, 'error');
     }
   };
 
   const handleUpdateRummyEnabled = async (clubId, enabled) => {
-    if (!confirm(`Are you sure you want to ${enabled ? 'enable' : 'disable'} Rummy mode for this club?`)) {
-      return;
-    }
-
-    try {
-      await masterAdminAPI.updateClubRummyEnabled(clubId, enabled);
-      showToast(`✅ Rummy mode ${enabled ? 'enabled' : 'disabled'} successfully!`, 'success');
-      loadDashboardData();
-    } catch (err) {
-      showToast('Failed to update Rummy mode: ' + err.message, 'error');
-    }
+    openConfirmModal({
+      title: 'Confirm Rummy Mode Change',
+      message: `Are you sure you want to ${enabled ? 'enable' : 'disable'} Rummy mode for this club?`,
+      confirmLabel: 'Yes, Continue',
+      onConfirm: async () => {
+        try {
+          await masterAdminAPI.updateClubRummyEnabled(clubId, enabled);
+          showToast(`Rummy mode ${enabled ? 'enabled' : 'disabled'} successfully!`, 'success');
+          loadDashboardData();
+        } catch (err) {
+          showToast('Failed to update Rummy mode: ' + err.message, 'error');
+        }
+      },
+    });
   };
 
   const handleUpdateGameAccess = async (clubId, updates) => {
@@ -545,6 +657,77 @@ export default function MasterAdminDashboard() {
       loadDashboardData();
     } catch (err) {
       showToast('Failed to update game access: ' + err.message, 'error');
+    }
+  };
+
+  const executeConfirmModalAction = async () => {
+    const action = confirmModal.onConfirm;
+    closeConfirmModal();
+    if (typeof action === 'function') {
+      await action();
+    }
+  };
+
+  const submitTenantAction = async () => {
+    const { tenant, type, inputValue, activeClubs } = tenantActionModal;
+    if (!tenant?.id) return;
+
+    if (inputValue.trim() !== tenant.name) {
+      showToast('Confirmation text mismatch. Please type exact tenant name.', 'error');
+      return;
+    }
+
+    try {
+      if (type === 'reset') {
+        const result = await tenantsAPI.resetTenantSuperAdminPassword(tenant.id);
+        closeTenantActionModal();
+        setCredentialPopup({
+          open: true,
+          title: `Password reset for ${result.tenantName}`,
+          email: result.superAdminEmail || '',
+          tempPassword: result.tempPassword || '',
+          footNotes: [
+            'User must reset password on next login.',
+            'Existing active sessions are blocked until they complete reset.',
+          ],
+        });
+        showToast(`Password reset for ${tenant.name}`, 'success');
+        return;
+      }
+
+      const forceDeleteActiveClubs = activeClubs.length > 0;
+      const tenantClubs = clubs.filter(c => c.tenant.id === tenant.id);
+      await tenantsAPI.deleteTenant(tenant.id, { forceDeleteActiveClubs });
+      closeTenantActionModal();
+
+      if (selectedTenantId === tenant.id) {
+        setSelectedTenantId(null);
+      }
+
+      const deletedClubCount = tenantClubs.length;
+      const deletedActiveClubs = tenantClubs.filter(c => c.status === 'active').length;
+      const deletedSuspendedClubs = tenantClubs.filter(c => c.status === 'suspended').length;
+      const deletedKilledClubs = tenantClubs.filter(c => c.status === 'killed').length;
+      const deletedRevenue = tenantClubs.reduce((sum, c) => sum + (parseFloat(c.subscriptionPrice) || 0), 0);
+
+      setTenants((prev) => prev.filter((t) => t.id !== tenant.id));
+      setClubs((prev) => prev.filter((c) => c.tenant.id !== tenant.id));
+      setStats((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          totalTenants: Math.max(0, (prev.totalTenants || 0) - 1),
+          totalClubs: Math.max(0, (prev.totalClubs || 0) - deletedClubCount),
+          activeClubs: Math.max(0, (prev.activeClubs || 0) - deletedActiveClubs),
+          suspendedClubs: Math.max(0, (prev.suspendedClubs || 0) - deletedSuspendedClubs),
+          killedClubs: Math.max(0, (prev.killedClubs || 0) - deletedKilledClubs),
+          monthlyRevenue: Math.max(0, (prev.monthlyRevenue || 0) - deletedRevenue),
+        };
+      });
+
+      showToast(`Tenant "${tenant.name}" deleted permanently`, 'success');
+    } catch (err) {
+      showToast(`Failed to ${type === 'reset' ? 'reset password' : 'delete tenant'}: ${err.message}`, 'error');
     }
   };
 
@@ -776,6 +959,30 @@ export default function MasterAdminDashboard() {
                     </div>
                     </div>
                   </div>
+
+                        {isExpanded && (
+                          <div className="mt-2 mb-4 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleResetTenantSuperAdminPassword(tenant)}
+                              className="px-3 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white"
+                            >
+                              Reset Tenant Password
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTenantPermanently(tenant)}
+                              className="px-3 py-1.5 rounded-md text-xs font-medium bg-red-700 hover:bg-red-600 text-white"
+                              title={
+                                isSafeTenantDelete(tenant.id)
+                                  ? 'Safe delete: all clubs are suspended/killed (or no clubs exist)'
+                                  : 'Override delete: tenant has active clubs and will require extra confirmation'
+                              }
+                            >
+                              Delete Tenant Permanently
+                            </button>
+                          </div>
+                        )}
 
                         {isExpanded && tenantClubs.length > 0 && (
                           <div className="mt-4 pt-4 border-t border-slate-700 space-y-2">
@@ -1795,6 +2002,170 @@ export default function MasterAdminDashboard() {
             <p className="font-medium">{toastMessage}</p>
                 </div>
               </div>
+      )}
+
+      {/* Generic Confirm Modal */}
+      {confirmModal.open && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[110] p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl p-6">
+            <h3 className="text-xl font-bold text-white">{confirmModal.title}</h3>
+            <p className="text-slate-300 mt-3 whitespace-pre-line">{confirmModal.message}</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={closeConfirmModal}
+                className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeConfirmModalAction}
+                className={`px-4 py-2 rounded-lg text-white font-semibold ${confirmModal.confirmClass}`}
+              >
+                {confirmModal.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tenant Action Modal */}
+      {tenantActionModal.open && tenantActionModal.tenant && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[110] p-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl p-6">
+            <h3 className="text-2xl font-bold text-white">
+              {tenantActionModal.type === 'reset' ? 'Reset Tenant Super Admin Password' : 'Delete Tenant Permanently'}
+            </h3>
+
+            <div className="mt-4 space-y-3 text-slate-200">
+              <p>
+                Tenant: <span className="font-semibold text-white">{tenantActionModal.tenant.name}</span>
+              </p>
+
+              {tenantActionModal.type === 'reset' ? (
+                <div className="rounded-lg border border-yellow-500/40 bg-yellow-900/20 p-4 text-yellow-100">
+                  This will generate a temporary password and force password reset on next login.
+                  Existing active sessions are blocked until reset.
+                </div>
+              ) : (
+                <>
+                  {tenantActionModal.activeClubs.length > 0 && (
+                    <div className="rounded-lg border border-red-500/40 bg-red-900/20 p-4 text-red-100">
+                      Override delete enabled. Active club(s): {tenantActionModal.activeClubs.map((club) => club.name).join(', ')}
+                    </div>
+                  )}
+                  <div className="rounded-lg border border-red-500/40 bg-red-900/20 p-4 text-red-100">
+                    This permanently deletes tenant, clubs, staff, players and related data.
+                    This action cannot be undone.
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="mt-5">
+              <label className="block text-sm text-slate-300 mb-2">
+                Type <span className="font-semibold text-white">{tenantActionModal.tenant.name}</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={tenantActionModal.inputValue}
+                onChange={(e) => setTenantActionModal((prev) => ({ ...prev, inputValue: e.target.value }))}
+                className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="Enter tenant name exactly"
+              />
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={closeTenantActionModal}
+                className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitTenantAction}
+                className={`px-4 py-2 rounded-lg text-white font-semibold ${
+                  tenantActionModal.type === 'reset' ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-red-600 hover:bg-red-500'
+                }`}
+              >
+                {tenantActionModal.type === 'reset' ? 'Reset Password' : 'Delete Tenant'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Credential Popup */}
+      {credentialPopup.open && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[110] p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-emerald-500/35 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 shadow-2xl shadow-emerald-900/20 p-6 sm:p-8">
+            <div className="flex items-start gap-3 mb-6">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 ring-1 ring-emerald-400/40">
+                <svg className="h-6 w-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold text-white leading-tight">{credentialPopup.title}</h3>
+                <p className="mt-1 text-sm text-slate-400">Share only over a trusted channel. This window is the only time we show the temp password.</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-xl border border-cyan-500/35 bg-gradient-to-br from-cyan-950/60 to-slate-900/80 p-4 ring-1 ring-cyan-400/10">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-cyan-300/90">Super Admin email</span>
+                  <button
+                    type="button"
+                    onClick={() => copyCredentialValue('Email', credentialPopup.email)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-500/15 px-2.5 py-1 text-xs font-medium text-cyan-200 hover:bg-cyan-500/25 transition-colors"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy
+                  </button>
+                </div>
+                <p className="select-all break-all text-base sm:text-lg font-medium text-white tracking-tight">{credentialPopup.email}</p>
+              </div>
+
+              <div className="rounded-xl border border-amber-500/40 bg-gradient-to-br from-amber-950/50 via-slate-900/90 to-slate-950 p-4 ring-1 ring-amber-400/15 shadow-inner shadow-amber-900/10">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-amber-300/95">Temporary password</span>
+                  <button
+                    type="button"
+                    onClick={() => copyCredentialValue('Temporary password', credentialPopup.tempPassword)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/20 px-2.5 py-1 text-xs font-medium text-amber-100 hover:bg-amber-500/30 transition-colors"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy
+                  </button>
+                </div>
+                <p className="select-all break-all font-mono text-lg sm:text-xl font-bold text-amber-50 tracking-wide leading-relaxed">{credentialPopup.tempPassword}</p>
+              </div>
+            </div>
+
+            {credentialPopup.footNotes?.length > 0 && (
+              <ul className="mt-5 space-y-2 rounded-lg border border-slate-600/50 bg-slate-800/40 px-4 py-3 text-sm text-slate-300">
+                {credentialPopup.footNotes.map((note, idx) => (
+                  <li key={idx} className="flex gap-2">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+                    <span>{note}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <button
+              type="button"
+              onClick={closeCredentialPopup}
+              className="mt-6 w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 text-white font-semibold shadow-lg shadow-emerald-900/30 hover:from-emerald-500 hover:to-teal-500 transition-all"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Success Modal */}
