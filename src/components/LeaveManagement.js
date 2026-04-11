@@ -125,6 +125,34 @@ function clientFilterApproveList(rows, filters) {
   });
 }
 
+function parseDateInput(dateString) {
+  if (!dateString) return null;
+  const [year, month, day] = String(dateString).split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function countOffDaysInRange(startDateString, endDateString) {
+  const start = parseDateInput(startDateString);
+  const end = parseDateInput(endDateString);
+  if (!start || !end || start > end) return { offDays: 0, totalDays: 0 };
+
+  let offDays = 0;
+  let totalDays = 0;
+  const current = new Date(start);
+
+  while (current <= end) {
+    totalDays += 1;
+    const dayOfWeek = current.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      offDays += 1;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+
+  return { offDays, totalDays };
+}
+
 export default function LeaveManagement({ clubId }) {
   const queryClient = useQueryClient();
   const userRole = getStaffRoleFromStorage();
@@ -591,6 +619,17 @@ export default function LeaveManagement({ clubId }) {
 
   const handleSubmitLeave = (e) => {
     e.preventDefault();
+
+    const { offDays, totalDays } = countOffDaysInRange(leaveForm.startDate, leaveForm.endDate);
+    if (totalDays > 0 && offDays === totalDays) {
+      toast.error('Selected date range contains only off days (Saturday/Sunday). Choose at least one working day.');
+      return;
+    }
+
+    if (offDays > 0) {
+      toast(`Note: ${offDays} off day(s) in this range will be excluded from leave count.`, { icon: 'ℹ️' });
+    }
+
     createLeaveMutation.mutate(leaveForm);
   };
 
