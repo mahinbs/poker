@@ -324,15 +324,6 @@ export default function CreditFeatureSection({
                       </div>
                       <div className="space-y-2">
                         <div className="text-sm">
-                          <span className="text-gray-400">Approved Limit:</span>{" "}
-                          <span className="text-white font-semibold">
-                            ₹
-                            {disbursement.approvedLimit.toLocaleString(
-                              "en-IN"
-                            )}
-                          </span>
-                        </div>
-                        <div className="text-sm">
                           <span className="text-gray-400">Current Balance:</span>{" "}
                           <span className="text-white font-semibold">
                             ₹

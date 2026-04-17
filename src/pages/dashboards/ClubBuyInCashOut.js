@@ -283,6 +283,14 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
     enabled: !!selectedClubId && !!selectedPlayerCashOut,
   });
 
+  // Latest wallet / table breakdown when selecting a player for club buy-in
+  const { data: buyInPlayerBalance, isLoading: buyInBalanceLoading } = useQuery({
+    queryKey: ["playerBalance", selectedClubId, selectedPlayerBuyIn?.id, "buy-in-tab"],
+    queryFn: () => superAdminAPI.getPlayerBalance(selectedClubId, selectedPlayerBuyIn.id),
+    enabled: !!selectedClubId && !!selectedPlayerBuyIn && activeTab === "buy-in",
+    staleTime: 0,
+  });
+
   // Get recent club buy-ins ONLY (not table buy-in/buy-out)
   const { data: recentBuyIns = [] } = useQuery({
     queryKey: ["recentBuyIns", selectedClubId],
@@ -425,6 +433,7 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
       queryClient.invalidateQueries(["recentBuyIns", selectedClubId]);
       queryClient.invalidateQueries(["playerBalance"]);
       queryClient.invalidateQueries(["clubPlayers", selectedClubId]);
+      queryClient.invalidateQueries({ queryKey: ["playerBalance", selectedClubId] });
       // Reset form
       setSelectedPlayerBuyIn(null);
       setBuyInAmount("");
@@ -805,6 +814,79 @@ export default function ClubBuyInCashOut({ selectedClubId, onBack }) {
                   label="Search Player"
                 />
               </div>
+
+              {selectedPlayerBuyIn && (
+                <div className="mb-4 rounded-lg border border-slate-600 bg-slate-900/60 px-4 py-3 text-sm text-slate-200">
+                  <div className="font-semibold text-emerald-300 mb-2">Current balances (live)</div>
+                  <p className="text-[11px] text-slate-500 mb-2">Same numbers as the player app (player portal balance API).</p>
+                  {buyInBalanceLoading ? (
+                    <div className="text-slate-400">Loading balance…</div>
+                  ) : buyInPlayerBalance ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-slate-400">Wallet (cash)</span>
+                        <div className="text-lg font-bold text-white">
+                          ₹{Number(buyInPlayerBalance.availableBalance ?? buyInPlayerBalance.cashBalance ?? 0).toLocaleString("en-IN")}
+                        </div>
+                      </div>
+                      {buyInPlayerBalance.creditEnabled && Number(buyInPlayerBalance.creditLimit) > 0 ? (
+                        <>
+                          <div>
+                            <span className="text-slate-400">Total credit</span>
+                            <div className="text-lg font-bold text-sky-200">
+                              ₹{Number(buyInPlayerBalance.totalCredit ?? buyInPlayerBalance.creditLimit ?? 0).toLocaleString("en-IN")}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Credit used (toward line)</span>
+                            <div className="text-lg font-bold text-rose-300">
+                              ₹{Number(buyInPlayerBalance.creditRepaidViaWallet ?? 0).toLocaleString("en-IN")}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Credit on line</span>
+                            <div className="text-lg font-bold text-amber-200">
+                              ₹{Number(buyInPlayerBalance.creditUsed ?? 0).toLocaleString("en-IN")}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Credit remaining</span>
+                            <div className="text-lg font-bold text-emerald-200">
+                              ₹{Number(buyInPlayerBalance.availableCredit ?? buyInPlayerBalance.creditRemaining ?? 0).toLocaleString("en-IN")}
+                            </div>
+                          </div>
+                        </>
+                      ) : null}
+                      {buyInPlayerBalance.isSeated ? (
+                        <>
+                          <div>
+                            <span className="text-slate-400">On table (total)</span>
+                            <div className="text-lg font-bold text-amber-200">
+                              ₹{Number(buyInPlayerBalance.tableBalance ?? 0).toLocaleString("en-IN")}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Credit on table</span>
+                            <div className="text-white">
+                              ₹{Number(buyInPlayerBalance.creditUsedOnTable ?? 0).toLocaleString("en-IN")}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Cash on table</span>
+                            <div className="text-white">
+                              ₹{Number(buyInPlayerBalance.cashOnTable ?? 0).toLocaleString("en-IN")}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-slate-500 sm:col-span-1">Not seated at a table</div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-slate-400">Balance unavailable</div>
+                  )}
+                </div>
+              )}
 
               {/* Buy-In Amount */}
               <div className="mb-4">

@@ -62,7 +62,8 @@ export default function PushNotifications({ selectedClubId }) {
     customPlayerIds: [],
     customStaffIds: [],
     scheduledAt: "",
-    isActive: true,
+    /** ISO local datetime string from datetime-local; optional */
+    expiresAt: "",
   });
 
   // Fetch notifications
@@ -180,7 +181,8 @@ export default function PushNotifications({ selectedClubId }) {
         customStaffIds: data.targetType === NOTIFICATION_TARGETS.STAFF_CUSTOM ? data.customStaffIds : undefined,
         notificationType: activeTab,
         scheduledAt: data.scheduledAt || undefined,
-        isActive: data.isActive,
+        expiresAt: data.expiresAt ? new Date(data.expiresAt).toISOString() : undefined,
+        isActive: true,
       });
     },
     onSuccess: () => {
@@ -234,7 +236,7 @@ export default function PushNotifications({ selectedClubId }) {
       customPlayerIds: [],
       customStaffIds: [],
       scheduledAt: "",
-      isActive: true,
+      expiresAt: "",
     });
   };
 
@@ -255,8 +257,13 @@ export default function PushNotifications({ selectedClubId }) {
     createNotificationMutation.mutate(notificationForm);
   };
 
-  const handleSend = (notificationId, title) => {
-    if (window.confirm(`Are you sure you want to send "${title}" to all recipients?`)) {
+  const handleSend = (notificationId, title, notification) => {
+    let msg = `Are you sure you want to send "${title}" to all recipients?`;
+    if (activeTab === "player" && notification && !notification.expiresAt) {
+      msg +=
+        "\n\nThis player offer has no expiry date. It will stay in the player app until you delete or deactivate it. Send anyway?";
+    }
+    if (window.confirm(msg)) {
       sendNotificationMutation.mutate(notificationId);
     }
   };
@@ -368,11 +375,20 @@ export default function PushNotifications({ selectedClubId }) {
                         ? "bg-green-600 text-white"
                         : "bg-gray-600 text-gray-300"
                     }`}>
-                      {notification.isActive ? "Active" : "Inactive"}
+                      {notification.isActive ? "Enabled" : "Disabled"}
                     </span>
-                    {notification.sentAt && (
+                    {!notification.sentAt ? (
+                      <span className="px-3 py-1 bg-amber-600 text-white text-sm font-semibold rounded">
+                        Draft
+                      </span>
+                    ) : (
                       <span className="px-3 py-1 bg-purple-600 text-white text-sm font-semibold rounded">
                         Sent {new Date(notification.sentAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                      </span>
+                    )}
+                    {notification.expiresAt && (
+                      <span className="px-3 py-1 bg-amber-700 text-white text-sm font-semibold rounded">
+                        Expires {new Date(notification.expiresAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
                       </span>
                     )}
                   </div>
@@ -398,7 +414,7 @@ export default function PushNotifications({ selectedClubId }) {
                 <div className="ml-4 flex flex-col gap-2">
                   {!notification.sentAt && (
                     <button
-                      onClick={() => handleSend(notification.id, notification.title)}
+                      onClick={() => handleSend(notification.id, notification.title, notification)}
                       disabled={sendNotificationMutation.isPending}
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
                     >
@@ -593,6 +609,9 @@ function NotificationModal({
             <label className="block text-gray-300 mb-2 font-semibold">
               Video (Optional)
             </label>
+            <p className="text-gray-500 text-xs mb-2">
+              Players open the offer in the app and use the built-in video controls to play this file (same as a normal web video).
+            </p>
             <div className="flex gap-2">
               <label className="flex-shrink-0 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold cursor-pointer transition-colors">
                 <input
@@ -642,19 +661,24 @@ function NotificationModal({
             <p className="text-gray-500 text-xs mt-1">Leave empty to send immediately</p>
           </div>
 
-          {/* Is Active */}
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="isActive"
-              checked={form.isActive}
-              onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-              className="w-5 h-5 text-blue-600 bg-slate-700 border-gray-600 rounded focus:ring-blue-500"
-            />
-            <label htmlFor="isActive" className="text-gray-300 font-semibold">
-              Notification is Active
-            </label>
-          </div>
+          {/* Player offer auto-remove (optional) */}
+          {activeTab === "player" && (
+            <div>
+              <label className="block text-gray-300 mb-2 font-semibold">
+                Player offer expiry (optional)
+              </label>
+              <input
+                type="datetime-local"
+                value={form.expiresAt}
+                onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
+                className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+              <p className="text-gray-500 text-xs mt-1">
+                If set, after this time the offer is removed from the player app automatically (no refresh needed).
+                Leave empty to keep it until you delete or deactivate it. Videos use normal in-app playback controls.
+              </p>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">

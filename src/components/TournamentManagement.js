@@ -74,6 +74,7 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
     custom_payout_structure: "",
     custom_seat_draw_method: "",
     custom_clock_pause_rules: "",
+    prize_pool: "",
   });
 
   const [winnersForm, setWinnersForm] = useState([]);
@@ -602,6 +603,7 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
       custom_payout_structure: "",
       custom_seat_draw_method: "",
       custom_clock_pause_rules: "",
+      prize_pool: "",
     });
   };
 
@@ -614,6 +616,10 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
       !tournamentForm.starting_bb
     ) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+    if (!tournamentForm.prize_pool || parseFloat(tournamentForm.prize_pool) <= 0) {
+      toast.error("Enter tournament prize money in ₹ (required)");
       return;
     }
 
@@ -647,6 +653,8 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
       custom_payout_structure: tournamentForm.custom_payout_structure || undefined,
       custom_seat_draw_method: tournamentForm.custom_seat_draw_method || undefined,
       custom_clock_pause_rules: tournamentForm.custom_clock_pause_rules || undefined,
+      prize_pool_mode: "manual",
+      prize_pool: parseFloat(tournamentForm.prize_pool || "0") || 0,
     };
 
     createMutation.mutate(tournamentData);
@@ -728,6 +736,10 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
       custom_payout_structure: tournament.custom_payout_structure || "",
       custom_seat_draw_method: tournament.custom_seat_draw_method || "",
       custom_clock_pause_rules: tournament.custom_clock_pause_rules || "",
+      prize_pool:
+        tournament.prize_pool != null && Number(tournament.prize_pool) > 0
+          ? String(tournament.prize_pool)
+          : "",
     });
     setShowEditModal(true);
   };
@@ -741,6 +753,10 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
       !tournamentForm.starting_bb
     ) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+    if (!tournamentForm.prize_pool || parseFloat(tournamentForm.prize_pool) <= 0) {
+      toast.error("Enter tournament prize money in ₹ (required)");
       return;
     }
 
@@ -774,6 +790,8 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
       custom_payout_structure: tournamentForm.custom_payout_structure || undefined,
       custom_seat_draw_method: tournamentForm.custom_seat_draw_method || undefined,
       custom_clock_pause_rules: tournamentForm.custom_clock_pause_rules || undefined,
+      prize_pool_mode: "manual",
+      prize_pool: parseFloat(tournamentForm.prize_pool || "0") || 0,
     };
 
     updateMutation.mutate({
@@ -1099,6 +1117,19 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
                       }
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-white text-sm mb-1 block">Tournament prize money (₹) *</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-500"
+                    placeholder="50000"
+                    min="0"
+                    step="1"
+                    value={tournamentForm.prize_pool}
+                    onChange={(e) => setTournamentForm({ ...tournamentForm, prize_pool: e.target.value })}
+                  />
                 </div>
 
                 <div>
@@ -1591,6 +1622,19 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
                 </div>
 
                 <div>
+                  <label className="text-white text-sm mb-1 block">Tournament prize money (₹) *</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                    placeholder="50000"
+                    min="0"
+                    step="1"
+                    value={tournamentForm.prize_pool}
+                    onChange={(e) => setTournamentForm({ ...tournamentForm, prize_pool: e.target.value })}
+                  />
+                </div>
+
+                <div>
                   <label className="text-white text-sm mb-1 block">Starting Chips *</label>
                   <input
                     type="number"
@@ -2056,7 +2100,7 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
                         Prize Pool
                       </div>
                       <div className="text-white text-2xl font-bold">
-                        ₹{(selectedTournament.prize_pool || (selectedTournament.buy_in * (players.length || selectedTournament.registered_players || 0))).toLocaleString()}
+                        ₹{(Number(selectedTournament.prize_pool) || 0).toLocaleString()}
                       </div>
                     </div>
                   </div>

@@ -6,8 +6,18 @@ import { getPlayerManagementPollIntervalMs } from "../../lib/utils";
 import toast from "react-hot-toast";
 
 const KYC_BUCKET = "kyc-docs";
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+/** If .env mistakenly has REACT_APP_SUPABASE_ANON_KEY=SUPABASE_ANON_KEY=eyJ... Supabase rejects it ("JWS Protected Header is invalid"). */
+function normalizeSupabaseAnonKey(raw) {
+  if (!raw || typeof raw !== "string") return "";
+  let s = raw.trim().replace(/^["']|["']$/g, "");
+  if (s.toLowerCase().startsWith("bearer ")) s = s.slice(7).trim();
+  s = s.replace(/^SUPABASE_ANON_KEY\s*=\s*/i, "").trim();
+  return s;
+}
+
+const supabaseUrl = (process.env.REACT_APP_SUPABASE_URL || "").trim();
+const supabaseAnonKey = normalizeSupabaseAnonKey(process.env.REACT_APP_SUPABASE_ANON_KEY || "");
 const useClientUpload = Boolean(supabaseUrl && supabaseAnonKey);
 const DOC_IMAGE_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const DOC_PDF_MIME_TYPES = ["application/pdf"];
@@ -370,7 +380,15 @@ export default function UnifiedPlayerManagement({
 
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [docViewModal, setDocViewModal] = useState({ open: false, request: null, oldDocUrl: null, newDocUrl: null });
+  const [docViewModal, setDocViewModal] = useState({
+    open: false,
+    request: null,
+    oldDocUrl: null,
+    newDocUrl: null,
+    oldSlots: null,
+    newSlots: null,
+    loading: false,
+  });
 
   const approveFieldMutation = useMutation({
     mutationFn: ({ requestId }) => superAdminAPI.approveFieldUpdate(selectedClubId, requestId),
@@ -1219,18 +1237,59 @@ export default function UnifiedPlayerManagement({
                           name: 'Name',
                           email: 'Email',
                           government_id: 'Aadhaar (Legacy)',
+                          aadhaar: 'Aadhaar (Front & Back)',
                           aadhaar_front: 'Aadhaar Front',
                           aadhaar_back: 'Aadhaar Back',
                           pan_card: 'PAN Card',
+                          profile_photo: 'Profile Photo',
                         };
                         const fieldLabel = fieldLabelMap[request.fieldName] || request.fieldName;
-                        const isDocField = ['government_id', 'aadhaar_front', 'aadhaar_back', 'pan_card'].includes(request.fieldName);
+                        const isDocField = ['government_id', 'aadhaar', 'aadhaar_front', 'aadhaar_back', 'pan_card', 'profile_photo'].includes(request.fieldName);
 
                         const openDocView = async () => {
-                          setDocViewModal({ open: true, request, oldDocUrl: null, newDocUrl: null, loading: true });
+                          setDocViewModal({
+                            open: true,
+                            request,
+                            oldDocUrl: null,
+                            newDocUrl: null,
+                            oldSlots: null,
+                            newSlots: null,
+                            loading: true,
+                          });
                           try {
                             const playerId = request.playerId || request.player?.id;
                             if (!playerId) throw new Error('No player ID');
+
+                            if (request.fieldName === 'aadhaar') {
+                              let oldSlots = [];
+                              let newSlots = [];
+                              try {
+                                const o = JSON.parse(request.currentValue || '{}');
+                                if (o.aadhaar_front) oldSlots.push({ label: 'Previous — front', url: o.aadhaar_front });
+                                if (o.aadhaar_back) oldSlots.push({ label: 'Previous — back', url: o.aadhaar_back });
+                                if (o.government_id) oldSlots.push({ label: 'Previous — PDF', url: o.government_id });
+                              } catch (_) { /* ignore */ }
+                              try {
+                                const n = JSON.parse(request.requestedValue || '{}');
+                                if (n.mode === 'pdf' && n.government_id) {
+                                  newSlots = [{ label: 'New — PDF', url: n.government_id }];
+                                } else if (n.mode === 'image') {
+                                  if (n.aadhaar_front) newSlots.push({ label: 'New — front', url: n.aadhaar_front });
+                                  if (n.aadhaar_back) newSlots.push({ label: 'New — back', url: n.aadhaar_back });
+                                }
+                              } catch (_) { /* ignore */ }
+                              setDocViewModal({
+                                open: true,
+                                request,
+                                oldDocUrl: oldSlots[0]?.url || null,
+                                newDocUrl: newSlots[0]?.url || null,
+                                oldSlots,
+                                newSlots,
+                                loading: false,
+                              });
+                              return;
+                            }
+
                             const result = await superAdminAPI.getPlayerDocuments(selectedClubId, playerId);
                             const docs = result?.documents || [];
                             const docType = request.fieldName;
@@ -1239,8 +1298,17 @@ export default function UnifiedPlayerManagement({
                               .sort((a, b) => new Date(b.uploadedAt || b.createdAt || 0) - new Date(a.uploadedAt || a.createdAt || 0));
                             const newDoc = matchingDocs[0]?.url || matchingDocs[0]?.fileUrl || null;
                             const oldDoc = matchingDocs[1]?.url || matchingDocs[1]?.fileUrl || null;
-                            const requestedUrl = (request.requestedValue || '').startsWith('http') ? request.requestedValue : null;
-                            setDocViewModal({ open: true, request, oldDocUrl: oldDoc, newDocUrl: newDoc || requestedUrl, loading: false });
+                            let requestedUrl = (request.requestedValue || '').startsWith('http') ? request.requestedValue : null;
+                            const oldFromRequest = (request.currentValue || '').trim().startsWith('http') ? request.currentValue.trim() : null;
+                            setDocViewModal({
+                              open: true,
+                              request,
+                              oldDocUrl: oldFromRequest || oldDoc,
+                              newDocUrl: newDoc || requestedUrl,
+                              oldSlots: null,
+                              newSlots: null,
+                              loading: false,
+                            });
                           } catch (err) {
                             console.error('Failed to load documents:', err);
                             const requestedUrl = (request.requestedValue || '').startsWith('http') ? request.requestedValue : null;
@@ -1634,51 +1702,110 @@ export default function UnifiedPlayerManagement({
                   </h3>
                   {playerDetailsData.documents && playerDetailsData.documents.length > 0 ? (
                     <div className="space-y-6">
-                      {playerDetailsData.documents.map((doc, idx) => {
-                        // Map document types to readable labels
-                        const getDocumentTypeLabel = (type) => {
-                          if (!type) return 'Unknown';
-                          const typeLower = type.toLowerCase();
-                          if (typeLower === 'government_id' || typeLower === 'aadhaar' || typeLower === 'aadhar') {
-                            return 'Aadhaar Card';
-                          }
-                          if (typeLower === 'aadhaar_front' || typeLower === 'aadhar_front') {
-                            return 'Aadhaar Front';
-                          }
-                          if (typeLower === 'aadhaar_back' || typeLower === 'aadhar_back') {
-                            return 'Aadhaar Back';
-                          }
-                          if (typeLower === 'pan_card' || typeLower === 'pan') {
-                            return 'PAN Card';
-                          }
-                          return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
+                      {(() => {
+                        const getNonAadhaarLabel = (type) => {
+                          if (!type) return 'Document';
+                          const t = String(type).toLowerCase();
+                          if (t === 'pan_card' || t === 'pan') return 'PAN Card';
+                          if (t === 'profile_photo' || t === 'photo') return 'Profile Photo';
+                          return String(type).charAt(0).toUpperCase() + String(type).slice(1).replace(/_/g, ' ');
                         };
-
-                        const documentTypeLabel = getDocumentTypeLabel(doc.type || doc.documentType);
-                        const isAadhaar = documentTypeLabel.includes('Aadhaar');
-
+                        const aadhaarTypes = new Set(['government_id', 'aadhaar_front', 'aadhaar_back', 'aadhaar', 'aadhar']);
+                        const raw = playerDetailsData.documents || [];
+                        const aadhaarDocs = [];
+                        const otherDocs = [];
+                        raw.forEach((doc) => {
+                          const t = String(doc.type || doc.documentType || '').toLowerCase();
+                          if (aadhaarTypes.has(t)) aadhaarDocs.push(doc);
+                          else otherDocs.push(doc);
+                        });
+                        const aadhaarSlots = () => {
+                          const by = {};
+                          aadhaarDocs.forEach((d) => {
+                            const k = String(d.type || d.documentType || '').toLowerCase();
+                            by[k] = d;
+                          });
+                          const slots = [];
+                          if (by.government_id) slots.push({ key: 'pdf', label: 'PDF', doc: by.government_id });
+                          if (by.aadhaar_front) slots.push({ key: 'front', label: 'Front', doc: by.aadhaar_front });
+                          if (by.aadhaar_back) slots.push({ key: 'back', label: 'Back', doc: by.aadhaar_back });
+                          return slots;
+                        };
+                        const renderPreview = (doc, altText) => {
+                          const u = doc.url || doc.fileUrl;
+                          if (!u) return null;
+                          return (
+                            <div className="mt-3">
+                              {u.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                <img
+                                  src={u}
+                                  alt={altText}
+                                  className="max-w-full h-auto rounded-lg border border-slate-600 max-h-64"
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                              ) : u.match(/\.pdf($|\?)/i) ? (
+                                <iframe src={u} className="w-full h-64 rounded-lg border border-slate-600" title={altText} />
+                              ) : (
+                                <div className="bg-slate-700 rounded-lg p-4 text-center">
+                                  <p className="text-gray-400 text-sm">Preview not available</p>
+                                  <p className="text-gray-500 text-xs mt-1">Use Preview or Download</p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        };
+                        return (
+                          <>
+                            {aadhaarDocs.length > 0 && (
+                              <div className="bg-slate-700/70 rounded-xl p-6 border-2 border-blue-500/50 shadow-lg shadow-blue-500/10">
+                                <div className="flex items-center gap-3 mb-4">
+                                  <span className="px-4 py-2 rounded-lg text-sm font-bold bg-blue-600/30 text-blue-300 border border-blue-500/50">
+                                    Aadhaar
+                                  </span>
+                                </div>
+                                <div className="space-y-6">
+                                  {aadhaarSlots().map((slot) => {
+                                    const u = slot.doc.url || slot.doc.fileUrl;
+                                    if (!u) return null;
+                                    return (
+                                      <div key={slot.key} className="border border-slate-600/60 rounded-lg p-4">
+                                        <div className="flex justify-between items-start mb-3">
+                                          <span className="text-sm font-medium text-slate-300">{slot.label}</span>
+                                          <div className="flex gap-2">
+                                            <a href={u} target="_blank" rel="noopener noreferrer" className="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg text-xs font-medium">
+                                              Preview
+                                            </a>
+                                            <a href={u} download className="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-lg text-xs font-medium">
+                                              Download
+                                            </a>
+                                          </div>
+                                        </div>
+                                        {slot.doc.uploadedAt && (
+                                          <p className="text-gray-500 text-xs mb-2">
+                                            Uploaded: {new Date(slot.doc.uploadedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                                          </p>
+                                        )}
+                                        {renderPreview(slot.doc, `Aadhaar ${slot.label}`)}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            {otherDocs.map((doc, idx) => {
+                              const documentTypeLabel = getNonAadhaarLabel(doc.type || doc.documentType);
                         return (
                           <div
-                            key={doc.id || idx}
-                            className={`bg-slate-700/70 rounded-xl p-6 border-2 ${isAadhaar
-                              ? 'border-blue-500/50 shadow-lg shadow-blue-500/10'
-                              : 'border-purple-500/50 shadow-lg shadow-purple-500/10'
-                              }`}
-                          >
-                            {/* Document Header */}
+                                  key={doc.id || `o-${idx}`}
+                                  className="bg-slate-700/70 rounded-xl p-6 border-2 border-purple-500/50 shadow-lg shadow-purple-500/10"
+                                >
                             <div className="flex justify-between items-start mb-4">
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-3">
-                                  <span className={`px-4 py-2 rounded-lg text-sm font-bold ${isAadhaar
-                                    ? 'bg-blue-600/30 text-blue-300 border border-blue-500/50'
-                                    : 'bg-purple-600/30 text-purple-300 border border-purple-500/50'
-                                    }`}>
+                                        <span className="px-4 py-2 rounded-lg text-sm font-bold bg-purple-600/30 text-purple-300 border border-purple-500/50">
                                     {documentTypeLabel}
                                   </span>
                                 </div>
-                                <p className="text-white font-semibold text-lg mb-2">
-                                  {doc.name || doc.fileName || `Document ${idx + 1}`}
-                                </p>
                                 {doc.uploadedAt && (
                                   <p className="text-gray-400 text-sm">
                                     📅 Uploaded: {new Date(doc.uploadedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
@@ -1686,63 +1813,27 @@ export default function UnifiedPlayerManagement({
                                 )}
                               </div>
                               <div className="flex gap-2">
-                                {doc.url && (
-                                  <>
-                                    <a
-                                      href={doc.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-md"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                      </svg>
+                                      {(doc.url || doc.fileUrl) && (
+                                        <>
+                                          <a href={doc.url || doc.fileUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-md">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                       Preview
                                     </a>
-                                    <a
-                                      href={doc.url}
-                                      download
-                                      className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-md"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                      </svg>
+                                          <a href={doc.url || doc.fileUrl} download className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-md">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                                       Download
                                     </a>
                                   </>
                                 )}
                               </div>
                             </div>
-
-                            {doc.url && (
-                              <div className="mt-3">
-                                {doc.url.match(/\.(jpg|jpeg|png|gif)$/i) ? (
-                                  <img
-                                    src={doc.url}
-                                    alt={doc.name || 'Document'}
-                                    className="max-w-full h-auto rounded-lg border border-slate-600 max-h-64"
-                                    onError={(e) => {
-                                      e.target.style.display = 'none';
-                                    }}
-                                  />
-                                ) : doc.url.match(/\.pdf$/i) ? (
-                                  <iframe
-                                    src={doc.url}
-                                    className="w-full h-64 rounded-lg border border-slate-600"
-                                    title={doc.name || 'PDF Document'}
-                                  />
-                                ) : (
-                                  <div className="bg-slate-700 rounded-lg p-4 text-center">
-                                    <p className="text-gray-400 text-sm">Preview not available for this file type</p>
-                                    <p className="text-gray-500 text-xs mt-1">Click Preview or Download to view</p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                                  {(doc.url || doc.fileUrl) && renderPreview(doc, documentTypeLabel)}
                           </div>
                         );
                       })}
+                          </>
+                        );
+                      })()}
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -1941,17 +2032,18 @@ export default function UnifiedPlayerManagement({
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-white">
                 Document Comparison — {
-                  docViewModal.request.fieldName === 'government_id'
-                    ? 'Aadhaar (Legacy)'
-                    : docViewModal.request.fieldName === 'aadhaar_front'
-                      ? 'Aadhaar Front'
-                      : docViewModal.request.fieldName === 'aadhaar_back'
-                        ? 'Aadhaar Back'
-                        : 'PAN Card'
+                  {
+                    government_id: 'Aadhaar (Legacy)',
+                    aadhaar: 'Aadhaar (Front & Back)',
+                    aadhaar_front: 'Aadhaar Front',
+                    aadhaar_back: 'Aadhaar Back',
+                    pan_card: 'PAN Card',
+                    profile_photo: 'Profile Photo',
+                  }[docViewModal.request.fieldName] || docViewModal.request.fieldName
                 }
               </h2>
               <button
-                onClick={() => setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, loading: false })}
+                onClick={() => setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, oldSlots: null, newSlots: null, loading: false })}
                 className="text-gray-400 hover:text-white text-2xl"
               >
                 ×
@@ -1983,8 +2075,32 @@ export default function UnifiedPlayerManagement({
                     <span className="w-3 h-3 rounded-full bg-red-500"></span>
                     Old Document
                   </h3>
-                  <div className="bg-slate-700 rounded-lg border border-slate-600 p-4 min-h-[200px] flex items-center justify-center">
-                    {docViewModal.oldDocUrl ? (
+                  <div className="bg-slate-700 rounded-lg border border-slate-600 p-4 min-h-[200px] flex flex-col items-stretch justify-start space-y-4">
+                    {docViewModal.oldSlots && docViewModal.oldSlots.length > 0 ? (
+                      docViewModal.oldSlots.map((slot) => (
+                        <div key={slot.label} className="space-y-2 w-full">
+                          <p className="text-xs text-slate-400 font-medium">{slot.label}</p>
+                          {slot.url ? (
+                            <div className="space-y-2">
+                              <img
+                                src={slot.url}
+                                alt={slot.label}
+                                className="max-w-full max-h-[280px] rounded-lg border border-slate-600 mx-auto object-contain"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                              <a
+                                href={slot.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block text-center text-blue-400 hover:text-blue-300 text-sm underline"
+                              >
+                                Open in new tab
+                              </a>
+                            </div>
+                          ) : null}
+                        </div>
+                      ))
+                    ) : docViewModal.oldDocUrl ? (
                       <div className="space-y-3 w-full">
                         <img
                           src={docViewModal.oldDocUrl}
@@ -2019,8 +2135,32 @@ export default function UnifiedPlayerManagement({
                     <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
                     New Document (Uploaded)
                   </h3>
-                  <div className="bg-slate-700 rounded-lg border border-emerald-600/30 p-4 min-h-[200px] flex items-center justify-center">
-                    {docViewModal.newDocUrl ? (
+                  <div className="bg-slate-700 rounded-lg border border-emerald-600/30 p-4 min-h-[200px] flex flex-col items-stretch justify-start space-y-4">
+                    {docViewModal.newSlots && docViewModal.newSlots.length > 0 ? (
+                      docViewModal.newSlots.map((slot) => (
+                        <div key={slot.label} className="space-y-2 w-full">
+                          <p className="text-xs text-slate-400 font-medium">{slot.label}</p>
+                          {slot.url ? (
+                            <div className="space-y-2">
+                              <img
+                                src={slot.url}
+                                alt={slot.label}
+                                className="max-w-full max-h-[280px] rounded-lg border border-emerald-600/30 mx-auto object-contain"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                              <a
+                                href={slot.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block text-center text-emerald-400 hover:text-emerald-300 text-sm underline"
+                              >
+                                Open in new tab
+                              </a>
+                            </div>
+                          ) : null}
+                        </div>
+                      ))
+                    ) : docViewModal.newDocUrl ? (
                       <div className="space-y-3 w-full">
                         <img
                           src={docViewModal.newDocUrl}
@@ -2054,7 +2194,7 @@ export default function UnifiedPlayerManagement({
             <div className="flex gap-3 mt-6 justify-end">
               <button
                 onClick={() => {
-                  setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, loading: false });
+                  setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, oldSlots: null, newSlots: null, loading: false });
                   approveFieldMutation.mutate({ requestId: docViewModal.request.id });
                 }}
                 disabled={approveFieldMutation.isLoading || docViewModal.loading}
@@ -2064,7 +2204,7 @@ export default function UnifiedPlayerManagement({
               </button>
               <button
                 onClick={() => {
-                  setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, loading: false });
+                  setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, oldSlots: null, newSlots: null, loading: false });
                   setRejectingId(docViewModal.request.id);
                 }}
                 disabled={docViewModal.loading}
@@ -2073,7 +2213,7 @@ export default function UnifiedPlayerManagement({
                 ✗ Reject Change
               </button>
               <button
-                onClick={() => setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, loading: false })}
+                onClick={() => setDocViewModal({ open: false, request: null, oldDocUrl: null, newDocUrl: null, oldSlots: null, newSlots: null, loading: false })}
                 className="bg-slate-700 hover:bg-slate-600 px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors"
               >
                 Close

@@ -630,6 +630,11 @@ function PlayerChatTab({ clubId }) {
       });
       setSessions(result.sessions);
       setTotalPages(result.totalPages);
+      setSelectedSession((prev) => {
+        if (!prev) return prev;
+        const match = result.sessions.find((s) => s.id === prev.id);
+        return match ? { ...prev, ...match } : prev;
+      });
     } catch (error) {
       console.error('Error loading player chat sessions:', error);
     } finally {
@@ -778,6 +783,12 @@ function PlayerChatTab({ clubId }) {
             onClose={() => setSelectedSession(null)}
             isPlayerChat
             onStatusChange={(newStatus) => handleStatusChange(selectedSession.id, newStatus)}
+            onSessionUpdate={(updatedSession) => {
+              setSessions((prev) =>
+                prev.map((s) => (s.id === updatedSession.id ? updatedSession : s)),
+              );
+              setSelectedSession(updatedSession);
+            }}
           />
         ) : (
           <div className="bg-slate-800 rounded-lg p-8 h-full flex items-center justify-center">
@@ -816,7 +827,24 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
   };
 
   const refreshSession = async () => {
-    if (isPlayerChat || !session?.id) return;
+    if (!session?.id) return;
+    if (isPlayerChat) {
+      try {
+        const result = await chatAPI.getPlayerChatSessions(clubId, {
+          page: 1,
+          limit: 100,
+          search: '',
+          status: '',
+        });
+        const updatedSession = result.sessions?.find((s) => s.id === session.id);
+        if (updatedSession && onSessionUpdate) {
+          onSessionUpdate(updatedSession);
+        }
+      } catch (error) {
+        console.error('Error refreshing player chat session:', error);
+      }
+      return;
+    }
     try {
       const result = await chatAPI.getStaffChatSessions(clubId, { page: 1, limit: 100 });
       const updatedSession = result.sessions?.find(s => s.id === session.id);
@@ -1142,6 +1170,9 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
     }
   };
 
+  const playerChatLocked =
+    isPlayerChat && (session.status === 'closed' || session.status === 'resolved');
+
   return (
     <div className="bg-slate-800 rounded-lg flex flex-col h-full min-h-0 max-h-full overflow-hidden">
       {/* Header */}
@@ -1286,18 +1317,27 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
 
       {/* Message Input */}
       <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-700 flex-shrink-0">
+        {playerChatLocked && (
+          <p className="mb-2 text-xs text-amber-200/90">
+            This ticket is {session.status === 'closed' ? 'closed' : 'resolved'} reopen the status above to send messages.
+          </p>
+        )}
         <div className="flex gap-3">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your message..."
+            placeholder={
+              playerChatLocked
+                ? 'Change status to send messages…'
+                : 'Type your message...'
+            }
             className="flex-1 px-4 py-3 bg-slate-700 text-white rounded-lg"
-            disabled={sending}
+            disabled={sending || playerChatLocked}
           />
           <button
             type="submit"
-            disabled={!newMessage.trim() || sending}
+            disabled={!newMessage.trim() || sending || playerChatLocked}
             className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center gap-2"
           >
             <FaPaperPlane />

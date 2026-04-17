@@ -34,12 +34,22 @@ export function useAdminRealtime(clubId) {
       socket.emit('subscribe:club', { clubId: clubKey, userId });
     });
 
-    // Credit requests
+    // Credit requests (approval may post Credit to table while seated — refresh table + balances)
     socket.on('credit:status-changed', () => {
       queryClient.invalidateQueries({ queryKey: ['creditRequests', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['seatedPlayers'] });
+      queryClient.invalidateQueries({ queryKey: ['playerBalance'] });
+      queryClient.invalidateQueries({ queryKey: ['buyout-live-seated-player', clubKey] });
     });
     socket.on('credit:new-request', () => {
       queryClient.invalidateQueries({ queryKey: ['creditRequests', clubKey] });
+    });
+    socket.on('credit:facility-changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['creditRequests', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['creditPlayers', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['clubPlayers', clubKey] });
+      queryClient.invalidateQueries({ queryKey: ['seatedPlayers'] });
+      queryClient.invalidateQueries({ queryKey: ['playerBalance'] });
     });
 
     // Leave applications (pending list, approve tab with filters, employee lists)

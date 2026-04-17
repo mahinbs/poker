@@ -327,25 +327,25 @@ export function PlaytimeTracker({ playerId, gameStatus }) {
     const dynamicCashWindow = session?.tableCashOutWindow || session?.cashOutWindowMinutes || session?.cash_out_window || 2;
 
     switch (session?.sessionPhase) {
-      case 'MINIMUM_PLAY':
+      case 'MINIMUM PLAY':
         return {
           phase: 'Minimum Play Time',
           description: `Must play ${dynamicMinPlay} minutes minimum`,
           timeRemaining: getTimeUntilMinPlay()
         };
-      case 'CALL_TIME_AVAILABLE':
+      case 'CALL TIME AVAILABLE':
         return {
           phase: 'Call Time Available',
           description: 'Can request call time',
           timeRemaining: 0
         };
-      case 'CALL_TIME_ACTIVE':
+      case 'CALL TIME ACTIVE':
         return {
           phase: 'Call Time Active',
           description: `${dynamicCallTime}-minute countdown running`,
           timeRemaining: session?.callTimeRemaining || 0
         };
-      case 'CASH_OUT_WINDOW':
+      case 'CASH OUT WINDOW':
         return {
           phase: 'Cash Out Window',
           description: `${dynamicCashWindow}-minute window to cash out`,

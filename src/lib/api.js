@@ -684,9 +684,12 @@ export const waitlistAPI = {
   /**
    * Unseat player from table
    */
-  unseatPlayerFromTable: async (clubId, entryId) => {
+  unseatPlayerFromTable: async (clubId, entryId, opts = {}) => {
+    const requeue = opts.requeue !== false;
     return await apiRequest(`/clubs/${clubId}/waitlist/${entryId}/unseat`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requeue }),
     });
   },
 
@@ -1974,6 +1977,14 @@ export const superAdminAPI = {
     });
   },
 
+  /** Table Buy Out + credit settlement (not raw Deposit) — staff Process Buy-Out */
+  manualTableBuyOut: async (clubId, body) => {
+    return await apiRequest(`/clubs/${clubId}/manual-table-buy-out`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
   // Credit Management
   getCreditRequests: async (clubId, status = null) => {
     const query = status ? `?status=${status}` : '';
@@ -2006,6 +2017,25 @@ export const superAdminAPI = {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
+  },
+
+  /** Lock (disable) player credit — super admin only; backend enforces zero outstanding + no table credit. */
+  lockCredit: async (clubId, playerId) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}/disable-credit`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  },
+
+  /** Paginated credit-related ledger events (draws, debits, club buy-in, table buy-out, credit-line table buy-in) */
+  getCreditSessionHistory: async (clubId, { q, from, to, page = 1, limit = 10 } = {}) => {
+    const params = new URLSearchParams();
+    if (q) params.append('q', q);
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    params.append('page', String(page));
+    params.append('limit', String(limit));
+    return await apiRequest(`/clubs/${clubId}/credit-session-history?${params.toString()}`);
   },
 
   // VIP Store Management

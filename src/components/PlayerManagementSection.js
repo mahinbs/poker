@@ -1536,11 +1536,20 @@ export default function PlayerManagementSection({
 
                   {selectedPlayerForView.kycDocuments && selectedPlayerForView.kycDocuments.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {selectedPlayerForView.kycDocuments.map((doc, index) => (
+                      {selectedPlayerForView.kycDocuments.map((doc, index) => {
+                        const t = String(doc.type || doc.documentType || '').toLowerCase();
+                        const typeLabel =
+                          t === 'government_id' || t === 'aadhaar' ? 'Aadhaar' :
+                          t === 'aadhaar_front' ? 'Aadhaar — Front' :
+                          t === 'aadhaar_back' ? 'Aadhaar — Back' :
+                          t === 'pan_card' || t === 'pan' ? 'PAN Card' :
+                          t === 'profile_photo' || t === 'photo' ? 'Profile Photo' :
+                          (doc.type || doc.documentType || 'Document').replace(/_/g, ' ');
+                        return (
                         <div key={index} className="bg-slate-600 rounded-lg p-4">
                           <div className="mb-3">
                             <span className="text-gray-300 text-sm font-semibold">
-                              {doc.type || `Document ${index + 1}`}
+                              {typeLabel}
                             </span>
                             {doc.status && (
                               <span className={`ml-2 px-2 py-1 rounded text-xs ${doc.status === 'approved' ? 'bg-green-900 text-green-300' :
@@ -1555,7 +1564,7 @@ export default function PlayerManagementSection({
                             <div className="space-y-2">
                               <img
                                 src={doc.url}
-                                alt={doc.type || 'KYC Document'}
+                                alt={typeLabel}
                                 className="w-full h-48 object-cover rounded"
                                 onError={(e) => {
                                   e.target.onerror = null;
@@ -1582,7 +1591,8 @@ export default function PlayerManagementSection({
                             </p>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-400">

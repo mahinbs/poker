@@ -1,10 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tablesAPI, waitlistAPI, clubsAPI, staffAPI, shiftsAPI, superAdminAPI } from '../../lib/api';
+import { sanitizeTransactionNotesForDisplay } from '../../lib/transactionNotes';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from '../../components/TableBuyOutManagement';
 import RakeCollection from '../../components/RakeCollection';
 import { useTableBuyInOutPending } from '../../hooks/useTableBuyInOutPending';
+
+/** Staff pause removes "Session Started" from notes and keeps Paused Elapsed only. */
+function isStaffSessionPausedNotes(notes) {
+  if (!notes || typeof notes !== 'string') return false;
+  return /Paused Elapsed:\s*\d+/i.test(notes) && !/Session Started:/i.test(notes);
+}
+
+/** Staff session clock exists (aligned with backend tableHasActiveStaffSession: running or mid-pause). */
+function hasStaffTableSessionStarted(notes) {
+  if (!notes || typeof notes !== 'string') return false;
+  return (
+    /Session Started:/i.test(notes) ||
+    /Paused At:/i.test(notes) ||
+    /Paused Elapsed:\s*\d+/i.test(notes)
+  );
+}
+
+function formatTableSessionHms(totalSeconds) {
+  const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+
+/** Table-level staff session elapsed from `notes` only (matches pause/resume backend — no seatedAt fallback). */
+function getTableSessionElapsedSecondsFromNotes(notes, now = new Date()) {
+  if (!notes || typeof notes !== 'string') return 0;
+  if (isStaffSessionPausedNotes(notes)) {
+    const m = notes.match(/Paused Elapsed:\s*(\d+)/i);
+    const v = m ? parseInt(m[1], 10) : 0;
+    return Number.isFinite(v) && v >= 0 ? v : 0;
+  }
+  const startM = notes.match(/Session Started:\s*([^|]+)/i);
+  if (startM?.[1]) {
+    const t = new Date(String(startM[1]).trim());
+    if (Number.isNaN(t.getTime())) return 0;
+    const carryM = notes.match(/Paused Elapsed:\s*(\d+)/i);
+    const carry = carryM ? parseInt(carryM[1], 10) : 0;
+    const c = Number.isFinite(carry) && carry > 0 ? carry : 0;
+    return Math.max(0, Math.floor((now.getTime() - t.getTime()) / 1000) + c);
+  }
+  return 0;
+}
 
 /**
  * Comprehensive Table Management Component for Super Admin
@@ -231,6 +276,11 @@ function LiveTablesView({ selectedClubId, tables, tablesLoading, canManageTables
     (t.status === 'AVAILABLE' || t.status === 'OCCUPIED') &&
     t.tableType !== 'RUMMY'
   );
+  const startedSessionTables = activeTables.filter((t) => hasStaffTableSessionStarted(t.notes));
+  const sessionControlTable =
+    showSessionControl && selectedTableForControl && Array.isArray(tables)
+      ? tables.find((t) => t.id === selectedTableForControl.id) || selectedTableForControl
+      : selectedTableForControl;
 
   // Helper function to extract dealer name from notes
   const getDealerName = (table) => {
@@ -256,8 +306,9 @@ function LiveTablesView({ selectedClubId, tables, tablesLoading, canManageTables
       cashOutWindow: parseInt(cashOutWindow),
       sessionTimeout: parseInt(sessionTimeout),
     });
-    
-    setSessionStatus(table.status === 'OCCUPIED' ? 'Active' : 'Paused');
+
+    // Pause/resume uses table notes, not OCCUPIED vs AVAILABLE (both can be "running").
+    setSessionStatus(isStaffSessionPausedNotes(table.notes) ? 'Paused' : 'Active');
   };
 
   return (
@@ -265,8 +316,8 @@ function LiveTablesView({ selectedClubId, tables, tablesLoading, canManageTables
       {/* Table Session Control Panel */}
       {showSessionControl && selectedTableForControl && (
         <TableSessionControl
-          table={selectedTableForControl}
-          tables={activeTables}
+          table={sessionControlTable}
+          tables={startedSessionTables}
           sessionParams={sessionParams}
           setSessionParams={setSessionParams}
           sessionStatus={sessionStatus}
@@ -291,8 +342,8 @@ function LiveTablesView({ selectedClubId, tables, tablesLoading, canManageTables
             <p className="text-gray-400 text-sm mt-1">Manage live tables, seat players, and handle buy-ins using table hologram.</p>
           </div>
           <div className="bg-slate-700 px-4 py-2 rounded-lg">
-            <div className="text-sm text-gray-300">Active Tables: {activeTables.length}</div>
-            <div className="text-sm text-gray-300">Total Players: {activeTables.reduce((sum, t) => sum + (t.currentSeats || 0), 0)}</div>
+            <div className="text-sm text-gray-300">Live sessions: {startedSessionTables.length}</div>
+            <div className="text-sm text-gray-300">Total Players: {startedSessionTables.reduce((sum, t) => sum + (t.currentSeats || 0), 0)}</div>
           </div>
         </div>
 
@@ -301,15 +352,15 @@ function LiveTablesView({ selectedClubId, tables, tablesLoading, canManageTables
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p>Loading tables...</p>
           </div>
-        ) : activeTables.length === 0 ? (
+        ) : startedSessionTables.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🎲</div>
-            <p className="text-xl text-gray-300">No active tables</p>
-            <p className="text-gray-400 text-sm mt-2">Create and activate tables in Table Management</p>
+            <p className="text-xl text-gray-300">No live sessions</p>
+            <p className="text-gray-400 text-sm mt-2">Start a session from Table Management — only tables with a running or paused session appear here.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activeTables.map((table) => (
+            {startedSessionTables.map((table) => (
               <div
                 key={table.id}
                 className="bg-slate-700 rounded-xl p-5 border border-slate-600 hover:border-blue-500 transition-all cursor-pointer"
@@ -410,6 +461,7 @@ function TableSessionControl({
   const [seatedPlayers, setSeatedPlayers] = useState([]);
   const [settlements, setSettlements] = useState({});
   const [rakeAmount, setRakeAmount] = useState('');
+  const [tableSessionHms, setTableSessionHms] = useState('00:00:00');
 
   // Update selectedClubId when clubId prop changes
   useEffect(() => {
@@ -417,6 +469,23 @@ function TableSessionControl({
       setSelectedClubId(clubId);
     }
   }, [clubId]);
+
+  useEffect(() => {
+    if (!table?.notes) {
+      setSessionStatus('Active');
+      return;
+    }
+    setSessionStatus(isStaffSessionPausedNotes(table.notes) ? 'Paused' : 'Active');
+  }, [table?.id, table?.notes, setSessionStatus]);
+
+  useEffect(() => {
+    if (!table) return;
+    const tick = () =>
+      setTableSessionHms(formatTableSessionHms(getTableSessionElapsedSecondsFromNotes(table.notes)));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [table?.id, table?.notes]);
 
   // Pause session mutation
   const pauseSessionMutation = useMutation({
@@ -486,6 +555,11 @@ function TableSessionControl({
   });
 
   const handlePauseSession = () => {
+    const started = hasStaffTableSessionStarted(table.notes);
+    if (!started) {
+      resumeSessionMutation.mutate();
+      return;
+    }
     if (sessionStatus === 'Active') {
       pauseSessionMutation.mutate();
     } else {
@@ -590,7 +664,12 @@ function TableSessionControl({
         <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
           <h3 className="text-xl font-bold text-white mb-4">Table Sessions</h3>
           <div className="space-y-3">
-            {tables.map((t) => (
+            {tables.length === 0 ? (
+              <p className="text-sm text-gray-400">
+                No tables with a started staff session. Start a session with Resume on a table first.
+              </p>
+            ) : (
+              tables.map((t) => (
               <div
                 key={t.id}
                 onClick={() => onSelectTable(t)}
@@ -606,13 +685,16 @@ function TableSessionControl({
                     <div className="text-sm text-gray-400">{getTableGameType(t)}</div>
                   </div>
                   <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                    t.status === 'OCCUPIED' ? 'bg-green-600/20 text-green-400' : 'bg-yellow-600/20 text-yellow-400'
+                    isStaffSessionPausedNotes(t.notes)
+                      ? 'bg-yellow-600/20 text-yellow-400'
+                      : 'bg-green-600/20 text-green-400'
                   }`}>
-                    {t.status === 'OCCUPIED' ? 'Active' : 'Paused'}
+                    {isStaffSessionPausedNotes(t.notes) ? 'Paused' : 'Running'}
                   </span>
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
 
           {/* Selected Table Details */}
@@ -644,6 +726,11 @@ function TableSessionControl({
             <div className={`text-4xl font-bold ${sessionStatus === 'Active' ? 'text-green-400' : 'text-yellow-400'}`}>
               {sessionStatus}
             </div>
+            <div className="mt-5 rounded-xl bg-slate-900/60 border border-slate-600/80 px-4 py-3 text-center">
+              <div className="text-gray-500 text-xs uppercase tracking-wide">Table session time</div>
+              <div className="text-2xl font-mono font-bold text-white mt-1">{tableSessionHms}</div>
+              <div className="text-xs text-gray-500 mt-1">Same clock as hologram · freezes when paused</div>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -651,8 +738,20 @@ function TableSessionControl({
               onClick={handlePauseSession}
               className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white px-6 py-4 rounded-lg font-bold text-lg transition-all flex items-center justify-center gap-2"
             >
-              <span>{sessionStatus === 'Active' ? '⏸' : '▶'}</span>
-              <span>{sessionStatus === 'Active' ? 'Pause Session' : 'Resume Session'}</span>
+              <span>
+                {!hasStaffTableSessionStarted(table.notes)
+                  ? '▶'
+                  : sessionStatus === 'Active'
+                    ? '⏸'
+                    : '▶'}
+              </span>
+              <span>
+                {!hasStaffTableSessionStarted(table.notes)
+                  ? 'Start Table Session'
+                  : sessionStatus === 'Active'
+                    ? 'Pause Session'
+                    : 'Resume Session'}
+              </span>
             </button>
 
             <button
@@ -894,13 +993,18 @@ function TableSessionControl({
 // ============================================================================
 // Table Hologram Modal Component
 // ============================================================================
-function TableHologramModal({ table, onClose, clubId }) {
+function TableHologramModal({ table: initialTable, onClose, clubId }) {
   const queryClient = useQueryClient();
   const [clubData, setClubData] = useState(null);
   const [sessionTime, setSessionTime] = useState('00:00:00');
   const [seatedPlayersData, setSeatedPlayersData] = useState([]);
   const [activeTab, setActiveTab] = useState('view'); // 'view' or 'history'
   const [tableHistory, setTableHistory] = useState([]);
+  /** Live row (WebSocket merges session notes after pause/resume). */
+  const [table, setTable] = useState(initialTable);
+  useEffect(() => {
+    setTable(initialTable);
+  }, [initialTable]);
   
   // Extract dealer info from table notes
   const getDealerInfo = () => {
@@ -955,8 +1059,20 @@ function TableHologramModal({ table, onClose, clubId }) {
         reconnection: true,
       });
       socket.on('connect', () => socket.emit('subscribe:club', { clubId, userId }));
-      socket.on('table:status-changed', fetchSeatedPlayers);
-      socket.on('tables:updated', fetchSeatedPlayers);
+      socket.on('table:status-changed', (payload) => {
+        if (payload?.table?.id === initialTable.id) {
+          setTable((prev) => ({
+            ...prev,
+            ...payload.table,
+            notes: payload.table?.notes != null ? payload.table.notes : prev.notes,
+          }));
+        }
+        fetchSeatedPlayers();
+      });
+      socket.on('tables:updated', () => {
+        queryClient.invalidateQueries(['tables', clubId]);
+        fetchSeatedPlayers();
+      });
       socket.on('waitlist:status-changed', fetchSeatedPlayers);
       socket.on('waitlist:position-updated', fetchSeatedPlayers);
       socket.on('transaction:new', fetchSeatedPlayers);
@@ -964,7 +1080,7 @@ function TableHologramModal({ table, onClose, clubId }) {
       socket.on('buyin:updated', fetchSeatedPlayers);
       return () => { socket.disconnect(); };
     }
-  }, [clubId, table?.id]);
+  }, [clubId, table?.id, queryClient]);
 
   // Fetch table history (buy-ins and buy-outs)
   useEffect(() => {
@@ -1072,99 +1188,19 @@ function TableHologramModal({ table, onClose, clubId }) {
     }
   }, [clubId]);
 
-  // Session timer - calculate elapsed time if session is active or paused
+  // Session timer — staff notes only (never earliest seatedAt: that caused random resets vs live session).
   useEffect(() => {
     if (!table) {
       setSessionTime('00:00:00');
       return;
     }
-
-    // If paused, show the paused elapsed time
-    if (table.status === 'AVAILABLE' || table.status === 'PAUSED') {
-      const pausedElapsedMatch = table.notes?.match(/Paused Elapsed: (\d+)/);
-      if (pausedElapsedMatch) {
-        const pausedElapsedSeconds = parseInt(pausedElapsedMatch[1], 10);
-        if (!isNaN(pausedElapsedSeconds) && pausedElapsedSeconds >= 0) {
-          const hours = Math.floor(pausedElapsedSeconds / 3600);
-          const minutes = Math.floor((pausedElapsedSeconds % 3600) / 60);
-          const seconds = pausedElapsedSeconds % 60;
-          setSessionTime(
-            `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-          );
-        } else {
-          setSessionTime('00:00:00');
-        }
-      } else {
-        setSessionTime('00:00:00');
-      }
-      return;
-    }
-
-    // If active (OCCUPIED), calculate running time
-    if (table.status !== 'OCCUPIED') {
-      setSessionTime('00:00:00');
-      return;
-    }
-
-    // Try to parse session start time from notes
-    const sessionStartMatch = table.notes?.match(/Session Started: ([^|]+)/);
-    const pausedElapsedMatch = table.notes?.match(/Paused Elapsed: (\d+)/);
-    
-    if (!sessionStartMatch || !sessionStartMatch[1]) {
-      console.warn('No session start time found in notes:', table.notes);
-      setSessionTime('00:00:00');
-      return;
-    }
-
-    const sessionStartTimeStr = sessionStartMatch[1].trim();
-    const sessionStartTime = new Date(sessionStartTimeStr);
-    
-    // Validate date
-    if (isNaN(sessionStartTime.getTime())) {
-      console.error('Invalid session start time:', sessionStartTimeStr, 'Full notes:', table.notes);
-      setSessionTime('00:00:00');
-      return;
-    }
-
-    const pausedElapsedSeconds = pausedElapsedMatch ? parseInt(pausedElapsedMatch[1], 10) : 0;
-    
-    // Validate paused elapsed
-    if (isNaN(pausedElapsedSeconds) || pausedElapsedSeconds < 0) {
-      console.warn('Invalid paused elapsed time, using 0:', pausedElapsedMatch?.[1]);
-      // Continue with 0 instead of returning
-    }
-    
-    const updateTimer = () => {
-      const now = new Date();
-      const elapsedMs = now.getTime() - sessionStartTime.getTime();
-      
-      if (isNaN(elapsedMs)) {
-        setSessionTime('00:00:00');
-        return;
-      }
-      
-      const currentElapsedSeconds = Math.floor(elapsedMs / 1000);
-      const totalElapsedSeconds = currentElapsedSeconds + pausedElapsedSeconds;
-      
-      if (isNaN(totalElapsedSeconds) || totalElapsedSeconds < 0) {
-        setSessionTime('00:00:00');
-        return;
-      }
-      
-      const hours = Math.floor(totalElapsedSeconds / 3600);
-      const minutes = Math.floor((totalElapsedSeconds % 3600) / 60);
-      const seconds = totalElapsedSeconds % 60;
-      
-      setSessionTime(
-        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-      );
+    const tick = () => {
+      setSessionTime(formatTableSessionHms(getTableSessionElapsedSecondsFromNotes(table.notes)));
     };
-
-    updateTimer(); // Initial update
-    const interval = setInterval(updateTimer, 1000); // Update every second
-    
+    tick();
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [table]);
+  }, [table?.id, table?.notes]);
 
   const seats = Array.from({ length: table.maxSeats }, (_, i) => i + 1);
   
@@ -1344,11 +1380,20 @@ function TableHologramModal({ table, onClose, clubId }) {
                 <div className="text-center text-xs text-white mt-1 whitespace-nowrap max-w-[80px] overflow-hidden text-ellipsis">
                   {isOccupied && seatedPlayer ? seatedPlayer.playerName : `Seat ${seatNum}`}
                 </div>
-                {isOccupied && seatedPlayer && seatedPlayer.buyInAmount > 0 && (
-                  <div className="text-center text-[10px] text-yellow-300 bg-slate-800/80 px-1 rounded mt-0.5">
-                    ₹{Number(seatedPlayer.buyInAmount).toLocaleString()}
-                  </div>
-                )}
+                {isOccupied && seatedPlayer && (() => {
+                  const creditTbl = Math.max(0, Number(seatedPlayer.creditOnTableThisSession) || 0);
+                  const cashTbl = Math.max(0, Number(seatedPlayer.cashOnTableThisSession) || 0);
+                  const totalTbl = Math.max(0, Number(seatedPlayer.buyInAmount) || cashTbl + creditTbl);
+                  return (
+                    <div className="text-left text-[9px] leading-snug text-slate-100 bg-slate-900/95 px-2 py-1 rounded mt-0.5 w-[92px] tabular-nums">
+                      <div className="text-emerald-200">Cash ₹{cashTbl.toLocaleString()}</div>
+                      <div className="text-amber-200">Credit ₹{creditTbl.toLocaleString()}</div>
+                      <div className="text-yellow-300 font-semibold border-t border-white/15 mt-0.5 pt-0.5">
+                        Total ₹{totalTbl.toLocaleString()}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
@@ -1370,25 +1415,34 @@ function TableHologramModal({ table, onClose, clubId }) {
           </div>
           <div className="text-center">
             <div className="text-gray-400 text-sm">Status</div>
-            <div className={`font-bold text-xl ${
-              // Treat any table with seated players as Active, otherwise Waiting/other
-              (table.status === 'OCCUPIED' || table.currentSeats > 0) ? 'text-green-400' :
-              table.status === 'AVAILABLE' ? 'text-yellow-400' :
-              'text-gray-400'
-            }`}>
-              {(table.status === 'OCCUPIED' || table.currentSeats > 0)
-                ? 'Active'
-                : table.status === 'AVAILABLE'
-                ? 'Waiting'
-                : table.status}
+            <div
+              className={`font-bold text-xl ${
+                isStaffSessionPausedNotes(table.notes)
+                  ? 'text-yellow-400'
+                  : table.status === 'OCCUPIED' || (table.currentSeats || 0) > 0
+                    ? 'text-green-400'
+                    : table.status === 'AVAILABLE'
+                      ? 'text-yellow-400'
+                      : 'text-gray-400'
+              }`}
+            >
+              {isStaffSessionPausedNotes(table.notes)
+                ? 'Paused'
+                : table.status === 'OCCUPIED' || (table.currentSeats || 0) > 0
+                  ? 'Active'
+                  : table.status === 'AVAILABLE'
+                    ? 'Waiting'
+                    : table.status}
             </div>
           </div>
         </div>
 
-        {/* Session Timer - Show for active or paused sessions */}
-        {(table.status === 'OCCUPIED' || (table.status === 'AVAILABLE' && table.notes?.includes('Paused Elapsed'))) && (
+        {/* Session timer whenever staff session clock exists in notes */}
+        {hasStaffTableSessionStarted(table.notes) && (
           <div className="mt-4 bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-lg text-center">
-            <div className="text-blue-100 text-sm mb-1">SESSION RUNNING TIME</div>
+            <div className="text-blue-100 text-sm mb-1">
+              {isStaffSessionPausedNotes(table.notes) ? 'SESSION PAUSED (TIME)' : 'SESSION RUNNING TIME'}
+            </div>
             <div className="text-white font-bold text-3xl font-mono">{sessionTime}</div>
           </div>
         )}
@@ -1438,7 +1492,8 @@ function TableHologramModal({ table, onClose, clubId }) {
                               </div>
                               <div className="text-sm text-gray-400">
                                 {isBuyIn ? 'Buy-In' : 'Buy-Out'}
-                                {transaction.notes && ` • ${transaction.notes}`}
+                                {transaction.notes &&
+                                  ` • ${sanitizeTransactionNotesForDisplay(transaction.notes)}`}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
                                 {new Date(transaction.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
@@ -2980,44 +3035,50 @@ function TableBuyOutView({ selectedClubId, tables }) {
 
   // Handle buy-out approval
   const handleApproveBuyOut = async () => {
-    if (!selectedPlayer || !buyOutAmount) {
-      toast.error('Please select a player and enter buy-out amount');
+    if (!selectedPlayer) {
+      toast.error('Please select a player');
+      return;
+    }
+    const raw = String(buyOutAmount ?? '').trim();
+    if (raw === '') {
+      toast.error('Enter buy-out amount (use 0 if no chips to return)');
+      return;
+    }
+    const amount = parseFloat(raw);
+    if (isNaN(amount) || amount < 0) {
+      toast.error('Please enter a valid amount (0 or greater)');
       return;
     }
 
-    const amount = parseFloat(buyOutAmount);
-    if (isNaN(amount) || amount <= 0) {
-      toast.error('Please enter a valid amount');
-      return;
-    }
-
-    if (!window.confirm(`Confirm: Add ₹${amount.toLocaleString('en-IN')} to ${selectedPlayer.playerName}'s balance and complete buy-out?`)) {
+    const confirmMsg =
+      amount === 0
+        ? `Confirm: Complete buy-out for ${selectedPlayer.playerName} with ₹0 chip return to wallet? Credit owed will still be settled from the wallet if applicable.`
+        : `Confirm: Add ₹${amount.toLocaleString('en-IN')} to ${selectedPlayer.playerName}'s balance and complete buy-out?`;
+    if (!window.confirm(confirmMsg)) {
       return;
     }
 
     try {
-      // 1. Create buy-out transaction (Deposit) - add money to player's balance
-      await superAdminAPI.createTransaction(selectedClubId, {
-        playerId: selectedPlayer.playerId,
-        playerName: selectedPlayer.playerName,
-        type: 'Deposit',
-        amount: amount,
-        notes: `Buy-out from Table ${tables.find(t => t.id === selectedTableForBuyOut)?.tableNumber || ''}${buyOutReason ? ` - ${buyOutReason}` : ''}`,
-      });
-
-      // 2. Unseat the player from the table
-      const waitlist = await waitlistAPI.getWaitlist(selectedClubId);
-      const playerEntry = waitlist.find(entry => 
-        entry.playerId === selectedPlayer.playerId && 
-        entry.status === 'SEATED' &&
-        entry.tableNumber === tables.find(t => t.id === selectedTableForBuyOut)?.tableNumber
-      );
-      
-      if (playerEntry) {
-        await waitlistAPI.unseatPlayerFromTable(selectedClubId, playerEntry.id);
+      const tableRow = tables.find((t) => t.id === selectedTableForBuyOut);
+      const tableNumber = tableRow?.tableNumber;
+      if (tableNumber == null || Number.isNaN(Number(tableNumber))) {
+        toast.error('Could not resolve table number for buy-out');
+        return;
       }
 
-      toast.success(`Buy-out approved! ₹${amount.toLocaleString('en-IN')} added to ${selectedPlayer.playerName}'s balance`);
+      const result = await superAdminAPI.manualTableBuyOut(selectedClubId, {
+        playerId: selectedPlayer.playerId,
+        tableNumber: Number(tableNumber),
+        amount,
+        reason: buyOutReason || undefined,
+      });
+
+      const creditSettled = result?.creditSettled ?? 0;
+      toast.success(
+        creditSettled > 0
+          ? `Buy-out complete for ${selectedPlayer.playerName}: ₹${amount.toLocaleString('en-IN')} chips to wallet; ₹${Number(creditSettled).toLocaleString('en-IN')} credit settled (wallet may show negative until repaid).`
+          : `Buy-out complete for ${selectedPlayer.playerName}: ₹${amount.toLocaleString('en-IN')} returned to wallet.`,
+      );
       
       // Reset form
       setSelectedPlayer(null);
@@ -3161,19 +3222,57 @@ function TableBuyOutView({ selectedClubId, tables }) {
                           <span className="font-semibold">#{selectedPlayer.seatNumber}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-300">Buy-In Amount:</span>
-                          <span className="font-semibold text-cyan-300">₹{(selectedPlayer.buyInAmount || 0).toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-300">Wallet Balance:</span>
-                          <span className={`font-semibold ${(selectedPlayer.walletBalance || 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                            ₹{(selectedPlayer.walletBalance || 0).toLocaleString()}
+                          <span className="text-gray-300">Cash (on table):</span>
+                          <span className="font-semibold text-emerald-200">
+                            ₹{(Number(selectedPlayer.cashOnTableThisSession) || 0).toLocaleString()}
                           </span>
                         </div>
-                        {(selectedPlayer.totalCredits || 0) > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">Credits Outstanding:</span>
-                            <span className="font-semibold text-yellow-300">₹{(selectedPlayer.totalCredits || 0).toLocaleString()}</span>
+                        <div className="flex justify-between">
+                          <span className="text-gray-300">Credit (on table):</span>
+                          <span className="font-semibold text-amber-200">
+                            ₹{(Number(selectedPlayer.creditOnTableThisSession) || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-t border-white/10 pt-2">
+                          <span className="text-gray-300">Total (chips):</span>
+                          <span className="font-semibold text-cyan-300">
+                            ₹{(Number(selectedPlayer.buyInAmount) || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        {selectedPlayer.creditFacilityEnabled && Number(selectedPlayer.creditLineLimit) > 0 ? (
+                          <>
+                            <div className="flex justify-between">
+                              <span className="text-gray-300">Total credit line:</span>
+                              <span className="font-semibold text-sky-200">
+                                ₹{(Number(selectedPlayer.creditLineLimit) || 0).toLocaleString()}
+                            </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-300">Credit used:</span>
+                              <span className="font-semibold text-rose-300">
+                                ₹{(Number(selectedPlayer.creditLineUsed) || 0).toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-300">Credit on line:</span>
+                              <span className="font-semibold text-amber-200">
+                                ₹{(Number(selectedPlayer.creditLineOnLine) || 0).toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-300">Credit remaining:</span>
+                              <span className="font-semibold text-emerald-300">
+                                ₹{(Number(selectedPlayer.creditLineRemaining) || 0).toLocaleString()}
+                              </span>
+                            </div>
+                          </>
+                        ) : null}
+                        {(Number(selectedPlayer.totalCredits) || 0) !== 0 && (
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-gray-400">Credit ledger net:</span>
+                            <span className="font-medium text-yellow-200/90">
+                              ₹{(Number(selectedPlayer.totalCredits) || 0).toLocaleString()}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -3188,7 +3287,12 @@ function TableBuyOutView({ selectedClubId, tables }) {
                         onChange={(e) => setBuyOutAmount(e.target.value)}
                       />
                       <p className="text-xs text-gray-400 mt-1">
-                        Buy-in: ₹{selectedPlayer?.buyInAmount || 0} | Wallet: ₹{(selectedPlayer?.walletBalance || 0).toLocaleString()}
+                        Cash ₹{Number(selectedPlayer?.cashOnTableThisSession || 0).toLocaleString()} · Credit ₹
+                        {Number(selectedPlayer?.creditOnTableThisSession || 0).toLocaleString()} · Total ₹
+                        {Number(selectedPlayer?.buyInAmount || 0).toLocaleString()}
+                        {selectedPlayer?.creditFacilityEnabled && Number(selectedPlayer?.creditLineLimit) > 0
+                          ? ` · Line cap ₹${Number(selectedPlayer.creditLineLimit).toLocaleString()} (${Number(selectedPlayer.creditLineUsed || 0).toLocaleString()} drawn)`
+                          : ''}
                       </p>
                     </div>
                     <div>
@@ -3203,7 +3307,12 @@ function TableBuyOutView({ selectedClubId, tables }) {
                     </div>
                     <button 
                       onClick={handleApproveBuyOut}
-                      disabled={!selectedPlayer || !buyOutAmount}
+                      disabled={
+                        !selectedPlayer ||
+                        String(buyOutAmount ?? '').trim() === '' ||
+                        isNaN(parseFloat(String(buyOutAmount).trim())) ||
+                        parseFloat(String(buyOutAmount).trim()) < 0
+                      }
                       className="w-full bg-orange-600 hover:bg-orange-500 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-3 rounded-lg font-semibold transition-colors"
                     >
                       Approve Buy-Out
@@ -3435,7 +3544,8 @@ function HistoryView({ selectedClubId, tables }) {
                               </div>
                               <div className="text-sm text-gray-400">
                                 {isBuyIn ? 'Buy-In' : 'Buy-Out'}
-                                {transaction.notes && ` • ${transaction.notes}`}
+                                {transaction.notes &&
+                                  ` • ${sanitizeTransactionNotesForDisplay(transaction.notes)}`}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
                                 {new Date(transaction.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}

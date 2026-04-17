@@ -482,12 +482,21 @@ export default function PlayerManagementHR({ selectedClubId }) {
                   <h3 className="text-purple-400 font-semibold mb-4 text-lg">KYC Documents</h3>
                   {playerDetailsData.documents && playerDetailsData.documents.length > 0 ? (
                     <div className="grid grid-cols-2 gap-4">
-                      {playerDetailsData.documents.map((doc, idx) => (
+                      {playerDetailsData.documents.map((doc, idx) => {
+                        const t = String(doc.type || doc.documentType || '').toLowerCase();
+                        const typeLabel =
+                          t === 'government_id' || t === 'aadhaar' ? 'Aadhaar' :
+                          t === 'aadhaar_front' ? 'Aadhaar — Front' :
+                          t === 'aadhaar_back' ? 'Aadhaar — Back' :
+                          t === 'pan_card' || t === 'pan' ? 'PAN Card' :
+                          t === 'profile_photo' || t === 'photo' ? 'Profile Photo' :
+                          String(doc.type || doc.documentType || 'Document').replace(/_/g, ' ');
+                        return (
                         <div key={idx} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                          <p className="text-gray-300 font-medium mb-2">{doc.type || doc.documentType || 'Document'}</p>
-                          {doc.url && (
+                          <p className="text-gray-300 font-medium mb-2">{typeLabel}</p>
+                          {(doc.url || doc.fileUrl) && (
                             <a
-                              href={doc.url}
+                              href={doc.url || doc.fileUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-400 hover:text-blue-300 text-sm underline"
@@ -501,7 +510,8 @@ export default function PlayerManagementHR({ selectedClubId }) {
                             </p>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-gray-400">No KYC documents available</p>

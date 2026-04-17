@@ -20,17 +20,6 @@ export default function TableBuyOutManagement({ clubId }) {
     enabled: !!clubKey && !!selectedRequest?.playerId && showApproveModal,
   });
 
-  const { data: liveSeatedPlayer } = useQuery({
-    queryKey: ['buyout-live-seated-player', clubKey, selectedRequest?.playerId],
-    queryFn: async () => {
-      const seatedPlayers = await clubsAPI.getSeatedPlayers(clubKey);
-      return Array.isArray(seatedPlayers)
-        ? seatedPlayers.find((p) => String(p?.playerId) === String(selectedRequest?.playerId))
-        : null;
-    },
-    enabled: !!clubKey && !!selectedRequest?.playerId && showApproveModal,
-  });
-
   // Socket.IO: instant updates for buy-out requests
   useEffect(() => {
     if (!clubKey) return;
@@ -156,14 +145,24 @@ export default function TableBuyOutManagement({ clubId }) {
     () => buyOutRequests.filter(isPendingBuyInOutRequest),
     [buyOutRequests]
   );
+  const playerSnapshot = selectedPlayerBalance || {};
   const resolvedTableBalance = Number(
-    liveSeatedPlayer?.buyInAmount ??
-    selectedPlayerBalance?.tableBalance ??
+    playerSnapshot.tableBalance ??
     selectedRequest?.currentTableBalance ??
     0
   );
-  const resolvedCreditOnTable = Number(selectedPlayerBalance?.creditUsedOnTable || 0);
-  const resolvedCashOnTable = Math.max(0, resolvedTableBalance - resolvedCreditOnTable);
+  const resolvedCreditOnTable = Number(playerSnapshot.creditUsedOnTable ?? 0);
+  const resolvedCashOnTable = Number(
+    playerSnapshot.cashOnTable ?? Math.max(0, resolvedTableBalance - resolvedCreditOnTable),
+  );
+  const resolvedWalletBalance = Number(playerSnapshot.availableBalance ?? 0);
+  const resolvedTotalBalance = Number(playerSnapshot.totalBalance ?? (resolvedWalletBalance + resolvedTableBalance));
+  const resolvedCreditLimit = Number(playerSnapshot.creditLimit ?? 0);
+  const resolvedCreditUsed = Number(playerSnapshot.creditRepaidViaWallet ?? 0);
+  const resolvedCreditOnLine = Number(
+    playerSnapshot.creditInAccount ?? playerSnapshot.creditUsed ?? 0,
+  );
+  const resolvedCreditRemaining = Number(playerSnapshot.creditRemaining ?? 0);
 
   return (
     <div className="space-y-6">
@@ -274,6 +273,51 @@ export default function TableBuyOutManagement({ clubId }) {
                     <div className="text-xs text-emerald-200/80">Total Table Balance</div>
                     <div className="text-lg font-bold text-white">
                       ₹{Number(resolvedTableBalance || 0).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Player wallet/credit snapshot - same source as player wallet section */}
+            <div className="bg-violet-900/20 border border-violet-700/50 rounded-lg p-4 mb-4">
+              <div className="text-sm text-violet-100">
+                <p className="font-semibold mb-2">🧾 Player Wallet / Credit Snapshot (exact portal values)</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="bg-slate-800/60 rounded p-3">
+                    <div className="text-xs text-violet-200/80">Available Cash Balance</div>
+                    <div className="text-lg font-bold text-white">
+                      ₹{Number(resolvedWalletBalance || 0).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/60 rounded p-3">
+                    <div className="text-xs text-violet-200/80">Total Balance</div>
+                    <div className="text-lg font-bold text-white">
+                      ₹{Number(resolvedTotalBalance || 0).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/60 rounded p-3">
+                    <div className="text-xs text-violet-200/80">Total Credit</div>
+                    <div className="text-lg font-bold text-white">
+                      ₹{Number(resolvedCreditLimit || 0).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/60 rounded p-3">
+                    <div className="text-xs text-violet-200/80">Credit Used</div>
+                    <div className="text-lg font-bold text-white">
+                      ₹{Number(resolvedCreditUsed || 0).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/60 rounded p-3">
+                    <div className="text-xs text-violet-200/80">Credit On Line</div>
+                    <div className="text-lg font-bold text-white">
+                      ₹{Number(resolvedCreditOnLine || 0).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/60 rounded p-3">
+                    <div className="text-xs text-violet-200/80">Credit Remaining</div>
+                    <div className="text-lg font-bold text-white">
+                      ₹{Number(resolvedCreditRemaining || 0).toLocaleString('en-IN')}
                     </div>
                   </div>
                 </div>
