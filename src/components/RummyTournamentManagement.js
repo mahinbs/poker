@@ -508,16 +508,39 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
       return;
     }
 
-    // Validate all winners have player_id and prize_amount
-    const isValid = winnersForm.every(
-      (w) => w.player_id && w.prize_amount && w.prize_amount > 0
+    const normalizedWinners = winnersForm.map((w) => ({
+      player_id: String(w.player_id || "").trim(),
+      finishing_position: Number(w.finishing_position),
+      prize_amount: Number(w.prize_amount),
+    }));
+
+    // Validate all winners have player_id, valid position, and prize_amount
+    const isValid = normalizedWinners.every(
+      (w) =>
+        !!w.player_id &&
+        Number.isInteger(w.finishing_position) &&
+        w.finishing_position > 0 &&
+        Number.isFinite(w.prize_amount) &&
+        w.prize_amount > 0
     );
     if (!isValid) {
       toast.error("Please fill in all winner details (player and prize amount)");
       return;
     }
 
-    endMutation.mutate({ winners: winnersForm });
+    const uniquePlayerIds = new Set(normalizedWinners.map((w) => w.player_id));
+    if (uniquePlayerIds.size !== normalizedWinners.length) {
+      toast.error("Same player cannot be assigned multiple positions");
+      return;
+    }
+
+    const uniquePositions = new Set(normalizedWinners.map((w) => w.finishing_position));
+    if (uniquePositions.size !== normalizedWinners.length) {
+      toast.error("Each finishing position must be unique");
+      return;
+    }
+
+    endMutation.mutate({ winners: normalizedWinners });
   };
 
   // Handle both array and object response formats
