@@ -22,6 +22,7 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
   const [exitBalance, setExitBalance] = useState("");
   const [exitNotes, setExitNotes] = useState("");
   const [sessionElapsed, setSessionElapsed] = useState(0);
+  const [clockTick, setClockTick] = useState(Date.now());
 
   // Rummy-specific tournament type options
   const rummyVariants = [
@@ -69,10 +70,15 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
     fetchClubLogo();
   }, [selectedClubId]);
 
+  useEffect(() => {
+    const id = setInterval(() => setClockTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   // Fetch tournaments (filter for rummy tournaments)
   const { data: tournamentsData, isLoading: tournamentsLoading } = useQuery({
     queryKey: ["rummy-tournaments", selectedClubId],
-    queryFn: () => tournamentsAPI.getTournaments(selectedClubId),
+    queryFn: () => tournamentsAPI.getTournaments(selectedClubId, { gameType: "rummy" }),
     enabled: !!selectedClubId,
     select: (data) => {
       // API function already extracts tournaments array, so data should be an array
@@ -97,6 +103,8 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
       return response?.players || response || [];
     },
     enabled: !!selectedClubId && !!selectedTournament && (showDetailsModal || showEndModal),
+    staleTime: 0,
+    refetchInterval: (showDetailsModal || showEndModal) ? 10000 : false,
   });
 
   // Fetch tournament winners (if completed)
@@ -280,6 +288,44 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
     return () => { if (interval) clearInterval(interval); };
   }, [tournamentDetails, selectedTournament]);
 
+  const getLateRegistrationInfo = useCallback((tournament) => {
+    if (!tournament) return null;
+    let structure = tournament.structure || {};
+    if (typeof structure === "string") {
+      try {
+        structure = JSON.parse(structure);
+      } catch {
+        structure = {};
+      }
+    }
+    const lateRegistrationMinutes = Number(
+      structure?.late_registration ?? tournament?.late_registration ?? 0,
+    );
+    if (!Number.isFinite(lateRegistrationMinutes) || lateRegistrationMinutes <= 0) return null;
+
+    const startRaw = tournament?.session_started_at || tournament?.start_time;
+    if (!startRaw) return { lateRegistrationMinutes, remainingMs: null, isClosed: false };
+
+    const startMs = new Date(startRaw).getTime();
+    if (!Number.isFinite(startMs)) return { lateRegistrationMinutes, remainingMs: null, isClosed: false };
+
+    const closesAtMs = startMs + lateRegistrationMinutes * 60 * 1000;
+    const remainingMs = closesAtMs - clockTick;
+    return {
+      lateRegistrationMinutes,
+      remainingMs,
+      isClosed: remainingMs <= 0,
+    };
+  }, [clockTick]);
+
+  const formatCountdown = (ms) => {
+    if (!Number.isFinite(ms)) return "--:--";
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  };
+
   const formatSessionTime = useCallback((totalSeconds) => {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -411,8 +457,13 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
   };
 
   const handleCreateTournament = () => {
-    if (!tournamentForm.name || !tournamentForm.entry_fee) {
-      toast.error("Please fill in all required fields");
+    if (!tournamentForm.name || !tournamentForm.entry_fee || !tournamentForm.prize_pool) {
+      toast.error("Name, entry fee, and prize pool are required");
+      return;
+    }
+
+    if (Number(tournamentForm.prize_pool) <= 0) {
+      toast.error("Prize pool must be greater than 0");
       return;
     }
 
@@ -450,8 +501,13 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
   };
 
   const handleUpdateTournament = () => {
-    if (!tournamentForm.name || !tournamentForm.entry_fee) {
-      toast.error("Please fill in all required fields");
+    if (!tournamentForm.name || !tournamentForm.entry_fee || !tournamentForm.prize_pool) {
+      toast.error("Name, entry fee, and prize pool are required");
+      return;
+    }
+
+    if (Number(tournamentForm.prize_pool) <= 0) {
+      toast.error("Prize pool must be greater than 0");
       return;
     }
 
@@ -622,6 +678,20 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
                 {tournament.start_time && (
                   <p>Start: {new Date(tournament.start_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                 )}
+                {(() => {
+                  const info = getLateRegistrationInfo(tournament);
+                  if (!info) return <p className="text-xs text-gray-500">Late registration: disabled</p>;
+                  if (String(tournament.status || "").toLowerCase() !== "active") {
+                    return <p className="text-xs text-amber-300">Late registration window: {info.lateRegistrationMinutes} min after start</p>;
+                  }
+                  return (
+                    <p className={`text-xs font-semibold ${info.isClosed ? "text-red-300" : "text-emerald-300"}`}>
+                      {info.isClosed
+                        ? "Late registration: closed"
+                        : `Late registration left: ${formatCountdown(info.remainingMs)}`}
+                    </p>
+                  );
+                })()}
               </div>
               <div className="mt-4 flex gap-2">
                 <button
@@ -769,14 +839,15 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Prize Pool (₹)</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Prize Pool (₹) *</label>
                   <input
                     type="number"
                     value={tournamentForm.prize_pool}
                     onChange={(e) => setTournamentForm({...tournamentForm, prize_pool: e.target.value})}
                     className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
                     placeholder="0"
-                    min="0"
+                    min="1"
+                    required
                   />
                 </div>
               </div>
@@ -1012,12 +1083,14 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Prize Pool (₹)</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Prize Pool (₹) *</label>
                   <input
                     type="number"
                     value={tournamentForm.prize_pool}
                     onChange={(e) => setTournamentForm({...tournamentForm, prize_pool: e.target.value})}
                     className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    min="1"
+                    required
                   />
                 </div>
               </div>
@@ -1913,8 +1986,8 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-white text-sm mb-1 block">Exit Balance (Amount to credit back)</label>
-                <input type="number" className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-red-500" placeholder="₹0.00 (leave empty if bust)" value={exitBalance} onChange={(e) => setExitBalance(e.target.value)} />
+                <label className="text-white text-sm mb-1 block">Final Wallet Balance After Exit</label>
+                <input type="number" className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-red-500" placeholder="₹0.00 (exact amount player should have after exit)" value={exitBalance} onChange={(e) => setExitBalance(e.target.value)} />
                 <p className="text-xs text-gray-400 mt-1">Leave at 0 or empty if the player went bust.</p>
               </div>
               <div>

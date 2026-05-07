@@ -3357,7 +3357,7 @@ function TableBuyOutView({ selectedClubId, tables }) {
         )}
 
         {activeSubTab === "player-requests" && (
-          <TableBuyOutManagement clubId={selectedClubId} />
+          <TableBuyOutManagement clubId={selectedClubId} gameType="poker" />
         )}
       </div>
     </div>

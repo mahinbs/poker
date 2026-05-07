@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { clubsAPI } from "../lib/api";
+import { clubsAPI, tablesAPI } from "../lib/api";
 import { io as socketIO } from 'socket.io-client';
 import toast from "react-hot-toast";
 import { isPendingBuyInOutRequest } from "../hooks/useTableBuyInOutPending";
 
-export default function TableBuyOutManagement({ clubId }) {
+export default function TableBuyOutManagement({ clubId, gameType = null }) {
   const queryClient = useQueryClient();
   const clubKey = clubId != null ? String(clubId) : null;
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -18,6 +18,15 @@ export default function TableBuyOutManagement({ clubId }) {
     queryKey: ['buyout-player-balance', clubKey, selectedRequest?.playerId],
     queryFn: () => clubsAPI.getPlayerBalance(clubKey, selectedRequest.playerId),
     enabled: !!clubKey && !!selectedRequest?.playerId && showApproveModal,
+  });
+
+  const { data: selectedTableSeatedPlayers = [] } = useQuery({
+    queryKey: ['buyout-seated-players', clubKey, selectedRequest?.tableId],
+    queryFn: async () => {
+      const response = await tablesAPI.getSeatedPlayersForTable(clubKey, selectedRequest.tableId);
+      return response?.seatedPlayers || [];
+    },
+    enabled: !!clubKey && !!selectedRequest?.tableId && showApproveModal,
   });
 
   // Socket.IO: instant updates for buy-out requests
@@ -45,8 +54,8 @@ export default function TableBuyOutManagement({ clubId }) {
 
   // Fetch pending buy-out requests (initial load + fallback)
   const { data: buyOutRequests = [], isLoading, refetch } = useQuery({
-    queryKey: ['buyOutRequests', clubKey],
-    queryFn: () => clubsAPI.getBuyOutRequests(clubKey),
+    queryKey: ['buyOutRequests', clubKey, gameType],
+    queryFn: () => clubsAPI.getBuyOutRequests(clubKey, gameType ? { gameType } : {}),
     enabled: !!clubKey,
   });
 
@@ -146,23 +155,53 @@ export default function TableBuyOutManagement({ clubId }) {
     [buyOutRequests]
   );
   const playerSnapshot = selectedPlayerBalance || {};
+  const seatedPlayerSnapshot = useMemo(
+    () => selectedTableSeatedPlayers.find((p) => p.playerId === selectedRequest?.playerId) || null,
+    [selectedRequest?.playerId, selectedTableSeatedPlayers],
+  );
   const resolvedTableBalance = Number(
+    seatedPlayerSnapshot?.buyInAmount ??
     playerSnapshot.tableBalance ??
     selectedRequest?.currentTableBalance ??
     0
   );
-  const resolvedCreditOnTable = Number(playerSnapshot.creditUsedOnTable ?? 0);
+  const resolvedCreditOnTable = Number(
+    seatedPlayerSnapshot?.creditOnTableThisSession ??
+    playerSnapshot.creditUsedOnTable ??
+    0
+  );
   const resolvedCashOnTable = Number(
-    playerSnapshot.cashOnTable ?? Math.max(0, resolvedTableBalance - resolvedCreditOnTable),
+    seatedPlayerSnapshot?.cashOnTableThisSession ??
+    playerSnapshot.cashOnTable ??
+    Math.max(0, resolvedTableBalance - resolvedCreditOnTable),
   );
-  const resolvedWalletBalance = Number(playerSnapshot.availableBalance ?? 0);
+  const resolvedWalletBalance = Number(
+    seatedPlayerSnapshot?.walletBalance ??
+    playerSnapshot.availableBalance ??
+    0
+  );
   const resolvedTotalBalance = Number(playerSnapshot.totalBalance ?? (resolvedWalletBalance + resolvedTableBalance));
-  const resolvedCreditLimit = Number(playerSnapshot.creditLimit ?? 0);
-  const resolvedCreditUsed = Number(playerSnapshot.creditRepaidViaWallet ?? 0);
-  const resolvedCreditOnLine = Number(
-    playerSnapshot.creditInAccount ?? playerSnapshot.creditUsed ?? 0,
+  const resolvedCreditLimit = Number(
+    seatedPlayerSnapshot?.creditLineLimit ??
+    playerSnapshot.creditLimit ??
+    0
   );
-  const resolvedCreditRemaining = Number(playerSnapshot.creditRemaining ?? 0);
+  const resolvedCreditUsed = Number(
+    seatedPlayerSnapshot?.creditLineUsed ??
+    playerSnapshot.creditRepaidViaWallet ??
+    0
+  );
+  const resolvedCreditOnLine = Number(
+    seatedPlayerSnapshot?.creditLineOnLine ??
+    playerSnapshot.creditInAccount ??
+    playerSnapshot.creditUsed ??
+    0,
+  );
+  const resolvedCreditRemaining = Number(
+    seatedPlayerSnapshot?.creditLineRemaining ??
+    playerSnapshot.creditRemaining ??
+    0
+  );
 
   return (
     <div className="space-y-6">

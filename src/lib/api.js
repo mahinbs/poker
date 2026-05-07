@@ -298,8 +298,13 @@ export const clubsAPI = {
   /**
    * Get buy-out requests
    */
-  getBuyOutRequests: async (clubId) => {
-    const raw = await apiRequest(`/clubs/${clubId}/buyout-requests`, {
+  getBuyOutRequests: async (clubId, queryParams = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(queryParams).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') params.append(k, String(v));
+    });
+    const qs = params.toString();
+    const raw = await apiRequest(`/clubs/${clubId}/buyout-requests${qs ? `?${qs}` : ''}`, {
       clubIdOverride: clubId,
     });
     return normalizeApiListResponse(raw);
@@ -1008,8 +1013,13 @@ export const tournamentsAPI = {
   /**
    * Get all tournaments
    */
-  getTournaments: async (clubId) => {
-    const response = await apiRequest(`/clubs/${clubId}/tournaments`);
+  getTournaments: async (clubId, queryParams = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(queryParams).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') params.append(k, String(v));
+    });
+    const qs = params.toString();
+    const response = await apiRequest(`/clubs/${clubId}/tournaments${qs ? `?${qs}` : ''}`);
     // Handle response structure: { success: true, tournaments: [...] }
     return response?.tournaments || response || [];
   },
