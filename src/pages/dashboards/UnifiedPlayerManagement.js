@@ -668,7 +668,7 @@ export default function UnifiedPlayerManagement({
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">KYC</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Registered</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap min-w-[220px]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700">
@@ -770,6 +770,23 @@ export default function UnifiedPlayerManagement({
                                   title="View or update Tilt ID (Super Admin only)"
                                 >
                                   Tilt ID
+                                </button>
+                              )}
+                              {allowPermanentDelete && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const confirmed = window.confirm(
+                                      `Reset password for ${player.name}? They will be forced to change it on next login.`
+                                    );
+                                    if (!confirmed) return;
+                                    resetPlayerPasswordMutation.mutate(player.id);
+                                  }}
+                                  disabled={resetPlayerPasswordMutation.isPending}
+                                  className="bg-orange-700 hover:bg-orange-600 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 shrink-0"
+                                  title="Reset player password (Super Admin only)"
+                                >
+                                  Reset Pwd
                                 </button>
                               )}
                               {allowPermanentDelete && (
@@ -1866,23 +1883,7 @@ export default function UnifiedPlayerManagement({
               </div>
             )}
 
-            <div className="mt-6 flex justify-between items-center gap-3">
-              {/* Reset Password button - Super Admin / Admin only */}
-              <button
-                onClick={() => {
-                  if (window.confirm(`Reset password for ${selectedPlayerForDetails.name}?\n\nA temporary password will be generated. The player must change it on their next login.`)) {
-                    resetPlayerPasswordMutation.mutate(selectedPlayerForDetails.id);
-                  }
-                }}
-                disabled={resetPlayerPasswordMutation.isPending}
-                className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-3 rounded-lg font-bold text-white transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                </svg>
-                {resetPlayerPasswordMutation.isPending ? 'Resetting...' : 'Reset Password'}
-              </button>
-
+            <div className="mt-6 flex justify-end items-center gap-3">
               <button
                 onClick={() => {
                   setShowPlayerDetailsModal(false);
