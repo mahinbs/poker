@@ -123,6 +123,12 @@ export default function UnifiedPlayerManagement({
     enabled: !!selectedPlayerForDetails && !!selectedClubId && showPlayerDetailsModal,
   });
 
+  const { data: playerLiveBalance } = useQuery({
+    queryKey: ['playerLiveBalance', selectedClubId, selectedPlayerForDetails?.id],
+    queryFn: () => superAdminAPI.getPlayerBalance(selectedClubId, selectedPlayerForDetails.id),
+    enabled: !!selectedPlayerForDetails && !!selectedClubId && showPlayerDetailsModal,
+  });
+
   // Upload Document Mutation (prefer client upload when REACT_APP_SUPABASE_* set – restart dev server after adding .env)
   const uploadDocumentMutation = useMutation({
     mutationFn: async ({ playerId, file, documentType, clubId: payloadClubId }) => {
@@ -1731,7 +1737,23 @@ export default function UnifiedPlayerManagement({
                     </div>
                     <div>
                       <p className="text-gray-400 text-sm mb-1">Balance</p>
-                      <p className="text-white font-medium">₹{playerDetailsData.balance || selectedPlayerForDetails.balance || 0}</p>
+                      {playerLiveBalance ? (
+                        <div className="space-y-1">
+                          <p className="text-white font-medium">₹{Number(playerLiveBalance.availableBalance ?? playerLiveBalance.walletBalance ?? 0).toLocaleString('en-IN')} <span className="text-xs text-gray-400">wallet</span></p>
+                          {Number(playerLiveBalance.tableBalance ?? 0) > 0 && (
+                            <p className="text-orange-400 text-sm">₹{Number(playerLiveBalance.tableBalance).toLocaleString('en-IN')} <span className="text-xs text-gray-400">on table</span></p>
+                          )}
+                          <p className="text-emerald-400 text-xs">Total: ₹{Number(playerLiveBalance.totalBalance ?? (Number(playerLiveBalance.availableBalance ?? 0) + Number(playerLiveBalance.tableBalance ?? 0))).toLocaleString('en-IN')}</p>
+                          {Number(playerLiveBalance.creditLimit ?? 0) > 0 && (
+                            <div className="mt-1 pt-1 border-t border-slate-600 space-y-0.5">
+                              <p className="text-blue-400 text-xs">Credit Limit: ₹{Number(playerLiveBalance.creditLimit).toLocaleString('en-IN')}</p>
+                              <p className="text-xs text-gray-400">Used: ₹{Number(playerLiveBalance.creditUsed ?? 0).toLocaleString('en-IN')} · Remaining: ₹{Number(playerLiveBalance.creditRemaining ?? playerLiveBalance.creditLimit ?? 0).toLocaleString('en-IN')}</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-white font-medium">₹{Number(playerDetailsData.balance || selectedPlayerForDetails.balance || 0).toLocaleString('en-IN')}</p>
+                      )}
                     </div>
                   </div>
                 </div>
