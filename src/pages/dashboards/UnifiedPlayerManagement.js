@@ -74,6 +74,9 @@ export default function UnifiedPlayerManagement({
   });
   const queryClient = useQueryClient();
   const [deletingPlayerId, setDeletingPlayerId] = useState(null);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [resetPasswordResult, setResetPasswordResult] = useState(null); // { tempPassword, playerName, playerEmail }
+  const [copiedTempPassword, setCopiedTempPassword] = useState(false);
 
   // Fetch player details and documents
   const { data: playerDetailsData, isLoading: playerDetailsLoading } = useQuery({
@@ -412,6 +415,21 @@ export default function UnifiedPlayerManagement({
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to reject field update');
+    },
+  });
+
+  // Reset player password mutation
+  const resetPlayerPasswordMutation = useMutation({
+    mutationFn: async (playerId) => {
+      return await superAdminAPI.resetPlayerPassword(selectedClubId, playerId);
+    },
+    onSuccess: (data) => {
+      setResetPasswordResult(data);
+      setShowResetPasswordModal(true);
+      setCopiedTempPassword(false);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to reset player password');
     },
   });
 
@@ -1848,7 +1866,23 @@ export default function UnifiedPlayerManagement({
               </div>
             )}
 
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex justify-between items-center gap-3">
+              {/* Reset Password button - Super Admin / Admin only */}
+              <button
+                onClick={() => {
+                  if (window.confirm(`Reset password for ${selectedPlayerForDetails.name}?\n\nA temporary password will be generated. The player must change it on their next login.`)) {
+                    resetPlayerPasswordMutation.mutate(selectedPlayerForDetails.id);
+                  }
+                }}
+                disabled={resetPlayerPasswordMutation.isPending}
+                className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-3 rounded-lg font-bold text-white transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                {resetPlayerPasswordMutation.isPending ? 'Resetting...' : 'Reset Password'}
+              </button>
+
               <button
                 onClick={() => {
                   setShowPlayerDetailsModal(false);
@@ -1859,6 +1893,72 @@ export default function UnifiedPlayerManagement({
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Player Password — Temp Password Display */}
+      {showResetPasswordModal && resetPasswordResult && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[110] p-4">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-8 max-w-md w-full border-2 border-orange-500 shadow-2xl">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-orange-500/20 rounded-full p-3">
+                <svg className="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-white">Password Reset</h2>
+            </div>
+
+            <div className="bg-slate-800/60 rounded-xl p-5 border border-orange-500/30 mb-6 space-y-3">
+              <div>
+                <p className="text-gray-400 text-sm mb-1">Player</p>
+                <p className="text-white font-semibold">{resetPasswordResult.playerName}</p>
+                <p className="text-gray-400 text-sm">{resetPasswordResult.playerEmail}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm mb-2">Temporary Password</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-orange-300 font-mono text-xl font-bold bg-slate-900 px-4 py-2 rounded-lg border border-orange-500/40 flex-1 select-all">
+                    {resetPasswordResult.tempPassword}
+                  </p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(resetPasswordResult.tempPassword);
+                      setCopiedTempPassword(true);
+                      setTimeout(() => setCopiedTempPassword(false), 2000);
+                    }}
+                    className="bg-slate-700 hover:bg-slate-600 p-2 rounded-lg transition-colors"
+                    title="Copy password"
+                  >
+                    {copiedTempPassword ? (
+                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-4 mb-6">
+              <p className="text-amber-300 text-sm font-medium mb-1">⚠️ Share this password with the player</p>
+              <p className="text-amber-200/70 text-xs">The player will be required to change this password when they next log in. This temporary password is shown only once — copy it now.</p>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowResetPasswordModal(false);
+                setResetPasswordResult(null);
+              }}
+              className="w-full bg-orange-600 hover:bg-orange-500 px-6 py-3 rounded-lg font-bold text-white text-lg transition-colors"
+            >
+              Done
+            </button>
           </div>
         </div>
       )}

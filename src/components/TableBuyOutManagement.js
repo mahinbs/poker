@@ -265,8 +265,9 @@ export default function TableBuyOutManagement({ clubId, gameType = null }) {
 
       {/* Approve Cashout Modal */}
       {showApproveModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 max-w-lg w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-lg w-full mx-4 flex flex-col max-h-[90vh]">
+            <div className="p-6 overflow-y-auto flex-1 min-h-0">
             <h3 className="text-xl font-bold mb-4 text-white">Process Table Cashout</h3>
             
             {/* Player Info */}
@@ -396,8 +397,9 @@ export default function TableBuyOutManagement({ clubId, gameType = null }) {
               </p>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-3">
+            </div>{/* end scrollable area */}
+            {/* Action Buttons — sticky footer */}
+            <div className="flex gap-3 p-4 border-t border-slate-700 shrink-0">
               <button
                 onClick={handleApproveSubmit}
                 disabled={approveMutation.isPending || cashoutAmount === ""}

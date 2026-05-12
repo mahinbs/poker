@@ -1246,6 +1246,17 @@ export const staffAPI = {
   },
 
   /**
+   * Reset player password (super admin / admin only)
+   * Returns a temporary password the admin shares with the player.
+   * Player is forced to change it on next login (mustResetPassword=true).
+   */
+  resetPlayerPassword: async (clubId, playerId) => {
+    return await apiRequest(`/clubs/${clubId}/players/${playerId}/reset-password`, {
+      method: 'POST',
+    });
+  },
+
+  /**
    * Update staff member
    */
   updateStaff: async (clubId, staffId, staffData) => {
