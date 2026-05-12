@@ -971,7 +971,7 @@ function TableHologramModal({ table: initialTable, onClose, clubId }) {
     const fetchTableHistory = async () => {
       if (activeTab !== 'history') return;
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         const userId = localStorage.getItem('userId');
         const tenantId = localStorage.getItem('tenantId');
         const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3333/api'}/clubs/${clubId}/transactions?tableNumber=${table.tableNumber}`, {
@@ -1006,7 +1006,7 @@ function TableHologramModal({ table: initialTable, onClose, clubId }) {
   useEffect(() => {
     const fetchSeatedPlayers = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         const userId = localStorage.getItem('userId');
         const tenantId = localStorage.getItem('tenantId');
         
@@ -1034,7 +1034,7 @@ function TableHologramModal({ table: initialTable, onClose, clubId }) {
 
       // Drive updates via WebSocket — no polling.
       const wsBase = (process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL || 'http://localhost:3333/api').replace(/\/api$/, '');
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
       const userId = localStorage.getItem('userId');
       const { io: socketIO } = require('socket.io-client');
       const socket = socketIO(`${wsBase}/realtime`, {
@@ -1112,7 +1112,7 @@ function TableHologramModal({ table: initialTable, onClose, clubId }) {
   useEffect(() => {
     const fetchClubData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         const userId = localStorage.getItem('userId');
         const tenantId = localStorage.getItem('tenantId');
         

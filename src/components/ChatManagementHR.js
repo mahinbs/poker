@@ -20,7 +20,7 @@ function StaffChatTab({ clubId }) {
 
     // WebSocket for real-time session + message updates
     const wsBase = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api').replace(/\/api$/, '');
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
     const userId = localStorage.getItem('userId');
     const socket = io(`${wsBase}/realtime`, {
       auth: { clubId, userId, token },

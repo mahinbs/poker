@@ -18,7 +18,7 @@ export function useAdminRealtime(clubId) {
     const clubKey = clubId != null && String(clubId).trim() !== '' ? String(clubId).trim() : '';
     if (!clubKey) return;
 
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
     const userId = localStorage.getItem('userId');
 
     const socket = io(`${WEBSOCKET_URL}/realtime`, {

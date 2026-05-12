@@ -249,7 +249,7 @@ function StaffChatTab({ clubId, showNotification }) {
     
     // Set up WebSocket for real-time session updates
     const userId = localStorage.getItem('userId');
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
     if (clubId && userId) {
       const WEBSOCKET_URL = process.env.REACT_APP_WEBSOCKET_URL || process.env.REACT_APP_API_BASE_URL?.replace('/api', '') || 'http://localhost:3333';
       console.log('🔌 Connecting to WebSocket:', `${WEBSOCKET_URL}/realtime`, 'userId:', userId, 'clubId:', clubId);
@@ -581,7 +581,7 @@ function PlayerChatTab({ clubId }) {
     loadSessions();
 
     const userId = localStorage.getItem('userId');
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!clubId || !userId) return;
 
     const WEBSOCKET_URL =
@@ -864,7 +864,7 @@ function ChatWindow({ clubId, session, onClose, isPlayerChat, onStatusChange, on
     }
     // Set up WebSocket for real-time updates
     const userId = localStorage.getItem('userId');
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
     if (clubId && userId) {
       const WEBSOCKET_URL = process.env.REACT_APP_WEBSOCKET_URL || process.env.REACT_APP_API_BASE_URL?.replace('/api', '') || 'http://localhost:3333';
       const socket = io(`${WEBSOCKET_URL}/realtime`, {

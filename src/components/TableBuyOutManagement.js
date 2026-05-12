@@ -33,7 +33,7 @@ export default function TableBuyOutManagement({ clubId, gameType = null }) {
   useEffect(() => {
     if (!clubKey) return;
     const wsBase = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api').replace(/\/api$/, '');
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
     const userId = localStorage.getItem('userId');
     const socket = socketIO(`${wsBase}/realtime`, {
       auth: { clubId: clubKey, userId, token },

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -35,9 +35,47 @@ const queryClient = new QueryClient({
   },
 });
 
+function SessionExpiredOverlay({ onDismiss }) {
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4">
+      <div className="bg-slate-800 border border-slate-600 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
+        <div className="text-5xl mb-4">🔒</div>
+        <h2 className="text-xl font-bold text-white mb-2">Session Expired</h2>
+        <p className="text-gray-400 text-sm mb-6">Your session has timed out. Please log in again to continue.</p>
+        <button
+          onClick={onDismiss}
+          className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-lg transition-colors"
+        >
+          Back to Login
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function App() {
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setSessionExpired(true);
+    window.addEventListener('session:expired', handler);
+    return () => window.removeEventListener('session:expired', handler);
+  }, []);
+
+  const handleSessionDismiss = () => {
+    setSessionExpired(false);
+    // Clear all auth storage
+    ['authToken', 'userId', 'userEmail', 'userRole', 'clubId', 'tenantId',
+     'token', 'user', 'superadminuser'].forEach(k => {
+      localStorage.removeItem(k);
+      sessionStorage.removeItem(k);
+    });
+    window.location.href = '/login';
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
+      {sessionExpired && <SessionExpiredOverlay onDismiss={handleSessionDismiss} />}
       <Router>
         <div className="App">
           <Toaster 

@@ -70,8 +70,12 @@ export const apiRequest = async (endpoint, options = {}) => {
       } catch (e) {
         error = { message: response.statusText || `API Error: ${response.status}` };
       }
-      // For 401 errors, show the actual error message from backend
       if (response.status === 401) {
+        // Login endpoint: surface the backend message (wrong password etc.)
+        const isLoginEndpoint = endpoint.includes('/auth/login');
+        if (!isLoginEndpoint) {
+          window.dispatchEvent(new CustomEvent('session:expired'));
+        }
         throw new Error(error.message || 'Invalid email or password');
       }
       throw new Error(error.message || `API Error: ${response.status}`);

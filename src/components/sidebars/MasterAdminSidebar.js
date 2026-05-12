@@ -390,7 +390,7 @@ export default function MasterAdminSidebar({
                     try {
                       setChangingPassword(true);
                       // Call API to change password
-                      const _maToken = localStorage.getItem('authToken') || localStorage.getItem('token');
+                      const _maToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
                       const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
                         method: 'POST',
                         headers: {

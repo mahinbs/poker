@@ -87,7 +87,7 @@ export default function UnifiedPlayerManagement({
       // Fetch documents
       let documents = [];
       try {
-        const _staffToken = localStorage.getItem('authToken') || localStorage.getItem('token');
+        const _staffToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
         const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3333/api'}/player-documents/my`, {
           headers: {
             ...(_staffToken ? { 'Authorization': `Bearer ${_staffToken}` } : {}),
@@ -138,7 +138,7 @@ export default function UnifiedPlayerManagement({
           upsert: true,
         });
         if (uploadError) throw new Error(uploadError.message || 'Failed to upload to storage');
-        const _staffToken2 = localStorage.getItem('authToken') || localStorage.getItem('token');
+        const _staffToken2 = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
         const recordRes = await fetch(`${apiBase}/player-documents/record`, {
           method: 'POST',
           headers: {
@@ -166,7 +166,7 @@ export default function UnifiedPlayerManagement({
       formData.append('file', file);
       formData.append('type', documentType);
       formData.append('name', file.name);
-      const _staffToken3 = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const _staffToken3 = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
       const response = await fetch(`${apiBase}/player-documents/upload`, {
         method: 'POST',
         headers: {
@@ -685,13 +685,16 @@ export default function UnifiedPlayerManagement({
                           className="hover:bg-slate-750"
                         >
                           <td
-                            className="px-6 py-4 font-medium cursor-pointer"
+                            className="px-6 py-4 cursor-pointer"
                             onClick={() => {
                               setSelectedPlayerForDetails(player);
                               setShowPlayerDetailsModal(true);
                             }}
                           >
-                            {player.name}
+                            <div className="font-medium text-white">{player.name}</div>
+                            {player.nickname && (
+                              <div className="text-xs text-purple-400 mt-0.5">"{player.nickname}"</div>
+                            )}
                           </td>
                           <td className="px-6 py-4 text-gray-400">{player.tiltId || player.playerId || '-'}</td>
                           <td className="px-6 py-4 text-gray-400">{player.email}</td>
@@ -1118,7 +1121,10 @@ export default function UnifiedPlayerManagement({
                     ) : (
                       paginatedPendingPlayers.map((player) => (
                         <tr key={player.id} className="hover:bg-slate-750">
-                          <td className="px-6 py-4 font-medium">{player.name}</td>
+                          <td className="px-6 py-4">
+                            <div className="font-medium text-white">{player.name}</div>
+                            {player.nickname && <div className="text-xs text-purple-400 mt-0.5">"{player.nickname}"</div>}
+                          </td>
                           <td className="px-6 py-4 text-gray-400">{player.email}</td>
                           <td className="px-6 py-4 text-gray-400">{player.phoneNumber || '-'}</td>
                           <td className="px-6 py-4 text-gray-400 text-sm">
@@ -1672,6 +1678,9 @@ export default function UnifiedPlayerManagement({
                     <div>
                       <p className="text-gray-400 text-sm mb-1">Name</p>
                       <p className="text-white font-medium">{playerDetailsData.name || selectedPlayerForDetails.name}</p>
+                      {(playerDetailsData.nickname || selectedPlayerForDetails.nickname) && (
+                        <p className="text-purple-400 text-xs mt-0.5">"{playerDetailsData.nickname || selectedPlayerForDetails.nickname}"</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-gray-400 text-sm mb-1">Email</p>

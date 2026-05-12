@@ -15,7 +15,7 @@ export const useWebSocket = (clubId, userId) => {
 
   useEffect(() => {
     if (!clubId) return;
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('token');
 
     // Create Socket.IO connection
     const socket = io(`${WEBSOCKET_URL}/realtime`, {
