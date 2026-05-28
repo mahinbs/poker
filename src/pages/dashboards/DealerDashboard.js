@@ -67,14 +67,19 @@ export default function DealerDashboard() {
       }
       return response.json();
     },
-    onSuccess: () => {
-      toast.success('Password reset successfully!');
+    onSuccess: (data) => {
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('token', data.token);
+      }
       const updatedUser = { ...user, mustResetPassword: false };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       const updatedStaffUser = { ...staffUser, mustResetPassword: false };
-      localStorage.setItem('staffuser', JSON.stringify(updatedStaffUser));
+      localStorage.setItem('dealeruser', JSON.stringify(updatedStaffUser));
+      toast.success('Password reset successfully!');
       setShowPasswordResetModal(false);
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      window.location.reload();
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to reset password');

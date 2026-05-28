@@ -136,25 +136,26 @@ export default function SuperAdminPortal() {
       }
       return response.json();
     },
-    onSuccess: () => {
-      toast.success('Password reset successfully!');
-
-      // Update localStorage to clear mustResetPassword flag
+    onSuccess: (data) => {
+      // Backend now returns a fresh JWT after password reset — store it so the
+      // user stays logged in without needing to log out and back in.
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('token', data.token);
+      }
+      // Clear mustResetPassword flag in stored user objects
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       user.mustResetPassword = false;
       localStorage.setItem('user', JSON.stringify(user));
-
-      const superAdminUser = JSON.parse(localStorage.getItem('superadminuser') || '{}');
+      const superAdminUser = JSON.parse(localStorage.getItem('super_adminuser') || '{}');
       superAdminUser.mustResetPassword = false;
-      localStorage.setItem('superadminuser', JSON.stringify(superAdminUser));
+      localStorage.setItem('super_adminuser', JSON.stringify(superAdminUser));
 
-      // Close modal and reset form
+      toast.success('Password reset successfully!');
       setShowPasswordResetModal(false);
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      // Reload so all queries re-run with the fresh token
+      window.location.reload();
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to reset password');

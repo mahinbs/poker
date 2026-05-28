@@ -156,25 +156,23 @@ export default function AdminDashboard() {
       }
       return response.json();
     },
-    onSuccess: () => {
-      toast.success('Password reset successfully!');
-
-      // Update localStorage to clear mustResetPassword flag
+    onSuccess: (data) => {
+      // Backend returns a fresh JWT after password reset — store it so user stays logged in
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('token', data.token);
+      }
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       user.mustResetPassword = false;
       localStorage.setItem('user', JSON.stringify(user));
+      const roleUser = JSON.parse(localStorage.getItem('adminuser') || '{}');
+      roleUser.mustResetPassword = false;
+      localStorage.setItem('adminuser', JSON.stringify(roleUser));
 
-      const adminUser = JSON.parse(localStorage.getItem('adminuser') || '{}');
-      adminUser.mustResetPassword = false;
-      localStorage.setItem('adminuser', JSON.stringify(adminUser));
-
-      // Close modal and reset form
+      toast.success('Password reset successfully!');
       setShowPasswordResetModal(false);
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      window.location.reload();
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to reset password');

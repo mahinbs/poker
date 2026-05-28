@@ -45,16 +45,23 @@ export default function HrDashboard() {
       }
       return response.json();
     },
-    onSuccess: () => {
-      toast.success('Password reset successfully!');
+    onSuccess: (data) => {
+      // Backend returns a fresh JWT after password reset — store it so user stays logged in
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('token', data.token);
+      }
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       user.mustResetPassword = false;
       localStorage.setItem('user', JSON.stringify(user));
-      const hrUser = JSON.parse(localStorage.getItem('hruser') || '{}');
-      hrUser.mustResetPassword = false;
-      localStorage.setItem('hruser', JSON.stringify(hrUser));
+      const roleUser = JSON.parse(localStorage.getItem('hruser') || '{}');
+      roleUser.mustResetPassword = false;
+      localStorage.setItem('hruser', JSON.stringify(roleUser));
+
+      toast.success('Password reset successfully!');
       setShowPasswordResetModal(false);
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      window.location.reload();
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to reset password');

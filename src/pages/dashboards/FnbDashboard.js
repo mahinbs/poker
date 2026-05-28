@@ -56,18 +56,23 @@ export default function FnbDashboard() {
       }
       return response.json();
     },
-    onSuccess: () => {
-      toast.success('Password reset successfully!');
+    onSuccess: (data) => {
+      // Backend returns a fresh JWT after password reset — store it so user stays logged in
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('token', data.token);
+      }
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       user.mustResetPassword = false;
       localStorage.setItem('user', JSON.stringify(user));
-      const fnbUser = JSON.parse(localStorage.getItem('fnb_staffuser') || '{}');
-      if (fnbUser.userId) {
-        fnbUser.mustResetPassword = false;
-        localStorage.setItem('fnb_staffuser', JSON.stringify(fnbUser));
-      }
+      const roleUser = JSON.parse(localStorage.getItem('fnbuser') || '{}');
+      roleUser.mustResetPassword = false;
+      localStorage.setItem('fnbuser', JSON.stringify(roleUser));
+
+      toast.success('Password reset successfully!');
       setShowPasswordResetModal(false);
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      window.location.reload();
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to reset password');
