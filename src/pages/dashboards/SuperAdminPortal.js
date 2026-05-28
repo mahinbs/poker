@@ -56,10 +56,12 @@ export default function SuperAdminPortal() {
     }
   }, [navigate]);
 
-  // Load all clubs for this super admin
+  // Load all clubs for this super admin — skip entirely if password reset is pending
+  // (would return 401 and show a false "Error loading clubs" screen)
   const { data: clubs = [], isLoading: clubsLoading, error: clubsError } = useQuery({
     queryKey: ['superAdminClubs'],
     queryFn: superAdminAPI.getClubs,
+    enabled: !showPasswordResetModal,
   });
 
   // Auto-select first club if none selected and clubs are loaded
@@ -272,25 +274,31 @@ export default function SuperAdminPortal() {
     );
   }
 
+  // Show password reset modal over a blank screen — never show error screen when reset is pending
+  if (showPasswordResetModal) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900">
+        {passwordResetModal}
+      </div>
+    );
+  }
+
   // Render error state - NO SIDEBAR
   if (clubsError) {
     return (
-      <>
-        {passwordResetModal}
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 flex items-center justify-center p-8">
-          <div className="bg-slate-800 rounded-xl p-12 text-center border border-red-600 max-w-2xl w-full">
-            <div className="text-red-400 text-6xl mb-4">⚠️</div>
-            <p className="text-xl text-red-400 mb-2">Error loading clubs</p>
-            <p className="text-gray-400 mb-8">{clubsError.message}</p>
-            <button
-              onClick={handleSignOut}
-              className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-            >
-              Sign Out
-            </button>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 flex items-center justify-center p-8">
+        <div className="bg-slate-800 rounded-xl p-12 text-center border border-red-600 max-w-2xl w-full">
+          <div className="text-red-400 text-6xl mb-4">⚠️</div>
+          <p className="text-xl text-red-400 mb-2">Error loading clubs</p>
+          <p className="text-gray-400 mb-8">{clubsError.message}</p>
+          <button
+            onClick={handleSignOut}
+            className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+          >
+            Sign Out
+          </button>
         </div>
-      </>
+      </div>
     );
   }
 
