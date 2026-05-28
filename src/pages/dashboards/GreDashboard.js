@@ -455,6 +455,7 @@ export default function GreDashboard() {
   // Handle sign out
   const handleSignOut = () => {
     localStorage.clear();
+    sessionStorage.clear();
     navigate('/login');
   };
 

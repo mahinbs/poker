@@ -148,7 +148,8 @@ export default function DealerDashboard() {
   ];
 
   const handleSignOut = () => {
-    localStorage.clear()
+    localStorage.clear();
+    sessionStorage.clear();
     navigate("/login");
   };
 

@@ -71,9 +71,10 @@ export const apiRequest = async (endpoint, options = {}) => {
         error = { message: response.statusText || `API Error: ${response.status}` };
       }
       if (response.status === 401) {
-        // Login endpoint: surface the backend message (wrong password etc.)
         const isLoginEndpoint = endpoint.includes('/auth/login');
-        if (!isLoginEndpoint) {
+        const isPasswordResetRequired = (error.message || '').toLowerCase().includes('password reset');
+        // Only fire session:expired for genuine auth expiry — not for password-reset-required
+        if (!isLoginEndpoint && !isPasswordResetRequired) {
           window.dispatchEvent(new CustomEvent('session:expired'));
         }
         throw new Error(error.message || 'Invalid email or password');
@@ -120,6 +121,11 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+
+    // Wipe any previous user's tokens before storing new ones
+    // (prevents stale super_adminuser / master_adminuser etc. from lingering)
+    localStorage.clear();
+    sessionStorage.clear();
 
     // Store auth data
     if (data.user) {
@@ -168,10 +174,8 @@ export const authAPI = {
    * Logout
    */
   logout: () => {
-    Object.values(STORAGE_KEYS).forEach(key => {
-      localStorage.removeItem(key);
-    });
-    localStorage.removeItem('token');
+    localStorage.clear();
+    sessionStorage.clear();
   },
 
   /**

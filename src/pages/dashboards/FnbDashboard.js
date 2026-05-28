@@ -143,7 +143,8 @@ export default function FnbDashboard() {
   ];
 
   const handleSignOut = () => {
-    localStorage.clear()
+    localStorage.clear();
+    sessionStorage.clear();
     navigate("/login");
   };
 

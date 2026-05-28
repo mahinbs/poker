@@ -64,12 +64,10 @@ function App() {
 
   const handleSessionDismiss = () => {
     setSessionExpired(false);
-    // Clear all auth storage
-    ['authToken', 'userId', 'userEmail', 'userRole', 'clubId', 'tenantId',
-     'token', 'user', 'superadminuser'].forEach(k => {
-      localStorage.removeItem(k);
-      sessionStorage.removeItem(k);
-    });
+    // Wipe everything — role-specific keys use dynamic names like
+    // super_adminuser / master_adminuser so a full clear is safest
+    localStorage.clear();
+    sessionStorage.clear();
     window.location.href = '/login';
   };
 

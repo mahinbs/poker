@@ -186,7 +186,8 @@ export default function AffiliateDashboard() {
   ];
 
   const handleSignOut = () => {
-    localStorage.clear()
+    localStorage.clear();
+    sessionStorage.clear();
     navigate("/login");
     };
 

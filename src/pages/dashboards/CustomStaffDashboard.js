@@ -154,6 +154,7 @@ export default function CustomStaffDashboard() {
 
   const handleSignOut = () => {
     localStorage.clear();
+    sessionStorage.clear();
     navigate("/login");
   };
 
