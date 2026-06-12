@@ -381,12 +381,18 @@ export default function MasterAdminDashboard() {
             
             // Get public URL
             finalLogoUrl = await tenantsAPI.getLogoPublicUrl(tenantId, clubId);
+
+            // Persist logo URL to the club record so every consumer (tables,
+            // tournaments, player app branding) sees it.
+            if (finalLogoUrl) {
+              await masterAdminAPI.updateClubDetails(clubId, { logoUrl: finalLogoUrl });
+            }
           } catch (uploadErr) {
             console.error('Logo upload failed:', uploadErr);
             showToast('Club created but logo upload failed', 'error');
           }
         }
-        
+
         // Show success modal
         setSuccessData({
           type: 'tenant-club',
@@ -423,12 +429,18 @@ export default function MasterAdminDashboard() {
             
             // Get public URL
             finalLogoUrl = await tenantsAPI.getLogoPublicUrl(tenantId, clubId);
+
+            // Persist logo URL to the club record so every consumer (tables,
+            // tournaments, player app branding) sees it.
+            if (finalLogoUrl) {
+              await masterAdminAPI.updateClubDetails(clubId, { logoUrl: finalLogoUrl });
+            }
           } catch (uploadErr) {
             console.error('Logo upload failed:', uploadErr);
             showToast('Club created but logo upload failed', 'error');
           }
         }
-        
+
         // Show success modal
         setSuccessData({
           type: 'club',
