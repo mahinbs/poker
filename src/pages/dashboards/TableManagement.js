@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tablesAPI, waitlistAPI, clubsAPI, staffAPI, shiftsAPI, superAdminAPI } from '../../lib/api';
 import { sanitizeTransactionNotesForDisplay } from '../../lib/transactionNotes';
+import { getCachedClubLogo, setCachedClubLogo } from '../../lib/clubLogoCache';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from '../../components/TableBuyOutManagement';
 import RakeCollection from '../../components/RakeCollection';
@@ -995,7 +996,12 @@ function TableSessionControl({
 // ============================================================================
 function TableHologramModal({ table: initialTable, onClose, clubId }) {
   const queryClient = useQueryClient();
-  const [clubData, setClubData] = useState(null);
+  // Seed from localStorage cache so the logo paints on first render — no spade flicker.
+  const [clubData, setClubData] = useState(() => {
+    const cached = getCachedClubLogo(clubId);
+    return cached ? { logoUrl: cached } : null;
+  });
+  const [clubFetched, setClubFetched] = useState(false);
   const [sessionTime, setSessionTime] = useState('00:00:00');
   const [seatedPlayersData, setSeatedPlayersData] = useState([]);
   const [activeTab, setActiveTab] = useState('view'); // 'view' or 'history'
@@ -1176,11 +1182,14 @@ function TableHologramModal({ table: initialTable, onClose, clubId }) {
           const data = await response.json();
 
           setClubData(data);
+          setCachedClubLogo(clubId, data?.logoUrl || null);
         } else {
           console.error('Failed to fetch club data:', response.status, await response.text());
         }
       } catch (error) {
         console.error('Error fetching club data:', error);
+      } finally {
+        setClubFetched(true);
       }
     };
     if (clubId) {
@@ -1305,9 +1314,9 @@ function TableHologramModal({ table: initialTable, onClose, clubId }) {
             <div className="w-24 h-24 bg-white/15 rounded-full border-2 border-white/25 flex items-center justify-center shadow-xl backdrop-blur-sm overflow-hidden">
               {clubLogoUrl ? (
                 <>
-                  <img 
-                    src={clubLogoUrl} 
-                    alt="Club Logo" 
+                  <img
+                    src={clubLogoUrl}
+                    alt="Club Logo"
                     className="w-full h-full object-contain rounded-full p-2"
                     onError={(e) => {
                       e.target.style.display = 'none';
@@ -1317,9 +1326,12 @@ function TableHologramModal({ table: initialTable, onClose, clubId }) {
                   />
                   <div className="logo-fallback text-3xl font-bold text-white/40 hidden items-center justify-center w-full h-full">♠</div>
                 </>
-              ) : (
+              ) : clubFetched ? (
+                // Only show the spade fallback once we've actually confirmed
+                // no logo exists — otherwise the modal flashes the spade for a
+                // frame before the fetch resolves.
                 <div className="text-3xl font-bold text-white/40">♠</div>
-              )}
+              ) : null}
             </div>
           </div>
 

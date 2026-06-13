@@ -5,6 +5,7 @@ import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 import { countPendingClubBuyInCashOutRequests } from '../../hooks/useTableBuyInOutPending';
 import toast from "react-hot-toast";
+import ClubLogoBadge from "./ClubLogoBadge";
 
 const DEFAULT_MENU_ITEMS = [
   "Dashboard",
@@ -270,7 +271,10 @@ export default function CashierSidebar({
       >
         <div className="p-5 h-full flex flex-col min-w-0">
           <div className="mb-6">
-            <div className="pt-11 lg:pt-0 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-300 to-teal-400 drop-shadow-lg mb-6">
+            <div className="pt-11 lg:pt-0">
+              <ClubLogoBadge clubId={clubId} club={club} />
+            </div>
+            <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-300 to-teal-400 drop-shadow-lg mb-6">
               Cashier Portal
             </div>
             <div

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 import toast from "react-hot-toast";
+import ClubLogoBadge from "./ClubLogoBadge";
 
 export default function CustomStaffSidebar({
   activeItem,
@@ -154,6 +155,7 @@ export default function CustomStaffSidebar({
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="p-6 border-b border-slate-700">
+            <ClubLogoBadge clubId={clubId} club={club} />
             <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
               {customRoleName}
             </h1>

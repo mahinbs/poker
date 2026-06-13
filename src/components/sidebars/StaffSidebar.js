@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 import toast from "react-hot-toast";
+import ClubLogoBadge from "./ClubLogoBadge";
 
 export default function StaffSidebar({
   activeItem,
@@ -241,7 +242,10 @@ export default function StaffSidebar({
       >
         <div className="p-3 sm:p-4 md:p-5 h-full flex flex-col min-w-0">
           <div className="mb-4 sm:mb-6">
-            <div className="pt-11 lg:pt-0 text-xl sm:text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-300 to-indigo-400 drop-shadow-lg mb-4 sm:mb-6 break-words">
+            <div className="pt-11 lg:pt-0">
+              <ClubLogoBadge clubId={clubId} club={club} />
+            </div>
+            <div className="text-xl sm:text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-300 to-indigo-400 drop-shadow-lg mb-4 sm:mb-6 break-words">
               Staff Portal
             </div>
             <div

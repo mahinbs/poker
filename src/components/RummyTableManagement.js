@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tablesAPI, waitlistAPI, staffAPI, shiftsAPI, superAdminAPI, clubsAPI } from '../lib/api';
 import { sanitizeTransactionNotesForDisplay } from '../lib/transactionNotes';
+import { getCachedClubLogo, setCachedClubLogo } from '../lib/clubLogoCache';
 import { useRummyTableBuyInOutPending } from '../hooks/useTableBuyInOutPending';
 import toast from 'react-hot-toast';
 import TableBuyOutManagement from './TableBuyOutManagement';
@@ -941,7 +942,12 @@ function TableSessionControl({
 // ============================================================================
 function TableHologramModal({ table: initialTable, onClose, clubId }) {
   const queryClient = useQueryClient();
-  const [clubData, setClubData] = useState(null);
+  // Seed from localStorage cache so the logo paints on first render — no spade flicker.
+  const [clubData, setClubData] = useState(() => {
+    const cached = getCachedClubLogo(clubId);
+    return cached ? { logoUrl: cached } : null;
+  });
+  const [clubFetched, setClubFetched] = useState(false);
   const [sessionTime, setSessionTime] = useState('00:00:00');
   const [seatedPlayersData, setSeatedPlayersData] = useState([]);
   const [activeTab, setActiveTab] = useState('view');
@@ -1128,9 +1134,12 @@ function TableHologramModal({ table: initialTable, onClose, clubId }) {
         if (response.ok) {
           const data = await response.json();
           setClubData(data);
+          setCachedClubLogo(clubId, data?.logoUrl || null);
         }
       } catch (error) {
         console.error('Error fetching club data:', error);
+      } finally {
+        setClubFetched(true);
       }
     };
     if (clubId) {
@@ -1249,9 +1258,9 @@ function TableHologramModal({ table: initialTable, onClose, clubId }) {
                   />
                   <div className="logo-fallback text-3xl font-bold text-white/40 hidden items-center justify-center w-full h-full">🎴</div>
                 </>
-              ) : (
+              ) : clubFetched ? (
                 <div className="text-3xl font-bold text-white/40">🎴</div>
-              )}
+              ) : null}
             </div>
           </div>
 

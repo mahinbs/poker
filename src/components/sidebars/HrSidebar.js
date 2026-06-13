@@ -5,6 +5,7 @@ import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
 import { getLeaveManagementPollIntervalMs } from "../../lib/utils";
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 import toast from "react-hot-toast";
+import ClubLogoBadge from "./ClubLogoBadge";
 
 export default function HrSidebar({
   activeItem,
@@ -232,7 +233,10 @@ export default function HrSidebar({
       >
         <div className="p-5 h-full flex flex-col min-w-0">
           <div className="mb-6">
-            <div className="pt-11 lg:pt-0 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-300 to-rose-400 drop-shadow-lg mb-6">
+            <div className="pt-11 lg:pt-0">
+              <ClubLogoBadge clubId={clubId} club={club} />
+            </div>
+            <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-300 to-rose-400 drop-shadow-lg mb-6">
               HR Portal
             </div>
             <div

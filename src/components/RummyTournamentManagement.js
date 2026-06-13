@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tournamentsAPI, clubsAPI } from "../lib/api";
+import { getCachedClubLogo, setCachedClubLogo } from "../lib/clubLogoCache";
 import toast from "react-hot-toast";
 
 /**
@@ -54,17 +55,25 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
   });
 
   const [winnersForm, setWinnersForm] = useState([]);
-  const [clubLogoUrl, setClubLogoUrl] = useState(null);
+  // Seed from localStorage cache so the logo paints on first render.
+  const [clubLogoUrl, setClubLogoUrl] = useState(() => getCachedClubLogo(selectedClubId));
+  const [clubLogoFetched, setClubLogoFetched] = useState(false);
 
   // Fetch club logo
   useEffect(() => {
     const fetchClubLogo = async () => {
       if (!selectedClubId) return;
+      setClubLogoUrl(getCachedClubLogo(selectedClubId));
+      setClubLogoFetched(false);
       try {
         const clubData = await clubsAPI.getClub(selectedClubId);
-        setClubLogoUrl(clubData?.logoUrl || null);
+        const url = clubData?.logoUrl || null;
+        setClubLogoUrl(url);
+        setCachedClubLogo(selectedClubId, url);
       } catch (error) {
         console.error('Error fetching club logo:', error);
+      } finally {
+        setClubLogoFetched(true);
       }
     };
     fetchClubLogo();
@@ -1382,7 +1391,7 @@ export default function RummyTournamentManagement({ selectedClubId, permissions 
                                 }}
                               />
                             ) : null}
-                            <div className={`text-4xl font-bold text-white/30 ${clubLogoUrl ? 'hidden' : 'flex'} items-center justify-center w-full h-full`}>
+                            <div className={`text-4xl font-bold text-white/30 ${clubLogoUrl || !clubLogoFetched ? 'hidden' : 'flex'} items-center justify-center w-full h-full`}>
                               🎴
                             </div>
                           </div>

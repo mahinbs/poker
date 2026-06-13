@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tournamentsAPI, clubsAPI } from "../lib/api";
+import { getCachedClubLogo, setCachedClubLogo } from "../lib/clubLogoCache";
 import toast from "react-hot-toast";
 import { useWebSocket } from "../hooks/useWebSocket";
 
@@ -24,7 +25,9 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [editingTournament, setEditingTournament] = useState(null);
   const [viewMode, setViewMode] = useState("details"); // 'details' or 'players'
-  const [clubLogoUrl, setClubLogoUrl] = useState(null);
+  // Seed from localStorage cache so the logo paints on the first render.
+  const [clubLogoUrl, setClubLogoUrl] = useState(() => getCachedClubLogo(selectedClubId));
+  const [clubLogoFetched, setClubLogoFetched] = useState(false);
   const [sessionElapsed, setSessionElapsed] = useState(0);
   const [lastAutoBlindLevel, setLastAutoBlindLevel] = useState(null);
   const [clockTick, setClockTick] = useState(Date.now());
@@ -84,11 +87,18 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
   useEffect(() => {
     const fetchClubLogo = async () => {
       if (!selectedClubId) return;
+      // Re-seed from cache when club switches so we don't keep stale logo on screen.
+      setClubLogoUrl(getCachedClubLogo(selectedClubId));
+      setClubLogoFetched(false);
       try {
         const clubData = await clubsAPI.getClub(selectedClubId);
-        setClubLogoUrl(clubData?.logoUrl || null);
+        const url = clubData?.logoUrl || null;
+        setClubLogoUrl(url);
+        setCachedClubLogo(selectedClubId, url);
       } catch (error) {
         console.error('Error fetching club logo:', error);
+      } finally {
+        setClubLogoFetched(true);
       }
     };
     fetchClubLogo();
@@ -2221,7 +2231,7 @@ export default function TournamentManagement({ selectedClubId, permissions = {} 
                                 }}
                               />
                             ) : null}
-                            <div className={`text-4xl font-bold text-white/30 ${clubLogoUrl ? 'hidden' : 'flex'} items-center justify-center w-full h-full`}>
+                            <div className={`text-4xl font-bold text-white/30 ${clubLogoUrl || !clubLogoFetched ? 'hidden' : 'flex'} items-center justify-center w-full h-full`}>
                               ♠
                             </div>
                           </div>

@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { clubsAPI, superAdminAPI, chatAPI, leaveAPI } from "../../lib/api";
 import { useAdminRealtime } from '../../hooks/useAdminRealtime';
 import toast from "react-hot-toast";
+import ClubLogoBadge from "./ClubLogoBadge";
 
 export default function DealerSidebar({
   activeItem,
@@ -268,6 +269,7 @@ export default function DealerSidebar({
       >
         <div className="flex h-full flex-col justify-between">
           <div className="px-6 py-8">
+            <ClubLogoBadge clubId={clubId} club={club} />
             {/* Logo/Title */}
             <div className="text-center mb-10">
               <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">

@@ -11,6 +11,7 @@ import {
 } from '../../hooks/useTableBuyInOutPending';
 import { useFnbPendingOrdersCount } from '../../hooks/useFnbPendingOrdersCount';
 import toast from "react-hot-toast";
+import ClubLogoBadge from "./ClubLogoBadge";
 
 const DEFAULT_MENU_ITEMS = [
   "Dashboard",
@@ -69,6 +70,14 @@ export default function SuperAdminSidebar({
   // Get clubId and fetch unread notification count
   const clubId = selectedClubId || localStorage.getItem('clubId');
   const selectedClub = clubs.find((c) => c.clubId === selectedClubId) || clubs[0];
+
+  // Fetch full club record for the currently selected club so we can show its
+  // logo + canonical name/code in the sidebar badge.
+  const { data: selectedClubFull } = useQuery({
+    queryKey: ['club', clubId],
+    queryFn: () => clubsAPI.getClub(clubId),
+    enabled: !!clubId,
+  });
   const isRummyEnabled = selectedClub?.rummyEnabled || false;
   const isPokerEnabled = selectedClub?.pokerEnabled !== false;
 
@@ -371,7 +380,10 @@ export default function SuperAdminSidebar({
       >
         <div className="p-5 h-full flex flex-col min-w-0">
           <div className="mb-6">
-            <div className="pt-11 lg:pt-0 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-indigo-400 drop-shadow-lg mb-6">
+            <div className="pt-11 lg:pt-0">
+              <ClubLogoBadge clubId={clubId} club={selectedClubFull} />
+            </div>
+            <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-300 to-indigo-400 drop-shadow-lg mb-6">
               Super Admin
             </div>
             <div
